@@ -1,20 +1,11 @@
 local _, ns = ...
 
 --[[
-	What each class actually wears at a given level.
-
-	READ THIS BEFORE ADDING A CLASS TO A ROW. This is not a list of what a class is allowed
-	to receive. It is the single input the priority groups are derived from, and every
-	class is already offered every armor type at or below its own: a warrior is a valid
-	recipient of cloth, he is simply last in line for it.
-
-	  reqLevel 60   WARRIOR  plate g1, mail g2, leather g3, cloth g4
-	                ROGUE    leather g1, cloth g2
-
-	So the fix for "class X should also be able to get Y" is usually nothing. The Class
-	Groups report in the Diagnostic Tools panel prints the whole derived table.
-
-	Deriving rather than listing keeps the pre-40 and post-40 layouts from drifting apart.
+	What each class actually wears at a given level -- the single input the priority groups
+	are derived from, NOT a list of what a class may receive. Every class is already offered
+	every armor type at or below its own: a warrior can receive cloth, he is simply last in
+	line for it, so the fix for "class X should also be able to get Y" is usually nothing.
+	The Class Groups report in the Diagnostic Tools panel prints the whole derived table.
 ]]
 ns.Data.NativeArmor = {
 	PRIEST = function()
@@ -44,16 +35,13 @@ ns.Data.NativeArmor = {
 	PALADIN = function(lvl)
 		return lvl >= 40 and "PLATE" or "MAIL"
 	end,
-	--[[
-		No level gate, deliberately. Death knights start at 55 and the recipient pool is
-		built from /who alone, so gating here guards against a character that cannot exist.
-	]]
+	-- No level gate, deliberately: death knights start at 55, so one would guard a character that cannot exist.
 	DEATHKNIGHT = function()
 		return "PLATE"
 	end,
 }
 
--- Exported: ns.Data.ArmorPriorityFor derives the priority groups by subtracting one from another.
+-- ns.Data.ArmorPriorityFor derives the priority groups by subtracting one weight from another.
 ns.Data.ArmorWeight = { CLOTH = 1, LEATHER = 2, MAIL = 3, PLATE = 4 }
 
 -- Armor subclassID (from GetItemInfoInstant) -> armor type token.
@@ -69,10 +57,9 @@ ns.Data.ArmorSubclass = {
 --[[
 	Equip slots any class can use regardless of armor material: stats alone decide them.
 
-	INVTYPE_HOLDABLE must never be added here. Held off-hands look universal but turn on
-	whether a class has the off-hand slot free, which is slot competition rather than armor
-	material, and adding them here makes an Intellect orb eligible for a warrior. They
-	route through the weapon matrix as "HELD" instead, in Data/Weapon-Priority.lua.
+	INVTYPE_HOLDABLE must never be added. Held off-hands look universal but turn on whether a
+	class has the off-hand slot free, and adding them here makes an Intellect orb eligible for
+	a warrior. They route through the weapon matrix as "HELD", in Data/Weapon-Priority.lua.
 ]]
 ns.Data.UniversalEquipLoc = {
 	INVTYPE_CLOAK = true,

@@ -3,17 +3,19 @@ local L = ns.L
 
 local GetColor = ns.GetColor
 
---[[
-	Every message the add-on emits. Player-only: it prints to the sender and mails items, never
-	group or whisper chat, so there is no target marker and no Announce helpers.
-]]
+-- Every message the add-on emits. Player-only: no target marker and no Announce helpers.
 
 --------------------------------------------------------------------------------
 -- Print Outs (Player Only)
 --------------------------------------------------------------------------------
 
+--[[
+	ONE PRINT, ONE BODY COLOR, AND IT IS TEXT. There is no PrintWarning: the palette has no warning
+	role, and a whole chat line of gold reads as shouting. Urgency is the copy's job -- a message
+	that needs the player to do something says what to do in its first clause.
+]]
 -- Format: |cff[INFO]Add-on Name|r |cff[SEPARATOR]//|r |cff[TEXT]Message|r
-local function Emit(bodyColor, message)
+function ns:PrintMessage(message)
 	print(
 		GetColor("INFO")
 			.. L["ADDON_TITLE"]
@@ -21,20 +23,8 @@ local function Emit(bodyColor, message)
 			.. GetColor("SEPARATOR")
 			.. "//"
 			.. "|r "
-			.. bodyColor
+			.. GetColor("TEXT")
 			.. tostring(message)
 			.. "|r"
 	)
-end
-
-function ns:PrintMessage(message)
-	Emit(GetColor("TEXT"), message)
-end
-
---[[
-	Gold body for the mail run's operational warnings. The palette has no warning role, so TITLE
-	carries the attention weight.
-]]
-function ns:PrintWarning(message)
-	Emit(GetColor("TITLE"), message)
 end

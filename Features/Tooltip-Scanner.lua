@@ -4,14 +4,11 @@ ns.Tooltip = {}
 local Tooltip = ns.Tooltip
 
 --[[
-	Why this file exists. GetItemStats resolves the base item and ignores the random-suffix
-	half of a link ("of the Eagle", "of the Owl"). Levelling greens carry all their stats in
-	that suffix, so GetItemStats returns an empty table, the scorer sees a statless item, and
-	every rolled green lands in the vendor pile. The tooltip renders the item as the player
-	sees it, suffix included, so stats are read from there instead.
-
-	Where a read came from travels with its result, never parked on this table: a field
-	meaning "the most recent call" is only true for a caller that reads it immediately.
+	Why this file exists. GetItemStats resolves the base item and ignores the random-suffix half of
+	a link ("of the Eagle"), so a levelling green -- which carries all its stats in that suffix --
+	comes back statless and lands in the vendor pile. The tooltip renders the item as the player
+	sees it, suffix included. Where a read came from travels with its result rather than being
+	parked on this table: a "most recent call" field is only true for a caller reading it at once.
 ]]
 local scanner
 local function getScanner()
@@ -24,9 +21,8 @@ local function getScanner()
 end
 
 --[[
-	An item's tooltip as a list of left-hand text lines. Both paths are live: C_TooltipInfo is
-	the data API where it exists, but Classic Era 1.15.8 has no C_TooltipInfo.GetHyperlink, so
-	the scanning tooltip below is the only path there and is not a legacy leftover.
+	An item's tooltip as a list of left-hand text lines. Both paths are live: Classic Era 1.15.8
+	has no C_TooltipInfo.GetHyperlink, so the scanning tooltip below is not a legacy leftover.
 ]]
 local function tooltipLines(link)
 	if C_TooltipInfo and C_TooltipInfo.GetHyperlink then
@@ -40,9 +36,8 @@ local function tooltipLines(link)
 				end
 			end
 			--[[
-				Require actual text, not just line objects: with SurfaceArgs missing every
-				leftText is nil, and counting lines would "succeed" on empty strings, scoring
-				the item zero and never falling through to the scanning tooltip below.
+				Require actual text, not just line objects: with SurfaceArgs missing every leftText
+				is nil, so counting lines would "succeed" empty and never fall through below.
 			]]
 			local out, anyText = {}, false
 			for _, line in ipairs(data.lines or {}) do
@@ -64,10 +59,7 @@ local function tooltipLines(link)
 		return {}, "none"
 	end
 
-	--[[
-		Same requirement as above: a scanning tooltip can report a line count while every font
-		string is empty, and claiming success makes a read failure look like a statless item.
-	]]
+	-- Same requirement as above: a line count with every font string empty is not a read.
 	local out, anyText = {}, false
 	for i = 1, tip:NumLines() do
 		local fs = _G["PlayItForwardScanTooltipTextLeft" .. i]
@@ -81,20 +73,16 @@ local function tooltipLines(link)
 end
 
 --[[
-	Localized stat name ("Intellect") to the internal token, for a "+N Something" line.
-
-	DERIVED FROM Data/Stat-Map.lua, NOT LISTED HERE. Naming stats by hand means every other
-	stat the client writes as "+N Something" falls through, and the equip patterns below only
-	match the "increases ... by N" wording, so "+26 Attack Power" would read as nothing.
-	Deriving also keeps this locale-safe, which the fallback below is not.
+	Localized stat name ("Intellect") to the internal token, for a "+N Something" line. DERIVED
+	FROM Data/Stat-Map.lua, NOT LISTED HERE: naming stats by hand drops every other "+N Something"
+	the client writes, since the equip patterns below only match the "increases ... by N" wording.
 ]]
 local STAT_BY_NAME
 
 --[[
-	English names for what the client has no global for, and a floor under the derived table.
-	Not just a safety net: vanilla renders a random-suffix school roll as "+6 Nature Spell
-	Damage" with no ITEM_MOD_ global behind it, so the name is hardcoded or the line is
-	unreadable. A non-English client misses these rather than misreading them.
+	English names for what the client has no global for. Vanilla renders a random-suffix school
+	roll as "+6 Nature Spell Damage" with no ITEM_MOD_ global behind it, so the name is hardcoded
+	or the line is unreadable. A non-English client misses these rather than misreading them.
 ]]
 local ENUS_FALLBACK = {
 	strength = "STRENGTH",
@@ -133,13 +121,10 @@ end
 
 --[[
 	"Equip: ..." lines, English clients only, and a scope decision rather than an oversight:
-	vanilla builds these from spell text rather than the ITEM_MOD_* globals, so every locale
-	would need its own pattern set. The consequence is bounded -- plain "+9 Intellect" still
-	parses anywhere, so only a stat worded as an equip effect is missed and the item scores
-	off its remaining stats rather than scoring wrongly.
-
-	ORDER MATTERS: the more specific pattern must win, which is why spell crit precedes crit.
-	Per-school lines are distinct stats pre-Wrath and none has a GetItemStats key.
+	vanilla builds these from spell text rather than the ITEM_MOD_* globals, so every locale would
+	need its own pattern set. Plain "+9 Intellect" still parses anywhere, so an item misses a stat
+	rather than scoring wrongly. ORDER MATTERS: the more specific pattern must win, which is why
+	spell crit precedes crit.
 ]]
 
 -- Read once: the locale cannot change without a restart, which reloads this file anyway.
@@ -161,10 +146,7 @@ end
 local EQUIP_PATTERNS = {
 	{ "ranged attack power by (%d+)", "RANGED_AP" },
 	{ "attack power by (%d+)", "ATTACK_POWER" },
-	--[[
-		Must precede the school pattern. This line reads "damage and healing done by",
-		so it never contains the literal "damage done by" the school pattern needs.
-	]]
+	-- Must precede the school pattern: this line reads "damage and healing done by".
 	{ "damage and healing done by magical spells.-by up to (%d+)", "SPELL_POWER" },
 	{ "healing done by spells and effects by up to (%d+)", "HEALING" },
 	{ "damage done by (%a+) spells and effects by up to (%d+)", schoolDamage },
@@ -176,8 +158,8 @@ local EQUIP_PATTERNS = {
 	{ "defense by (%d+)", "DEFENSE" },
 	--[[
 		Vanilla spells the target out -- "chance to block attacks with a shield by 1%" -- so
-		"chance to block by" matches nothing. The non-greedy span absorbs the wording between
-		verb and number, and cannot over-reach because no tooltip line names two stats.
+		"chance to block by" matches nothing. The non-greedy span cannot over-reach, since no
+		tooltip line names two stats.
 	]]
 	{ "chance to block.-by (%d+)", "BLOCK" },
 	{ "chance to dodge.-by (%d+)", "DODGE" },
@@ -204,20 +186,14 @@ local function cleanLine(text)
 	if not text or text == "" then
 		return ""
 	end
-	--[[
-		Matched on shape, not the literal |cffffffff: the closing |r would otherwise survive
-		into the stat name and turn "Intellect" into "Intellect|r", matching no entry.
-	]]
+	-- Matched on shape: a surviving |r turns "Intellect" into "Intellect|r", matching no entry.
 	text = text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
 	-- The trailing newline is part of the wrapped form and survives GetText.
 	text = text:gsub("[\r\n]", " ")
 	return strtrim(text)
 end
 
---[[
-	Pure: no tooltip, no item cache, no client state, so the Diagnostic Tools API report can
-	feed it both of Blizzard's line formats and fail loudly if either stops parsing.
-]]
+-- Pure: no tooltip, no item cache, no client state, so the API report can feed it either format.
 function Tooltip:StatsFromLines(lines)
 	local out, unread = {}, {}
 	local names = statNames()
@@ -252,10 +228,9 @@ function Tooltip:StatsFromLines(lines)
 			end
 
 			--[[
-				A "+N Something" line is a stat line whatever the Something is, so one resolving
-				to nothing is a gap in the name table. Handed back verbatim for the Item Verdict
-				report. Only the "+N" shape counts: every tooltip carries prose, and reporting
-				all of it as unread would bury the one line that matters.
+				A "+N Something" that resolves to nothing is a gap in the name table, handed back
+				for the Item Verdict report. Only that shape counts: reporting every prose line as
+				unread would bury the one that matters.
 			]]
 			if amount and not read then
 				unread[#unread + 1] = text
@@ -266,11 +241,10 @@ function Tooltip:StatsFromLines(lines)
 end
 
 --[[
-	One item's stats off its rendered tooltip: the tokens, the source, and the raw lines as
-	one result. The lines come back because "returned text and none of it parsed" and
-	"returned nothing" are different failures with the same symptom -- the source reads
-	"scanning tooltip" for both -- and only a caller holding the lines can tell them apart,
-	and only now, since the scanning tooltip is reused for the next item.
+	One item's stats off its rendered tooltip: tokens, source and raw lines in one result. The
+	lines come back because "returned text that did not parse" and "returned nothing" are
+	different failures with the same symptom, and the scanning tooltip is reused for the next
+	item, so now is the only time a caller can tell them apart.
 ]]
 function Tooltip:Stats(link)
 	if not link then

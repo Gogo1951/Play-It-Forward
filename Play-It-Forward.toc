@@ -1,5 +1,5 @@
 ## Title: Play It Forward
-## Notes: Mail the gear and consumables you've outgrown to strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
+## Notes: Mail the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
 ## Author: Gogo1951
 
 ## Category-enUS: Other
@@ -63,6 +63,7 @@ Features/Tooltip-Scanner.lua
 Features/Bag-Scanner.lua
 Features/Matching-Engine.lua
 Features/Recipient-Search.lua
+Features/Guild-Roster.lua
 Features/Recipient-Cooldown.lua
 Features/Mail-Sender.lua
 Features/Recipient-Picker.lua

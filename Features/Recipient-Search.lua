@@ -23,17 +23,16 @@ local function flavorColumn()
 end
 
 --[[
-	Every zone worth asking about for a level band, best first. Ordering decides how many
-	presses the search takes. Three keys:
+	Every zone worth asking about for a level band, best first. Ordering decides how many presses
+	the search takes. Three keys:
 
 	  overlap    how much of the band the zone covers
-	  centrality how close the band sits to the middle of the zone's range -- a level at the
-	             edge is one people pass through, the middle is where they sit and quest.
-	             This is what puts a Horde 21-22 search in the Barrens first.
+	  centrality how close the band sits to the middle of the zone's range -- the edge is where
+	             people pass through, the middle is where they sit and quest. This is what puts
+	             a Horde 21-22 search in the Barrens first.
 	  width      narrower zone first among equals, for the same reason
 
-	Popularity is deliberately not a key: there is no honest way to rank it from this table,
-	and an invented number would look like the three real measurements. Levels come back
+	Popularity is not a key: there is no honest way to rank it from this table. Levels come back
 	clipped to the overlap, so the query asks only what that zone can answer for.
 ]]
 function ns.Data.ZonesFor(lo, hi)
@@ -88,13 +87,10 @@ end
 	they go out by level band, with results sorted into classes here, since one query per class
 	would mean nine presses.
 
-	QUERIES GO OUT BY ZONE, AND ONE MATCH ENDS THE SEARCH. A bare `/who 21-22` comes back at
-	the server's 50-result cap on a connected cluster, and what it holds is mostly people
-	standing in a capital. Adding `z-"Redridge Mountains"` fixes both: people out in the world
-	at that level, and few enough that the cap stops mattering.
-
-	One level-21 mage can receive the cloak as well as forty can, so the search stops at the
-	first viable candidate per item and Mail-Window clears the plan once nothing is unmatched.
+	They also go out by zone. A bare `/who 21-22` comes back at the server's 50-result cap on a
+	connected cluster, mostly people standing in a capital; adding `z-"Redridge Mountains"` fixes
+	both. One level-21 mage can receive the cloak as well as forty can, so the search stops at the
+	first viable candidate per item.
 ]]
 
 --[[
@@ -116,27 +112,20 @@ local RESULT_TIMEOUT = 6 -- give up on a query that never answers (i.e. was bloc
 local SUPPRESS_WHO_UI = true
 local WHO_THROTTLE = 5
 
---[[
-	Exposed because Mail-Window locks its button for exactly this long: a button that re-enables
-	early offers a press that does nothing.
-]]
+-- Mail-Window locks its button for exactly this long; re-enabling early offers a dead press.
 Who.THROTTLE = WHO_THROTTLE
 
---[[
-	/who is sent as chat text, and past the limit the query is not answered rather than
-	truncated, so this is a hard stop and the zone list is chunked to fit under it.
-]]
+-- /who is chat text: past the limit it is not answered at all, so the zone list is chunked.
 local FILTER_MAX = 240
 Who.FILTER_MAX = FILTER_MAX
 
 --[[
-	Attempts still to make, one per press. /who ORs repeated filters of the same kind, so a
-	level range, its zones and its classes are all one query:
+	Attempts still to make, one per press. /who ORs repeated filters of the same kind, so a level
+	range, its zones and its classes are all one query:
 
 	  16-19 z-"Westfall" z-"Loch Modan" z-"Duskwood" c-"Warrior" c-"Paladin"
 
-	The class half matters as much as the zone half: without it, half of a capped answer is
-	people who cannot receive anything in the bag.
+	Without the class half, half of a capped answer is people who cannot receive anything.
 ]]
 local plan = {}
 local planned = 0
@@ -181,12 +170,12 @@ local function classLabel(names)
 end
 
 --[[
-	The readable form of a query, for the roster report. Read from ns.DiagnosticsStrings at call
-	time rather than aliased at file scope, because Features/Diagnostics.lua loads after this
-	one.
+	The readable form of a query, for the roster report. ns.DiagnosticsStrings is read at call
+	time rather than aliased at file scope, because Features/Diagnostics.lua loads after this one.
 ]]
-local function newAttempt(lo, hi, zones, classPart, classNames)
+local function newAttempt(lo, hi, zones, classes)
 	local D = ns.DiagnosticsStrings
+	local classPart, classNames = classFilter(classes)
 	local levels = ("%d-%d"):format(lo, hi)
 	local query = levels
 	local label
@@ -211,19 +200,20 @@ local function newAttempt(lo, hi, zones, classPart, classNames)
 		end
 	end
 
-	return { query = query, label = label, lo = lo, hi = hi }
+	--[[
+		The ingredients travel with the built strings. Who:Prune narrows the class half after an
+		assignment and rebuilds from these, rather than parsing a finished query back apart.
+	]]
+	return { query = query, label = label, lo = lo, hi = hi, zones = zones, classes = classes or {} }
 end
 
 --[[
-	Session totals for the roster report; Who:Clear leaves them alone so the report still has
-	them after a plan finishes.
-
-	connectedRealm counts results carrying a "-Realm" suffix. They are KEPT: every Classic Era
-	and TBC realm is connected and anyone in a /who result can be mailed, so the suffix says
-	nothing about reachability. capped counts queries that came back at the full cap, which is
-	the difference between a thin realm and a thin sample.
+	Session totals for the roster report; Who:Clear leaves them alone so the report still has them
+	after a plan finishes. connectedRealm counts results carrying a "-Realm" suffix, and they are
+	KEPT: every Classic Era and TBC realm is connected, so anyone in a /who result can be mailed.
+	capped counts queries that came back at the full cap -- a thin realm against a thin sample.
 ]]
-local counts = { seen = 0, connectedRealm = 0, unknownClass = 0, capped = 0 }
+local counts = { seen = 0, connectedRealm = 0, unknownClass = 0, capped = 0, pruned = 0 }
 
 function Who:ResultStats()
 	return counts
@@ -264,12 +254,10 @@ local function parseResults()
 end
 
 --[[
-	Routing and hiding are two jobs, and only routing is SetWhoToUi's. SetWhoToUi(true) sends
-	results to the list GetWhoInfo reads; with it false they print to chat and there is nothing
-	to read. Restored to false afterwards so a /who the player types behaves as expected.
-
-	It does not keep the Who window shut. The window opens when results arrive, so it is hidden
-	after they are read, and only when this add-on opened it.
+	SetWhoToUi(true) routes results to the list GetWhoInfo reads; false prints them to chat, where
+	there is nothing to read. Restored to false so a /who the player types behaves as expected. It
+	does not keep the Who window shut -- that opens when results arrive, so it is hidden after
+	they are read, and only when this add-on opened it.
 ]]
 local panelWasOpen = false
 
@@ -329,7 +317,7 @@ ns.on("ADDON_ACTION_BLOCKED", function(addon, func)
 		return
 	end
 	if func and func:find("SendWho", 1, true) then
-		ns:PrintWarning(L["WHO_BLOCKED"])
+		ns:PrintMessage(L["WHO_BLOCKED"])
 	end
 end)
 
@@ -353,10 +341,7 @@ local function interleave(lists)
 	return out
 end
 
---[[
-	Packs a band's zones into as few queries as the length budget allows, best zones
-	first so a chunked list still leads with where the people are.
-]]
+-- Packs a band's zones into as few queries as the length budget allows, best zones first.
 local function zoneChunks(lo, hi, classPart)
 	local fixed = #("%d-%d"):format(lo, hi) + (classPart ~= "" and (#classPart + 1) or 0)
 	local out, current, used = {}, {}, 0
@@ -383,10 +368,8 @@ end
 --[[
 	Abandons what is in flight without forgetting it. The client still answers, and that answer
 	runs endQuery -- the only thing that restores SetWhoToUi and closes the Who panel. Drop the
-	reference and Blizzard's Who window appears by itself seconds after the player closed ours.
-
-	A canceled job answers nobody: no callback, and its band is not put back on the plan.
-	Who:Step refuses to send while one is pending, so a new plan simply waits for it to land.
+	reference and Blizzard's Who window appears by itself seconds after the player closed ours. A
+	canceled job answers nobody, and Who:Step will not send while one is pending.
 ]]
 local function cancelPending()
 	if pending then
@@ -403,13 +386,10 @@ end
 	  2  the same class filter with no zones, for a recipient in a city or an unlisted zone
 	  3  bare levels, no filters at all
 
-	Two and three are widening steps, each giving up one constraint in the order that costs
-	least. Three answers with whoever is standing in a capital, the population zone filtering
-	exists to avoid, so it is last -- but without it a band whose zones are empty at 3am runs
-	out of ideas with no way to say so.
-
-	The count returned is not a countdown: the search stops at the first viable match, so most
-	of these attempts are never made.
+	Two and three widen, each giving up the constraint that costs least. Three answers with
+	whoever is standing in a capital, the population zone filtering exists to avoid, so it is last
+	-- but without it a band whose zones are empty at 3am runs out of ideas with no way to say so.
+	The count returned is not a countdown: the search stops at the first viable match.
 ]]
 function Who:Plan(groups)
 	wipe(plan)
@@ -419,18 +399,20 @@ function Who:Plan(groups)
 	for _, group in ipairs(groups or {}) do
 		local lo = math.max(1, group.lo or 1)
 		local hi = math.max(lo, group.hi or lo)
-		local classPart, classNames = classFilter(group.classes)
+		-- Only its length is wanted here, for the chunk budget; each attempt builds its own.
+		local classPart = classFilter(group.classes)
 
 		local perBand = {}
 		for _, chunk in ipairs(zoneChunks(lo, hi, classPart)) do
-			perBand[#perBand + 1] = newAttempt(lo, hi, chunk, classPart, classNames)
+			perBand[#perBand + 1] = newAttempt(lo, hi, chunk, group.classes)
 		end
 		zoned[#zoned + 1] = perBand
 
 		if classPart ~= "" then
-			widened[#widened + 1] = { newAttempt(lo, hi, nil, classPart, classNames) }
+			widened[#widened + 1] = { newAttempt(lo, hi, nil, group.classes) }
 		end
-		bare[#bare + 1] = { newAttempt(lo, hi, nil, "", {}) }
+		-- No classes: the last widening step gives up the class half, so it must not be narrowed.
+		bare[#bare + 1] = { newAttempt(lo, hi, nil, nil) }
 	end
 
 	for _, stage in ipairs({ zoned, widened, bare }) do
@@ -449,9 +431,93 @@ function Who:Planned()
 end
 
 --[[
-	A canceled query is not a place left to look. Counting it would leave Scan Again offered
-	over an empty plan and send FindRecipients down its mid-plan branch to a press that cannot
-	send.
+	Narrows a plan already under way to the bands that still have somebody to find, called after
+	every assignment -- Who:Clear applied one band at a time.
+
+	ONLY EVER REMOVES. Re-planning through Who:Plan would rebuild the queue from its best-first
+	attempt and re-send what has already been asked, so a search re-planning on each press would
+	never get past its first zone. An attempt whose band holds no unmatched gift is dropped:
+	interleaving means a satisfied band keeps taking its turn, and every turn costs a click and
+	the full throttle. A survivor's class half is intersected with what the remaining bands want
+	-- never unioned, since widening would send a query nothing planned for.
+]]
+function Who:Prune(groups)
+	if #plan == 0 then
+		return 0
+	end
+
+	-- What an attempt becomes after narrowing, or nil when nothing is left for it to ask.
+	local function survivor(attempt)
+		local wanted, overlaps = {}, false
+		for _, group in ipairs(groups or {}) do
+			local glo = group.lo or 1
+			local ghi = group.hi or glo
+			--[[
+				Every overlapping band contributes, unioned: one merged band split back in two by
+				an assignment leaves a single attempt still answering for both halves.
+			]]
+			if attempt.lo <= ghi and glo <= attempt.hi then
+				overlaps = true
+				for _, class in ipairs(group.classes or {}) do
+					wanted[class] = true
+				end
+			end
+		end
+
+		if not overlaps then
+			return nil
+		end
+		-- The last widening step carries no classes on purpose; narrowing is what it undoes.
+		if #attempt.classes == 0 then
+			return attempt
+		end
+
+		local narrowed = {}
+		for _, class in ipairs(attempt.classes) do
+			if wanted[class] then
+				narrowed[#narrowed + 1] = class
+			end
+		end
+		--[[
+			An empty intersection is not "ask everybody": an empty class list would send the
+			attempt unfiltered, a wider query than the one being pruned.
+		]]
+		if #narrowed == 0 then
+			return nil
+		end
+		-- Subset by construction, so equal length is the same set and the strings can stand.
+		if #narrowed == #attempt.classes then
+			return attempt
+		end
+		return newAttempt(attempt.lo, attempt.hi, attempt.zones, narrowed)
+	end
+
+	local kept, dropped = {}, 0
+	for _, attempt in ipairs(plan) do
+		local survives = survivor(attempt)
+		if survives then
+			kept[#kept + 1] = survives
+		else
+			dropped = dropped + 1
+		end
+	end
+
+	wipe(plan)
+	for _, attempt in ipairs(kept) do
+		plan[#plan + 1] = attempt
+	end
+
+	--[[
+		Counted for the roster report, which otherwise shows places-left falling without a press
+		and no way to tell pruning from a query that quietly went missing.
+	]]
+	counts.pruned = counts.pruned + dropped
+	return dropped
+end
+
+--[[
+	A canceled query is not a place left to look: counting it would leave Scan Again offered over
+	an empty plan and send FindRecipients down its mid-plan branch to a press that cannot send.
 ]]
 function Who:Remaining()
 	return #plan + ((pending and not pending.canceled) and 1 or 0)
@@ -490,9 +556,9 @@ function Who:Step(callback)
 
 	--[[
 		A blocked call never fires WHO_LIST_UPDATE, so this timeout stops the UI waiting on an
-		answer that is not coming. The band goes back on the front of the plan first, or it is
-		lost for good and Remaining counts down as though it had succeeded. An empty answer is
-		not requeued: WHO_LIST_UPDATE with no results means nobody is there.
+		answer that is not coming. The band goes back on the front of the plan, or it is lost for
+		good and Remaining counts down as though it had succeeded. An empty answer is not
+		requeued.
 	]]
 	C_Timer.After(RESULT_TIMEOUT, function()
 		if pending ~= job then
@@ -513,10 +579,7 @@ function Who:Step(callback)
 	return true, job.label
 end
 
---[[
-	Drops the plan. A query in flight is canceled rather than forgotten, so it still lands and
-	still cleans up after itself. See cancelPending above.
-]]
+-- Drops the plan. A query in flight is canceled, not forgotten -- see cancelPending above.
 function Who:Clear()
 	wipe(plan)
 	cancelPending()

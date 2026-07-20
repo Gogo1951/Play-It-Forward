@@ -1,17 +1,11 @@
 local _, ns = ...
 
---[[
-	The recipient dropdown, and nothing else. Features/Mail-Window.lua owns the window this
-	opens over and calls in through ns.Picker; the rarity control uses the same list.
-]]
+-- The recipient dropdown, reused by the rarity control. Mail-Window calls in through ns.Picker.
 
 local ENTRY_H = 18
 local RECIP_W = 190
 local PICKER_MAX = 240 -- max picker height before the list scrolls
---[[
-	Enough for a cross-realm name, its level, class and a short note. Past that it runs off the
-	screen and SetClampedToScreen shoves it back over its own button.
-]]
+-- Wider runs off the screen, and SetClampedToScreen shoves the list back over its own button.
 local PICKER_MAX_WIDTH = 360
 
 local POPUP_TEMPLATE = ns.PickTemplate("TooltipBorderedFrameTemplate", "BackdropTemplate")
@@ -57,10 +51,9 @@ function Picker:Build()
 	end
 
 	--[[
-		An opaque fill behind whatever the template drew: on 1.15.8 TooltipBorderedFrameTemplate
-		paints a border with nothing behind it, so the list opens see-through and the window's
-		rows read through the middle of it. A texture rather than an unconditional SetBackdrop,
-		so a skinning add-on still wins, on BACKGROUND so entries and highlights sit above.
+		On 1.15.8 TooltipBorderedFrameTemplate paints a border with nothing behind it, so the list
+		opens see-through. A texture rather than an unconditional SetBackdrop, so a skinning add-on
+		still wins; BACKGROUND so entries and highlights sit above.
 	]]
 	local fill = f:CreateTexture(nil, "BACKGROUND")
 	fill:SetPoint("TOPLEFT", 3, -3)
@@ -96,9 +89,9 @@ function Picker:GetEntry(i)
 	e:SetPoint("TOPRIGHT", 0, -((i - 1) * ENTRY_H))
 
 	--[[
-		Anchored on both sides: with only a LEFT anchor a font string draws at whatever width
-		its text wants and runs out of the list. SetWordWrap(false) makes an over-long name end
-		in an ellipsis rather than a second line inside an 18-pixel row.
+		Anchored on both sides: with only a LEFT anchor a font string draws at whatever width its
+		text wants and runs out of the list. SetWordWrap(false) ellipsizes rather than wrapping into
+		a second line inside an 18-pixel row.
 	]]
 	e.text = e:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	e.text:SetPoint("LEFT", 4, 0)
@@ -121,10 +114,7 @@ function Picker:Open(anchor, options, onSelect)
 		e:Hide()
 	end
 
-	--[[
-		Measured on a loose ruler because a font string with both anchors set reports the width
-		it was given rather than the width it wants.
-	]]
+	-- A font string with both anchors set reports the width it was given, not the width it wants.
 	local width = RECIP_W
 	for _, opt in ipairs(options) do
 		if not self.ruler then

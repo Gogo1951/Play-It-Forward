@@ -1,9 +1,9 @@
 local _, ns = ...
 
 --[[
-	Potions a player can be given. Same shape as Data/Food-And-Water.lua. Injectors and
-	engineering-restricted potions are in because the query filters only on class, subclass
-	and bonding, and a recipient who cannot use one still receives a tradeable item.
+	Same shape as Data/Food-And-Water.lua. Injectors and engineering-restricted potions are in
+	because the query filters on class, subclass and bonding only; one a recipient cannot use
+	is still a tradeable item.
 ]]
 
 --[[
@@ -24,6 +24,7 @@ local _, ns = ...
     WHERE it.class    = 0        -- Consumable
       AND it.subclass = 1        -- Potion
       AND it.bonding  = 0        -- non-soulbound
+      AND it.RequiredLevel <> 1  -- level-1 potions: band tops out below MIN_RECIPIENT_LEVEL
       AND it.name NOT LIKE '[PH]%'        -- placeholder
       AND it.name NOT LIKE 'Test %'       -- debug
       AND it.name NOT LIKE 'Deprecated %' -- retired
@@ -32,9 +33,14 @@ local _, ns = ...
     ORDER BY Kind, UseLevel, it.name;
 ]]
 
+--[[
+	Entry 44728, Endless Rejuvenation Potion, is held out of the rows below by hand. It is the
+	only quality 0 result the query returns, an internal item the name exclusions above match
+	nothing in, and it returns on every re-run: drop it again rather than reading it as new.
+]]
+
 -- { id, quality, useLevel, restores }
 ns.Data.Potions = {
-	{ 118, 1, 1, "HEALTH" }, -- Minor Healing Potion
 	{ 858, 1, 3, "HEALTH" }, -- Lesser Healing Potion
 	{ 4596, 1, 5, "HEALTH" }, -- Discolored Healing Potion
 	{ 929, 1, 12, "HEALTH" }, -- Healing Potion
@@ -66,7 +72,6 @@ ns.Data.Potions = {
 	{ 40067, 1, 65, "MANA" }, -- Icy Mana Potion
 	{ 42545, 1, 70, "MANA" }, -- Runic Mana Injector
 	{ 33448, 1, 70, "MANA" }, -- Runic Mana Potion
-	{ 44728, 0, 0, "BOTH" }, -- Endless Rejuvenation Potion
 	{ 2456, 1, 5, "BOTH" }, -- Minor Rejuvenation Potion
 	{ 18253, 1, 50, "BOTH" }, -- Major Rejuvenation Potion
 	{ 22850, 1, 65, "BOTH" }, -- Super Rejuvenation Potion

@@ -6,9 +6,8 @@ local _, ns = ...
 
 --[[
 	Environment probing and state capture for bug reports, not unit tests. Read-only and
-	side-effect free with two named exceptions: the Taint Log button, which sets the taintLog
-	CVar, and Clear History, which wipes the fairness list. Reports build only on a button
-	press, never on load or panel open.
+	side-effect free but for the Taint Log button, which sets a CVar, and Clear History, which
+	wipes the fairness list. Reports build only on a button press, never on load or panel open.
 ]]
 
 local L = ns.L
@@ -17,21 +16,14 @@ local L = ns.L
 -- Runtime State
 --------------------------------------------------------------------------------
 
---[[
-	Runtime-only. NOT a SavedVariable: the "initialize on PLAYER_LOGIN" rule applies only to
-	saved variables, so file-scope init is correct for a plain namespace table.
-]]
+-- Runtime-only, NOT a SavedVariable: the "initialize on PLAYER_LOGIN" rule does not apply here.
 ns.diagnostics = ns.diagnostics or { enabled = false, logging = false, log = nil }
 
 --------------------------------------------------------------------------------
 -- Strings
 --------------------------------------------------------------------------------
 
---[[
-	Intentionally NOT localized: developer-facing text, never in Locales/. The one exception is
-	the add-on's display name, read from ns.L["ADDON_TITLE"], which is identity, not
-	diagnostics.
-]]
+-- Intentionally NOT localized: developer-facing text. ADDON_TITLE is the exception, being identity.
 ns.DiagnosticsStrings = {
 	TAB = "Diagnostic Tools",
 	WARNING = "These tools help diagnose problems and are meant for developers. They won't change how the add-on works, but their output includes technical details about your client and installed add-ons. Leave this off unless you're troubleshooting with someone.",
@@ -74,7 +66,7 @@ ns.DiagnosticsStrings = {
 	WINDOW_TITLE = "Mail Window",
 	WINDOW_BUTTON = "Force the Window Open",
 	WINDOW_HINT = "Drops the saved position, re-centers the window and re-reads your bags. The window only opens at a mailbox when something in there is worth mailing, so use this to tell an off-screen window from an empty one.",
-	-- What the button reports back. Read at call time by Features/Mail-Window.lua, which loads before this file.
+	-- Read at call time by Features/Mail-Window.lua, which loads before this file.
 	WINDOW_FORCED = "window: shown=%s size=%dx%d, %d scanned (%d giftable), re-anchored to CENTER. Drag it where you want it.",
 	HISTORY_TITLE = "Recipient History",
 	HISTORY_BUTTON = "Clear History and Roster",
@@ -142,12 +134,9 @@ local EVENT_LOG_MAX_ARGS = 8
 local EVENT_LOG_MAX_ARG_LENGTH = 255
 
 --[[
-	Events ns:LogEvent drops before recording. The dispatcher only hands LogEvent the events
-	this add-on registers, so generic offenders (COMBAT_LOG_EVENT_UNFILTERED, UNIT_AURA)
-	never reach it. These two do, and they are dropped on volume alone: BAG_UPDATE fires per
-	bag on every loot, sale and stack merge, and GET_ITEM_INFO_RECEIVED once per item the
-	client resolves. Either buries the mailbox and /who events past the 500-entry cap, and
-	the Bag Scan report already prints the scan they triggered.
+	Dropped on volume alone: BAG_UPDATE fires per bag on every loot, sale and stack merge, and
+	GET_ITEM_INFO_RECEIVED once per item the client resolves. Either buries the mailbox and /who
+	events past the 500-entry cap, and the Bag Scan report already prints the scan they triggered.
 ]]
 ns.DIAGNOSTIC_EVENT_EXCLUDE = {
 	BAG_UPDATE = true,
@@ -165,10 +154,9 @@ function ns:StopEventLog()
 end
 
 --[[
-	Snapshots arguments to strings immediately, never retaining references: some events carry
-	frames or tables that would leak or go stale. Count and length are capped, and pipes are
-	escaped AFTER the length cut so a truncated argument cannot leave a dangling pipe that
-	eats the following separator.
+	Arguments snapshotted to strings immediately, never retained: some events carry frames or
+	tables that would leak or go stale. Pipes are escaped AFTER the length cut, so a truncated
+	argument cannot leave a dangling pipe that eats the following separator.
 ]]
 function ns:LogEvent(event, ...)
 	if ns.DIAGNOSTIC_EVENT_EXCLUDE[event] then
@@ -207,9 +195,8 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	The probe frame registers then immediately unregisters each event with no handler
-	attached, so nothing is ever processed. The list is ns.EVENT_NAMES from
-	Features/Core.lua, so it cannot drift from the events the add-on actually uses.
+	Registers then immediately unregisters each event with no handler attached, so nothing is ever
+	processed. The list is ns.EVENT_NAMES from Core, so it cannot drift from what the add-on uses.
 ]]
 
 local probeFrame
@@ -253,10 +240,9 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	Existence and shape checks only: read-only, no side effects, no protected calls. One row
-	per API reached through a compatibility guard in Features/Utilities.lua, plus the
-	load-bearing calls the scan, search and mail loops depend on. Modern and legacy
-	fallbacks get separate rows, so the report shows exactly what this client provides.
+	Existence and shape checks only: read-only, no side effects, no protected calls. One row per
+	API reached through a compatibility guard in Features/Utilities.lua, plus the load-bearing
+	calls the scan, search and mail loops depend on. Modern and legacy fallbacks get their own rows.
 ]]
 ns.DIAGNOSTIC_API_CHECKS = {
 	-- { label, testFunction }
@@ -291,12 +277,13 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-		No rows for the bare GetContainerNumSlots/GetContainerItemInfo globals: both target
-		flavors ship C_Container, so the pre-10.x fallback in Features/Utilities.lua can never
-		be picked, and a FAIL on a path the add-on cannot take reads as a defect rather than an
-		absence. The two C_TooltipInfo rows below are the opposite case: they are branched on at
-		runtime by Features/Tooltip-Scanner.lua, and their absence on 1.15.8 is the whole reason
-		the scanning tooltip is load-bearing.
+		No rows for the bare GetContainerNumSlots/GetContainerItemInfo globals: both target flavors
+		ship C_Container, so a FAIL on a path the add-on cannot take reads as a defect.
+
+		The C_TooltipInfo rows below are the opposite case, branched on at runtime by
+		Features/Tooltip-Scanner.lua. They carry optional = true so absence reports ABSENT, not
+		FAIL: neither shipped flavor has them, and a row that always fails teaches the reader to
+		skim. Marked this way they still report PASS if a future build adds the API.
 	]]
 	{
 		"C_Item.GetItemInfoInstant",
@@ -327,12 +314,14 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		function()
 			return type(C_TooltipInfo) == "table" and type(C_TooltipInfo.GetHyperlink) == "function"
 		end,
+		optional = true,
 	},
 	{
 		"TooltipUtil.SurfaceArgs",
 		function()
 			return type(TooltipUtil) == "table" and type(TooltipUtil.SurfaceArgs) == "function"
 		end,
+		optional = true,
 	},
 	--[[
 		The stat-name globals the locale-safe "+9 Intellect" path reads, probed one at a time:
@@ -369,9 +358,8 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-		Equip-effect parsing is English-only by decision for the initial release. This row fails
-		on any other locale on purpose: it is the difference between a known limitation and
-		items quietly scoring low for no visible reason.
+		English-only by decision for the initial release, so this row fails on any other locale on
+		purpose: a known limitation, rather than items quietly scoring low for no visible reason.
 	]]
 	{
 		"Equip-effect parsing available (English clients only)",
@@ -380,13 +368,12 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-		The stat parser against both of Blizzard's line formats, fed literal strings so these
-		rows need no item, no cache and no tooltip and cannot flake. The second row is the
-		regression guard: a random-suffix roll arrives color-wrapped rather than bare, and when
-		that form stops parsing every rolled green reads as statless and lands in the vendor
-		pile while fixed-stat items carry on working, a failure that hides in plain sight. The
-		escapes are built from parts rather than written literally because this label is printed
-		into a font string unescaped, and a literal color code would be swallowed as formatting.
+		Both of Blizzard's line formats, fed literal strings so these rows need no item, no cache
+		and no tooltip and cannot flake. The second is the regression guard: a random-suffix roll
+		arrives color-wrapped rather than bare, and when that form stops parsing every rolled green
+		reads as statless and lands in the vendor pile while fixed-stat items carry on working. The
+		escapes are built from parts because this label is printed into a font string unescaped,
+		where a literal color code would be swallowed as formatting.
 	]]
 	{
 		"Tooltip stat parsing, plain line",
@@ -404,9 +391,8 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-		The third line format, and the one with no GetItemStats key behind it. A per-school
-		damage roll exists only as tooltip text, so when this stops parsing there is no second
-		source to cover it and the item reads as statless.
+		The third line format, and the one with no GetItemStats key behind it: a per-school damage
+		roll exists only as tooltip text, so nothing covers it when this stops parsing.
 	]]
 	{
 		"Tooltip stat parsing, equip-effect line",
@@ -423,8 +409,9 @@ ns.DIAGNOSTIC_API_CHECKS = {
 	},
 	--[[
 		End to end on a real item: the rows above prove the parser understands the formats, this
-		proves the client still hands us lines to parse at all. Reads the first equipped item,
-		so it fails on a character wearing nothing.
+		proves the client still hands back lines at all. Reports which path the read took, observed
+		rather than inferred from whether the API exists, and separates the two ways this fails --
+		a naked character, and a client that stopped handing back lines.
 	]]
 	{
 		"Tooltip readable for a real item (needs something equipped)",
@@ -433,10 +420,10 @@ ns.DIAGNOSTIC_API_CHECKS = {
 				local link = GetInventoryItemLink("player", slot)
 				if link then
 					local _, source = ns.Tooltip:Stats(link)
-					return source ~= "none"
+					return source ~= "none", "read via " .. source
 				end
 			end
-			return false
+			return false, "nothing equipped to read"
 		end,
 	},
 	--[[
@@ -474,6 +461,30 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_FriendList) == "table" and type(C_FriendList.GetNumWhoResults) == "function"
 		end,
 	},
+	--[[
+		GetGuildRosterLastOnline is the one to watch: the activity window in
+		Features/Guild-Roster.lua is built entirely on it, and without it every offline member
+		reads as too stale to mail, leaving the guild to contribute only whoever is logged in.
+	]]
+	{
+		"GetGuildRosterInfo",
+		function()
+			return type(GetGuildRosterInfo) == "function"
+		end,
+	},
+	{
+		"GetGuildRosterLastOnline",
+		function()
+			return type(GetGuildRosterLastOnline) == "function"
+		end,
+	},
+	{
+		"C_GuildInfo.GuildRoster",
+		function()
+			return (type(C_GuildInfo) == "table" and type(C_GuildInfo.GuildRoster) == "function")
+				or type(GuildRoster) == "function"
+		end,
+	},
 	{
 		"C_PlayerInteractionManager.IsInteractingWithNpcOfType",
 		function()
@@ -507,13 +518,48 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_XMLUtil) == "table" and type(C_XMLUtil.GetTemplateInfo) == "function"
 		end,
 	},
+	--[[
+		Where /pif actually lands. The failing case is silent by design -- the panel opens, just as
+		a standalone window rather than the add-on's page in the Options interface.
+
+		Reports the route rather than the APIs behind it: which of AddToBlizOptions' identifiers a
+		client honors is not something the presence of Settings.OpenToCategory answers.
+	]]
+	{
+		"Options panel opens inside the Blizzard interface",
+		function()
+			local _, inOptions, description = ns:OptionsPanelRoute()
+			return inOptions, description
+		end,
+	},
 }
 
+--[[
+	Three states, not two: a row marked optional reports ABSENT rather than FAIL when it comes back
+	false, so FAIL stays reserved for rows where a false answer means something is actually broken.
+
+	The detail is whatever the check learned on the way, appended to the label. pcall hands back
+	every return value, so a check opts in just by returning a second one.
+]]
 function ns:RunApiChecks()
 	local lines = { GetClientHeader(), "" }
 	for _, check in ipairs(ns.DIAGNOSTIC_API_CHECKS) do
-		local ok, result = pcall(check[2])
-		lines[#lines + 1] = ((ok and result) and "[PASS] " or "[FAIL] ") .. check[1]
+		local ok, result, detail = pcall(check[2])
+		local status
+		if ok and result then
+			status = "[PASS] "
+		elseif ok and check.optional then
+			status = "[ABSENT] "
+		else
+			--[[
+				A check that throws is a defect in the check, never an absence in the client, so it
+				reports FAIL even on an optional row and carries the error text: without it a thrown
+				check is indistinguishable from one that simply answered no.
+			]]
+			status = "[FAIL] "
+		end
+		local note = ok and detail or (not ok and tostring(result)) or nil
+		lines[#lines + 1] = status .. check[1] .. (note and (" -- " .. note) or "")
 	end
 	return table.concat(lines, "\n")
 end
@@ -592,20 +638,14 @@ local VERDICT_TEXT = {
 	unreadable = "STATS UNREADABLE, held back rather than matched or vendored",
 }
 
---[[
-	The per-class working behind one item: claim, fit, and the armor or weapon group. Shared by
-	the bag export and the single-item verdict so the two cannot disagree.
-]]
+-- Shared by the bag export and the single-item verdict, so the two cannot disagree.
 local function AppendVerdict(lines, item, indent)
 	-- The same verdict the window acts on, never a second opinion computed here.
 	local verdict = ns.Matcher:VerdictFor(item)
 	local eligible = verdict.eligible
 	local bandLo, bandHi = ns.Matcher:LevelBand(item)
 
-	--[[
-		What the item IS, before anything about who wants it: equipLoc and subclass are what
-		send it down the weapon matrix or the armor one.
-	]]
+	-- What the item IS: equipLoc and subclass route it down the weapon matrix or the armor one.
 	lines[#lines + 1] = string.format(
 		"%skind: %s, equip %s, class %s/%s (%s), ilvl %s, requires %s, quality %s",
 		indent,
@@ -676,9 +716,8 @@ local function AppendVerdict(lines, item, indent)
 		local parts = {}
 		for _, class in ipairs(eligible) do
 			--[[
-				Floored rather than handed to %d as a fraction: a remainder truncates silently
-				on this client's Lua and errors on a stricter one, and a diagnostic must not
-				error.
+				Floored rather than handed to %d as a fraction: a remainder truncates silently on
+				this client's Lua and errors on a stricter one.
 			]]
 			parts[#parts + 1] = string.format(
 				"%s claim %.2f fit %.2f use %d%% g%d",
@@ -693,10 +732,7 @@ local function AppendVerdict(lines, item, indent)
 		lines[#lines + 1] = indent .. "eligible: " .. table.concat(parts, " | ")
 	end
 
-	--[[
-		Eligible is who could wear it; admitted is who may receive it. The gap between the two
-		is the whole answer to "why is this not being sent".
-	]]
+	-- Eligible is who could wear it, admitted is who may receive it: the gap answers "why not sent".
 	local admitted = (#verdict.admitted > 0) and table.concat(verdict.admitted, ", ")
 		or "nobody, so this item has no possible recipient"
 	lines[#lines + 1] = indent .. "admitted: " .. admitted
@@ -712,9 +748,7 @@ local function AppendVerdict(lines, item, indent)
 
 	--[[
 		"best fit" is one class picked on score and group; the recipient is picked on level
-		proximity across everyone in contention, and the two disagree constantly. "in
-		contention: PALADIN" against four admitted classes is the most informative line for a
-		hybrid roll.
+		proximity across everyone in contention, and the two disagree constantly.
 	]]
 	local contenders = verdict.contenders or {}
 	if #verdict.admitted > 1 then
@@ -770,10 +804,7 @@ local function AppendVerdict(lines, item, indent)
 		low,
 		high
 	)
-	--[[
-		WIDEST at or below CLOSEST collapses the band to a single level. Called out rather than
-		left to arithmetic, because the effect is drastic and invisible.
-	]]
+	-- WIDEST at or below CLOSEST collapses the band to one level, which is drastic and invisible.
 	if bandLo == bandHi then
 		lines[#lines + 1] = string.format(
 			"%s  ONE LEVEL ONLY. Widest Level Gap (%d) is not above Closest Level Gap (%d), so the band "
@@ -792,9 +823,8 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	Every occupied slot with its verdict or its reject code. The rejected rows are the point:
-	"why is this green not in the list" is answered here and nowhere else. Re-runs the same
-	Scanner:Classify the window uses, so the two cannot disagree.
+	The rejected rows are the point: "why is this green not in the list" is answered here and
+	nowhere else. Re-runs the same Scanner:Classify the window uses, so the two cannot disagree.
 ]]
 function ns:BuildBagScanReport()
 	local lines = { GetClientHeader(), "" }
@@ -873,9 +903,8 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	Everyone the /who stepper has found, with fairness state, the items each qualifies for, and
-	what the parser discarded: a thin roster is usually unresolvable class tokens, not an empty
-	realm.
+	Everyone the /who stepper has found, with fairness state and what the parser discarded: a thin
+	roster is usually unresolvable class tokens, not an empty realm.
 ]]
 function ns:BuildRosterReport()
 	local lines = { GetClientHeader(), "" }
@@ -883,7 +912,7 @@ function ns:BuildRosterReport()
 	local items = (ns.UI and ns.UI.Items and ns.UI:Items()) or {}
 
 	--[[
-		Labelled by slot, not name alone: two copies of one green share a name, so "Ivycloth
+		Labeled by slot, not name alone: two copies of one green share a name, so "Ivycloth
 		Robe, Ivycloth Robe" cannot say whether that is two items or a repeated line.
 	]]
 	local candidateFor = {}
@@ -919,10 +948,7 @@ function ns:BuildRosterReport()
 		stats.connectedRealm,
 		stats.unknownClass
 	)
-	--[[
-		Printed only once an answer has been truncated: a permanent "capped 0" row trains the
-		eye to skip it.
-	]]
+	-- Only once an answer has been truncated: a permanent "capped 0" row trains the eye to skip it.
 	if stats.capped > 0 then
 		lines[#lines + 1] = string.format(
 			"%d quer(ies) came back full at the %d-result cap, so the server had more to send. "
@@ -931,12 +957,53 @@ function ns:BuildRosterReport()
 			ns.Who.RESULT_CAP
 		)
 	end
-	lines[#lines + 1] = string.format(
+	local searchLine = string.format(
 		"Search: %d place(s) left to look of %d, next %s.",
 		ns.Who:Remaining(),
 		ns.Who:Planned(),
 		tostring(ns.Who:Peek() or "none")
 	)
+	--[[
+		Only once something has been pruned, for the same reason the cap row above is conditional.
+		Without it the two numbers do not reconcile: places-left drops without a press whenever an
+		assignment finishes off a band, which otherwise reads as queries going missing.
+	]]
+	if stats.pruned > 0 then
+		searchLine = searchLine .. string.format(" %d dropped once their band was matched.", stats.pruned)
+	end
+	lines[#lines + 1] = searchLine
+
+	--[[
+		"The guild added nobody" and "the guild has nobody active" look identical from the match
+		list, and only one of them is a bug worth chasing.
+	]]
+	local guild = ns.Guild:Stats()
+	if guild.rows > 0 then
+		-- Reads the window off ns.Guild rather than naming it here, which would drift the day it changes.
+		lines[#lines + 1] =
+			string.format("Guild: %d of %d eligible, %d online.", guild.eligible, guild.rows, guild.online)
+		lines[#lines + 1] = string.format(
+			"  Dropped: %d not on in %d day(s), %d summoning alts, %d of your own characters, %d unreadable.",
+			guild.stale,
+			ns.Guild.ACTIVE_DAYS,
+			guild.summonAlts,
+			guild.ownAlts,
+			guild.unreadable
+		)
+	end
+
+	--[[
+		Reported once for both sources because it is enforced once for both, and only when it has
+		actually turned somebody away, on the same reasoning as the cap row above.
+	]]
+	local tooLow = ns.MatchList:TooLowCount()
+	if tooLow > 0 then
+		lines[#lines + 1] = string.format(
+			"Level floor: %d candidate(s) turned away below level %d, from every source.",
+			tooLow,
+			ns.Data.MIN_RECIPIENT_LEVEL
+		)
+	end
 	lines[#lines + 1] = ""
 
 	if total == 0 then
@@ -1106,9 +1173,9 @@ function ns:BuildMailPreviewReport()
 	local subject = ns.Distributor:BuildSubject()
 	local body = ns.Distributor:BuildBody()
 
-	lines[#lines + 1] = string.format("subject (%d/31): %s", #subject, subject)
+	lines[#lines + 1] = string.format("subject (%d/%d): %s", #subject, ns.Distributor.SUBJECT_MAX, subject)
 	lines[#lines + 1] = ""
-	lines[#lines + 1] = string.format("body (%d/500):", #body)
+	lines[#lines + 1] = string.format("body (%d/%d):", #body, ns.Distributor.BODY_MAX)
 	if body == "" then
 		lines[#lines + 1] = "  (empty)"
 	else
@@ -1192,10 +1259,7 @@ end
 -- Taint Log
 --------------------------------------------------------------------------------
 
---[[
-	The taintLog CVar controls UI taint logging to Logs\taint.log. Level 2 logs both
-	blocked actions and accesses to tainted globals; 0 is off.
-]]
+-- taintLog writes to Logs\taint.log: level 2 logs blocked actions and tainted-global reads, 0 off.
 
 function ns:GetTaintLogState()
 	return tonumber(GetCVar("taintLog")) or 0

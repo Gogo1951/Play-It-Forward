@@ -3,10 +3,7 @@ local L = ns.L
 
 local GetColor = ns.GetColor
 
---[[
-	Each row hides itself when its URL is missing, which is why the label and spacer are
-	inlined: ns.OptionsDesc and ns.OptionsSpacer take no hidden argument.
-]]
+-- Inlined rather than using ns.OptionsDesc/OptionsSpacer, which take no hidden argument.
 local FEEDBACK_LINKS = {
 	{ id = "Discord", label = L["OPTIONS_DISCORD"], key = "DISCORD" },
 	{ id = "GitHub", label = L["OPTIONS_GITHUB"], key = "GITHUB" },
@@ -92,12 +89,9 @@ function ns.BuildGeneralOptions()
 		-- What to give away
 		--------------------------------------------------------------------------
 		--[[
-			One row per toggle: a double-width checkbox with its select on the right, the
-			select's own name rendering as the caption. The caption has to be the name -- a
-			description widget beside it counts as a second control and breaks the row in two
-			-- and double width is what keeps a row to one pair rather than an unreadable
-			four-across. Each select hides with its toggle rather than greying out, since a
-			rarity cap governs nothing at all with gear switched off.
+			One row per toggle: a double-width checkbox with its select on the right, the select's
+			own name as the caption -- a description widget beside it counts as a second control and
+			breaks the row in two. Each select hides with its toggle rather than graying out.
 		]]
 		spacerGive0 = ns.OptionsSpacer(20),
 		headerGive = ns.OptionsHeader(L["OPTIONS_GIVE_HEADER"], 21),
@@ -176,11 +170,7 @@ function ns.BuildGeneralOptions()
 			end,
 		},
 
-		--[[
-			There is deliberately no "Finding Recipients", "Matching" or "The Mail"
-			section: those settings are constants and fixed text now, and
-			Data/Default-Settings.lua records where each went.
-		]]
+		-- No Finding Recipients, Matching or The Mail section: Data/Default-Settings.lua records why.
 
 		--------------------------------------------------------------------------
 		-- Feedback and version

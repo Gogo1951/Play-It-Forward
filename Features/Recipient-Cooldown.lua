@@ -3,17 +3,12 @@ local _, ns = ...
 ns.Fairness = {}
 local Fairness = ns.Fairness
 
---[[
-	Spreads gifts out. Once someone receives an item they are on cooldown until next seen at a
-	higher level. When an item has no fresh recipient, cooled-down players become eligible again
-	rather than the item going unsent.
-]]
+-- Spreads gifts out: a recipient is on cooldown until next seen at a higher level.
 
 local function db()
 	return ns.db.profile.recipients
 end
 
--- Fresh = never gifted, or seen since at a higher level than when last gifted.
 function Fairness:IsFresh(name, currentLevel)
 	local r = db()[name]
 	if not r then
@@ -31,10 +26,9 @@ function Fairness:Reset()
 end
 
 --[[
-	Names the server refused a mail to, this session only. The refusal could be a deleted
-	character, a rename, or a bad server minute, and nothing here can tell them apart, so the
-	name is set aside until the next login. Separate from the cooldown: a cooled-down player
-	has had a gift, one of these never received anything.
+	Names the server refused a mail to, this session only: a deleted character, a rename and a bad
+	server minute are indistinguishable here. Not the cooldown -- a cooled-down player has had a
+	gift, one of these never received anything.
 ]]
 local unreachable = {}
 
@@ -49,9 +43,8 @@ function Fairness:IsReachable(name)
 end
 
 --[[
-	First candidate both free this pass and off cooldown, falling back to the first merely free,
-	so an item is never stuck for want of a fresh face. Ordering belongs to RankCandidates; this
-	knows only about fairness. Both passes skip anyone the mail system has already refused.
+	First candidate both free this pass and off cooldown, falling back to the first merely free, so
+	an item is never stuck for want of a fresh face. Ordering belongs to RankCandidates.
 ]]
 function Fairness:PickFrom(ranked, isTaken)
 	for _, person in ipairs(ranked) do

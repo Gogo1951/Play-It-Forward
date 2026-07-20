@@ -1,42 +1,31 @@
 local _, ns = ...
 
 --[[
-	Levelling zones, and who is in them.
+	Levelling zones, and who is in them -- input to the /who queries in
+	Features/Recipient-Search.lua. A bare `/who 21-22` is capped at 50 on a connected cluster
+	and mostly returns people standing in a capital; adding `z-"Redridge Mountains"` returns
+	people actually out there levelling, and few enough that the cap stops mattering.
 
-	Input to the /who queries in Features/Recipient-Search.lua. A bare `/who 21-22` is
-	capped at 50 on a connected cluster and mostly returns people standing in a capital;
-	adding `z-"Redridge Mountains"` returns people actually out there levelling, and few
-	enough of them that the cap stops mattering.
-
-	Zone names are the strings the client's own /who parser matches, so they are
-	deliberately not localized and must not be run through AceLocale.
-
-	KNOWN LIMITATION, ENGLISH-ONLY. A non-English client knows its zones by their
-	translated names, so `z-"Redridge Mountains"` matches nothing and every zone query
-	returns zero results. The search still terminates on the bare level fallback, so the
-	add-on works; it just loses the zone filtering that makes it quick.
-
-	The fix is to carry each zone's uiMapID here and read the localized name from
-	C_Map.GetMapInfo at runtime, keeping these strings as the fallback. That needs the IDs
-	verified against a live client rather than written from memory: a wrong ID queries the
-	wrong zone and says nothing about it.
+	These are the strings the client's own /who parser matches: deliberately not localized, and
+	never to be run through AceLocale. Zone filtering is therefore ENGLISH-ONLY -- other clients
+	match nothing and fall back to bare level queries, which still works, just slower. The fix
+	is each zone's uiMapID read through C_Map.GetMapInfo, with the IDs verified against a live
+	client, since a wrong one queries the wrong zone and says nothing about it.
 ]]
 
 --[[
-	FACTION IS DERIVED, NOT SOURCED. Every other column came from the author's own zone
-	list; this one did not, so it is the one to check. It exists because /who is
-	same-faction: a Horde player querying Elwynn Forest gets nothing back.
-
-	BOTH is the safe answer and the default: marking a zone for one faction when the other
-	levels there too throws a good zone away permanently, where the reverse costs one empty
-	query. Only starting zones and single-hub zones are locked.
+	FACTION IS DERIVED, NOT SOURCED. Every other column came from the author's own zone list;
+	this one did not, so it is the one to check. It exists because /who is same-faction: a
+	Horde player querying Elwynn Forest gets nothing back. BOTH is the safe default --
+	marking a zone for one faction when the other levels there too throws a good zone away
+	permanently, where the reverse costs one empty query -- so only starting zones and
+	single-hub zones are locked.
 ]]
 local A, H, BOTH = "Alliance", "Horde", nil
 
 --[[
 	name, min level, max level, faction, then the flavors to search in: Era, TBC, Wrath.
-	Three flavor columns rather than one "available from" so a row can be checked against
-	the author's list line for line.
+	Three columns rather than one "available from" so a row checks against the author's list.
 ]]
 ns.Data.Zones = {
 	{ "Elwynn Forest", 1, 10, A, 1, 1, 1 },
@@ -99,7 +88,7 @@ ns.Data.Zones = {
 	{ "The Storm Peaks", 77, 80, BOTH, 0, 0, 1 },
 }
 
--- Which field of a row is which. Exported: Features/Recipient-Search.lua reads the same columns.
+-- Exported: Features/Recipient-Search.lua reads rows through these same columns.
 ns.Data.ZoneColumns = { NAME = 1, MIN = 2, MAX = 3, FACTION = 4, ERA = 5, TBC = 6, WRATH = 7 }
 
 -- Ordered and filtered into a search plan by ns.Data.ZonesFor, in Features/Recipient-Search.lua.

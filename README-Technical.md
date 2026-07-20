@@ -28,11 +28,12 @@ Play-It-Forward/
 ├── Features/
 │   ├── Core.lua                     Identity, AceDB lifecycle, central event dispatcher.
 │   ├── Utilities.lua                Container API shims, frame templates, color accessors, ns.AtMailbox.
-│   ├── Announcements.lua            ns:PrintMessage / ns:PrintWarning — player-only prints.
+│   ├── Announcements.lua            ns:PrintMessage — the only output path, player-only.
 │   ├── Tooltip-Scanner.lua          Reads stats off a rendered tooltip, which is where suffix stats live.
 │   ├── Bag-Scanner.lua              Bag slot -> giftable item record, or nil plus a reject code.
 │   ├── Matching-Engine.lua          Eligibility, claim/fit scoring, coverage, verdict, candidate ranking.
 │   ├── Recipient-Search.lua         /who planning, chunking, throttling, result parsing.
+│   ├── Guild-Roster.lua             Second recipient source; activity window, own-alt and summon-alt filters.
 │   ├── Recipient-Cooldown.lua       Fairness history and this session's unreachable names.
 │   ├── Mail-Sender.lua              Serialized, event-driven mailer.
 │   ├── Recipient-Picker.lua         Scrolling dropdown widget, shared by the rarity and recipient controls.
@@ -76,6 +77,7 @@ There is no minimap button, so `Features/Minimap-Button.lua`, LibDataBroker-1.1 
 | `ADDON_ACTION_BLOCKED` | `Recipient-Search.lua` | Turns a blocked `SendWho` into an explanation instead of a BugSack popup. |
 | `MAIL_SUCCESS` / `MAIL_FAILED` | `Mail-Sender.lua` | Advances the send queue. |
 | `UI_ERROR_MESSAGE` | `Mail-Sender.lua` | Catches a refusal the server reports without either result event. |
+| `GUILD_ROSTER_UPDATE` | `Guild-Roster.lua` | Delivers a roster the add-on asked for. Ignored when no request is outstanding. |
 
 The dispatcher's only addition is a single guarded call — `if ns.diagnostics.logging then ns:LogEvent(event, ...) end` — read before any allocation, so diagnostics off costs nothing.
 
@@ -101,6 +103,10 @@ Four phases, each in its own file.
 `GetItemInfo` returns `nil` for an item the client hasn't resolved. The scanner treats that as a `NOT_CACHED` rejection rather than a missing item, and `GET_ITEM_INFO_RECEIVED` marks the scan stale so the next open re-reads the bags. Without it a cold cache reads as an empty bag, and the window silently declines to open.
 
 Stats are read twice and merged by taking the **max** per stat, never the sum: `GetItemStats` resolves the base item and ignores random suffixes, while the tooltip renders the item as the player sees it. Both report the same value on a fixed-stat item, so summing would double it. The merge is lossy, so `record.statRead` keeps each source's own answer for the diagnostics report.
+
+A second cache covers candidate ranking. `MatchList:Candidates(item)` stores the ranked recipient list on the item, validated against a `poolsGeneration` counter. Ranking walks every admitted class against every pooled player and sorts the result, and the same answer is asked for repeatedly — once per allocation pass, once per dropdown open, and once per mouse-over of a recipient button, which is the one with no ceiling. The generation bumps in `AddResults` (only when somebody new actually entered a pool, so a query returning nothing already known costs nothing) and in `ClearPools`; `rescanBags` needs no bump because it replaces every item table outright. Ranking reads only the pools and the item's own verdict and band — never `item.recipient` — so an assignment cannot stale a cached list. **The list is handed out by reference**: a caller that sorted or removed in place would poison it for everybody after.
+
+Derived per-item data is cached under underscore-prefixed fields (`_weaponKey`, `_candidates`) to keep it out of the record's public shape.
 
 ### Scoring: Claim, Fit and Coverage
 
@@ -144,6 +150,23 @@ Two pieces of cleanup ride on the answer rather than the request. `SetWhoToUi(tr
 
 **A settings change re-plans.** `UI:Rescan` feeds the freshly merged bands to `ns.Who:Plan` before assigning, so raising the rarity cap or toggling Include Gear searches for what is on the list now rather than draining a plan built for the old one. Found players are kept either way; only the list of places left to look is rebuilt.
 
+## The Guild Roster
+
+A second recipient source, and on most realms the larger one. It costs no button press and no throttle, and answers for the whole guild at once — where `/who` is hardware-gated and returns at most ~49 names per press. `Features/Guild-Roster.lua` feeds `MatchList:AddResults` in the same shape `/who` results arrive in, so nothing downstream knows where a candidate came from except the one `guild` flag that earns guildmates their tiebreak in `Matcher:RankCandidates`.
+
+`Guild:Request` is gated on a callback rather than reading on every event: `GUILD_ROSTER_UPDATE` fires constantly in a large guild — every login, logout, note edit and rank change — and walking hundreds of rows with a `GetGuildRosterLastOnline` call apiece on each one is work nobody asked for. With no request outstanding the event is ignored.
+
+Four filters drop members, each counted separately so "the guild added nobody" and "the guild has nobody active" can be told apart in the roster report:
+
+- **Unreadable class token** — the only outright discard, matching what the `/who` parser does with the same gap.
+- **Your own characters** — checked first, since one of yours is one of yours at any level or recency.
+- **Summoning alts** — a warlock parked in the band around where Ritual of Summoning unlocks. A range rather than the unlock level alone, since they drift a level or two before stopping. **This rule is the guild roster's alone**: the same character found by `/who` is left alone, because out in the world at that level they are somebody playing, and nothing can tell a parked alt from a real one except which list named them.
+- **Inactivity** — `GetGuildRosterLastOnline` returns nothing at all for a member who is online right now, and four separate duration components otherwise (years, months, days, hours), never a total. An offline member with no reading is treated as too old rather than recent enough: the roster arrives in pieces, and guessing "recent" on missing data mails gear to somebody who quit.
+
+Own-character detection reads `ns.db.sv.profileKeys` — AceDB's record of every character that has loaded the add-on, keyed `"Character - Realm"`, rebuilt into the roster's `"Character-Realm"` shape purely as a comparison key. **That table lives on `db.sv`, not on `db`.** AceDB's metatable resolves only scope names, so `ns.db.profileKeys` reads `nil` and the whole check silently passes everyone through. An alt that has never run the add-on is not in there and is not caught, which is the honest limit of the approach.
+
+Names enter the pool exactly as the roster gave them, suffix and all. A name is an address: `SendMail` takes the full form, and rewriting it means mailing to an address the client never gave us.
+
 ## Mailing
 
 `SendMail` cannot be looped. One send goes out, then the run waits for a result event before advancing. Mailing a non-friend arms Blizzard's confirmation popup; that popup is the anti-spam guard for mailing strangers and is never auto-clicked.
@@ -164,7 +187,7 @@ The subject and body are fixed text from `Locales/enUS.lua` (`MAIL_SUBJECT`, `MA
 
 The window opens on the mailbox when the scan found anything worth acting on, and never auto-closes. `Features/Match-List.lua` holds items, roster and pairings at file scope, so matches survive walking away: come back and press Distribute.
 
-Rows are sorted into four sections — matched, pending match, unreadable, vendor pile — because the list runs longer than the window and the rows worth acting on would otherwise fall below the fold. Every row's dropdown lists *everybody* in range, greying the unavailable with the reason beside them, because a name that silently vanishes reads as the add-on having lost them.
+Rows are sorted into four sections — matched, pending match, unreadable, vendor pile — because the list runs longer than the window and the rows worth acting on would otherwise fall below the fold. Every row's dropdown lists *everybody* in range, graying the unavailable with the reason beside them, because a name that silently vanishes reads as the add-on having lost them.
 
 **Never hook `MailFrame`'s `OnHide` to close the window.** It breaks twice over: mail-replacement add-ons hide `MailFrame` and show their own, killing the window the instant it opens, and `SendWho` raises the Who panel, which the UIPanel system swaps in over `MailFrame`, so pressing Find Recipients would close the window mid-query. Track the mailbox itself through `ns.AtMailbox()` instead.
 
@@ -184,7 +207,7 @@ The framework — event log, event registration, API endpoints, installed add-on
 
 `ns.DIAGNOSTIC_EVENT_EXCLUDE` holds `BAG_UPDATE` and `GET_ITEM_INFO_RECEIVED`. Both are registered and both are firehoses, and either would bury the mailbox and `/who` events past the 500-entry cap.
 
-`ns.DIAGNOSTIC_API_CHECKS` carries a row per API reached through a compatibility guard plus the load-bearing calls, and three rows that feed literal strings to `Tooltip:StatsFromLines`. Those three are regression guards rather than probes: a random-suffix roll arrives colour-wrapped rather than bare, and when that form stops parsing every rolled green reads as statless and lands in the vendor pile while fixed-stat items carry on working — a failure that otherwise hides in plain sight.
+`ns.DIAGNOSTIC_API_CHECKS` carries a row per API reached through a compatibility guard plus the load-bearing calls, and three rows that feed literal strings to `Tooltip:StatsFromLines`. Those three are regression guards rather than probes: a random-suffix roll arrives color-wrapped rather than bare, and when that form stops parsing every rolled green reads as statless and lands in the vendor pile while fixed-stat items carry on working — a failure that otherwise hides in plain sight.
 
 ## Saved Variables
 
@@ -193,7 +216,7 @@ One account-wide table, `PlayItForwardDB`, managed by AceDB-3.0 and created in t
 | Field | Holds |
 |---|---|
 | `showWelcome` | Print the login message. |
-| `minRarity` / `maxRarity` | Rarity band offered; both default to Uncommon. Only `maxRarity` has a control. |
+| `maxRarity` | Rarity cap; nothing above it is ever listed. Defaults to Uncommon. |
 | `includeGear` | Offer bind-on-equip weapons and armor. |
 | `includeConsumables` | Offer outgrown food, drink and potions. |
 | `consumableLevelGap` | Levels past a consumable before it counts as spare. |
@@ -202,7 +225,11 @@ One account-wide table, `PlayItForwardDB`, managed by AceDB-3.0 and created in t
 
 **`recipients` is session-scoped.** It is wiped at every login, in the same `ADDON_LOADED` handler that creates the database, so the cooldown only ever spreads gifts out within one session. It lives in the profile rather than in a runtime table so the stock **Reset Profile** and the Diagnostic Tools **Clear History and Roster** button both reach it.
 
-There is no migration chain and no `MIGRATION` tag anywhere in the add-on. Nothing has shipped, so no player's saved variables can contain a key from a development build.
+The rarity floor is **not** a setting. `ns.Data.MIN_RARITY` is a constant in `Data/Data.lua`; the cap above it is the one a player has a reason to move. It never applies to consumables, which return from the scanner before the rarity checks.
+
+There is no migration chain and no `MIGRATION` tag anywhere in the add-on.
+
+Retiring a setting does still need one line. AceDB physically copies scalar defaults into the saved table, and its cleanup only visits keys still present in the defaults — so a key removed from `ns.DATABASE_DEFAULTS` persists in every existing player's saved variables forever unless it is cleared explicitly at the init point in `Core.lua` (`ns.db.profile.oldField = nil`). That is a key removal, not a data migration, and takes no dated tag.
 
 Defaults come from `ns.DATABASE_DEFAULTS` and are applied lazily by AceDB-3.0 via metatables — nothing is copied into the saved table, and explicit user values (including `false`) are never overridden.
 
@@ -218,8 +245,9 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 
 1. Add a row to `ns.Data.FoodAndWater` in `Data/Food-And-Water.lua` or `ns.Data.Potions` in `Data/Potions.lua`, in the existing `{ id, quality, useLevel, restores }` shape, with a trailing `-- Item Name` comment.
 2. `restores` must be `"HEALTH"`, `"MANA"`, or `"BOTH"`. Eligibility derives from it via `ns.Data.ConsumableClasses` — there is no per-item class list.
-3. If the row came from a database query, update the SQL comment above the array so the table stays regenerable. Don't reconstruct a query you don't have; leave the `-- TODO: Add SQL Query` marker instead.
-4. `Features/Bag-Scanner.lua` stamps the source table's `form` (`FOOD` or `POTION`) onto the record. Rules in `Data/Item-Rules.lua` key on that form, which is what keeps a bottle of water from being treated as a mana potion.
+3. **A `useLevel` of 0 is rejected, not offered** (`NO_USE_LEVEL`). The column is the database's `RequiredLevel`, which is 0 for a good deal of food that is in practice endgame — banding on it leaves exactly one reachable recipient level. If the item matters, source a real usefulness level rather than shipping the zero.
+4. If the row came from a database query, update the SQL comment above the array so the table stays regenerable. Don't reconstruct a query you don't have; leave the `-- TODO: Add SQL Query` marker instead. Both consumable files are SQL-sourced, so prefer re-running the query over hand-editing — and if you hand-edit, note it, or the next re-run silently undoes you.
+5. `Features/Bag-Scanner.lua` stamps the source table's `form` (`FOOD` or `POTION`) onto the record. Rules in `Data/Item-Rules.lua` key on that form, which is what keeps a bottle of water from being treated as a mana potion.
 
 ## Adding a New Stat
 
@@ -266,10 +294,13 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 - **Hooking `MailFrame`'s `OnHide` to close the window**: breaks twice over — mail-replacement add-ons hide it on open, and `SendWho` raises the Who panel over it mid-query.
 - **Dropping an in-flight `/who` instead of cancelling it**: `endQuery` is the only thing that restores `SetWhoToUi` and closes the Who panel, so a forgotten query leaves Blizzard's Who window appearing by itself seconds after the player closed ours.
 - **Trusting `GetItemStats` on a random-suffix green**: it resolves the base item and returns empty. The tooltip is the only source for suffix stats, which is why `Features/Tooltip-Scanner.lua` is not optional.
-- **Dropping `cleanLine` from the tooltip parser**: suffix and enchant stats arrive colour-wrapped and newline-terminated, so they fail the `^%s*%+` anchor and every rolled green silently returns to the vendor pile.
+- **Dropping `cleanLine` from the tooltip parser**: suffix and enchant stats arrive color-wrapped and newline-terminated, so they fail the `^%s*%+` anchor and every rolled green silently returns to the vendor pile.
 - **Testing `classID == 2` to mean "weapon"**: shields and held off-hands are armor by class but rank on the weapon matrix. Use `ns.Data.UsesWeaponMatrix(item)`.
 - **Reading a weapon key without checking `classID` first**: `WeaponKey` falls through to the weapon subclass table, and armor subclass 1 (cloth) collides with weapon subclass 1 (two-hand axe), so a cloth chest answers `2H_AXE`.
+- **Reading `ns.db.profileKeys`**: always `nil`. AceDB keeps that table on `ns.db.sv`, and its metatable resolves only scope names, so the read fails silently rather than erroring — an own-alt check written against it passes everybody through.
+- **Treating a consumable's `useLevel` of 0 as level 1**: it is the database's `RequiredLevel`, not the level the item is worth having. Banding on it gives 1 to `CONSUMABLE_RECIPIENT_GAP` against a recipient floor of 3, so the item can only ever reach a level-3 player. The scanner rejects those rows as `NO_USE_LEVEL` rather than offering them to nobody.
 - **Rolling a random tiebreak inside a sort comparator**: `table.sort` throws when the comparator is inconsistent. The shuffle key is rolled once per player as they enter the pool.
+- **Mutating the list `MatchList:Candidates` returns**: it is a cached table handed out by reference. Sorting or removing in place poisons it for every later caller until the pools generation changes.
 - **Caching `MatchList:Items()` in a local**: `rescanBags` reassigns the table. Call the accessor each time.
 - **Adding a stat weight and expecting only scores to move**: it changes the coverage denominator on every item carrying that stat, and can demote a class out of contention entirely.
 - **Re-reading the bags at the end of a distribution run**: the client has not finished emptying the sent slots, so the scan finds delivered items and restores the pairing they were just sent under. `UI:_afterDelivery` re-assigns without scanning for exactly this reason.
@@ -296,6 +327,6 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 
 **Format:** *As a [role], I [needed / wanted] [behavior] so that [outcome]. This change [does X].*
 
-**Example:** *As a player who closed the mail window mid-search, I wanted Blizzard's Who panel to stop appearing by itself a second later, so that closing the window actually ended the search. This change marks an in-flight query cancelled rather than dropping it, so its result still runs the cleanup that restores `SetWhoToUi`.*
+**Example:** *As a player who closed the mail window mid-search, I wanted Blizzard's Who panel to stop appearing by itself a second later, so that closing the window actually ended the search. This change marks an in-flight query canceled rather than dropping it, so its result still runs the cleanup that restores `SetWhoToUi`.*
 
 The User Story makes review faster and gives future maintainers context the diff alone won't carry.
