@@ -4,15 +4,15 @@ Mail the gear and consumables you've outgrown to strangers who'll appreciate the
 
 ## Features
 
-🎁 **Makes Someone's Day** // Azeroth can be a harsh place. An unexpected parcel from a stranger costs you next to nothing, and it's the kind of small kindness that keeps a server worth logging into.
+🎁 **Makes Someone's Day** // Azeroth can be a harsh place. An unexpected parcel from a stranger costs you next to nothing and is the kind of small kindness that keeps a server worth playing on.
 
-🎯 **Finds a Real Recipient** // Reads every stat on an item, works out the class it's actually meant for, then goes looking for someone of that class a level or two below the requirement.
+🎯 **Finds a Real Recipient** // Reads every stat on an item, works out which class it is actually for, then goes looking for someone of that class a level or two below the requirement.
 
-🔍 **Searches Where Players Level** // Looks in the zones people are genuinely questing through, not whoever's parked in a boosting dungeon.
+🔍 **Searches Where Players Level** // Queries the zones people are actually questing in, rather than whoever is parked in a boosting dungeon.
 
-🎒 **Keeps Your Bags Clean** // Old greens and consumables you outgrew twenty levels ago leave your bags for someone who can still use them.
+🎒 **Keeps Your Bags Clean** // Outgrown greens and the level 35 water you stopped drinking twenty levels ago leave your bags for someone who still needs them, on a threshold you set.
 
-🦺 **Safety First** // Only ever offers unbound gear you could trade anyway — never soulbound or quest items, and nothing above your rarity cap. Every row can be overridden or kept.
+🦺 **Safety First** // Only ever offers unbound gear you could trade anyway, never soulbound or quest items, and nothing above your rarity cap. Every row can be overridden or kept.
 
 ## Setup
 

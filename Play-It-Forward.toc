@@ -1,0 +1,80 @@
+## Title: Play It Forward
+## Notes: Mail the gear and consumables you've outgrown to strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
+## Author: Gogo1951
+
+## Category-enUS: Other
+## Category-deDE: Anderes
+## Category-esES: Otros
+## Category-esMX: Otros
+## Category-frFR: Autre
+## Category-itIT: Altro
+## Category-koKR: 기타
+## Category-ptBR: Outro
+## Category-ruRU: Другое
+## Category-zhCN: 其它
+## Category-zhTW: 其他
+
+## IconTexture: Interface/AddOns/Play-It-Forward/Includes/Images/Play-It-Forward.tga
+## X-License: MIT
+
+## Interface: 11509, 20506
+## Version: @project-version@
+## X-Curse-Project-ID: 1617425
+## X-Wago-ID: kGryrxKy
+
+## SavedVariables: PlayItForwardDB
+
+# Includes
+Includes/Libraries/LibStub/LibStub.lua
+Includes/Libraries/CallbackHandler-1.0/CallbackHandler-1.0.lua
+Includes/Libraries/AceLocale-3.0/AceLocale-3.0.lua
+Includes/Libraries/AceDB-3.0/AceDB-3.0.lua
+Includes/Libraries/AceGUI-3.0/AceGUI-3.0.xml
+Includes/Libraries/AceConfig-3.0/AceConfigRegistry-3.0/AceConfigRegistry-3.0.lua
+Includes/Libraries/AceConfig-3.0/AceConfigCmd-3.0/AceConfigCmd-3.0.lua
+Includes/Libraries/AceConfig-3.0/AceConfigDialog-3.0/AceConfigDialog-3.0.lua
+Includes/Libraries/AceConfig-3.0/AceConfig-3.0.lua
+Includes/Libraries/AceDBOptions-3.0/AceDBOptions-3.0.lua
+
+# Localization
+# Loads before Data: AceLocale must register the locale before Data.lua calls
+# GetLocale on it.
+Locales/enUS.lua
+
+# Data
+# Data.lua loads first: it seeds ns.Data and the client-flavor flags that the
+# data files below read at load time.
+Data/Data.lua
+Data/Default-Settings.lua
+Data/Stat-Map.lua
+Data/Stat-Weights.lua
+Data/Item-Rules.lua
+Data/Armor-Priority.lua
+Data/Weapon-Priority.lua
+Data/Food-And-Water.lua
+Data/Potions.lua
+Data/Zones.lua
+
+# Play It Forward
+Features/Core.lua
+Features/Utilities.lua
+Features/Announcements.lua
+Features/Tooltip-Scanner.lua
+Features/Bag-Scanner.lua
+Features/Matching-Engine.lua
+Features/Recipient-Search.lua
+Features/Recipient-Cooldown.lua
+Features/Mail-Sender.lua
+Features/Recipient-Picker.lua
+Features/Match-List.lua
+Features/Mail-Window.lua
+Features/Diagnostics.lua
+Options/Options-Utilities.lua
+Options/Options-General.lua
+Options/Options-Profiles.lua
+Options/Options-Diagnostics.lua
+Options/Options.lua
+
+# Feedback Welcome! (=
+# Play It Forward on GitHub // https://github.com/Gogo1951/Play-It-Forward
+# Play It Forward on Discord // https://discord.gg/eh8hKq992Q
