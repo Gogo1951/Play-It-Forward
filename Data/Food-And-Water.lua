@@ -3,115 +3,56 @@ local _, ns = ...
 --[[
 	Food and drink a player can be given. What a row restores decides who is eligible, per
 	ns.Data.ConsumableClasses in Data/Data.lua, so there is no per-item class list.
-
-	useLevel is the item's own required level; the recipient band is derived from it in
-	Matcher:LevelBand rather than stored per row.
 ]]
 
 --[[
-    SELECT
-        it.entry,
-        it.name,
-        it.Quality,
-        it.RequiredLevel AS UseLevel,
-        CASE
-            WHEN 11 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
-             AND 59 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
-                THEN 'Hybrid'
-            WHEN 11 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
-                THEN 'Food'
-            WHEN 59 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
-                THEN 'Water'
-            ELSE 'Other'
-        END AS Kind
-    FROM item_template it
-    WHERE it.class    = 0        -- Consumable
-      AND it.subclass = 5        -- Food & Drink
-      AND it.bonding  = 0        -- non-soulbound
-      AND (it.Flags & 0x2) = 0   -- NOT conjured
-      AND it.name NOT LIKE 'Conjured %'
-      AND it.spelltrigger_1 IN (0,5)
-      AND (it.spellid_2 = 0 OR it.spellid_2 IS NULL)
-      AND it.name NOT LIKE '[PH]%'        -- placeholder
-      AND it.name NOT LIKE 'Test %'       -- debug
-      AND it.name NOT LIKE 'Deprecated %' -- retired
-      AND it.name NOT LIKE 'DEPCREATED %' -- retired, misspelled upstream
-      AND it.spellid_1 NOT IN (      -- weed out alcohol / inebriate spells
-            11007, 11008, 11009,     -- core booze tiers
-            11629,                   -- Nethergarde Bitter, Darkmoon Special Reserve
-            5909,                    -- Watered-down Beer
-            25037, 25722, 25804,     -- Rumsey Rum (Light/Dark/Black Label)
-            50986,                   -- Sulfuron Slammer
-            55296                    -- [PH] placeholder wine
-          )
-    HAVING Kind <> 'Other'       -- keep only Food / Water / Hybrid (restores HP or mana)
-    ORDER BY Kind, UseLevel, it.name;
+    SELECT CONCAT('\t{ ', entry, ', ', Quality, ', ', UseLevel, ', "', Restores, '" }, -- ', name) AS LuaRow
+    FROM (
+        SELECT
+            it.entry,
+            it.name,
+            it.Quality,
+            it.RequiredLevel AS UseLevel,
+            CASE
+                WHEN 11 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
+                 AND 59 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
+                    THEN 'BOTH'
+                WHEN 11 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
+                    THEN 'HEALTH'
+                WHEN 59 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
+                    THEN 'MANA'
+                ELSE 'Other'
+            END AS Restores
+        FROM item_template it
+        WHERE it.class    = 0        -- Consumable
+          AND it.subclass = 5        -- Food & Drink
+          AND it.bonding  = 0        -- non-soulbound
+          AND it.RequiredLevel > 4   -- must clear ns.Data.MIN_RECIPIENT_LEVEL: a consumable's band
+                                     -- is [useLevel, useLevel + CONSUMABLE_RECIPIENT_GAP], so
+                                     -- anything lower tops out under the floor and reaches nobody
+          AND (it.Flags & 0x2) = 0   -- NOT conjured
+          AND it.name NOT LIKE 'Conjured %'
+          AND it.spelltrigger_1 IN (0,5)
+          AND (it.spellid_2 = 0 OR it.spellid_2 IS NULL)
+          AND it.name NOT LIKE '[PH]%'        -- placeholder
+          AND it.name NOT LIKE 'Test %'       -- debug
+          AND it.name NOT LIKE 'Deprecated %' -- retired
+          AND it.name NOT LIKE 'DEPCREATED %' -- retired, misspelled upstream
+          AND it.spellid_1 NOT IN (      -- weed out alcohol / inebriate spells
+                11007, 11008, 11009,     -- core booze tiers
+                11629,                   -- Nethergarde Bitter, Darkmoon Special Reserve
+                5909,                    -- Watered-down Beer
+                25037, 25722, 25804,     -- Rumsey Rum (Light/Dark/Black Label)
+                50986,                   -- Sulfuron Slammer
+                55296                    -- [PH] placeholder wine
+              )
+    ) c
+    WHERE Restores <> 'Other'      -- keep only food / water / hybrid (restores HP or mana)
+    ORDER BY FIELD(Restores, 'HEALTH', 'MANA', 'BOTH'), UseLevel, name;
 ]]
 
 -- { id, quality, useLevel, restores }
 ns.Data.FoodAndWater = {
-	{ 43491, 1, 0, "HEALTH" }, -- Bad Clams
-	{ 1119, 1, 0, "HEALTH" }, -- Bottled Spirits
-	{ 46887, 1, 0, "HEALTH" }, -- Bountiful Feast
-	{ 11584, 1, 0, "HEALTH" }, -- Cactus Apple Surprise
-	{ 33924, 1, 0, "HEALTH" }, -- Delicious Chocolate Cake
-	{ 6522, 1, 0, "HEALTH" }, -- Deviate Fish
-	{ 6807, 1, 0, "HEALTH" }, -- Frog Leg Stew
-	{ 43492, 1, 0, "HEALTH" }, -- Haunted Herring
-	{ 961, 1, 0, "HEALTH" }, -- Healing Herb
-	{ 43488, 1, 0, "HEALTH" }, -- Last Weeks Mammoth
-	{ 27635, 1, 0, "HEALTH" }, -- Lynx Steak
-	{ 24105, 1, 0, "HEALTH" }, -- Roasted Moongraze Tenderloin
-	{ 1326, 1, 0, "HEALTH" }, -- Sauteed Sunfish
-	{ 6657, 1, 0, "HEALTH" }, -- Savory Deviate Delight
-	{ 3448, 1, 0, "HEALTH" }, -- Senggin Root
-	{ 43490, 1, 0, "HEALTH" }, -- Tasty Cupcake
-	{ 17199, 1, 1, "HEALTH" }, -- Bad Egg Nog
-	{ 16166, 1, 1, "HEALTH" }, -- Bean Soup
-	{ 2888, 1, 1, "HEALTH" }, -- Beer Basted Boar Ribs
-	{ 6290, 1, 1, "HEALTH" }, -- Brilliant Smallfish
-	{ 44839, 1, 1, "HEALTH" }, -- Candied Sweet Potato
-	{ 7807, 1, 1, "HEALTH" }, -- Candy Bar
-	{ 17344, 1, 1, "HEALTH" }, -- Candy Cane
-	{ 46690, 1, 1, "HEALTH" }, -- Candy Skull
-	{ 2679, 1, 1, "HEALTH" }, -- Charred Wolf Meat
-	{ 7808, 1, 1, "HEALTH" }, -- Chocolate Square
-	{ 23756, 1, 1, "HEALTH" }, -- Cookie's Jumbo Gumbo
-	{ 44854, 1, 1, "HEALTH" }, -- Cranberries
-	{ 44840, 1, 1, "HEALTH" }, -- Cranberry Chutney
-	{ 12224, 1, 1, "HEALTH" }, -- Crispy Bat Wing
-	{ 19223, 1, 1, "HEALTH" }, -- Darkmoon Dog
-	{ 2070, 1, 1, "HEALTH" }, -- Darnassian Bleu
-	{ 17198, 1, 1, "HEALTH" }, -- Egg Nog
-	{ 4604, 1, 1, "HEALTH" }, -- Forest Mushroom Cap
-	{ 17197, 1, 1, "HEALTH" }, -- Gingerbread Cookie
-	{ 6888, 1, 1, "HEALTH" }, -- Herb Baked Egg
-	{ 20857, 1, 1, "HEALTH" }, -- Honey Bread
-	{ 5472, 1, 1, "HEALTH" }, -- Kaldorei Spider Kabob
-	{ 7097, 1, 1, "HEALTH" }, -- Leg Meat
-	{ 7806, 1, 1, "HEALTH" }, -- Lollipop
-	{ 46797, 1, 1, "HEALTH" }, -- Mulgore Sweet Potato
-	{ 44836, 1, 1, "HEALTH" }, -- Pumpkin Pie
-	{ 46784, 1, 1, "HEALTH" }, -- Ripe Elwynn Pumpkin
-	{ 46796, 1, 1, "HEALTH" }, -- Ripe Tirisfal Pumpkin
-	{ 5057, 1, 1, "HEALTH" }, -- Ripe Watermelon
-	{ 2681, 1, 1, "HEALTH" }, -- Roasted Boar Meat
-	{ 5474, 1, 1, "HEALTH" }, -- Roasted Kodo Meat
-	{ 5473, 1, 1, "HEALTH" }, -- Scorpid Surprise
-	{ 4536, 1, 1, "HEALTH" }, -- Shiny Red Apple
-	{ 6299, 1, 1, "HEALTH" }, -- Sickly Looking Fish
-	{ 787, 1, 1, "HEALTH" }, -- Slitherskin Mackerel
-	{ 44838, 1, 1, "HEALTH" }, -- Slow-Roasted Turkey
-	{ 4656, 1, 1, "HEALTH" }, -- Small Pumpkin
-	{ 11109, 1, 1, "HEALTH" }, -- Special Chicken Feed
-	{ 30816, 1, 1, "HEALTH" }, -- Spice Bread
-	{ 44837, 1, 1, "HEALTH" }, -- Spice Bread Stuffing
-	{ 2680, 1, 1, "HEALTH" }, -- Spiced Wolf Meat
-	{ 46793, 1, 1, "HEALTH" }, -- Tangy Southfury Cranberries
-	{ 4540, 1, 1, "HEALTH" }, -- Tough Hunk of Bread
-	{ 117, 1, 1, "HEALTH" }, -- Tough Jerky
-	{ 44855, 1, 1, "HEALTH" }, -- Yam
-	{ 1401, 1, 4, "HEALTH" }, -- Green Tea Leaf
 	{ 27636, 1, 5, "HEALTH" }, -- Bat Bites
 	{ 3220, 1, 5, "HEALTH" }, -- Blood Sausage
 	{ 5525, 1, 5, "HEALTH" }, -- Boiled Clams
@@ -382,9 +323,6 @@ ns.Data.FoodAndWater = {
 	{ 42779, 1, 75, "HEALTH" }, -- Steaming Chicken Soup
 	{ 41729, 1, 75, "HEALTH" }, -- Stewed Drakeflesh
 	{ 35950, 1, 75, "HEALTH" }, -- Sweet Potato Bread
-	{ 21721, 1, 0, "MANA" }, -- Moonglow
-	{ 5342, 1, 0, "MANA" }, -- Raptor Punch
-	{ 159, 1, 1, "MANA" }, -- Refreshing Spring Water
 	{ 17404, 1, 5, "MANA" }, -- Blended Bean Brew
 	{ 1179, 1, 5, "MANA" }, -- Ice Cold Milk
 	{ 9451, 1, 15, "MANA" }, -- Bubbling Water

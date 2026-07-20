@@ -17,24 +17,22 @@ L["CHAT_LOADED"] =
 
 L["WINDOW_RARITY_LABEL"] = "Give Away Up To:"
 
--- Rarity names shown on the cap control and in the options select.
 L["QUALITY_UNCOMMON"] = "Green"
 L["QUALITY_RARE"] = "Blue"
 L["QUALITY_EPIC"] = "Purple"
 
 L["BUTTON_FIND_RECIPIENTS"] = "Find Recipients"
 L["BUTTON_SCAN_AGAIN"] = "Scan Again"
--- On the button while the /who throttle is up. Not a countdown: the button already says what it is doing.
+-- On the button while the /who throttle is up; deliberately not a countdown.
 L["BUTTON_SEARCHING"] = "Searching..."
 L["BUTTON_DISTRIBUTE"] = "Distribute"
+-- On the Distribute button away from a mailbox: an ordinary state, not an error.
+L["BUTTON_NEEDS_MAILBOX"] = "Requires Open Mailbox"
 
--- The labels naming where a query is looking surface only in the roster report, so they live in ns.DiagnosticsStrings.
+-- Labels for where a query is looking live in ns.DiagnosticsStrings: roster report only.
 
 L["SECTION_MATCHED"] = "Matched"
---[[
-	"Pending Match", not "no recipient in range": the usual truth is that the search has
-	not got there yet, and Scan Again is right underneath.
-]]
+-- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
 L["SECTION_NO_RECIPIENT"] = "Pending Match"
 L["SECTION_UNREADABLE"] = "Stats Couldn't Be Read"
 L["SECTION_VENDOR"] = "Vendor / Disenchant"
@@ -45,75 +43,70 @@ L["ROW_UNREADABLE"] = "stats unknown"
 
 L["PICKER_VENDOR_OPTION"] = "vendor / disenchant (don't send)"
 L["PICKER_NONE_IN_RANGE"] = "no one in range, run Find Recipients"
--- Names this as the add-on's failure rather than an empty realm, so Find Recipients is not pressed forever.
+-- The add-on's failure, not an empty realm, so Find Recipients is not pressed forever.
 L["PICKER_UNREADABLE"] = "couldn't read this item's stats, so it isn't matched"
 --[[
-	Why a name in the dropdown cannot be picked, greyed rather than hidden: a name that
-	vanishes reads as the add-on having lost them, where the reason is the useful part.
-
-	KEPT SHORT. A note shares one 18-pixel row with a cross-realm name, a level and a class,
-	and anything longer is cut off. What to do about it belongs in the hint below.
+	KEPT SHORT. A note shares one 18-pixel row with a cross-realm name, a level and a class, and
+	anything longer is cut off. What to do about it belongs in the hint below.
 ]]
 L["PICKER_NOTE_HAS_ONE"] = "(has one)"
 L["PICKER_NOTE_REFUSED"] = "(refused)"
 L["PICKER_NOTE_RECENT"] = "(recent)"
-L["PICKER_HINT_GREYED"] = "Clear a row to free the name it holds."
+L["PICKER_HINT_GRAYED"] = "Clear a row to free the name it holds."
 
 L["TOOLTIP_RECIPIENT"] = "Recipient"
 L["TOOLTIP_RECIPIENT_CANDIDATES"] = "%d candidate(s) at level %d-%d"
 L["TOOLTIP_RECIPIENT_HINT"] = "Click to reassign."
 
---[[
-	There is deliberately no status line, so no STATUS_* strings: the headings, the button
-	and the chat report already say all of it. Features/Mail-Window.lua carries the
-	reasoning.
-]]
-L["CHAT_ALREADY_HOLDS"] = "%s already has %s. Clear that row first if you want to give them something else."
-L["CHAT_CANNOT_RECEIVE"] = "Mail to %s was refused earlier this session, so they were not set."
--- There is deliberately no CHAT_NOTHING_GIFTABLE: a mailbox visit with nothing spare is the ordinary case.
+-- Deliberately no status line, so no STATUS_* strings: the headings and chat report say it all.
+L["CHAT_ALREADY_HOLDS"] = "Clear that row first to give %s something else, they already have %s."
+L["CHAT_CANNOT_RECEIVE"] = "Pick somebody else, mail to %s was refused earlier this session."
+-- Deliberately no CHAT_NOTHING_GIFTABLE: a visit with nothing spare is the ordinary case.
 
 --------------------------------------------------------------------------------
 -- Distributing
 --------------------------------------------------------------------------------
 
+--[[
+	THE ACTION COMES FIRST: "Walk back to a mailbox and press Distribute", not "Not at a mailbox,
+	distribution paused". These arrive in a chat frame already busy, where the first few words are
+	all that gets read. Messages with no action for the player stay plain statements, and all of
+	them print white; see the color note in Features/Announcements.lua.
+]]
 L["MAIL_STILL_SENDING"] = "Still sending, give it a sec."
 L["MAIL_NOTHING_TO_DISTRIBUTE"] = "Nothing to distribute."
 L["MAIL_DISTRIBUTING"] = "Distributing %d item(s). Click Accept on each confirm popup."
-L["MAIL_ITEM_MOVED"] = "%s moved in your bags, skipped. Press Find Recipients to re-scan."
---[[
-	Two greens at once from a stranger reads as spam, so the second is held back. Named
-	rather than dropped quietly: a silent skip looks like the row was never ticked.
-]]
-L["MAIL_ALREADY_HAS_ONE"] = "%s not sent: %s already has one this run. Pick somebody else for it."
-L["MAIL_NOT_AT_MAILBOX"] = "Not at a mailbox, distribution paused. Walk back and press Distribute."
-L["MAIL_NO_POSTAGE"] = "Not enough copper for postage. Paused."
-L["MAIL_PANEL_CLOSED"] = "Blizzard's Send Mail panel isn't open, so nothing was sent or touched."
+L["MAIL_ITEM_MOVED"] = "Press Find Recipients to re-scan, %s moved in your bags."
+-- Named rather than dropped quietly: a silent skip looks like the row was never ticked.
+L["MAIL_ALREADY_HAS_ONE"] = "Pick somebody else for %s, %s already has one this run."
+L["MAIL_NOT_AT_MAILBOX"] = "Walk back to a mailbox and press Distribute to send the rest."
+-- The run is dropped, not paused, so this says re-tick rather than "press Distribute to send the rest".
+L["MAIL_MAILBOX_CLOSED"] = "Open a mailbox and tick the rows again, the mailbox closed part-way through."
+L["MAIL_NO_POSTAGE"] = "Add a little copper for postage, then press Distribute to send the rest."
+L["MAIL_PANEL_CLOSED"] = "Open Blizzard's Send Mail panel and press Distribute again. Nothing was sent or touched."
 L["MAIL_PANEL_CLOSED_HINT"] =
-	"Open a mailbox with the default mail UI (TSM's mailbox doesn't accept attachments), then press Distribute again."
+	"If you use TSM, switch to the default mail UI for this. Its mailbox doesn't accept attachments."
 L["MAIL_ATTACH_FAILED"] = "Couldn't attach %s, nothing sent."
-L["MAIL_AWAITING_CONFIRM"] = "Waiting on confirm for %s. Click Accept, then press Distribute to resume."
+L["MAIL_AWAITING_CONFIRM"] = "Click Accept on the popup for %s, then press Distribute to send the rest."
 L["MAIL_SENT"] = "Sent %s to %s (%d/%d)."
 L["MAIL_SEND_FAILED"] = "Mail to %s failed (%s)."
 L["MAIL_ABORTED"] = "Multiple mail errors, aborting distribution."
 L["MAIL_DONE"] = "Done. %d of %d delivered."
 L["MAIL_DONE_WITH_SKIPS"] = "Done. %d of %d delivered, %d skipped (moved in your bags)."
--- There are deliberately no MAIL_PREVIEW_* strings: the Diagnostic Tools panel keeps the preview.
+-- Deliberately no MAIL_PREVIEW_* strings: the Diagnostic Tools panel keeps the preview.
 L["MAIL_SUBJECT_TOO_LONG"] = "Subject is %d characters and mail only takes %d, so it will be cut short."
 L["MAIL_BODY_TOO_LONG"] = "Body is %d characters and mail only takes %d, so it will be cut short."
 
 L["WHO_BLOCKED"] =
-	"Blizzard blocked that /who. It only works when it comes straight from a button press, so click Find Recipients again."
+	"Click Find Recipients again. Blizzard only allows that search straight from a button press, and something interrupted this one."
 
 --------------------------------------------------------------------------------
 -- Default Mail Contents
 --------------------------------------------------------------------------------
 
 --[[
-	THE MAIL A STRANGER RECEIVES. Fixed text, not a setting. It goes out cold to somebody
-	who has never heard of you, and an editable version is a way to send something worse
-	in the add-on's name. Nothing reads a saved subject or body.
-
-	Straight apostrophes, not curly ones, matching the rest of this file.
+	THE MAIL A STRANGER RECEIVES. Fixed text, not a setting: an editable version is a way to send
+	something worse in the add-on's name. Nothing reads a saved subject or body.
 
 	LENGTH: 500 characters, confirmed against a live mailbox. Past it the mail is cut short,
 	sign-off first, and Tests/Mail-Contents.lua fails on it. The runtime warning in
@@ -133,7 +126,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Mail the gear and consumables you've outgrown to strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time."
+	"Mail the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time."
 L["OPTIONS_WELCOME"] = "Enable Welcome Message"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "Print the version and settings reminder when you log in."
 
@@ -149,16 +142,13 @@ L["OPTIONS_INCLUDE_GEAR"] = "Include Gear"
 L["OPTIONS_INCLUDE_GEAR_DESCRIPTION"] = "Offer bind-on-equip weapons and armor."
 L["OPTIONS_INCLUDE_CONSUMABLES"] = "Include Consumables"
 L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] = "Offer low-level food, drink and potions you have outgrown."
---[[
-	Caption and values, read together: "Outgrown By" over "20 levels". Without the caption
-	the dropdown gives a number of levels and nothing about what they count from.
-]]
+-- Read together: "Outgrown By" over "20 levels", or the number says nothing about what it counts from.
 L["OPTIONS_CONSUMABLE_GAP_LABEL"] = "Outgrown By"
 L["OPTIONS_CONSUMABLE_GAP_VALUE"] = "%d levels"
 L["OPTIONS_CONSUMABLE_GAP_DESCRIPTION"] =
 	"How many levels past a consumable you must be before it counts as spare. At 20, a level 35 water is offered once you reach 55."
 
--- No strings for a Finding Recipients, Matching or The Mail section: Data/Default-Settings.lua records where each went.
+-- No Finding Recipients, Matching or The Mail sections: Data/Default-Settings.lua records why.
 
 L["OPTIONS_FEEDBACK"] = "Feedback & Support"
 L["OPTIONS_DISCORD"] = "Discord"

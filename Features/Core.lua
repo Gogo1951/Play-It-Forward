@@ -21,10 +21,9 @@ ns.Version = GetVersion()
 --------------------------------------------------------------------------------
 
 --[[
-	Every event routes through this one frame, and ns.on is the only way in: a feature file
-	registering its own frame would bypass the Diagnostics event log. ns.EVENT_NAMES
-	accumulates as events register rather than being a static list, because registration is
-	flavor-conditional, so the exported list is exactly what this client took.
+	ns.on is the only way in: a feature file registering its own frame would bypass the Diagnostics
+	event log. ns.EVENT_NAMES accumulates as events register rather than being a static list,
+	because registration is flavor-conditional, so the export is exactly what this client took.
 ]]
 local handlers = {}
 local registered = {}
@@ -44,8 +43,8 @@ end
 
 frame:SetScript("OnEvent", function(_, event, ...)
 	--[[
-		The diagnostics tap: one boolean read before any allocation, so diagnostics off costs
-		nothing. Logged before the handlers run, so an entry survives a handler error.
+		One boolean read before any allocation, so diagnostics off costs nothing. Logged before the
+		handlers run, so an entry survives a handler error.
 	]]
 	if ns.diagnostics.logging then
 		ns:LogEvent(event, ...)
@@ -64,10 +63,9 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	The database is created here and nowhere else. ADDON_LOADED is the first point the client
-	has loaded our saved variables: file scope is too early, and PLAYER_ENTERING_WORLD refires
-	on every loading screen. New's third argument is the shared "Default" profile -- omitting
-	it silently gives every character its own, and account-wide settings stop being so.
+	ADDON_LOADED is the first point the client has loaded our saved variables: file scope is too
+	early, and PLAYER_ENTERING_WORLD refires on every loading screen. New's third argument is the
+	shared "Default" profile -- omit it and every character silently gets its own.
 ]]
 ns.on("ADDON_LOADED", function(name)
 	if name ~= ADDON_NAME then
@@ -75,8 +73,11 @@ ns.on("ADDON_LOADED", function(name)
 	end
 	ns.db = LibStub("AceDB-3.0"):New("PlayItForwardDB", ns.DATABASE_DEFAULTS, true)
 
-	-- The cooldown spreads gifts across one session, so the list starts empty at every login.
-	wipe(ns.db.profile.recipients)
+	-- Deprecated: a setting no control ever reached, and a constant now as ns.Data.MIN_RARITY.
+	ns.db.profile.minRarity = nil
+
+	-- The cooldown is per-session, so the list starts empty at every login.
+	ns.Fairness:Reset()
 
 	ns:RegisterOptionsPanels()
 end)

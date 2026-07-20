@@ -7,9 +7,8 @@ ns.L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
 --------------------------------------------------------------------------------
 
 --[[
-	Loads ahead of every other data file and of Core, because the files below read these at load
-	time: Stat-Weights branches on ns.isWrathOrLater while building, and all of them write
-	ns.Data.
+	Loads ahead of every other data file and of Core: they read these at load time --
+	Stat-Weights branches on ns.isWrathOrLater while building, and all of them write ns.Data.
 ]]
 ns.Data = ns.Data or {}
 
@@ -17,10 +16,9 @@ ns.Data = ns.Data or {}
 ns.AddonTitle = ns.L["ADDON_TITLE"]
 
 --[[
-	Load-bearing in two places: the zone flavor column ns.Data.ZonesFor reads in
-	Features/Recipient-Search.lua, and the interaction-manager mailbox registrations in
-	Features/Mail-Window.lua, which are taken off Era only. MAIL_SHOW and MAIL_CLOSED are
-	registered on every flavor and do not read this.
+	Read in two places: the zone flavor column in Features/Recipient-Search.lua, and the
+	interaction-manager mailbox registrations in Features/Mail-Window.lua, taken off Era only.
+	MAIL_SHOW and MAIL_CLOSED register on every flavor and do not read this.
 ]]
 ns.isEra = (WOW_PROJECT_ID == (WOW_PROJECT_CLASSIC or 2))
 
@@ -35,10 +33,7 @@ ns.isWrathOrLater = not PRE_WRATH[WOW_PROJECT_ID or 2]
 -- Links
 --------------------------------------------------------------------------------
 
---[[
-	Rendered in this order, each row skipped when its key is missing. Slugs are irregular across
-	the add-ons and are never derived from the display name.
-]]
+-- Rendered in this order, rows skipped when missing. Slugs are irregular and never derived from the display name.
 ns.Links = {
 	DISCORD = "https://discord.gg/eh8hKq992Q",
 	GITHUB = "https://github.com/Gogo1951/Play-It-Forward",
@@ -50,10 +45,7 @@ ns.Links = {
 -- Options Registry
 --------------------------------------------------------------------------------
 
---[[
-	AceConfig registry names, never localized. Referenced by Options.lua's registration and by
-	NotifyChange in the panels, so they are stable identifiers, never built inline.
-]]
+-- AceConfig registry names: stable identifiers, never localized and never built inline.
 ns.OPTIONS_REGISTRY = {
 	General = ADDON_NAME,
 	Profiles = ADDON_NAME .. "_Profiles",
@@ -64,10 +56,7 @@ ns.OPTIONS_REGISTRY = {
 -- Color Palette
 --------------------------------------------------------------------------------
 
---[[
-	Raw 6-character hex, no |cff prefix: that escape is added in Features/Utilities.lua, where
-	the derived COLORS table and ns.GetColor are built.
-]]
+-- Raw 6-character hex, no |cff prefix: Features/Utilities.lua adds that and builds COLORS and ns.GetColor.
 ns.PALETTE = {
 	TITLE = "FFD100", -- Gold: Titles, Headers, Section Names, Field Titles
 	INFO = "00BBFF", -- Blue: Interactions, Toggles, Links, Keybinds, Slash Commands
@@ -102,10 +91,9 @@ ns.CLASS_COLORS = {
 --------------------------------------------------------------------------------
 
 --[[
-	How far below an item's required level its recipients are looked for, with
-	RankCandidates preferring whoever sits closest to the top of the band. A level 19 sword
-	reaches a 17 or an 18, goes to the 18, and never reaches a 19: it should arrive just
-	before an item becomes useful, not after.
+	How far below an item's required level its recipients are looked for, with RankCandidates
+	preferring whoever sits closest to the top of the band: a level 19 sword goes to an 18 over
+	a 17 and never reaches a 19. It should arrive just before an item becomes useful, not after.
 
 	WIDEST must stay above CLOSEST. Equal values collapse the band to a single level and
 	quietly starve items of recipients.
@@ -113,14 +101,37 @@ ns.CLASS_COLORS = {
 ns.Data.LEVEL_GAP_WIDEST = 2
 ns.Data.LEVEL_GAP_CLOSEST = 1
 
+--[[
+	How far ABOVE its use level a consumable's recipients are looked for, with RankCandidates
+	preferring whoever sits closest to the BOTTOM of that band: a level 21 Greater Healing
+	Potion goes to a 21 over a 23, because the point is somebody who drinks it now.
+
+	ONE RULE FOR EVERY CONSUMABLE. Data/Potions.lua and Data/Food-And-Water.lua share a shape
+	and carry no per-item level range, so there is nothing to branch on.
+
+	DELIBERATELY NOT profile.consumableLevelGap, which answers the opposite question: that is
+	the sender's threshold for when a potion counts as spare, and wants to be large or a level
+	60 gives away what they are still drinking. This one wants to be small. The two shared a
+	number until 2026-07 on the reasoning that they were symmetric; they are not.
+]]
+ns.Data.CONSUMABLE_RECIPIENT_GAP = 2
+
+--[[
+	The lowest level anybody can receive anything, whatever list named them (maintainer ruling,
+	2026-07-20). Levels 1 to 4 are where bank and profession alts sit.
+
+	ENFORCED IN ONE PLACE, Features/Match-List.lua's AddResults, because that is the single door
+	every recipient comes through -- /who results, the guild roster, anything added later. A
+	copy of this rule per source is a copy that can drift.
+]]
+ns.Data.MIN_RECIPIENT_LEVEL = 5
+
 --------------------------------------------------------------------------------
 -- Consumable Level Gap
 --------------------------------------------------------------------------------
 
--- The gaps the options panel offers, in fives.
+-- The gaps the options panel offers; Options/Options-Utilities.lua labels and snaps them.
 ns.CONSUMABLE_GAP_ORDER = { 0, 5, 10, 15, 20 }
-
--- Labelled and snapped for the dropdown by Options/Options-Utilities.lua.
 
 --------------------------------------------------------------------------------
 -- Consumable Eligibility
@@ -137,6 +148,20 @@ ns.Data.ConsumableClasses = {
 	MANA = MANA_USERS,
 	BOTH = MANA_USERS,
 }
+
+--------------------------------------------------------------------------------
+-- Rarity Floor
+--------------------------------------------------------------------------------
+
+--[[
+	The lowest quality worth mailing a stranger: a letter from somebody you have never met
+	containing a grey reads as junk rather than a gift. A constant, not a setting -- a floor
+	below uncommon has no use that is not "send something worse".
+
+	GEAR ONLY. Features/Bag-Scanner.lua returns a listed consumable before the rarity checks,
+	so this never tests one: a low-level water is worth having whatever its rarity.
+]]
+ns.Data.MIN_RARITY = (Enum and Enum.ItemQuality and Enum.ItemQuality.Uncommon) or 2
 
 --------------------------------------------------------------------------------
 -- Item Quality Colors

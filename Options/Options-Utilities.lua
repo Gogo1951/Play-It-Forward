@@ -5,9 +5,8 @@ local _, ns = ...
 --------------------------------------------------------------------------------
 
 --[[
-	Widget constructors shared by every options panel. Dot-defined (no self), so callers use
-	dot invocation. Header and Spacer take two arguments only: to hide a section built from
-	them, inline the widgets with their own hidden functions rather than adding a third here.
+	Header and Spacer take two arguments only: to hide a section built from them, inline the
+	widgets with their own hidden functions rather than adding a third argument here.
 ]]
 local GetColor = ns.GetColor
 
@@ -37,19 +36,15 @@ end
 -- Consumable Level Gap
 --------------------------------------------------------------------------------
 
---[[
-	The stops are data, in Data/Data.lua. Labelled "20 levels" rather than "20", because a bare
-	number says nothing about what it counts.
-]]
+-- The stops are data, in Data/Data.lua. "20 levels", because a bare number says nothing.
 ns.CONSUMABLE_GAP_VALUES = {}
 for _, gap in ipairs(ns.CONSUMABLE_GAP_ORDER) do
 	ns.CONSUMABLE_GAP_VALUES[gap] = ns.L["OPTIONS_CONSUMABLE_GAP_VALUE"]:format(gap)
 end
 
 --[[
-	A select whose current value is not in its list renders blank, which reads as a setting that
-	failed to load. Display only: the stored number keeps driving the scan until the player
-	picks, since rewriting somebody's setting to open a panel is worse than showing it rounded.
+	A select whose value is not in its list renders blank, reading as a setting that failed to
+	load. Display only: the stored number keeps driving the scan until the player picks.
 ]]
 function ns.NearestConsumableGap(value)
 	local stored = tonumber(value) or 0

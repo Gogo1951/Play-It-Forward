@@ -19,9 +19,8 @@ ns.GetInfoInstant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
 --------------------------------------------------------------------------------
 
 --[[
-	The first of the given template names this client has. Build from Blizzard's stock
-	templates, never a hand-rolled SetBackdrop: skinning add-ons restyle the stock ones and
-	cannot touch a backdrop drawn by hand. Falls back to the last name given.
+	The first of the given template names this client has, falling back to the last. Stock Blizzard
+	templates only: skinning add-ons restyle those and cannot touch a hand-rolled SetBackdrop.
 ]]
 local function templateExists(name)
 	if not (C_XMLUtil and C_XMLUtil.GetTemplateInfo) then
@@ -57,7 +56,7 @@ function ns.GetColor(key)
 	return COLORS[key] or COLORS.TEXT
 end
 
--- The same palette as r, g, b, for APIs that take numbers rather than an escape string.
+-- The same palette as r, g, b, for APIs that take numbers rather than an escape.
 local COLORS_RGB = {}
 for key, hex in pairs(ns.PALETTE) do
 	COLORS_RGB[key] = {
@@ -88,7 +87,7 @@ do
 end
 
 --[[
-	Honours a ClassColors or oUF-style override. Returns the bare "ffRRGGBB" form the |c escape
+	Honors a ClassColors or oUF-style override. Returns the bare "ffRRGGBB" form the |c escape
 	takes, not a |cff prefix, which is why the fallback prepends "ff" itself.
 ]]
 function ns.ClassColor(token)
@@ -143,12 +142,10 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	The random-suffix id from an item link, or nil. This separates an item carrying no stats
-	from one whose stats were not read: a rolled green keeps every stat in its suffix, and
-	both GetItemStats and a failed tooltip read report empty.
-
-	Field 7 of the payload is the suffix id (item:id:enchant:g1:g2:g3:g4:suffix). Fields are
-	frequently empty, so this counts separators rather than matching digits.
+	The random-suffix id from an item link, or nil, which separates an item carrying no stats from
+	one whose stats were not read. Field 7 of the payload is the suffix id
+	(item:id:enchant:g1:g2:g3:g4:suffix); fields are frequently empty, so this counts separators
+	rather than matching digits.
 ]]
 function ns.ItemSuffixID(link)
 	local payload = link and link:match("|Hitem:([^|]+)")
@@ -171,8 +168,8 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	Ask the interaction manager, which knows for certain. ns.mailboxOpen is our own MAIL_SHOW /
-	MAIL_CLOSED tracking and goes stale, since MAIL_CLOSED does not fire on every way out.
+	The interaction manager knows for certain. Our own ns.mailboxOpen tracking goes stale, since
+	MAIL_CLOSED does not fire on every way out.
 ]]
 function ns.AtMailbox()
 	local manager = C_PlayerInteractionManager

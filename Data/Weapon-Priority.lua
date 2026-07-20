@@ -2,7 +2,7 @@ local _, ns = ...
 
 -- Weapon subclassID (from GetItemInfoInstant) -> our weapon key.
 ns.Data.WeaponSubclass = {
-	[0] = "1H_AXE", -- (one-hand axes)  NOTE: Blizzard splits 1H/2H by inv slot, not subclass
+	[0] = "1H_AXE", -- Blizzard splits 1H/2H by inv slot, not subclass
 	[1] = "2H_AXE",
 	[2] = "BOW",
 	[3] = "GUN",
@@ -19,22 +19,7 @@ ns.Data.WeaponSubclass = {
 	[19] = "WAND",
 }
 
---[[
-	How many of a class's three talent trees build around each weapon type.
-
-	  3 = every spec wants it   (priest + 1H mace, hunter + bow)
-	  2 = two of three          (paladin + 1H sword: holy and prot)
-	  1 = one spec only         (paladin + 2H sword: ret)
-	  0 = no proficiency, or proficient but no spec ever uses it
-
-	Eligibility is derived from this, so there is no second matrix to keep in sync:
-	0 means the class cannot receive the type at all. Group = 4 - count, so a 3-spec
-	weapon is group 1, its natural home, exactly as native armor is.
-]]
---[[
-	The column order of the matrix below and nothing else. Deliberately not the matcher's
-	own class list, which is filtered by flavor and faction.
-]]
+-- Column order for the matrix below and nothing else, not the matcher's class list, which faction and flavor filter.
 ns.Data.WeaponClassOrder = {
 	"WARRIOR",
 	"PALADIN",
@@ -48,8 +33,23 @@ ns.Data.WeaponClassOrder = {
 	"DEATHKNIGHT",
 }
 
+--[[
+	How many of a class's three talent trees build around each weapon type.
+
+	  3 = every spec wants it   (priest + 1H mace, hunter + bow)
+	  2 = two of three          (paladin + 1H sword: holy and prot)
+	  1 = one spec only         (paladin + 2H sword: ret)
+	  0 = no proficiency, or proficient but no spec ever uses it
+
+	Eligibility is derived from this, so there is no second matrix to keep in sync: 0 means the
+	class cannot receive the type at all. Group = 4 - count, so a 3-spec weapon is group 1, its
+	natural home, exactly as native armor is.
+
+	EACH ROW'S TEN VALUES ARE ns.Data.WeaponClassOrder ABOVE, IN THAT ORDER. Count a column
+	against that array and nothing else. Do not add a padded legend here: StyLua normalizes the
+	rows but leaves the padding alone, so the two drift and the legend names the wrong columns.
+]]
 ns.Data.WeaponSpecs = {
-	--              War Pal Hun Rog Pri Sha Mag Wlk Dru  DK
 	["1H_SWORD"] = { 2, 2, 1, 2, 0, 0, 1, 1, 0, 1 },
 	["2H_SWORD"] = { 1, 1, 1, 0, 0, 0, 0, 0, 0, 3 },
 	["1H_MACE"] = { 2, 2, 0, 1, 3, 3, 0, 0, 3, 1 },
@@ -71,10 +71,9 @@ ns.Data.WeaponSpecs = {
 
 --[[
 	Proficiencies that do not exist from level 1: below the listed level the class cannot
-	receive that weapon type at all, whatever the spec count says. The gate reads the
-	ITEM's required level rather than the recipient's, which is self-correcting -- a druid
-	only becomes a candidate for polearms requiring 60 or above, by which point they have
-	the proficiency.
+	receive that type at all, whatever the spec count says. The gate reads the ITEM's required
+	level, not the recipient's, which is self-correcting -- a druid only becomes a candidate
+	for polearms requiring 60 or above, by which point they have the proficiency.
 ]]
 ns.Data.WeaponMinLevel = {
 	DRUID = { POLEARM = 60 }, -- druids don't train polearms until TBC

@@ -8,15 +8,15 @@ local NUM_BAGS = 4 -- 0..4 (Classic Era: backpack + 4 bags, no reagent bag)
 local CONSUMABLE_CLASS, WEAPON_CLASS, ARMOR_CLASS = 0, 2, 4 -- GetItemInfo classID
 
 --[[
-	Why a slot was passed over. Diagnostic identifiers read by the Bag Scan export, never
-	shown to a player and never localized. They answer "why is this item not showing up", so
-	a code that is merely true is not good enough: it has to be the actual reason.
+	Why a slot was passed over. Diagnostic identifiers for the Bag Scan export: never shown to a
+	player, never localized, and always the actual reason rather than a code that is merely true.
 ]]
 local REJECT = {
 	EMPTY_SLOT = "EMPTY_SLOT",
 	NOT_CACHED = "NOT_CACHED",
 	CONSUMABLES_DISABLED = "CONSUMABLES_DISABLED",
 	CONSUMABLE_NOT_LISTED = "CONSUMABLE_NOT_LISTED",
+	NO_USE_LEVEL = "NO_USE_LEVEL",
 	LEVEL_GAP = "LEVEL_GAP",
 	GEAR_DISABLED = "GEAR_DISABLED",
 	WRONG_CLASS = "WRONG_CLASS",
@@ -31,9 +31,8 @@ local REJECT = {
 Scanner.REJECT = REJECT
 
 --[[
-	Bind on use gets its own code because those items are still fully tradeable: excluding
-	them is this add-on's policy rather than the client's rule, and a code that says so keeps
-	the decision reviewable.
+	Bind on use gets its own code because those items are still fully tradeable: excluding them is
+	this add-on's policy rather than the client's rule.
 ]]
 local BIND_REJECT = {
 	[1] = REJECT.BIND_ON_PICKUP,
@@ -42,12 +41,10 @@ local BIND_REJECT = {
 }
 
 --[[
-	One itemID -> definition lookup across every consumable table, built once, turning the
-	data files' positional rows into named fields so nothing downstream indexes by number.
-
-	Form travels with each row because what a consumable restores is not enough to say what
-	it is: forty-odd Food-And-Water entries restore mana and every one is water, so "restores
-	mana" alone would put mages behind priests for a bottle of water.
+	One itemID -> definition lookup across every consumable table, turning the data files'
+	positional rows into named fields. Form travels with each row because what a consumable
+	restores is not enough to say what it is: forty-odd Food-And-Water rows restore mana and every
+	one is water, so "restores mana" alone would put mages behind priests for a bottle of water.
 ]]
 local CONSUMABLE_TABLES = {
 	{ table = "FoodAndWater", form = "FOOD" },
@@ -75,13 +72,10 @@ local function consumableIndex()
 end
 
 --[[
-	GetItemStats first, then the tooltip overlaid. GetItemStats ignores an item's random
-	suffix, so a rolled green comes back statless from it; ns.Tooltip reads the rendered item
-	and sees the roll. Merged by max per stat, never sum: both report the same stat on a
-	fixed-stat item and summing would double it.
-
-	Each source's answer also comes back separately. The merge is lossy, so a report built
-	from it alone cannot tell a working source from a dead one.
+	GetItemStats first, then the tooltip overlaid: GetItemStats ignores an item's random suffix, so
+	a rolled green comes back statless from it. Merged by max per stat, never sum -- both report
+	the same stat on a fixed-stat item and summing would double it. Each source's answer also comes
+	back separately, since the merge is lossy.
 ]]
 local function normalizedStats(link)
 	local api = {}
@@ -104,36 +98,29 @@ local function normalizedStats(link)
 		end
 	end
 
-	--[[
-		Raw lines only when the tooltip parsed to nothing: that is the one case where "we failed
-		to read a stat" and "there was no stat" look identical in the parsed table.
-	]]
+	-- Raw lines only when nothing parsed: the one case where read failure and no stats look alike.
 	local unparsed = next(tooltip) == nil and lines or nil
 
 	--[[
-		unread travels always: lines that looked like stats and resolved to no token are a gap
-		in the name table, and an item can have that gap on one line while reading three
-		cleanly.
+		unread travels always: a line that looked like a stat and resolved to no token is a gap in
+		the name table, and an item can have that gap on one line while reading three cleanly.
 	]]
 	return out, { source = source, api = api, tooltip = tooltip, lines = unparsed, unread = unread }
 end
 
 --[[
-	Which item this is, not what it is called: two "Ivycloth Robe" in different slots are two
-	items, and everything acting on one specific item keys on this.
-
-	Slot and link together, because neither alone holds -- a slot is reused the moment its
-	item is mailed, and a link is shared by every copy of a plain item. Stable across a
-	rescan, which is how a pairing survives one.
+	Which item this is, not what it is called: two "Ivycloth Robe" in different slots are two items.
+	Slot and link together, because neither alone holds -- a slot is reused the moment its item is
+	mailed, and a link is shared by every copy of a plain item. Stable across a rescan, which is
+	how a pairing survives one.
 ]]
 local function itemUID(bag, slot, link)
 	return ("%d:%d:%s"):format(bag or -1, slot or -1, link or "")
 end
 
 --[[
-	The hard filter for one bag slot: everything except reading the item's stats. Local and
-	deliberately incomplete -- a statless gear record reaching the matcher reads as a parse
-	failure, so Scanner:Classify is the public way in and finishes the record first.
+	The hard filter for one bag slot, everything except reading stats. Local on purpose: a statless
+	gear record reaching the matcher reads as a parse failure, so Scanner:Classify is the way in.
 ]]
 local function filterSlot(bag, slot)
 	local link = ns.GetItemLink(bag, slot)
@@ -144,8 +131,7 @@ local function filterSlot(bag, slot)
 	--[[
 		One call, two shapes: C_Container returns a table, the legacy globals a positional list
 		whose 2nd and 11th values are the count and bound flag. Both are read because the API is
-		picked by availability -- drop the legacy shape and the soulbound check never fires
-		there.
+		picked by availability.
 	]]
 	local first, count, _, _, _, _, _, _, _, _, isBound = ns.GetItemInfoC(bag, slot)
 	if type(first) == "table" then
@@ -161,14 +147,22 @@ local function filterSlot(bag, slot)
 
 	local iid = ns.GetInfoInstant(link)
 
-	--[[
-		Only once the player has outgrown it: at 45 the new water is trained and a level-35
-		stack is spare, but at 40 it is still what they are drinking.
-	]]
+	-- Only once the player has outgrown it: a level-35 water stack is spare at 45, not at 40.
 	local cdef = consumableIndex()[iid]
 	if cdef then
 		if not ns.db.profile.includeConsumables then
 			return nil, REJECT.CONSUMABLES_DISABLED
+		end
+		--[[
+			A useLevel of 0 is the database's RequiredLevel, not the level the consumable is
+			worth having: Bountiful Feast and Delicious Chocolate Cake both carry it. Banding on
+			it gives a low of 1 and a high of CONSUMABLE_RECIPIENT_GAP, which against
+			MIN_RECIPIENT_LEVEL leaves exactly one reachable recipient level, so the item never
+			finds anybody and sits on the list instead. Held back until a real level is sourced
+			for those rows, rather than offered to nobody.
+		]]
+		if (cdef.useLevel or 0) <= 0 then
+			return nil, REJECT.NO_USE_LEVEL
 		end
 		local gap = ns.db.profile.consumableLevelGap
 		if (UnitLevel("player") or 1) - cdef.useLevel < gap then
@@ -187,18 +181,14 @@ local function filterSlot(bag, slot)
 		}
 	end
 
-	--[[
-		Stops here, before the gear checks describe it as something it is not, and before the
-		gear toggle, or a bandage scanned with gear off comes back GEAR_DISABLED.
-	]]
+	-- Before the gear toggle, or a bandage scanned with gear off comes back GEAR_DISABLED.
 	if classID == CONSUMABLE_CLASS then
 		return nil, REJECT.CONSUMABLE_NOT_LISTED
 	end
 
 	--[[
-		Weapons and armor only, as a positive check on classID. Do not relax to "has an equip
-		slot" -- recipes carry one on this client, which puts crafting plans in the giftable
-		list.
+		Weapons and armor only, as a positive check on classID. Do not relax to "has an equip slot"
+		-- recipes carry one on this client, which puts crafting plans in the giftable list.
 	]]
 	if not ns.db.profile.includeGear then
 		return nil, REJECT.GEAR_DISABLED
@@ -206,7 +196,7 @@ local function filterSlot(bag, slot)
 	if classID ~= WEAPON_CLASS and classID ~= ARMOR_CLASS then
 		return nil, REJECT.WRONG_CLASS
 	end
-	if quality < ns.db.profile.minRarity then
+	if quality < ns.Data.MIN_RARITY then
 		return nil, REJECT.BELOW_MIN_RARITY
 	end
 	if quality > ns.db.profile.maxRarity then
@@ -243,9 +233,8 @@ local function filterSlot(bag, slot)
 end
 
 --[[
-	The filter above with the item's stats read and attached. Returns the record, or nil plus
-	the reject code -- a caller seeing only nil cannot tell "consumables are switched off" from
-	"this is already soulbound", which is exactly what a player asks.
+	The filter above with the item's stats read and attached. Returns nil plus a reject code, not a
+	bare nil: "consumables are switched off" and "already soulbound" is what a player actually asks.
 ]]
 function Scanner:Classify(bag, slot)
 	local record, reason = filterSlot(bag, slot)
@@ -253,10 +242,7 @@ function Scanner:Classify(bag, slot)
 		return nil, reason
 	end
 	if record.kind == "gear" then
-		--[[
-			The expensive half: one tooltip per item. Bounded by what cleared the filter, and
-			Mail-Window asks once per change, so it lands on the open that read the bags anyway.
-		]]
+		-- The expensive half: one tooltip per item, bounded by what cleared the filter.
 		record.stats, record.statRead = normalizedStats(record.link)
 	end
 	return record
@@ -285,13 +271,8 @@ function Scanner:Describe(link)
 	}
 end
 
---[[
-	No Scanner:HasAny: the filter says a slot holds an unbound green, never that a class exists
-	who can use it, so it cannot answer "is the window worth opening". Mail-Window reads
-	verdicts.
-]]
+-- No Scanner:HasAny: a slot holding an unbound green says nothing about who can use it.
 
--- Scan all bags, return a flat list of giftable item records.
 function Scanner:Scan()
 	local items = {}
 	for bag = 0, NUM_BAGS do
@@ -307,8 +288,8 @@ function Scanner:Scan()
 end
 
 --[[
-	Every occupied bag slot with its record or its reason code, for the Bag Scan export, where
-	the rejected rows are the point. Empty slots are left out: not a rejection, only padding.
+	Every occupied bag slot with its record or its reason code, for the Bag Scan export where the
+	rejected rows are the point. Empty slots are left out: not a rejection, only padding.
 ]]
 function Scanner:ScanAll()
 	local rows = {}

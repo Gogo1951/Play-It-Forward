@@ -1,9 +1,8 @@
 local _, ns = ...
 
 --[[
-	GetItemStats keys -> internal stat tokens. The key set differs between clients,
-	especially around spell power, so a stat that scores on one client and not another
-	means a row is missing here rather than the scorer being wrong.
+	GetItemStats keys -> internal stat tokens. The key set differs between clients, so a stat
+	that scores on one and not another means a row is missing here, not a broken scorer.
 ]]
 ns.Data.StatMap = {
 	ITEM_MOD_STRENGTH_SHORT = "STRENGTH",
@@ -17,13 +16,12 @@ ns.Data.StatMap = {
 
 	-- Pre-Wrath these are three separate stats the weight tables rank differently: never fold them together.
 	ITEM_MOD_SPELL_POWER_SHORT = "SPELL_POWER", -- unified damage+healing
-	ITEM_MOD_SPELL_DAMAGE_DONE_SHORT = "SPELL_DAMAGE", -- generic spell damage
+	ITEM_MOD_SPELL_DAMAGE_DONE_SHORT = "SPELL_DAMAGE",
 	ITEM_MOD_SPELL_HEALING_DONE_SHORT = "HEALING",
 	ITEM_MOD_HEALING_DONE_SHORT = "HEALING",
 	--[[
-		Per-school damage (ARCANE, FIRE, FROST, NATURE, SHADOW, HOLY) has no GetItemStats
-		key in Vanilla. Tooltip text only, which is why Features/Tooltip-Scanner.lua is not
-		optional.
+		Per-school damage (ARCANE, FIRE, FROST, NATURE, SHADOW, HOLY) has no GetItemStats key
+		in Vanilla: tooltip text only, which is why Features/Tooltip-Scanner.lua is not optional.
 	]]
 
 	ITEM_MOD_HIT_RATING_SHORT = "HIT",

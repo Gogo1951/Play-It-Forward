@@ -6,24 +6,19 @@ local Dist = ns.Distributor
 
 --[[
 	Serialized, event-driven mailer. SendMail cannot be looped: one send goes out, then the run
-	waits for MAIL_SUCCESS or MAIL_FAILED before advancing. Mailing a non-friend arms
-	Blizzard's "might be someone you don't know" confirm, the anti-spam guard for mailing
-	strangers, and it is never auto-clicked.
+	waits for MAIL_SUCCESS or MAIL_FAILED before advancing. Mailing a non-friend arms Blizzard's
+	"might be someone you don't know" confirm, which is never auto-clicked.
 ]]
 
---[[
-	Display only. Never for the SendMail call itself: that takes the bare name, and an escape
-	sequence in it would address the letter to nobody.
-]]
+-- Display only: SendMail takes the bare name, and an escape sequence would address it to nobody.
 local function recipientOf(job)
 	return ns.ColorName(job.recipient, job.class)
 end
 
 --[[
 	The body box, under whichever name this client keeps it. SendMailBodyEditBox is the retail
-	name; Classic keeps the body behind MailEditBox:GetEditBox(), and on 1.15.8 the retail
-	global is nil, so the To and Subject boxes fill while the body stays empty. Picked by
-	availability, never by flavour. Display only -- SendMail never reads these boxes.
+	name; on 1.15.8 that global is nil and the body lives behind MailEditBox:GetEditBox(), so the
+	To and Subject boxes fill while the body stays empty. Picked by availability, never by flavor.
 ]]
 local function mailBodyBox()
 	if MailEditBox and MailEditBox.GetEditBox then
@@ -51,6 +46,13 @@ local RESULT_TIMEOUT = 30 -- seconds to wait on a confirm/result before pausing
 local SUBJECT_MAX = 31 -- what the mail window's own edit boxes accept
 local BODY_MAX = 500
 
+--[[
+	Exposed so the Outgoing Mail preview in Features/Diagnostics.lua reports the same numbers
+	WarnIfOversized enforces; a second copy there would disagree silently the day either changes.
+]]
+Dist.SUBJECT_MAX = SUBJECT_MAX
+Dist.BODY_MAX = BODY_MAX
+
 Dist.busy = false
 Dist.queue = {}
 Dist.errors = 0
@@ -65,11 +67,10 @@ ns.on("MAIL_FAILED", function()
 end)
 
 --[[
-	Every mail refusal the client knows about, collected from its own ERR_MAIL* strings rather
-	than listed, because a list would be a guess and a hardcoded English sentence would never
-	fire on another locale. Strings carrying a format specifier are skipped -- they arrive with
-	the placeholder filled in, so an exact comparison never matches. A skipped error is a
-	missed catch, never a wrong one.
+	Every mail refusal the client knows about, collected from its own ERR_MAIL* strings rather than
+	listed, since a hardcoded English sentence would never fire on another locale. Strings carrying
+	a format specifier are skipped -- they arrive with the placeholder filled in, so an exact
+	comparison never matches. A skipped error is a missed catch, never a wrong one.
 ]]
 local mailErrors
 local function isMailError(message)
@@ -90,11 +91,10 @@ local function isMailError(message)
 end
 
 --[[
-	A refusal the server reports as a UI error rather than MAIL_FAILED: SendMail can be
-	rejected without either result event, leaving the run to sit out its full timeout over an
-	item that never left the bag. Guarded on a send being in flight and on the message being
-	one of the client's own mail errors, since UI_ERROR_MESSAGE carries everything from
-	standing too far away to a full inventory.
+	A refusal the server reports as a UI error rather than MAIL_FAILED: SendMail can be rejected
+	without either result event, leaving the run to sit out its full timeout over an item that
+	never left the bag. Guarded on a send being in flight and on the message being one of the
+	client's own mail errors, since UI_ERROR_MESSAGE carries everything from standing too far away.
 ]]
 ns.on("UI_ERROR_MESSAGE", function(_, message)
 	if not Dist.busy or not Dist._current then
@@ -111,7 +111,7 @@ end)
 -- job = { bag, slot, link, recipient, level, class, subject, body }
 function Dist:Start(jobs)
 	if self.busy then
-		ns:PrintWarning(L["MAIL_STILL_SENDING"])
+		ns:PrintMessage(L["MAIL_STILL_SENDING"])
 		return
 	end
 	self.queue = jobs or {}
@@ -131,8 +131,8 @@ end
 
 function Dist:Stop()
 	--[[
-		A send already in flight still lands, so its result event is still coming. Holding the
-		job is what lets _result put its recipient on cooldown even though the run is over.
+		A send already in flight still lands, so its result event is still coming. Holding the job
+		is what lets _result put its recipient on cooldown after the run is over.
 	]]
 	if self.busy then
 		self._awaiting = self._current
@@ -156,7 +156,7 @@ function Dist:_next()
 		if ns.GetItemLink(candidate.bag, candidate.slot) == candidate.link then
 			break
 		end
-		ns:PrintWarning(L["MAIL_ITEM_MOVED"]:format(candidate.link))
+		ns:PrintMessage(L["MAIL_ITEM_MOVED"]:format(candidate.link))
 		self._skipped = (self._skipped or 0) + 1
 		table.remove(self.queue, 1)
 	end
@@ -166,16 +166,13 @@ function Dist:_next()
 		return self:_finish()
 	end
 
-	--[[
-		Gate on the mailbox, never on MailFrame being visible: TSM replaces the mail UI and the
-		Who panel swaps MailFrame out, so IsShown reports "closed" at a live mailbox.
-	]]
+	-- Gate on the mailbox, not MailFrame:IsShown(): TSM and the Who panel swap MailFrame out.
 	if not ns.AtMailbox() then
-		ns:PrintWarning(L["MAIL_NOT_AT_MAILBOX"])
+		ns:PrintMessage(L["MAIL_NOT_AT_MAILBOX"])
 		return
 	end
 	if GetMoney() < MAIL_COST then
-		ns:PrintWarning(L["MAIL_NO_POSTAGE"])
+		ns:PrintMessage(L["MAIL_NO_POSTAGE"])
 		return
 	end
 
@@ -198,37 +195,49 @@ function Dist:_next()
 	]]
 	if not (SendMailFrame and SendMailFrame:IsShown()) then
 		self.busy = false
-		ns:PrintWarning(L["MAIL_PANEL_CLOSED"])
-		ns:PrintWarning(L["MAIL_PANEL_CLOSED_HINT"])
+		ns:PrintMessage(L["MAIL_PANEL_CLOSED"])
+		ns:PrintMessage(L["MAIL_PANEL_CLOSED_HINT"])
 		return self:_finish()
 	end
 
 	if ClearSendMail then
 		pcall(ClearSendMail)
 	end
-	ns.UseItem(job.bag, job.slot) -- attaches to first open mail slot
-
 	--[[
-		An attach can fail with the panel up, and SendMail does not care: it posts an empty
-		letter and reports success. Never send without a confirmed attachment.
+		GUARDED LIKE EVERY OTHER CLIENT CALL IN THIS FUNCTION. Between busy going true and the
+		result timer being armed below, a throw unwinds with busy still set and no timer to clear
+		it -- a state no event recovers from, so the run is stuck until a reload. A failed attach
+		and a thrown attach are the same outcome to the player, so they share one exit.
 	]]
-	if not (GetSendMailItem and GetSendMailItem(1)) then
+	local attached = pcall(ns.UseItem, job.bag, job.slot) -- attaches to first open mail slot
+
+	-- An attach can fail with the panel up, and SendMail posts an empty letter and reports success.
+	if not attached or not (GetSendMailItem and GetSendMailItem(1)) then
 		self.busy = false
-		ns:PrintWarning(L["MAIL_ATTACH_FAILED"]:format(job.link))
+		ns:PrintMessage(L["MAIL_ATTACH_FAILED"]:format(job.link))
 		return self:_finish()
 	end
 
 	--[[
-		Cosmetic: the panel cannot be hidden (see the check above), and an empty To field over
-		an empty body reads as a form waiting to be typed into rather than a mail being sent.
-
-		AFTER THE ATTACH, NEVER BEFORE. Attaching writes the item's name into an empty subject
-		box, overwriting a subject set earlier. Each box is guarded on its own, because a
-		cosmetic touch must never be the thing that breaks a send.
+		AFTER THE ATTACH, NEVER BEFORE. Attaching writes the item's name into an empty subject box,
+		overwriting a subject set earlier. Cosmetic only -- each box is guarded on its own, because
+		a cosmetic touch must never be the thing that breaks a send.
 	]]
 	fillMailPanel(job)
 
-	SendMail(job.recipient, job.subject or "", job.body or "")
+	--[[
+		Guarded for the reason the attach above is, and the attachment is released on the way out:
+		the item is on the panel by this point, and abandoning the run with it still there leaves
+		the player to work out why a slot looks empty.
+	]]
+	if not pcall(SendMail, job.recipient, job.subject or "", job.body or "") then
+		self.busy = false
+		if ClearSendMail then
+			pcall(ClearSendMail)
+		end
+		ns:PrintMessage(L["MAIL_SEND_FAILED"]:format(recipientOf(job), "error"))
+		return self:_finish()
+	end
 
 	-- Wait for MAIL_SUCCESS/FAILED, or pause if the player hasn't confirmed.
 	self._timer = C_Timer.NewTimer(RESULT_TIMEOUT, function()
@@ -236,15 +245,12 @@ function Dist:_next()
 		-- SendMail has already fired, so a late Accept still delivers: hold the job as Stop does.
 		self._awaiting = self._current
 		self.busy = false
-		ns:PrintWarning(L["MAIL_AWAITING_CONFIRM"]:format(recipientOf(job)))
+		ns:PrintMessage(L["MAIL_AWAITING_CONFIRM"]:format(recipientOf(job)))
 	end)
 end
 
 function Dist:_result(ok, reason)
-	--[[
-		A stopped or timed-out run can still have one send in flight, arriving with busy already
-		false. Record that recipient, then stay stopped.
-	]]
+	-- A stopped or timed-out run can still have a send in flight: record it, then stay stopped.
 	if not self.busy then
 		local pending = self._awaiting
 		self._awaiting = nil
@@ -254,10 +260,7 @@ function Dist:_result(ok, reason)
 			if self.queue[1] == pending then
 				table.remove(self.queue, 1)
 			end
-			--[[
-				And tell the window: without this the row sits there matched and ticked, and
-				pressing Distribute again only earns a "moved in your bags" skip.
-			]]
+			-- Without this the row stays matched and ticked, and Distribute earns a "moved" skip.
 			if self.onProgress then
 				self.onProgress(self._done or 0, self._total or 0, pending, true)
 			end
@@ -273,10 +276,8 @@ function Dist:_result(ok, reason)
 	local job = self._current
 	if ok then
 		--[[
-			Trust MAIL_SUCCESS: the attachment was confirmed before sending. Do not re-read the
-			slot to "verify" -- MAIL_SUCCESS fires before the bag update, so the slot still
-			holds the old link and every delivery would read as a skip that never reaches
-			Record.
+			Trust MAIL_SUCCESS; do not re-read the slot to "verify". MAIL_SUCCESS fires before the
+			bag update, so the slot still holds the old link and every delivery reads as a skip.
 		]]
 		ns.Fairness:Record(job.recipient, job.level or 0)
 		self._done = (self._done or 0) + 1
@@ -285,9 +286,9 @@ function Dist:_result(ok, reason)
 		self.errors = 0
 	else
 		self.errors = self.errors + 1
-		ns:PrintWarning(L["MAIL_SEND_FAILED"]:format(recipientOf(job), reason or "?"))
+		ns:PrintMessage(L["MAIL_SEND_FAILED"]:format(recipientOf(job), reason or "?"))
 		if self.errors > 1 then
-			ns:PrintWarning(L["MAIL_ABORTED"])
+			ns:PrintMessage(L["MAIL_ABORTED"])
 			return self:_finish()
 		end
 		table.remove(self.queue, 1) -- skip the problem item
@@ -314,27 +315,23 @@ function Dist:_finish()
 end
 
 --[[
-	No chat preview: the text is fixed in Locales/enUS.lua and nobody can have changed it. The
-	Diagnostic Tools panel has "Preview What Strangers Receive" on demand instead. This check
-	cannot fire on the shipped English, which Tests/Mail-Contents.lua holds under the cap, but
-	a translation of the same paragraphs can run longer.
+	Cannot fire on the shipped English -- Tests/Mail-Contents.lua holds it under the cap -- but a
+	translation of the same paragraphs can run longer. No chat preview here; Diagnostic Tools has
+	"Preview What Strangers Receive" on demand.
 ]]
 function Dist:WarnIfOversized()
 	local subject, body = self:BuildSubject(), self:BuildBody()
 
 	-- Silent truncation would mean sending something nobody has read.
 	if #subject > SUBJECT_MAX then
-		ns:PrintWarning(L["MAIL_SUBJECT_TOO_LONG"]:format(#subject, SUBJECT_MAX))
+		ns:PrintMessage(L["MAIL_SUBJECT_TOO_LONG"]:format(#subject, SUBJECT_MAX))
 	end
 	if #body > BODY_MAX then
-		ns:PrintWarning(L["MAIL_BODY_TOO_LONG"]:format(#body, BODY_MAX))
+		ns:PrintMessage(L["MAIL_BODY_TOO_LONG"]:format(#body, BODY_MAX))
 	end
 end
 
---[[
-	Fixed text from Locales/enUS.lua rather than saved settings, so what a stranger receives
-	cannot drift per profile or be rewritten into something this add-on would not have sent.
-]]
+-- Fixed text, never a saved setting: what a stranger receives cannot drift per profile.
 function Dist:BuildSubject()
 	return L["MAIL_SUBJECT"]
 end

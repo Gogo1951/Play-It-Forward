@@ -1,14 +1,12 @@
 # Play It Forward
 
-Mail the gear and consumables you've outgrown to strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
+Mail the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
 
 ## Features
 
 🎁 **Makes Someone's Day** // Azeroth can be a harsh place. An unexpected parcel from a stranger costs you next to nothing and is the kind of small kindness that keeps a server worth playing on.
 
-🎯 **Finds a Real Recipient** // Reads every stat on an item, works out which class it is actually for, then goes looking for someone of that class a level or two below the requirement.
-
-🔍 **Searches Where Players Level** // Queries the zones people are actually questing in, rather than whoever is parked in a boosting dungeon.
+🎯 **Finds a Real Recipient** // Reads every stat on an item, works out which class it is actually for, then goes looking for someone of that class a level or two below the requirement — out in the world, and in your guild among anyone who has been on recently.
 
 🎒 **Keeps Your Bags Clean** // Outgrown greens and the level 35 water you stopped drinking twenty levels ago leave your bags for someone who still needs them, on a threshold you set.
 
@@ -36,13 +34,17 @@ Open a mailbox and the list appears, sorted into four groups so the rows worth a
 | Stats Couldn't Be Read | The add-on could not read the item, so it will not guess. Look at these yourself. |
 | Vendor / Disenchant | Nobody wants it. Sell it or shard it. |
 
+### Where the names come from
+
+Press **Find Recipients** and the add-on goes looking out in the world, in the zones people are actually questing in rather than whoever is parked in a boosting dungeon. Your guild comes along too — anyone who has been on recently is already in the pool when the window opens.
+
 ### Who gets what
 
-Every item is scored against what each class actually builds on. A plain Stamina green is a warlock's, an Intellect-and-Spirit roll is caster gear, a polearm is a hunter's before it is anything else. Among the classes that want it, whoever is closest to being able to equip it wins — the point is that it arrives just *before* it becomes useful, so it is waiting when they get there.
+Every item is scored against what each class actually builds on. A plain Stamina green is a warlock's, an Intellect-and-Spirit roll is caster gear, a polearm is a hunter's before it is anything else. Among the classes that want it, whoever is closest to being able to equip it wins — the point is that it arrives just *before* it becomes useful, so it is waiting when they get there. If a guildie and a stranger are an equally good fit, the guildie gets it.
 
 ### Picking someone yourself
 
-Every row has a dropdown. Click it to see everyone in range with their level and class, pick a different person, or send the row to the vendor pile instead. Names that already hold something are shown greyed with the reason beside them, so nothing moves behind your back.
+Every row has a dropdown. Click it to see everyone in range with their level and class, pick a different person, or send the row to the vendor pile instead. Names that already hold something are shown grayed with the reason beside them, so nothing moves behind your back.
 
 ### Slash command
 

@@ -14,12 +14,16 @@ local FRAME_W = 540
 local FRAME_H = 470
 local ITEM_W = 250
 local RECIP_W = 190
-local BUTTON_W = 150 -- Find Recipients and Distribute, matched
+-- A floor, not the width: both buttons are sized to the widest label either can show.
+local BUTTON_W = 150
+local BUTTON_PAD = 24 -- room around the label, matching the picker's ruler allowance
+-- Neither button may pass half the space between the margins. A too-long label is clipped instead.
+local BUTTON_GAP = 20
 
 local FRAME_TEMPLATE = ns.PickTemplate("BasicFrameTemplate", "BackdropTemplate")
 local INSET_TEMPLATE = ns.PickTemplate("InsetFrameTemplate3", "InsetFrameTemplate2", "InsetFrameTemplate")
 
-local rows = {} -- reusable row frames
+local rows = {}
 
 --------------------------------------------------------------------------------
 -- Frame construction
@@ -33,10 +37,7 @@ local function buildFrame()
 	local f = CreateFrame("Frame", "PlayItForwardMailFrame", UIParent, FRAME_TEMPLATE)
 	f:SetSize(FRAME_W, FRAME_H)
 
-	--[[
-		Anchoring to the mailbox puts a wide window off-screen when the mailbox sits right of
-		center, so it is clamped, draggable, and remembers where it was put.
-	]]
+	-- A mailbox right of center would put a wide window off-screen, so it is clamped and draggable.
 	f:SetClampedToScreen(true)
 	f:SetMovable(true)
 	f:EnableMouse(true)
@@ -48,10 +49,7 @@ local function buildFrame()
 		ns.db.profile.windowPos = { point = point, relativePoint = relativePoint, x = x, y = y }
 	end)
 
-	--[[
-		AceDB materializes windowPos per profile, so it always exists; its point field is what
-		says whether the player has actually dragged the window.
-	]]
+	-- AceDB materializes windowPos per profile, so .point is what says the window was ever dragged.
 	local pos = ns.db.profile.windowPos
 	if pos.point then
 		f:SetPoint(pos.point, UIParent, pos.relativePoint or "CENTER", pos.x or 0, pos.y or 0)
@@ -114,7 +112,6 @@ local function buildFrame()
 	end)
 	f.rarityButton = rarity
 
-	-- Sunken list area. Another stock template, another thing skins restyle.
 	local inset = CreateFrame("Frame", nil, f, INSET_TEMPLATE)
 	inset:SetPoint("TOPLEFT", 6, -52)
 	inset:SetPoint("BOTTOMRIGHT", -6, 36)
@@ -145,6 +142,28 @@ local function buildFrame()
 		UI:Distribute()
 	end)
 	f.distributeButton = dist
+
+	--[[
+		A loose ruler, because a font string with both anchors set reports the width it was given
+		rather than the width it wants. Both buttons take the one width: sized to their own current
+		labels they would sit mismatched and resize underfoot as the labels change.
+	]]
+	local ruler = f:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+	ruler:Hide()
+	local widest = BUTTON_W
+	for _, text in ipairs({
+		L["BUTTON_FIND_RECIPIENTS"],
+		L["BUTTON_SCAN_AGAIN"],
+		L["BUTTON_SEARCHING"],
+		L["BUTTON_DISTRIBUTE"],
+		L["BUTTON_NEEDS_MAILBOX"],
+	}) do
+		ruler:SetText(text)
+		widest = math.max(widest, ruler:GetStringWidth() + BUTTON_PAD)
+	end
+	widest = math.min(math.floor((FRAME_W - 20 - BUTTON_GAP) / 2), widest)
+	find:SetSize(widest, 22)
+	dist:SetSize(widest, 22)
 
 	UI.frame = f
 	UI:_syncRarityButton()
@@ -229,6 +248,8 @@ local function getRow(i)
 	row.itemText:SetPoint("LEFT", row.check, "RIGHT", 2, 0)
 	row.itemText:SetWidth(ITEM_W)
 	row.itemText:SetJustifyH("LEFT")
+	-- Rows sit a fixed ROW_H apart: a wrapped name would draw over the row below, not push it down.
+	row.itemText:SetWordWrap(false)
 
 	local btn = CreateFrame("Button", nil, row)
 	btn:SetPoint("LEFT", row.itemText, "RIGHT", 4, 0)
@@ -288,9 +309,8 @@ local function getRow(i)
 end
 
 --[[
-	Matched, then what could still match, then unreadable, then the vendor pile: the list runs
-	longer than the window, so rows worth acting on would otherwise fall below the fold.
-	Unreadable sits above the vendor pile because it is the group that wants a human look.
+	Matched, then still-matchable, then unreadable, then vendor: the list outruns the window, so
+	rows worth acting on must not fall below the fold. Unreadable outranks vendor: it wants a look.
 ]]
 local function displayRank(item)
 	if item.recipient then
@@ -330,7 +350,6 @@ local SECTION = {
 	[4] = L["SECTION_VENDOR"],
 }
 
--- Flatten the sorted items into rows with a section band at each group boundary.
 local function renderList()
 	local out, lastRank = {}, nil
 	for _, entry in ipairs(displayOrder()) do
@@ -373,7 +392,12 @@ function UI:Refresh()
 			row:Show()
 			row._link = item.link
 			row._item = item
-			row.itemText:SetText(item.link)
+			-- Only above one: gear does not stack, so "x1" would say nothing on every gear row.
+			local itemLabel = item.link
+			if (item.count or 1) > 1 then
+				itemLabel = ("%s " .. GetColor("MUTED") .. "x%d|r"):format(item.link, item.count)
+			end
+			row.itemText:SetText(itemLabel)
 
 			if item.recipient then
 				local who = item.recipient
@@ -407,9 +431,8 @@ end
 -- Candidates + manual assignment
 --------------------------------------------------------------------------------
 --[[
-	What one row's dropdown offers, split from opening it so Tests/Manual-Assignment.lua can
-	read who is selectable without a frame. Nobody is hidden: an unavailable name is greyed with
-	the reason beside it, because one that silently vanishes reads as the add-on losing them.
+	Split from opening the picker so Tests/Manual-Assignment.lua can read the options without a
+	frame. Nobody is hidden: a name that silently vanishes reads as the add-on having lost them.
 ]]
 function UI:_pickerOptions(item)
 	local options = { {
@@ -417,7 +440,7 @@ function UI:_pickerOptions(item)
 		clear = true,
 	} }
 
-	local anyGreyed = false
+	local anyGrayed = false
 	local candidates = self:_candidates(item)
 	if #candidates == 0 then
 		-- An empty list has two causes and only one is fixed by querying again, so say which.
@@ -430,10 +453,6 @@ function UI:_pickerOptions(item)
 	end
 
 	for _, p in ipairs(candidates) do
-		--[[
-			Two reasons a candidate cannot be picked, both the player's business: one item per
-			person, enforced at the point of offering, and a name the server already refused.
-		]]
 		local held = MatchList:AssignedTo()[p.name] and MatchList:AssignedTo()[p.name] ~= item
 		local refused = not ns.Fairness:IsReachable(p.name)
 
@@ -449,7 +468,7 @@ function UI:_pickerOptions(item)
 			note = " " .. GetColor("MUTED") .. note .. "|r"
 		end
 
-		anyGreyed = anyGreyed or held or refused
+		anyGrayed = anyGrayed or held or refused
 		table.insert(options, {
 			text = ("%s " .. GetColor("MUTED") .. "(%d)|r " .. GetColor("MUTED") .. "%s|r%s"):format(
 				ns.ColorName(p.name, p.class),
@@ -462,10 +481,10 @@ function UI:_pickerOptions(item)
 		})
 	end
 
-	-- One line for the whole list rather than the same sentence on every greyed row.
-	if anyGreyed then
+	-- One line for the whole list rather than the same sentence on every grayed row.
+	if anyGrayed then
 		table.insert(options, {
-			text = GetColor("MUTED") .. L["PICKER_HINT_GREYED"] .. "|r",
+			text = GetColor("MUTED") .. L["PICKER_HINT_GRAYED"] .. "|r",
 			disabled = true,
 		})
 	end
@@ -486,16 +505,16 @@ end
 function UI:_setRecipient(item, who)
 	--[[
 		Checked before anything is written, so a refusal leaves the row as the player found it.
-		_pickerOptions greys these out; this is the guard behind it.
+		_pickerOptions grays these out; this is the guard behind it.
 	]]
 	if who then
 		local other = MatchList:AssignedTo()[who.name]
 		if other and other ~= item then
-			ns:PrintWarning(L["CHAT_ALREADY_HOLDS"]:format(ns.ColorName(who.name, who.class), other.link))
+			ns:PrintMessage(L["CHAT_ALREADY_HOLDS"]:format(ns.ColorName(who.name, who.class), other.link))
 			return
 		end
 		if not ns.Fairness:IsReachable(who.name) then
-			ns:PrintWarning(L["CHAT_CANNOT_RECEIVE"]:format(ns.ColorName(who.name, who.class)))
+			ns:PrintMessage(L["CHAT_CANNOT_RECEIVE"]:format(ns.ColorName(who.name, who.class)))
 			return
 		end
 	end
@@ -505,9 +524,8 @@ function UI:_setRecipient(item, who)
 	end
 
 	--[[
-		Pinned because a player chose it. _assign rebuilds everything it decided itself, so this
-		marks the row as not its to decide -- the vendor case included, where "nobody" is a
-		choice.
+		Pinned because a player chose it: _assign rebuilds only what it decided itself. The vendor
+		case included, where "nobody" is a choice.
 	]]
 	item.pinned = true
 
@@ -522,9 +540,8 @@ function UI:_setRecipient(item, who)
 end
 
 --[[
-	The row's tick, the other way to say "not this one". Pinned for the same reason: the tick is
-	the last thing between an item and a stranger's mailbox, and a rebuild that re-ticks a row
-	somebody unticked has overridden them.
+	Pinned for the same reason: the tick is the last thing between an item and a stranger's
+	mailbox, and a rebuild that re-ticks a row somebody unticked has overridden them.
 ]]
 function UI:_setSend(item, send)
 	if not item.recipient then
@@ -540,21 +557,41 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	SendWho only fires from a real button press, so this is a stepper: one press, one query.
-	Results are re-assigned after every step, so the list fills in as it goes.
+	Free candidates next to a /who -- no button press, no throttle -- so this runs on its own
+	rather than being spent from the search plan. The answer lands on GUILD_ROSTER_UPDATE some
+	frames later, which is why it re-assigns rather than returning anything.
 ]]
+local function pullGuild()
+	ns.Guild:Request(function(members)
+		if #members == 0 then
+			return
+		end
+		if MatchList:AddResults(members) == 0 then
+			return
+		end
+		if UI.frame and UI.frame:IsShown() then
+			UI:_assign()
+		end
+	end)
+end
+
+-- SendWho only fires from a real button press, so this is a stepper: one press, one query.
 function UI:FindRecipients()
 	Picker:Close()
 
-	-- Mid-plan? This press just sends the next query.
 	if ns.Who:Remaining() > 0 then
 		return self:_step()
 	end
 
 	--[[
-		Pools are deliberately not wiped: one query returns at most ~49 people, a thin sample of
-		the realm, so pressing again adds to the roster. Only Clear History and Roster empties
-		it.
+		Only on a fresh search, not on every Scan Again: the roster costs no press but does cost a
+		walk of every member with a last-online call apiece, and cannot change much in five seconds.
+	]]
+	pullGuild()
+
+	--[[
+		Pools are deliberately not wiped: one query returns at most ~49 people, so pressing again
+		adds to the roster. Only Clear History and Roster empties it.
 	]]
 	local bands = MatchList:RescanBags()
 	if #bands == 0 then
@@ -568,10 +605,7 @@ end
 
 function UI:_step()
 	local sent = ns.Who:Step(function(results)
-		--[[
-			nil results is a query that never answered and is back on the plan: nothing to fold
-			in, but the button still has to resync.
-		]]
+		-- nil results: a query that never answered, back on the plan. The button still resyncs.
 		if results then
 			MatchList:AddResults(results)
 			self:_assign()
@@ -587,11 +621,9 @@ function UI:_step()
 end
 
 --[[
-	Dead for as long as the server will not answer another query: a press inside that window is
-	not a slow search, it is nothing at all. Held for the full throttle rather than until the
-	answer arrives, because a reply often lands in under a second and re-enabling then offers a
-	press the server refuses for another four. Reads Who.THROTTLE rather than a five written
-	here, so the lock cannot undercut the rule it reflects.
+	Held for the full throttle rather than until the answer arrives: a reply often lands in under
+	a second, and re-enabling then offers a press the server refuses for another four. Reads
+	Who.THROTTLE rather than a five written here, so the lock cannot undercut the rule it reflects.
 ]]
 local searchTimer
 
@@ -615,15 +647,26 @@ function UI:_lockFindButton()
 end
 
 --[[
-	Distribute is dead unless pressing it would send something, on two conditions the player
-	cannot see from the button alone: a mailbox has to be open, because Mail-Sender cannot
-	attach without Blizzard's Send Mail panel, and at least one row has to be ticked with
-	somebody on it. A live button that answers with a warning lied about being ready.
+	Dead unless pressing it would send something: a mailbox open, because Mail-Sender cannot attach
+	without Blizzard's Send Mail panel, and a row ticked with somebody on it. The mailbox is the
+	one named on the button, being the condition the player fixes by walking.
+
+	Reads ns.AtMailbox, never ns.mailboxOpen: MAIL_CLOSED does not fire on every way out, and a
+	stale flag here is exactly the live button on a closed mailbox this guards against.
 ]]
 function UI:_syncDistributeButton()
 	if not (self.frame and self.frame.distributeButton) then
 		return
 	end
+	local button = self.frame.distributeButton
+
+	if not ns.AtMailbox() then
+		button:SetText(L["BUTTON_NEEDS_MAILBOX"])
+		button:Disable()
+		return
+	end
+
+	button:SetText(L["BUTTON_DISTRIBUTE"])
 	local ready = false
 	for _, item in ipairs(MatchList:Items()) do
 		if item.send and item.recipient then
@@ -631,18 +674,18 @@ function UI:_syncDistributeButton()
 			break
 		end
 	end
-	if ready and ns.AtMailbox() then
-		self.frame.distributeButton:Enable()
+	if ready then
+		button:Enable()
 	else
-		self.frame.distributeButton:Disable()
+		button:Disable()
 	end
 end
 
 --[[
-	Says whether there is somewhere left to look, never how many: the plan grows whenever a
-	query comes back capped, and a search that stops at the first match has no total anyway.
-	Silent while the lock is up -- this runs from the query callback and from _assign, both
-	inside the throttle window, and either would put a live-looking label on a dead button.
+	Whether there is somewhere left to look, never how many: the count moves in both directions,
+	since an unanswered query goes back on the plan and an assignment prunes bands it finished.
+
+	Silent while the lock is up, or the callback would put a live-looking label on a dead button.
 ]]
 function UI:_syncFindButton()
 	if searchTimer then
@@ -659,16 +702,14 @@ function UI:_assign()
 end
 
 --[[
-	A rescan re-plans the search, and it has to: the level bands the plan was built from are
-	exactly what a giftability setting changes, so a plan left standing after one is a search
-	for the items that used to be on the list. Pools are untouched, so nobody already found is
-	lost, and Who:Plan cancels an in-flight query rather than forgetting it.
+	A rescan must re-plan: the level bands the plan was built from are exactly what a giftability
+	setting changes. Pools are untouched, so nobody already found is lost.
 
-	Plan before assigning. Assign clears the plan itself once no gift is left unmatched, so
-	planning first lets it drop a plan that turned out to be unnecessary; the other order
-	leaves that plan standing and puts Scan Again on the button with nothing to scan for.
+	Plan before assigning. Assign clears the plan once no gift is left unmatched, so this order
+	lets it drop a plan that turned out unnecessary; the other leaves it standing and puts Scan
+	Again on the button with nothing to scan for.
 
-	Guarded on the frame, because a setting can change before the window has ever been built.
+	Guarded on the frame: a setting can change before the window has ever been built.
 ]]
 function UI:Rescan()
 	if not self.frame then
@@ -709,16 +750,15 @@ function UI:Distribute()
 	local body = ns.Distributor:BuildBody()
 
 	--[[
-		One mail per person per run, enforced rather than merely intended: _assign already holds
-		to it, but two greens in one stranger's mailbox reads as spam and cannot be taken back.
-		A dropped row is said out loud, since a silent drop looks like it was never ticked.
+		One mail per person per run, enforced rather than merely intended: _assign already holds to
+		it, but two greens in one stranger's mailbox reads as spam and cannot be taken back.
 	]]
 	local claimed = {}
 	for _, item in ipairs(MatchList:Items()) do
 		if item.send and item.recipient then
 			local who = item.recipient.name
 			if claimed[who] then
-				ns:PrintWarning(L["MAIL_ALREADY_HAS_ONE"]:format(item.link, ns.ColorName(who, item.recipient.class)))
+				ns:PrintMessage(L["MAIL_ALREADY_HAS_ONE"]:format(item.link, ns.ColorName(who, item.recipient.class)))
 			else
 				claimed[who] = true
 				table.insert(jobs, {
@@ -737,9 +777,8 @@ function UI:Distribute()
 	end
 
 	--[[
-		A delivered item comes off the list when its send is confirmed, never from a re-read of
-		the bags: MAIL_SUCCESS lands before the client empties the slot, so a scan then finds
-		the item still there and restores the pairing it was just sent under.
+		Off the list on confirmation, never from a re-read of the bags: MAIL_SUCCESS lands before
+		the client empties the slot, so a scan then finds the item still there and re-pairs it.
 	]]
 	ns.Distributor.onProgress = function(_, _, job, ok)
 		if ok then
@@ -772,12 +811,9 @@ function UI:_delivered(job)
 end
 
 --[[
-	Let go of a recipient the server will not deliver to. The item stays on the list either
-	way, and _afterDelivery re-assigns whatever came loose.
-
-	ONLY WHEN THE NAME ITSELF IS THE PROBLEM. A plain MAIL_FAILED can be a full mailbox or a
-	bad moment on the server, the same person may work on the next press, and the pairing may
-	have been set by hand: discarding that choice because one send bounced is a second failure.
+	ONLY WHEN THE NAME ITSELF IS THE PROBLEM. A plain MAIL_FAILED can be a full mailbox or a bad
+	moment on the server, and the pairing may have been set by hand: discarding that choice because
+	one send bounced is a second failure. The item stays on the list either way.
 ]]
 function UI:_releaseRecipient(job)
 	for _, item in ipairs(MatchList:Items()) do
@@ -793,11 +829,9 @@ function UI:_releaseRecipient(job)
 end
 
 --[[
-	The end of a run. It deliberately does not re-read the bags: the client is still emptying
-	the slots, so a scan here could only put delivered items back. The deliveries raise
-	BAG_UPDATE, which marks the scan stale, and the next mailbox picks them up for real.
-	Re-assigning is worth doing: every recipient just went on cooldown, so whatever is left
-	spreads to new faces on its own.
+	Deliberately does not re-read the bags: the client is still emptying the slots, so a scan here
+	could only put delivered items back. BAG_UPDATE marks the scan stale and the next mailbox picks
+	them up. Re-assigning is worth it: every recipient just went on cooldown.
 ]]
 function UI:_afterDelivery()
 	if not self.frame then
@@ -814,13 +848,13 @@ local function openWindow()
 	buildFrame()
 	UI.frame:Show()
 
+	pullGuild()
 	UI:Refresh()
 end
 
 --[[
-	"No window appeared" has two causes wanting opposite responses: it is off-screen, or there
-	was nothing to show. This drops the saved position, re-centers, and reports what the scan
-	found -- a forced window holding only the vendor pile answers the question on sight.
+	"No window appeared" has two causes wanting opposite responses: off-screen, or nothing to show.
+	This drops the saved position, re-centers, and reports what the scan found.
 ]]
 function UI:ForceShow()
 	ns.db.profile.windowPos = {}
@@ -838,12 +872,7 @@ function UI:ForceShow()
 		end
 	end
 
-	--[[
-		A diagnostic command must never be the thing that errors.
-
-		Read from ns.DiagnosticsStrings at call time rather than aliased at file scope, because
-		Features/Diagnostics.lua loads after this file.
-	]]
+	-- Read at call time, not aliased at file scope: Features/Diagnostics.lua loads after this file.
 	local D = ns.DiagnosticsStrings
 	ns:PrintMessage(
 		D.WINDOW_FORCED:format(
@@ -870,14 +899,12 @@ end
 
 --[[
 	NEVER HOOK MailFrame's OnHide TO CLOSE THIS WINDOW. It breaks twice over: TSM and other mail
-	replacements hide MailFrame and show their own, killing this window the instant it opens;
-	and SendWho raises the Who panel, which the UIPanel system swaps in over MailFrame, so
-	pressing Find Recipients would close this window mid-query.
+	replacements hide MailFrame and show their own, killing this window the instant it opens; and
+	SendWho raises the Who panel, which the UIPanel system swaps in over MailFrame, so pressing
+	Find Recipients would close this window mid-query.
 
-	So it opens on the mailbox and never auto-closes. Match-List holds the items, roster and
-	pairings at file scope, so matches survive walking away. Whether it is worth showing is the
-	scan's answer, read off the verdict each item carries; a recipient counts on its own, since
-	auto-assignment places leftovers too.
+	So it opens on the mailbox and never auto-closes. Match-List holds items, roster and pairings
+	at file scope, so matches survive walking away.
 ]]
 local function haveSomethingToDo()
 	for _, item in ipairs(MatchList:Items()) do
@@ -889,10 +916,8 @@ local function haveSomethingToDo()
 end
 
 --[[
-	Nothing to hand out means nothing happens, and nothing is said either: no spare gear is the
-	ordinary state of a mailbox visit, and announcing ordinary states talks over the game. A
-	shut window is also what a broken add-on looks like, which is what Force the Window Open is
-	for.
+	Nothing to hand out means nothing happens, and nothing is said: no spare gear is the ordinary
+	state of a mailbox visit. A shut window also looks broken, which Force the Window Open answers.
 ]]
 local function mailboxOpened()
 	ns.mailboxOpen = true
@@ -901,12 +926,36 @@ local function mailboxOpened()
 		openWindow()
 	end
 end
+
+--[[
+	The window outlives the mailbox, so the button follows the mailbox, not the window.
+
+	Deferred a frame rather than read inline: the mailbox closing and the interaction manager
+	reporting it ended are not guaranteed to land in that order, and _syncDistributeButton asks the
+	manager. Reading it too early answers for the mailbox that is still closing and leaves the
+	button live -- the exact state this exists to clear.
+]]
+local function recheckDistribute()
+	C_Timer.After(0, function()
+		--[[
+			A run cannot survive the mailbox closing: nothing else clears Distributor.busy before
+			its full RESULT_TIMEOUT, so Distribute answers "still sending" until then. Asked of the
+			interaction manager, never of MailFrame, which hides spuriously under TSM and while the
+			Who panel is up -- killing a live run on one of those is worse than the hang.
+		]]
+		if not ns.AtMailbox() and (ns.Distributor.busy or ns.Distributor.queue[1]) then
+			ns.Distributor:Stop()
+			ns:PrintMessage(L["MAIL_MAILBOX_CLOSED"])
+		end
+		if UI.frame and UI.frame:IsShown() then
+			UI:_syncDistributeButton()
+		end
+	end)
+end
+
 local function mailboxClosed()
 	ns.mailboxOpen = false
-	-- The window outlives the mailbox, so the button follows the mailbox, not the window.
-	if UI.frame and UI.frame:IsShown() then
-		UI:_syncDistributeButton()
-	end
+	recheckDistribute()
 end
 
 --[[
@@ -916,13 +965,20 @@ end
 ns.on("PLAYER_LOGIN", function()
 	if MailFrame then
 		MailFrame:HookScript("OnShow", mailboxOpened)
+		--[[
+			A prompt to re-check, NOT a claim the mailbox closed, and deliberately not
+			mailboxClosed: this frame hides spuriously, and flipping ns.mailboxOpen on that would
+			lie to the Distributor.
+
+			Here because MAIL_CLOSED does not fire on every way out -- Escape and another add-on
+			closing the frame both skip it, and on Era the interaction-manager events are not
+			registered. A spurious hide costs one re-check that changes nothing.
+		]]
+		MailFrame:HookScript("OnHide", recheckDistribute)
 	end
 end)
 
---[[
-	Which interaction type is a mailbox, read from the client's own enum with the literal as
-	the fallback. A bare 17 in two files is two places to be wrong if Blizzard renumbers it.
-]]
+-- From the client's own enum, literal as fallback: a bare 17 in two files is two places to be wrong.
 local MAILBOX_INTERACTION = (Enum and Enum.PlayerInteractionType and Enum.PlayerInteractionType.MailInfo) or 17
 
 ns.on("MAIL_SHOW", mailboxOpened)
