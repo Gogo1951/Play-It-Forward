@@ -26,5 +26,3 @@ ignore:
   - .pkgmeta
   - .vscode
   - LICENSE
-  - Suffix.md
-  - Tests
