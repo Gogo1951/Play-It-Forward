@@ -2,7 +2,7 @@ local _, ns = ...
 
 --[[
 	Levelling zones, and who is in them -- input to the /who queries in
-	Features/Recipient-Search.lua. A bare `/who 21-22` is capped at 50 on a connected cluster
+	Features/Recipients-Who.lua. A bare `/who 21-22` is capped at 50 on a connected cluster
 	and mostly returns people standing in a capital; adding `z-"Redridge Mountains"` returns
 	people actually out there levelling, and few enough that the cap stops mattering.
 
@@ -88,7 +88,7 @@ ns.Data.Zones = {
 	{ "The Storm Peaks", 77, 80, BOTH, 0, 0, 1 },
 }
 
--- Exported: Features/Recipient-Search.lua reads rows through these same columns.
+-- Exported: Features/Recipients-Who.lua reads rows through these same columns.
 ns.Data.ZoneColumns = { NAME = 1, MIN = 2, MAX = 3, FACTION = 4, ERA = 5, TBC = 6, WRATH = 7 }
 
--- Ordered and filtered into a search plan by ns.Data.ZonesFor, in Features/Recipient-Search.lua.
+-- Ordered and filtered into a search plan by ns.Data.ZonesFor, in Features/Recipients-Who.lua.

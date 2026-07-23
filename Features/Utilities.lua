@@ -164,6 +164,47 @@ function ns.ItemSuffixID(link)
 end
 
 --------------------------------------------------------------------------------
+-- Number Formatting
+--------------------------------------------------------------------------------
+
+--[[
+	A whole number with thousands separators: 1234567 -> "1,234,567". Stateless, used by the General
+	panel's Given Away display and Features/Generosity-Tooltip.lua. The tally counters are integers,
+	so the fractional part is dropped rather than rounded; a stray negative keeps its sign.
+]]
+function ns.CommaNumber(n)
+	local number = tostring(math.floor(tonumber(n) or 0))
+	local sign = ""
+	if number:sub(1, 1) == "-" then
+		sign, number = "-", number:sub(2)
+	end
+	while true do
+		local replaced
+		number, replaced = number:gsub("^(%d+)(%d%d%d)", "%1,%2")
+		if replaced == 0 then
+			break
+		end
+	end
+	return sign .. number
+end
+
+--[[
+	Copper as a gold/silver/copper string. GetCoinTextureString is the client's own formatter and
+	renders the coin icons; where it is absent -- the headless tests, an unexpectedly stripped
+	client -- fall back to a plain "Xg Ys Zc" so a money value always has something to show.
+]]
+function ns.MoneyString(copper)
+	copper = math.floor(tonumber(copper) or 0)
+	if GetCoinTextureString then
+		return GetCoinTextureString(copper)
+	end
+	local gold = math.floor(copper / 10000)
+	local silver = math.floor((copper % 10000) / 100)
+	local bronze = copper % 100
+	return ("%sg %ds %dc"):format(ns.CommaNumber(gold), silver, bronze)
+end
+
+--------------------------------------------------------------------------------
 -- Game State
 --------------------------------------------------------------------------------
 
@@ -181,4 +222,20 @@ function ns.AtMailbox()
 		end
 	end
 	return ns.mailboxOpen == true
+end
+
+--[[
+	In a rest area: a city or an inn. The Given Away broadcast and its tooltip block are both gated
+	on this, so no addon traffic goes out and no tooltip clutter appears while a player is in a raid,
+	a dungeon or a fight out in the world -- resting is the cheap, reliable proxy for "in town".
+
+	Absent the API this answers false rather than true: staying out of the way is the whole point of
+	the gate, and both shipped flavors have IsResting, so the fallback is unreachable in practice.
+]]
+function ns.AtRest()
+	if not IsResting then
+		return false
+	end
+	local ok, resting = pcall(IsResting)
+	return (ok and resting) and true or false
 end

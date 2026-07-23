@@ -120,7 +120,7 @@ ns.Data.WEAPON_BASELINE = 0.15
 ]]
 ns.Data.COVERAGE_MAJORITY = 0.5
 
--- Reduced to the set of ranked stats by ns.Data.ScoreableStats, in Features/Matching-Engine.lua.
+-- Reduced to the set of ranked stats by ns.Data.ScoreableStats, in Features/Match-Derivations.lua.
 
 -- The share of the best class's claim another must reach to compete. See THE SCALE at the top.
 ns.Data.CLASS_SHARE = 0.35

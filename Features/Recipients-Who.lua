@@ -8,7 +8,7 @@ local Who = ns.Who
 -- Zone Search Order
 --------------------------------------------------------------------------------
 
--- Data/Zones.lua holds the rows and the column legend; this is their only consumer.
+-- Data/Recipients-Zones.lua holds the rows and the column legend; this is their only consumer.
 local ZONE = ns.Data.ZoneColumns
 
 -- Era and Wrath-or-later are the flags the add-on already keeps; anything else is TBC.
@@ -83,14 +83,23 @@ end
 --[[
 	C_FriendList.SendWho is hardware-event gated on 1.15: a call outside the stack of a real
 	click raises ADDON_ACTION_BLOCKED and does nothing -- no error, no WHO_LIST_UPDATE, just
-	silence. Queries cannot be chained on a timer; every one rides a button press. That is why
-	they go out by level band, with results sorted into classes here, since one query per class
-	would mean nine presses.
+	silence. Queries cannot be chained on a timer; every one rides a button press, so each
+	press has to be spent well.
 
-	They also go out by zone. A bare `/who 21-22` comes back at the server's 50-result cap on a
-	connected cluster, mostly people standing in a capital; adding `z-"Redridge Mountains"` fixes
-	both. One level-21 mage can receive the cloak as well as forty can, so the search stops at the
-	first viable candidate per item.
+	ONE CLASS FILTER PER QUERY, NEVER A LIST. The client honors a single c-"..." and quietly
+	drops the rest of an OR'd set -- observed live on 1.15.9 (2026-07-23): a query carrying
+	c-"Paladin" c-"Rogue" c-"Warrior" answered with paladins alone, the first filter
+	alphabetically, and the pool filled with a class the item was not for. So a zoned query
+	carries a class filter only when exactly one class is wanted, and the widened stage asks
+	one class per query. Multiple z-"..." filters are kept as a best effort: if the client
+	honors only the first, the query still answers correctly from its first zone, and the
+	per-class widening behind it is what the search actually relies on.
+
+	They go out by zone because a bare `/who 21-22` comes back at the server's 50-result cap
+	on a connected cluster, mostly people standing in a capital; `z-"Redridge Mountains"`
+	fixes both. One level-21 mage can receive the cloak as well as forty can, so the search
+	stops once somebody in contention holds each item -- a fallback pairing keeps its band on
+	the plan, narrowed to the classes the verdict named.
 ]]
 
 --[[
@@ -112,7 +121,7 @@ local RESULT_TIMEOUT = 6 -- give up on a query that never answers (i.e. was bloc
 local SUPPRESS_WHO_UI = true
 local WHO_THROTTLE = 5
 
--- Mail-Window locks its button for exactly this long; re-enabling early offers a dead press.
+-- UI-Mailbox locks its button for exactly this long; re-enabling early offers a dead press.
 Who.THROTTLE = WHO_THROTTLE
 
 -- /who is chat text: past the limit it is not answered at all, so the zone list is chunked.
@@ -120,12 +129,11 @@ local FILTER_MAX = 240
 Who.FILTER_MAX = FILTER_MAX
 
 --[[
-	Attempts still to make, one per press. /who ORs repeated filters of the same kind, so a level
-	range, its zones and its classes are all one query:
+	Attempts still to make, one per press. A level range and its zones share one query, with at
+	most one class filter on it -- see the single-filter rule at the top of this file:
 
-	  16-19 z-"Westfall" z-"Loch Modan" z-"Duskwood" c-"Warrior" c-"Paladin"
-
-	Without the class half, half of a capped answer is people who cannot receive anything.
+	  16-19 z-"Westfall" z-"Loch Modan" z-"Duskwood"
+	  16-19 c-"Warrior"
 ]]
 local plan = {}
 local planned = 0
@@ -255,11 +263,19 @@ end
 
 --[[
 	SetWhoToUi(true) routes results to the list GetWhoInfo reads; false prints them to chat, where
-	there is nothing to read. Restored to false so a /who the player types behaves as expected. It
-	does not keep the Who window shut -- that opens when results arrive, so it is hidden after
-	they are read, and only when this add-on opened it.
+	there is nothing to read. Restored to false so a /who the player types behaves as expected.
+
+	THE WHO PANEL MUST NEVER LEARN A QUERY ANSWERED. The stock UI opens it on WHO_LIST_UPDATE
+	whenever results were routed to the list -- and the panel is a UIPanel, so opening it over an
+	open mailbox makes the panel manager close MailFrame, whose OnHide ends the mailbox
+	interaction: pressing Find Recipients at a mailbox closed the mailbox. So the Blizzard frames
+	that would react are unregistered for exactly the life of one query and put back on the way
+	out -- the old WhoLib approach. The hide below stays as a safety net for a client that routes
+	the event some other way, but by the time it fires the mailbox is already gone, which is why
+	it is not the fix.
 ]]
 local panelWasOpen = false
+local deafened = {}
 
 local function whoPanel()
 	return FriendsFrame
@@ -267,12 +283,23 @@ end
 
 local function beginQuery()
 	panelWasOpen = whoPanel() ~= nil and whoPanel():IsShown()
+	for _, frame in ipairs({ FriendsFrame, WhoFrame }) do
+		if frame and frame.IsEventRegistered and frame:IsEventRegistered("WHO_LIST_UPDATE") then
+			pcall(frame.UnregisterEvent, frame, "WHO_LIST_UPDATE")
+			deafened[#deafened + 1] = frame
+		end
+	end
 	if C_FriendList.SetWhoToUi then
 		pcall(C_FriendList.SetWhoToUi, true)
 	end
 end
 
 local function endQuery()
+	-- Exactly the frames deafened above, so a frame that never listened is never registered.
+	for index = #deafened, 1, -1 do
+		pcall(deafened[index].RegisterEvent, deafened[index], "WHO_LIST_UPDATE")
+		deafened[index] = nil
+	end
 	if C_FriendList.SetWhoToUi then
 		pcall(C_FriendList.SetWhoToUi, false)
 	end
@@ -367,9 +394,10 @@ end
 
 --[[
 	Abandons what is in flight without forgetting it. The client still answers, and that answer
-	runs endQuery -- the only thing that restores SetWhoToUi and closes the Who panel. Drop the
-	reference and Blizzard's Who window appears by itself seconds after the player closed ours. A
-	canceled job answers nobody, and Who:Step will not send while one is pending.
+	runs endQuery -- the only thing that restores SetWhoToUi and re-registers the Who panel's
+	WHO_LIST_UPDATE. Drop the reference and the player's own /who stays broken for the session:
+	results routed to a list nothing reads, on a panel that no longer hears them. A canceled job
+	answers nobody, and Who:Step will not send while one is pending.
 ]]
 local function cancelPending()
 	if pending then
@@ -381,15 +409,16 @@ end
 	The attempt queue, built from the level bands that have an item waiting, each carrying the
 	classes those items can go to. Per band, in order:
 
-	  1  the zones covering it, in one query where they fit, filtered to those classes --
-	     where somebody levelling actually is, and the press that usually ends the search
-	  2  the same class filter with no zones, for a recipient in a city or an unlisted zone
+	  1  the zones covering it, in one query where they fit -- where somebody levelling
+	     actually is, and the press that usually ends the search. Unfiltered by class unless
+	     exactly one is wanted, per the single-filter rule at the top of this file.
+	  2  one query per wanted class, no zones, for a recipient in a city or an unlisted zone
 	  3  bare levels, no filters at all
 
 	Two and three widen, each giving up the constraint that costs least. Three answers with
 	whoever is standing in a capital, the population zone filtering exists to avoid, so it is last
 	-- but without it a band whose zones are empty at 3am runs out of ideas with no way to say so.
-	The count returned is not a countdown: the search stops at the first viable match.
+	The count returned is not a countdown: the search stops at the first match in contention.
 ]]
 function Who:Plan(groups)
 	wipe(plan)
@@ -399,17 +428,24 @@ function Who:Plan(groups)
 	for _, group in ipairs(groups or {}) do
 		local lo = math.max(1, group.lo or 1)
 		local hi = math.max(lo, group.hi or lo)
+		local classes = group.classes or {}
+		local single = (#classes == 1) and classes or nil
 		-- Only its length is wanted here, for the chunk budget; each attempt builds its own.
-		local classPart = classFilter(group.classes)
+		local singlePart = single and (classFilter(single)) or ""
 
 		local perBand = {}
-		for _, chunk in ipairs(zoneChunks(lo, hi, classPart)) do
-			perBand[#perBand + 1] = newAttempt(lo, hi, chunk, group.classes)
+		for _, chunk in ipairs(zoneChunks(lo, hi, singlePart)) do
+			perBand[#perBand + 1] = newAttempt(lo, hi, chunk, single)
 		end
 		zoned[#zoned + 1] = perBand
 
-		if classPart ~= "" then
-			widened[#widened + 1] = { newAttempt(lo, hi, nil, group.classes) }
+		-- A list naming every class narrows nothing; the bare stage below already asks that.
+		if #classes > 0 and #classes < #ns.Matcher:Classes() then
+			local perClass = {}
+			for _, token in ipairs(classes) do
+				perClass[#perClass + 1] = newAttempt(lo, hi, nil, { token })
+			end
+			widened[#widened + 1] = perClass
 		end
 		-- No classes: the last widening step gives up the class half, so it must not be narrowed.
 		bare[#bare + 1] = { newAttempt(lo, hi, nil, nil) }

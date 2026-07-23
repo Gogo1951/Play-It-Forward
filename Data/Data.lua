@@ -8,7 +8,7 @@ ns.L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
 
 --[[
 	Loads ahead of every other data file and of Core: they read these at load time --
-	Stat-Weights branches on ns.isWrathOrLater while building, and all of them write ns.Data.
+	Match-Stats branches on ns.isWrathOrLater while building, and all of them write ns.Data.
 ]]
 ns.Data = ns.Data or {}
 
@@ -16,9 +16,11 @@ ns.Data = ns.Data or {}
 ns.AddonTitle = ns.L["ADDON_TITLE"]
 
 --[[
-	Read in two places: the zone flavor column in Features/Recipient-Search.lua, and the
-	interaction-manager mailbox registrations in Features/Mail-Window.lua, taken off Era only.
-	MAIL_SHOW and MAIL_CLOSED register on every flavor and do not read this.
+	Read in three places. Features/Match-Engine.lua's ABSENT table is the load-bearing one: it
+	gates shamans out for Alliance and paladins out for Horde, so this decides the eligible class
+	list for every item. The other two are the zone flavor column in Features/Recipients-Who.lua
+	and the interaction-manager mailbox registrations in Features/UI-Mailbox.lua, taken off Era
+	only. MAIL_SHOW and MAIL_CLOSED register on every flavor and do not read this.
 ]]
 ns.isEra = (WOW_PROJECT_ID == (WOW_PROJECT_CLASSIC or 2))
 
@@ -51,6 +53,17 @@ ns.OPTIONS_REGISTRY = {
 	Profiles = ADDON_NAME .. "_Profiles",
 	Diagnostics = ADDON_NAME .. "_Diagnostics",
 }
+
+--------------------------------------------------------------------------------
+-- Addon Message Prefix
+--------------------------------------------------------------------------------
+
+--[[
+	The CHAT_MSG_ADDON prefix for the Given Away broadcast (Features/Generosity-Broadcast.lua). The
+	client caps a prefix at 16 characters and drops longer ones; register it before sending or
+	receiving. A literal, never derived from the folder name, which can be renamed.
+]]
+ns.ADDON_MESSAGE_PREFIX = "PIForward"
 
 --------------------------------------------------------------------------------
 -- Color Palette
@@ -106,13 +119,12 @@ ns.Data.LEVEL_GAP_CLOSEST = 1
 	preferring whoever sits closest to the BOTTOM of that band: a level 21 Greater Healing
 	Potion goes to a 21 over a 23, because the point is somebody who drinks it now.
 
-	ONE RULE FOR EVERY CONSUMABLE. Data/Potions.lua and Data/Food-And-Water.lua share a shape
+	ONE RULE FOR EVERY CONSUMABLE. Data/Scan-Potions.lua and Data/Scan-Food.lua share a shape
 	and carry no per-item level range, so there is nothing to branch on.
 
 	DELIBERATELY NOT profile.consumableLevelGap, which answers the opposite question: that is
 	the sender's threshold for when a potion counts as spare, and wants to be large or a level
-	60 gives away what they are still drinking. This one wants to be small. The two shared a
-	number until 2026-07 on the reasoning that they were symmetric; they are not.
+	60 gives away what they are still drinking. This one wants to be small.
 ]]
 ns.Data.CONSUMABLE_RECIPIENT_GAP = 2
 
@@ -158,7 +170,7 @@ ns.Data.ConsumableClasses = {
 	containing a grey reads as junk rather than a gift. A constant, not a setting -- a floor
 	below uncommon has no use that is not "send something worse".
 
-	GEAR ONLY. Features/Bag-Scanner.lua returns a listed consumable before the rarity checks,
+	GEAR ONLY. Features/Scan-Bags.lua returns a listed consumable before the rarity checks,
 	so this never tests one: a low-level water is worth having whatever its rarity.
 ]]
 ns.Data.MIN_RARITY = (Enum and Enum.ItemQuality and Enum.ItemQuality.Uncommon) or 2

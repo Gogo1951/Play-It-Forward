@@ -32,7 +32,7 @@ end)
 
 --[[
 	The color-wrapped, newline-terminated form a random suffix arrives in. Called out
-	as load-bearing in Tooltip-Scanner.lua: without the cleanup every rolled green reads
+	as load-bearing in Scan-Tooltip.lua: without the cleanup every rolled green reads
 	as statless.
 ]]
 test("a color-wrapped suffix line still parses", function()
@@ -66,7 +66,7 @@ end)
 --[[
 	Every stat with a localized _SHORT global should read off a "+N" line, not just the
 	five that were listed by hand. The client owns those strings, so deriving the table
-	from Data/Stat-Map.lua is what keeps it locale-safe and stops it drifting.
+	from Data/Scan-Stats.lua is what keeps it locale-safe and stops it drifting.
 ]]
 test("stats beyond the core five parse from a plus line", function()
 	local ns = load()

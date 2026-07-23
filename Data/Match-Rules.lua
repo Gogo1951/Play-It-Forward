@@ -2,7 +2,7 @@ local _, ns = ...
 
 --[[
 	Stat combinations that name their own class, on top of the point tables:
-	Data/Stat-Weights.lua ranks one stat at a time and cannot say that a pair together means
+	Data/Match-Stats.lua ranks one stat at a time and cannot say that a pair together means
 	something neither says alone.
 
 	SOFT BY DESIGN. A rule decides who is in contention, not who is admitted -- everybody the
@@ -103,25 +103,35 @@ ns.Data.ItemRules = {
 		scoring already admitted.
 	]]
 	--[[
-		Daggers get their own rule because a rogue is the only class that builds around them.
-		Pooled with the other one-handers, a warrior and a rogue compete for each other's
-		weapons when each has a kind of its own.
+		Daggers stay out of the one-hand pool below so the rogue has them to himself. Both rules
+		name him; what differs is who stands beside him -- a warrior shares the swords, maces,
+		axes and fists, and is only a fallback on a dagger.
 	]]
 	{
 		name = "Daggers",
 		weapon = { "DAGGER" },
 		prefer = { "ROGUE" },
 	},
+	--[[
+		The two classes that fight one-handed, and the matrix decides which kinds each may hold:
+		a rogue reaches swords, maces and fists, never axes, so naming him costs nothing there.
+	]]
 	-- FIST is 1H melee like the rest; move it to the dagger rule above if rogues turn out to want it more.
 	{
 		name = "One-hand weapons",
 		weapon = { "1H_SWORD", "1H_MACE", "1H_AXE", "FIST" },
-		prefer = { "WARRIOR" },
+		prefer = { "WARRIOR", "ROGUE" },
 	},
+	--[[
+		A hunter's melee weapon is a stat stick: his damage comes out of the ranged slot, so the
+		largest stat budget wins and that is a two-hander. A druid is the same case from the other
+		side -- form damage scales off attack power, not the weapon's own damage. The matrix keeps
+		each to what he can carry: a druid only meets 2H maces here, a hunter only swords and axes.
+	]]
 	{
 		name = "Two-hand weapons",
 		weapon = { "2H_SWORD", "2H_MACE", "2H_AXE" },
-		prefer = { "DRUID", "PALADIN" },
+		prefer = { "DRUID", "PALADIN", "HUNTER" },
 	},
 	--[[
 		A polearm is a hunter's before it is a two-hander, so POLEARM is out of the rule above
@@ -134,4 +144,4 @@ ns.Data.ItemRules = {
 	},
 }
 
--- Matched against items by Features/Matching-Engine.lua, which owns the rule engine.
+-- Matched against items by Features/Match-Derivations.lua, which owns the rule matching.

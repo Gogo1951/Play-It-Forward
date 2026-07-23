@@ -79,4 +79,4 @@ ns.Data.WeaponMinLevel = {
 	DRUID = { POLEARM = 60 }, -- druids don't train polearms until TBC
 }
 
--- Derived into priority groups and weapon keys by Features/Matching-Engine.lua.
+-- Derived into priority groups and weapon keys by Features/Match-Derivations.lua.

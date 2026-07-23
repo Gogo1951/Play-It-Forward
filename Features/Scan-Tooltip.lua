@@ -21,7 +21,7 @@ local function getScanner()
 end
 
 --[[
-	An item's tooltip as a list of left-hand text lines. Both paths are live: Classic Era 1.15.8
+	An item's tooltip as a list of left-hand text lines. Both paths are live: Classic Era
 	has no C_TooltipInfo.GetHyperlink, so the scanning tooltip below is not a legacy leftover.
 ]]
 local function tooltipLines(link)
@@ -74,7 +74,7 @@ end
 
 --[[
 	Localized stat name ("Intellect") to the internal token, for a "+N Something" line. DERIVED
-	FROM Data/Stat-Map.lua, NOT LISTED HERE: naming stats by hand drops every other "+N Something"
+	FROM Data/Scan-Stats.lua, NOT LISTED HERE: naming stats by hand drops every other "+N Something"
 	the client writes, since the equip patterns below only match the "increases ... by N" wording.
 ]]
 local STAT_BY_NAME

@@ -21,7 +21,7 @@ ns.Data.StatMap = {
 	ITEM_MOD_HEALING_DONE_SHORT = "HEALING",
 	--[[
 		Per-school damage (ARCANE, FIRE, FROST, NATURE, SHADOW, HOLY) has no GetItemStats key
-		in Vanilla: tooltip text only, which is why Features/Tooltip-Scanner.lua is not optional.
+		in Vanilla: tooltip text only, which is why Features/Scan-Tooltip.lua is not optional.
 	]]
 
 	ITEM_MOD_HIT_RATING_SHORT = "HIT",

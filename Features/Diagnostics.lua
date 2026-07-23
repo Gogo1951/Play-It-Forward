@@ -6,8 +6,8 @@ local _, ns = ...
 
 --[[
 	Environment probing and state capture for bug reports, not unit tests. Read-only and
-	side-effect free but for the Taint Log button, which sets a CVar, and Clear History, which
-	wipes the fairness list. Reports build only on a button press, never on load or panel open.
+	side-effect free but for the Taint Log button, which sets a CVar and is the panel's only
+	write. Reports build only on a button press, never on load or panel open.
 ]]
 
 local L = ns.L
@@ -45,8 +45,11 @@ ns.DiagnosticsStrings = {
 	ROSTER_TITLE = "Recipient Roster",
 	ROSTER_BUTTON = "Export Known Players",
 	ROSTER_HINT = "Everyone found by Find Recipients so far, with their fairness state and the items they currently qualify for.",
+	GENEROSITY_TITLE = "Given Away Sharing",
+	GENEROSITY_BUTTON = "Check Sharing and Nearby Players",
+	GENEROSITY_HINT = "Whether you're sharing, whether you're resting, whether the message prefix registered, your own totals, and every nearby player you've heard from with how long ago. Answers 'why don't I see anyone': sharing only happens in cities and inns, and only reaches players near you.",
 	--[[
-		Where the next /who will look, composed by Recipient-Search. The client's filter syntax
+		Where the next /who will look, composed by Recipients-Who. The client's filter syntax
 		is `21-22 z-"Redridge Mountains"`; these say the same thing in words.
 	]]
 	WHO_LABEL_IN_ZONE = "%s (%s)",
@@ -66,12 +69,8 @@ ns.DiagnosticsStrings = {
 	WINDOW_TITLE = "Mail Window",
 	WINDOW_BUTTON = "Force the Window Open",
 	WINDOW_HINT = "Drops the saved position, re-centers the window and re-reads your bags. The window only opens at a mailbox when something in there is worth mailing, so use this to tell an off-screen window from an empty one.",
-	-- Read at call time by Features/Mail-Window.lua, which loads before this file.
+	-- Read at call time by Features/UI-Mailbox.lua, which loads before this file.
 	WINDOW_FORCED = "window: shown=%s size=%dx%d, %d scanned (%d giftable), re-anchored to CENTER. Drag it where you want it.",
-	HISTORY_TITLE = "Recipient History",
-	HISTORY_BUTTON = "Clear History and Roster",
-	HISTORY_CONFIRM = "Clear every recipient cooldown and the known-player roster? This cannot be undone.",
-	HISTORY_HINT = "Writes to your saved variables. Everyone previously gifted becomes eligible again immediately.",
 	ADDONS_TITLE = "Other Add-ons",
 	ADDONS_BUTTON = "List Installed Add-ons",
 	SAVED_TITLE = "Saved Variables",
@@ -141,6 +140,8 @@ local EVENT_LOG_MAX_ARG_LENGTH = 255
 ns.DIAGNOSTIC_EVENT_EXCLUDE = {
 	BAG_UPDATE = true,
 	GET_ITEM_INFO_RECEIVED = true,
+	-- Registered in Features/Generosity-Broadcast.lua; a firehose of peer broadcasts in cities and raids.
+	CHAT_MSG_ADDON = true,
 }
 
 function ns:StartEventLog()
@@ -281,7 +282,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		ship C_Container, so a FAIL on a path the add-on cannot take reads as a defect.
 
 		The C_TooltipInfo rows below are the opposite case, branched on at runtime by
-		Features/Tooltip-Scanner.lua. They carry optional = true so absence reports ABSENT, not
+		Features/Scan-Tooltip.lua. They carry optional = true so absence reports ABSENT, not
 		FAIL: neither shipped flavor has them, and a row that always fails teaches the reader to
 		skim. Marked this way they still report PASS if a future build adds the API.
 	]]
@@ -463,7 +464,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 	},
 	--[[
 		GetGuildRosterLastOnline is the one to watch: the activity window in
-		Features/Guild-Roster.lua is built entirely on it, and without it every offline member
+		Features/Recipients-Guild.lua is built entirely on it, and without it every offline member
 		reads as too stale to mail, leaving the guild to contribute only whoever is logged in.
 	]]
 	{
@@ -510,6 +511,51 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		"GetSendMailItem",
 		function()
 			return type(GetSendMailItem) == "function"
+		end,
+	},
+	--[[
+		The body box Features/Mail-Sender.lua picks by availability: SendMailBodyEditBox is the retail
+		name, and on Classic Era the body lives behind MailEditBox:GetEditBox(). With neither resolving,
+		the To and Subject boxes still fill and SendMail posts a letter with an empty body and reports
+		success, so a stranger receives a bare item with no note and nothing surfaces an error. Not
+		optional: one of the two answers on both shipped flavors. Reports which one did.
+	]]
+	{
+		"Mail body edit box",
+		function()
+			if type(MailEditBox) == "table" and type(MailEditBox.GetEditBox) == "function" then
+				return true, "via MailEditBox:GetEditBox()"
+			end
+			if SendMailBodyEditBox ~= nil then
+				return true, "via SendMailBodyEditBox"
+			end
+			return false, "neither MailEditBox:GetEditBox() nor SendMailBodyEditBox"
+		end,
+	},
+	--[[
+		The Given Away broadcast in Features/Generosity-Broadcast.lua. Both target flavors ship
+		C_ChatInfo, so these are not optional: a FAIL means sharing cannot register or send at all.
+	]]
+	{
+		"C_ChatInfo.SendAddonMessage",
+		function()
+			return type(C_ChatInfo) == "table" and type(C_ChatInfo.SendAddonMessage) == "function"
+		end,
+	},
+	{
+		"C_ChatInfo.RegisterAddonMessagePrefix",
+		function()
+			return type(C_ChatInfo) == "table" and type(C_ChatInfo.RegisterAddonMessagePrefix) == "function"
+		end,
+	},
+	--[[
+		Load-bearing for sharing, not display: ns.AtRest gates every send and the tooltip block on it,
+		and answers false when the API is missing, so a FAIL here means sharing is off everywhere.
+	]]
+	{
+		"IsResting",
+		function()
+			return type(IsResting) == "function"
 		end,
 	},
 	{
@@ -631,11 +677,11 @@ local function FormatStats(stats)
 	return table.concat(parts, ", ")
 end
 
--- The internal state tokens spelled out for someone deciding whether to vendor the item.
+-- The internal state tokens spelled out for someone reading why an item stayed put.
 local VERDICT_TEXT = {
 	gift = "gift",
-	leftover = "vendor/disenchant",
-	unreadable = "STATS UNREADABLE, held back rather than matched or vendored",
+	leftover = "kept, nobody to send it to",
+	unreadable = "STATS UNREADABLE, held back rather than matched or kept",
 }
 
 -- Shared by the bag export and the single-item verdict, so the two cannot disagree.
@@ -881,7 +927,7 @@ function ns:BuildBagScanReport()
 	lines[#lines + 1] =
 		string.format("%d occupied slot(s), %d accepted, %d rejected.", #rows, accepted, #rows - accepted)
 	lines[#lines + 1] = string.format(
-		"Of the %d accepted: %d to gift, %d to vendor/disenchant, %d with unreadable stats.",
+		"Of the %d accepted: %d to gift, %d kept (nobody to send to), %d with unreadable stats.",
 		accepted,
 		byState[ns.Matcher.GIFT] or 0,
 		byState[ns.Matcher.LEFTOVER] or 0,
@@ -969,7 +1015,8 @@ function ns:BuildRosterReport()
 		assignment finishes off a band, which otherwise reads as queries going missing.
 	]]
 	if stats.pruned > 0 then
-		searchLine = searchLine .. string.format(" %d dropped once their band was matched.", stats.pruned)
+		searchLine = searchLine
+			.. string.format(" %d dropped once nothing in their band was still searching.", stats.pruned)
 	end
 	lines[#lines + 1] = searchLine
 
@@ -1040,6 +1087,16 @@ function ns:BuildItemVerdictReport(link)
 	if not link or link == "" then
 		lines[#lines + 1] = "Paste an item link into the box above first."
 		return table.concat(lines, "\n")
+	end
+
+	--[[
+		A bare item id is a common paste, and the APIs behind Describe want a link form:
+		handed the digits, GetItemStats and SetHyperlink return nothing and the report reads
+		as a broken scanner rather than a malformed input.
+	]]
+	local id = link:match("^%s*(%d+)%s*$")
+	if id then
+		link = "item:" .. id
 	end
 
 	local item = ns.Scanner:Describe(link)
@@ -1181,6 +1238,63 @@ function ns:BuildMailPreviewReport()
 	else
 		for line in (body .. "\n"):gmatch("([^\n]*)\n") do
 			lines[#lines + 1] = "  " .. line
+		end
+	end
+	return table.concat(lines, "\n")
+end
+
+--------------------------------------------------------------------------------
+-- Given Away Sharing
+--------------------------------------------------------------------------------
+
+--[[
+	Answers "why don't I see anyone": are we sharing, did the prefix register, what are our own
+	totals, and who nearby have we heard from and how long ago. Inline literals like every other
+	builder; the panel labels live in ns.DiagnosticsStrings.
+]]
+function ns:BuildGenerosityReport()
+	local lines = { GetClientHeader(), "" }
+
+	local sharing = (ns.db and ns.db.profile.shareStats) and true or false
+	lines[#lines + 1] = "shareStats = " .. tostring(sharing)
+	--[[
+		Usually the answer. Sharing is town-only, so a player asking why nobody shows up is most often
+		standing somewhere they are not resting; printed second, right under the setting itself.
+	]]
+	lines[#lines + 1] = "resting (in a city or inn, required to send) = " .. tostring(ns.AtRest())
+	lines[#lines + 1] = string.format(
+		"prefix %q registered = %s",
+		ns.ADDON_MESSAGE_PREFIX,
+		tostring((ns.Generosity and ns.Generosity.prefixRegistered) or false)
+	)
+
+	local gifts, items, itemLevels, value = ns.Generosity:Get()
+	lines[#lines + 1] =
+		string.format("my totals: gifts=%d items=%d itemLevels=%d value=%d", gifts, items, itemLevels, value)
+	lines[#lines + 1] = ""
+
+	local peers = ns.Generosity:AllPeers()
+	local names = {}
+	for key in pairs(peers) do
+		names[#names + 1] = key
+	end
+	table.sort(names)
+	if #names == 0 then
+		lines[#lines + 1] = "no nearby players heard from yet"
+	else
+		lines[#lines + 1] = string.format("%d nearby player(s) heard from:", #names)
+		local now = GetTime()
+		for _, key in ipairs(names) do
+			local peer = peers[key]
+			lines[#lines + 1] = string.format(
+				"  %s: gifts=%d items=%d itemLevels=%d value=%d (%ds ago)",
+				key,
+				peer.gifts,
+				peer.items,
+				peer.itemLevels,
+				peer.value,
+				math.floor(now - (peer.t or now))
+			)
 		end
 	end
 	return table.concat(lines, "\n")

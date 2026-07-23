@@ -108,6 +108,22 @@ local function newFrame()
 		self.hooks[script] = fn
 		return self
 	end)
+
+	--[[
+		Event registration is real rather than swallowed: the /who code unregisters
+		WHO_LIST_UPDATE from the Blizzard frames for the life of a query, and a catch-all
+		IsEventRegistered answering truthily would hide both halves of that contract.
+	]]
+	local registered = {}
+	rawset(f, "RegisterEvent", function(_, event)
+		registered[event] = true
+	end)
+	rawset(f, "UnregisterEvent", function(_, event)
+		registered[event] = nil
+	end)
+	rawset(f, "IsEventRegistered", function(_, event)
+		return registered[event] == true
+	end)
 	return f
 end
 
@@ -123,9 +139,9 @@ Stub.bags = {}
 --[[
 	Where generated item ids start, and why it is up here rather than at 1.
 
-	An id is not just a number to a fixture: Features/Bag-Scanner.lua looks every scanned
+	An id is not just a number to a fixture: Features/Scan-Bags.lua looks every scanned
 	item up in the consumable index, so a generated id that collides with a real row in
-	Data/Potions.lua or Data/Food-And-Water.lua turns a green chest into a bottle of
+	Data/Scan-Potions.lua or Data/Scan-Food.lua turns a green chest into a bottle of
 	water. That happened. Ids began at 20000, 20074 is a real consumable, and the counter
 	ran on across the whole suite -- so a case that passed alone failed once enough
 	earlier cases had been added to push the counter past it. A test whose result depends
@@ -151,7 +167,7 @@ local nextItemID = ID_BASE
 	tooltipLines is what the item renders as, and a random-suffix roll has all of its
 	stats in the second and none in the first. That split is the difference between an
 	item with no stats and one whose stats could not be read, which is a distinction the
-	matcher makes and the reason Features/Tooltip-Scanner.lua exists.
+	matcher makes and the reason Features/Scan-Tooltip.lua exists.
 ]]
 function Stub.Item(fields)
 	nextItemID = nextItemID + 1
@@ -166,6 +182,7 @@ function Stub.Item(fields)
 		bindType = fields.bindType or 2, -- Bind on Equip
 		isBound = fields.isBound or false,
 		count = fields.count or 1,
+		sellPrice = fields.sellPrice or 0, -- copper; GetItemInfo's 11th value
 		stats = fields.stats or {},
 		tooltipLines = fields.tooltipLines,
 		suffix = fields.suffix,
@@ -177,6 +194,8 @@ function Stub.Item(fields)
 		def.name
 	)
 	Stub.itemsByLink[def.link] = def
+	-- The live client resolves "item:ID" strings too; the verdict report leans on that for pasted ids.
+	Stub.itemsByLink["item:" .. def.id] = def
 	return def
 end
 
@@ -268,13 +287,23 @@ function Stub.Install()
 	UnitLevel = function()
 		return Stub.playerLevel
 	end
+
+	--[[
+		Resting gates the Given Away broadcast and its tooltip block, so it starts true: the sharing
+		cases are about sharing, not about standing in the right place. A case that wants the gate
+		shut sets Stub.resting = false, which is the raid and open-world state.
+	]]
+	Stub.resting = true
+	IsResting = function()
+		return Stub.resting
+	end
 	GetRealmName = function()
 		return "Test"
 	end
 	GetNormalizedRealmName = GetRealmName
 
 	--[[
-		A named frame lands in _G, because that is how Features/Tooltip-Scanner.lua reads
+		A named frame lands in _G, because that is how Features/Scan-Tooltip.lua reads
 		its scanning tooltip back: it indexes _G["PlayItForwardScanTooltipTextLeft"..i]
 		rather than holding the font strings. A GameTooltip additionally renders a
 		fixture's tooltipLines, so the suffix-parsing path can be driven end to end
@@ -320,10 +349,10 @@ function Stub.Install()
 	end
 
 	--[[
-		The client's own stat names. Features/Tooltip-Scanner.lua reads a "+N Something"
+		The client's own stat names. Features/Scan-Tooltip.lua reads a "+N Something"
 		line by looking Something up against these, which is what keeps it locale-safe,
 		so a stub that defined only a few would test a name table narrower than the real
-		one. Every key Data/Stat-Map.lua uses is here.
+		one. Every key Data/Scan-Stats.lua uses is here.
 	]]
 	ITEM_MOD_STRENGTH_SHORT = "Strength"
 	ITEM_MOD_AGILITY_SHORT = "Agility"
@@ -375,10 +404,20 @@ function Stub.Install()
 			1,
 			def.equipLoc,
 			"",
-			0,
+			def.sellPrice or 0,
 			def.classID,
 			def.subclassID,
 			def.bindType
+	end
+
+	--[[
+		True when the item has an equip slot, the way the client answers it. Generosity:RecordSend
+		leans on this to count item level for gear only, so a consumable (equipLoc "") must come
+		back false rather than being told apart some other way.
+	]]
+	IsEquippableItem = function(link)
+		local def = Stub.itemsByLink[link]
+		return def ~= nil and def.equipLoc ~= nil and def.equipLoc ~= ""
 	end
 
 	GetItemStats = function(link)
@@ -534,8 +573,53 @@ function Stub.Install()
 	Stub.whoQueries = {}
 	Stub.whoResults = {}
 	FriendsFrame = newFrame()
+	-- FrameXML's FriendsFrame_OnLoad registers this; opening on an answer is what the add-on suppresses.
+	FriendsFrame:RegisterEvent("WHO_LIST_UPDATE")
 	HideUIPanel = function(panel)
 		panel:Hide()
+	end
+
+	--[[
+		Addon messaging for the Given Away broadcast. RegisterAddonMessagePrefix answers true, as the
+		client does when the prefix table has room; SendAddonMessage records rather than sends, so a
+		case can read Stub.addonMessages to see what went over YELL and with which prefix.
+	]]
+	Stub.addonMessages = {}
+	C_ChatInfo = {
+		RegisterAddonMessagePrefix = function()
+			return true
+		end,
+		SendAddonMessage = function(prefix, message, channel, target)
+			table.insert(Stub.addonMessages, {
+				prefix = prefix,
+				message = message,
+				channel = channel,
+				target = target,
+			})
+		end,
+	}
+
+	--[[
+		Unit reads for the tooltip block. The player is "Tester" on realm "Test"; other units are
+		looked up in Stub.unitsByToken, which a tooltip case seeds. Absent that table, only "player"
+		resolves, which is all the loaded files touch at load time.
+	]]
+	UnitName = function(unit)
+		if unit == "player" then
+			return "Tester"
+		end
+		local person = Stub.unitsByToken and Stub.unitsByToken[unit]
+		if person then
+			return person.name, person.realm
+		end
+		return nil
+	end
+	UnitIsPlayer = function(unit)
+		if unit == "player" then
+			return true
+		end
+		local person = Stub.unitsByToken and Stub.unitsByToken[unit]
+		return person ~= nil and person.isPlayer ~= false
 	end
 
 	C_FriendList = {

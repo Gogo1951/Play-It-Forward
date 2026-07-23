@@ -119,7 +119,7 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	Which zones lead is Data/Zones.lua's job and is checked above. This is about the
+	Which zones lead is Data/Recipients-Zones.lua's job and is checked above. This is about the
 	shape of the plan: zones first, nothing last. They arrive lumped into one query now,
 	so the first label names a count rather than a place -- see Tests/Query-Building.lua.
 ]]
@@ -251,7 +251,7 @@ test("the button comes back when the throttle is up", function()
 end)
 
 --[[
-	One number, in Recipient-Search.lua. A lock shorter than the throttle hands back a
+	One number, in Recipients-Who.lua. A lock shorter than the throttle hands back a
 	press the server refuses; longer, and it sits idle for no reason.
 ]]
 test("the lock lasts exactly as long as the throttle", function()
@@ -322,6 +322,40 @@ test("a query abandoned mid-flight still cleans up after itself", function()
 	check(not FriendsFrame:IsShown(), "the panel this add-on caused was closed again")
 	equal(answered, 0, "and the abandoned query answered nobody")
 	equal(ns.Who:Remaining(), 0, "leaving nothing behind to press at")
+end)
+
+--[[
+	THE WHO PANEL MUST NEVER LEARN A QUERY ANSWERED. The stock UI opens it on
+	WHO_LIST_UPDATE, and the panel is a UIPanel: opening it over an open mailbox makes
+	the panel manager close MailFrame, whose OnHide ends the mailbox interaction --
+	pressing Find Recipients at a mailbox closed the mailbox. Hiding the panel after
+	reading results (above) is the safety net, not the fix: by then the mailbox is gone.
+	So the frame's WHO_LIST_UPDATE registration is lifted for the life of one query and
+	put back on the way out, the old WhoLib approach.
+]]
+test("the Who panel never hears a query answered", function()
+	local ns = load()
+	bagWithOneCloak(ns)
+
+	check(FriendsFrame:IsEventRegistered("WHO_LIST_UPDATE"), "the panel listens, as the stock UI ships")
+
+	ns.UI:FindRecipients()
+	check(not FriendsFrame:IsEventRegistered("WHO_LIST_UPDATE"), "deaf while our query is in flight")
+
+	Stub.whoResults = { { name = "Agathe", level = 18, class = "MAGE" } }
+	ns.fire("WHO_LIST_UPDATE")
+	check(FriendsFrame:IsEventRegistered("WHO_LIST_UPDATE"), "and listening again once the answer is read")
+end)
+
+test("an unanswered query still gives the panel its ears back", function()
+	local ns = load()
+	bagWithOneCloak(ns)
+
+	ns.UI:FindRecipients()
+	check(not FriendsFrame:IsEventRegistered("WHO_LIST_UPDATE"), "deaf while waiting")
+
+	Stub.FireTimers() -- the RESULT_TIMEOUT path: a blocked query never answers
+	check(FriendsFrame:IsEventRegistered("WHO_LIST_UPDATE"), "restored by the timeout's cleanup")
 end)
 
 test("a fresh plan sends again once the abandoned query has landed", function()

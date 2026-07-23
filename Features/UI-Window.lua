@@ -28,7 +28,7 @@ local rows = {}
 --------------------------------------------------------------------------------
 -- Frame construction
 --------------------------------------------------------------------------------
-local function buildFrame()
+function UI:_buildFrame()
 	if UI.frame then
 		return UI.frame
 	end
@@ -236,12 +236,7 @@ local function getRow(i)
 	row.check:SetPoint("LEFT", 0, 0)
 	row.check:SetSize(20, 20)
 	row.check:SetScript("OnClick", function(self)
-		local item = row._item
-		if not item or not item.recipient then
-			self:SetChecked(false)
-			return
-		end
-		UI:_setSend(item, self:GetChecked())
+		UI:_toggleRow(row._item, self:GetChecked() and true or false)
 	end)
 
 	row.itemText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -309,8 +304,8 @@ local function getRow(i)
 end
 
 --[[
-	Matched, then still-matchable, then unreadable, then vendor: the list outruns the window, so
-	rows worth acting on must not fall below the fold. Unreadable outranks vendor: it wants a look.
+	Matched, then still-matchable, then unreadable, then kept: the list outruns the window, so
+	rows worth acting on must not fall below the fold. Unreadable outranks kept: it wants a look.
 ]]
 local function displayRank(item)
 	if item.recipient then
@@ -347,7 +342,7 @@ local SECTION = {
 	[1] = L["SECTION_MATCHED"],
 	[2] = L["SECTION_NO_RECIPIENT"],
 	[3] = L["SECTION_UNREADABLE"],
-	[4] = L["SECTION_VENDOR"],
+	[4] = L["SECTION_KEPT"],
 }
 
 local function renderList()
@@ -364,7 +359,7 @@ local function renderList()
 end
 
 function UI:Refresh()
-	local f = buildFrame()
+	local f = self:_buildFrame()
 	for _, r in ipairs(rows) do
 		r:Hide()
 	end
@@ -404,7 +399,6 @@ function UI:Refresh()
 				row.recipButton.text:SetText(
 					("%s " .. GetColor("MUTED") .. "(%d)|r"):format(ns.ColorName(who.name, who.class), who.level)
 				)
-				row.check:Enable()
 				row.check:SetChecked(item.send and true or false)
 			else
 				-- Gold reads as "still working on it", muted as "nothing to do here".
@@ -414,12 +408,13 @@ function UI:Refresh()
 				elseif item.state == ns.Matcher.GIFT then
 					label = GetColor("TITLE") .. L["ROW_NO_RECIPIENT"] .. "|r"
 				else
-					label = GetColor("MUTED") .. L["ROW_VENDOR"] .. "|r"
+					label = GetColor("MUTED") .. L["ROW_KEPT"] .. "|r"
 				end
 				row.recipButton.text:SetText(label)
 				row.check:SetChecked(false)
-				row.check:Disable()
 			end
+			-- Always live: on a bare row a tick means "match this again", never a dead control.
+			row.check:Enable()
 		end
 	end
 
@@ -432,15 +427,16 @@ end
 --------------------------------------------------------------------------------
 --[[
 	Split from opening the picker so Tests/Manual-Assignment.lua can read the options without a
-	frame. Nobody is hidden: a name that silently vanishes reads as the add-on having lost them.
+	frame. Nobody is hidden and nobody is gated: the notes beside a name ("has one", "refused",
+	"recent") are information for the player's judgment, and every candidate can be picked. The
+	list ends with a divider and a targeted search for this one item.
 ]]
 function UI:_pickerOptions(item)
 	local options = { {
-		text = GetColor("MUTED") .. L["PICKER_VENDOR_OPTION"] .. "|r",
+		text = GetColor("MUTED") .. L["PICKER_KEEP_OPTION"] .. "|r",
 		clear = true,
 	} }
 
-	local anyGrayed = false
 	local candidates = self:_candidates(item)
 	if #candidates == 0 then
 		-- An empty list has two causes and only one is fixed by querying again, so say which.
@@ -468,26 +464,18 @@ function UI:_pickerOptions(item)
 			note = " " .. GetColor("MUTED") .. note .. "|r"
 		end
 
-		anyGrayed = anyGrayed or held or refused
+		-- No class word: the name is already class-colored, and the color says it.
 		table.insert(options, {
-			text = ("%s " .. GetColor("MUTED") .. "(%d)|r " .. GetColor("MUTED") .. "%s|r%s"):format(
-				ns.ColorName(p.name, p.class),
-				p.level,
-				ns.ClassName(p.class),
-				note
-			),
+			text = ("%s " .. GetColor("MUTED") .. "(%d)|r%s"):format(ns.ColorName(p.name, p.class), p.level, note),
 			pick = p,
-			disabled = held or refused,
 		})
 	end
 
-	-- One line for the whole list rather than the same sentence on every grayed row.
-	if anyGrayed then
-		table.insert(options, {
-			text = GetColor("MUTED") .. L["PICKER_HINT_GRAYED"] .. "|r",
-			disabled = true,
-		})
-	end
+	table.insert(options, { separator = true, disabled = true })
+	table.insert(options, {
+		text = GetColor("INFO") .. L["PICKER_FIND_FOR_ITEM"] .. "|r",
+		findForItem = true,
+	})
 
 	return options
 end
@@ -498,24 +486,30 @@ function UI:_openPicker(row)
 		return
 	end
 	Picker:Open(row.recipButton, self:_pickerOptions(item), function(opt)
-		UI:_setRecipient(item, opt.pick)
+		UI:_pickerSelect(item, opt)
 	end)
+end
+
+-- What a picked entry does, off the frame so the tests can drive it.
+function UI:_pickerSelect(item, opt)
+	if opt.findForItem then
+		self:FindRecipientsForItem(item)
+		return
+	end
+	self:_setRecipient(item, opt.pick)
 end
 
 function UI:_setRecipient(item, who)
 	--[[
-		Checked before anything is written, so a refusal leaves the row as the player found it.
-		_pickerOptions grays these out; this is the guard behind it.
+		THE PLAYER'S PICK IS NEVER REFUSED (maintainer ruling, 2026-07-23). A name already
+		holding another row is taken from it, and the freed row drops back to auto-assignment
+		-- unpinned, or it would read as a deliberate keep. A name the server bounced earlier
+		is theirs to retry. The picker's notes state these facts; they are not gates.
 	]]
 	if who then
 		local other = MatchList:AssignedTo()[who.name]
 		if other and other ~= item then
-			ns:PrintMessage(L["CHAT_ALREADY_HOLDS"]:format(ns.ColorName(who.name, who.class), other.link))
-			return
-		end
-		if not ns.Fairness:IsReachable(who.name) then
-			ns:PrintMessage(L["CHAT_CANNOT_RECEIVE"]:format(ns.ColorName(who.name, who.class)))
-			return
+			other.recipient, other.send, other.pinned = nil, false, false
 		end
 	end
 
@@ -524,8 +518,8 @@ function UI:_setRecipient(item, who)
 	end
 
 	--[[
-		Pinned because a player chose it: _assign rebuilds only what it decided itself. The vendor
-		case included, where "nobody" is a choice.
+		Pinned because a player chose it: _assign rebuilds only what it decided itself. Keep Item
+		included, where "nobody" is the choice.
 	]]
 	item.pinned = true
 
@@ -552,98 +546,26 @@ function UI:_setSend(item, send)
 	item.send = send and true or false
 end
 
---------------------------------------------------------------------------------
--- Recipient Finding
---------------------------------------------------------------------------------
-
 --[[
-	Free candidates next to a /who -- no button press, no throttle -- so this runs on its own
-	rather than being spent from the search plan. The answer lands on GUILD_ROSTER_UPDATE some
-	frames later, which is why it re-assigns rather than returning anything.
+	The checkbox, which is always live. On a row with a recipient it is the send switch; on a
+	kept or unmatched row a tick means "match this again" -- the pin comes off and the allocator
+	runs, and the box then shows whatever that produced: a contender arrives ticked, a fallback
+	as an unticked suggestion, nobody at all snaps the box back off. The Refresh is what keeps
+	the box and the Distribute button honest either way.
 ]]
-local function pullGuild()
-	ns.Guild:Request(function(members)
-		if #members == 0 then
-			return
-		end
-		if MatchList:AddResults(members) == 0 then
-			return
-		end
-		if UI.frame and UI.frame:IsShown() then
-			UI:_assign()
-		end
-	end)
-end
-
--- SendWho only fires from a real button press, so this is a stepper: one press, one query.
-function UI:FindRecipients()
-	Picker:Close()
-
-	if ns.Who:Remaining() > 0 then
-		return self:_step()
+function UI:_toggleRow(item, checked)
+	if not item then
+		return
 	end
-
-	--[[
-		Only on a fresh search, not on every Scan Again: the roster costs no press but does cost a
-		walk of every member with a last-online call apiece, and cannot change much in five seconds.
-	]]
-	pullGuild()
-
-	--[[
-		Pools are deliberately not wiped: one query returns at most ~49 people, so pressing again
-		adds to the roster. Only Clear History and Roster empties it.
-	]]
-	local bands = MatchList:RescanBags()
-	if #bands == 0 then
+	if item.recipient then
+		self:_setSend(item, checked)
 		self:Refresh()
 		return
 	end
-
-	ns.Who:Plan(bands)
-	self:_step()
-end
-
-function UI:_step()
-	local sent = ns.Who:Step(function(results)
-		-- nil results: a query that never answered, back on the plan. The button still resyncs.
-		if results then
-			MatchList:AddResults(results)
-			self:_assign()
-		end
-		self:_syncFindButton()
-	end)
-
-	-- Locked the moment the query goes out: the throttle runs from the send, not the answer.
-	if sent then
-		self:_lockFindButton()
+	if checked then
+		item.pinned = false
+		self:_assign()
 	end
-	self:_syncFindButton()
-end
-
---[[
-	Held for the full throttle rather than until the answer arrives: a reply often lands in under
-	a second, and re-enabling then offers a press the server refuses for another four. Reads
-	Who.THROTTLE rather than a five written here, so the lock cannot undercut the rule it reflects.
-]]
-local searchTimer
-
-function UI:_lockFindButton()
-	if not (self.frame and self.frame.findButton) then
-		return
-	end
-	self.frame.findButton:Disable()
-	self.frame.findButton:SetText(L["BUTTON_SEARCHING"])
-
-	if searchTimer then
-		searchTimer:Cancel()
-	end
-	searchTimer = C_Timer.NewTimer(ns.Who.THROTTLE, function()
-		searchTimer = nil
-		if UI.frame and UI.frame.findButton then
-			UI.frame.findButton:Enable()
-			UI:_syncFindButton()
-		end
-	end)
 end
 
 --[[
@@ -681,45 +603,6 @@ function UI:_syncDistributeButton()
 	end
 end
 
---[[
-	Whether there is somewhere left to look, never how many: the count moves in both directions,
-	since an unanswered query goes back on the plan and an assignment prunes bands it finished.
-
-	Silent while the lock is up, or the callback would put a live-looking label on a dead button.
-]]
-function UI:_syncFindButton()
-	if searchTimer then
-		return
-	end
-	self.frame.findButton:SetText((ns.Who:Remaining() > 0) and L["BUTTON_SCAN_AGAIN"] or L["BUTTON_FIND_RECIPIENTS"])
-end
-
--- The allocation is Features/Match-List.lua's; putting it on screen is what belongs here.
-function UI:_assign()
-	MatchList:Assign()
-	self:Refresh()
-	self:_syncFindButton()
-end
-
---[[
-	A rescan must re-plan: the level bands the plan was built from are exactly what a giftability
-	setting changes. Pools are untouched, so nobody already found is lost.
-
-	Plan before assigning. Assign clears the plan once no gift is left unmatched, so this order
-	lets it drop a plan that turned out unnecessary; the other leaves it standing and puts Scan
-	Again on the button with nothing to scan for.
-
-	Guarded on the frame: a setting can change before the window has ever been built.
-]]
-function UI:Rescan()
-	if not self.frame then
-		return
-	end
-	local bands = MatchList:RescanBags()
-	ns.Who:Plan(bands)
-	self:_assign()
-end
-
 --------------------------------------------------------------------------------
 -- Reading the match list
 --------------------------------------------------------------------------------
@@ -739,261 +622,4 @@ end
 
 function UI:_candidates(item)
 	return MatchList:Candidates(item)
-end
-
---------------------------------------------------------------------------------
--- Distribute checked rows
---------------------------------------------------------------------------------
-function UI:Distribute()
-	Picker:Close()
-	local jobs = {}
-	local body = ns.Distributor:BuildBody()
-
-	--[[
-		One mail per person per run, enforced rather than merely intended: _assign already holds to
-		it, but two greens in one stranger's mailbox reads as spam and cannot be taken back.
-	]]
-	local claimed = {}
-	for _, item in ipairs(MatchList:Items()) do
-		if item.send and item.recipient then
-			local who = item.recipient.name
-			if claimed[who] then
-				ns:PrintMessage(L["MAIL_ALREADY_HAS_ONE"]:format(item.link, ns.ColorName(who, item.recipient.class)))
-			else
-				claimed[who] = true
-				table.insert(jobs, {
-					bag = item.bag,
-					slot = item.slot,
-					uid = item.uid,
-					link = item.link,
-					recipient = who,
-					level = item.recipient.level,
-					class = item.recipient.class,
-					subject = ns.Distributor:BuildSubject(),
-					body = body,
-				})
-			end
-		end
-	end
-
-	--[[
-		Off the list on confirmation, never from a re-read of the bags: MAIL_SUCCESS lands before
-		the client empties the slot, so a scan then finds the item still there and re-pairs it.
-	]]
-	ns.Distributor.onProgress = function(_, _, job, ok)
-		if ok then
-			UI:_delivered(job)
-		else
-			UI:_releaseRecipient(job)
-		end
-	end
-	ns.Distributor.onDone = function()
-		UI:_afterDelivery()
-	end
-	ns.Distributor:Start(jobs)
-end
-
---[[
-	By the uid it was mailed under: two copies of one green share a name and a link, so matching
-	on anything less removes whichever the loop reached first.
-]]
-function UI:_delivered(job)
-	for index, item in ipairs(MatchList:Items()) do
-		if MatchList:SlotKey(item) == (job.uid or "") then
-			if item.recipient then
-				MatchList:AssignedTo()[item.recipient.name] = nil
-			end
-			table.remove(MatchList:Items(), index)
-			break
-		end
-	end
-	self:Refresh()
-end
-
---[[
-	ONLY WHEN THE NAME ITSELF IS THE PROBLEM. A plain MAIL_FAILED can be a full mailbox or a bad
-	moment on the server, and the pairing may have been set by hand: discarding that choice because
-	one send bounced is a second failure. The item stays on the list either way.
-]]
-function UI:_releaseRecipient(job)
-	for _, item in ipairs(MatchList:Items()) do
-		if MatchList:SlotKey(item) == (job.uid or "") then
-			if item.recipient and not ns.Fairness:IsReachable(item.recipient.name) then
-				MatchList:AssignedTo()[item.recipient.name] = nil
-				item.recipient, item.send = nil, false
-			end
-			break
-		end
-	end
-	self:Refresh()
-end
-
---[[
-	Deliberately does not re-read the bags: the client is still emptying the slots, so a scan here
-	could only put delivered items back. BAG_UPDATE marks the scan stale and the next mailbox picks
-	them up. Re-assigning is worth it: every recipient just went on cooldown.
-]]
-function UI:_afterDelivery()
-	if not self.frame then
-		return
-	end
-	self:_assign()
-end
-
---------------------------------------------------------------------------------
--- Auto-open at the mailbox (MAIL_SHOW / MAIL_CLOSED everywhere, interaction manager off Era)
---------------------------------------------------------------------------------
--- It does not scan: every caller had to read the bags to decide whether to call this at all.
-local function openWindow()
-	buildFrame()
-	UI.frame:Show()
-
-	pullGuild()
-	UI:Refresh()
-end
-
---[[
-	"No window appeared" has two causes wanting opposite responses: off-screen, or nothing to show.
-	This drops the saved position, re-centers, and reports what the scan found.
-]]
-function UI:ForceShow()
-	ns.db.profile.windowPos = {}
-	MatchList:EnsureScan()
-	local f = buildFrame()
-	f:ClearAllPoints()
-	f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-	f:Show()
-	UI:Refresh()
-
-	local giftable = 0
-	for _, item in ipairs(MatchList:Items()) do
-		if item.state == ns.Matcher.GIFT then
-			giftable = giftable + 1
-		end
-	end
-
-	-- Read at call time, not aliased at file scope: Features/Diagnostics.lua loads after this file.
-	local D = ns.DiagnosticsStrings
-	ns:PrintMessage(
-		D.WINDOW_FORCED:format(
-			tostring(f:IsShown()),
-			math.floor(f:GetWidth() or 0),
-			math.floor(f:GetHeight() or 0),
-			#MatchList:Items(),
-			giftable
-		)
-	)
-end
-
--- Closing is manual, via the X. Nothing else hides this window.
-function UI:Close()
-	Picker:Close()
-	if not self.frame then
-		return
-	end
-	self.frame:Hide()
-	ns.Distributor:Stop()
-	ns.Who:Clear() -- a half-finished query plan is stale; pairings are not
-	self:_syncFindButton()
-end
-
---[[
-	NEVER HOOK MailFrame's OnHide TO CLOSE THIS WINDOW. It breaks twice over: TSM and other mail
-	replacements hide MailFrame and show their own, killing this window the instant it opens; and
-	SendWho raises the Who panel, which the UIPanel system swaps in over MailFrame, so pressing
-	Find Recipients would close this window mid-query.
-
-	So it opens on the mailbox and never auto-closes. Match-List holds items, roster and pairings
-	at file scope, so matches survive walking away.
-]]
-local function haveSomethingToDo()
-	for _, item in ipairs(MatchList:Items()) do
-		if item.recipient or item.state == ns.Matcher.GIFT then
-			return true
-		end
-	end
-	return false
-end
-
---[[
-	Nothing to hand out means nothing happens, and nothing is said: no spare gear is the ordinary
-	state of a mailbox visit. A shut window also looks broken, which Force the Window Open answers.
-]]
-local function mailboxOpened()
-	ns.mailboxOpen = true
-	MatchList:EnsureScan()
-	if haveSomethingToDo() then
-		openWindow()
-	end
-end
-
---[[
-	The window outlives the mailbox, so the button follows the mailbox, not the window.
-
-	Deferred a frame rather than read inline: the mailbox closing and the interaction manager
-	reporting it ended are not guaranteed to land in that order, and _syncDistributeButton asks the
-	manager. Reading it too early answers for the mailbox that is still closing and leaves the
-	button live -- the exact state this exists to clear.
-]]
-local function recheckDistribute()
-	C_Timer.After(0, function()
-		--[[
-			A run cannot survive the mailbox closing: nothing else clears Distributor.busy before
-			its full RESULT_TIMEOUT, so Distribute answers "still sending" until then. Asked of the
-			interaction manager, never of MailFrame, which hides spuriously under TSM and while the
-			Who panel is up -- killing a live run on one of those is worse than the hang.
-		]]
-		if not ns.AtMailbox() and (ns.Distributor.busy or ns.Distributor.queue[1]) then
-			ns.Distributor:Stop()
-			ns:PrintMessage(L["MAIL_MAILBOX_CLOSED"])
-		end
-		if UI.frame and UI.frame:IsShown() then
-			UI:_syncDistributeButton()
-		end
-	end)
-end
-
-local function mailboxClosed()
-	ns.mailboxOpen = false
-	recheckDistribute()
-end
-
---[[
-	Track the mailbox, not its frame: MailFrame:IsShown reports wrongly under TSM and while the
-	Who panel is up, and this flag is what Distributor gates on.
-]]
-ns.on("PLAYER_LOGIN", function()
-	if MailFrame then
-		MailFrame:HookScript("OnShow", mailboxOpened)
-		--[[
-			A prompt to re-check, NOT a claim the mailbox closed, and deliberately not
-			mailboxClosed: this frame hides spuriously, and flipping ns.mailboxOpen on that would
-			lie to the Distributor.
-
-			Here because MAIL_CLOSED does not fire on every way out -- Escape and another add-on
-			closing the frame both skip it, and on Era the interaction-manager events are not
-			registered. A spurious hide costs one re-check that changes nothing.
-		]]
-		MailFrame:HookScript("OnHide", recheckDistribute)
-	end
-end)
-
--- From the client's own enum, literal as fallback: a bare 17 in two files is two places to be wrong.
-local MAILBOX_INTERACTION = (Enum and Enum.PlayerInteractionType and Enum.PlayerInteractionType.MailInfo) or 17
-
-ns.on("MAIL_SHOW", mailboxOpened)
-ns.on("MAIL_CLOSED", mailboxClosed)
-
-if not ns.isEra then
-	-- BCC / retail-style: the interaction manager reports the mailbox as well.
-	ns.on("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", function(t)
-		if t == MAILBOX_INTERACTION then
-			mailboxOpened()
-		end
-	end)
-	ns.on("PLAYER_INTERACTION_MANAGER_FRAME_HIDE", function(t)
-		if t == MAILBOX_INTERACTION then
-			mailboxClosed()
-		end
-	end)
 end

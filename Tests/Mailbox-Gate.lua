@@ -20,7 +20,7 @@ local function load()
 end
 
 --[[
-	Plate at level 20. Nobody can wear it: Data/Armor-Priority.lua derives the plate
+	Plate at level 20. Nobody can wear it: Data/Match-Armor.lua derives the plate
 	group from what each class wears at the item's level, and no class is in plate
 	before 40 except a death knight, who does not exist on Era. It still passes every
 	check the bag filter makes, which is exactly why it is the fixture here.

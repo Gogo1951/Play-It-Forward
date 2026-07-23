@@ -1,7 +1,7 @@
 local _, ns = ...
 
 --[[
-	Same shape as Data/Food-And-Water.lua. Injectors and engineering-restricted potions are in
+	Same shape as Data/Scan-Food.lua. Injectors and engineering-restricted potions are in
 	because the query filters on class, subclass and bonding only; one a recipient cannot use
 	is still a tradeable item.
 ]]

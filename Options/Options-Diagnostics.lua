@@ -165,24 +165,13 @@ function ns.BuildDiagnosticsOptions()
 			},
 			descWindowHint = HintText(D.WINDOW_HINT, 33),
 
-			-- The one control here that writes saved variables, so it is confirm-gated.
-			headerHistory = SectionHeader(D.HISTORY_TITLE, 35),
-			buttonHistory = {
-				type = "execute",
-				name = D.HISTORY_BUTTON,
-				order = 36,
-				hidden = Hidden,
-				confirm = true,
-				confirmText = D.HISTORY_CONFIRM,
-				func = function()
-					ns.Fairness:Reset()
-					if ns.UI and ns.UI.ClearPools then
-						ns.UI:ClearPools()
-					end
-					Refresh()
-				end,
-			},
-			descHistoryHint = HintText(D.HISTORY_HINT, 37),
+			-- Given Away sharing probe: the last context probe before the shared framework sections.
+			headerGenerosity = SectionHeader(D.GENEROSITY_TITLE, 35),
+			buttonGenerosity = ReportButton(D.GENEROSITY_BUTTON, 36, function()
+				return ns:BuildGenerosityReport()
+			end, "generosityReport"),
+			outputGenerosity = ReportOutput("generosityReport", 37),
+			descGenerosityHint = HintText(D.GENEROSITY_HINT, 38),
 
 			headerEventLog = SectionHeader(D.EVENT_LOG_TITLE, 40),
 			buttonStartLog = {

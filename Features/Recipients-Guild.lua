@@ -5,7 +5,7 @@ local Guild = ns.Guild
 
 --[[
 	The guild roster as a second source of recipients, alongside the /who search in
-	Features/Recipient-Search.lua. Results enter the same pools through MatchList:AddResults in the
+	Features/Recipients-Who.lua. Results enter the same pools through MatchList:AddResults in the
 	same shape, so nothing downstream knows where a candidate came from -- except the one flag that
 	earns guildmates their tiebreak in Matcher:RankCandidates.
 
@@ -72,8 +72,8 @@ end
 
 --[[
 	NAMES GO INTO THE POOL EXACTLY AS THE ROSTER GAVE THEM, suffix and all. A name is an address:
-	SendMail takes the full "Character-Realm" form, and rewriting it here -- an earlier version
-	stripped the player's own realm off -- means mailing to an address the client never gave us.
+	SendMail takes the full "Character-Realm" form, so rewriting it here -- stripping the player's
+	own realm off, say -- means mailing to an address the client never gave us.
 ]]
 local function packedRealm()
 	local realm = GetRealmName and GetRealmName()
@@ -191,7 +191,7 @@ end
 
 --[[
 	Asks the server for a fresh roster and hands the result to one callback, mirroring Who:Step so
-	Mail-Window wires both sources the same way. The callback is what gates the read:
+	UI-Mailbox wires both sources the same way. The callback is what gates the read:
 	GUILD_ROSTER_UPDATE fires on its own constantly -- every login, logout, note edit and rank
 	change -- and rereading the whole roster with a GetGuildRosterLastOnline call per row each time
 	is work nobody asked for.

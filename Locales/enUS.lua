@@ -35,33 +35,40 @@ L["SECTION_MATCHED"] = "Matched"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
 L["SECTION_NO_RECIPIENT"] = "Pending Match"
 L["SECTION_UNREADABLE"] = "Stats Couldn't Be Read"
-L["SECTION_VENDOR"] = "Vendor / Disenchant"
+--[[
+	"Kept", never "vendor / disenchant" (maintainer ruling, 2026-07-23): the add-on does not
+	tell the player what to do with what stays. Covers both the rows nobody was found for and
+	the rows the player chose to keep.
+]]
+L["SECTION_KEPT"] = "Kept"
 
-L["ROW_VENDOR"] = "vendor / disenchant"
-L["ROW_NO_RECIPIENT"] = "no recipient"
-L["ROW_UNREADABLE"] = "stats unknown"
+-- Row labels are Title Case, like the dropdown's own actions.
+L["ROW_KEPT"] = "Kept"
+L["ROW_NO_RECIPIENT"] = "No Recipient"
+L["ROW_UNREADABLE"] = "Stats Unknown"
 
-L["PICKER_VENDOR_OPTION"] = "vendor / disenchant (don't send)"
-L["PICKER_NONE_IN_RANGE"] = "no one in range, run Find Recipients"
+L["PICKER_KEEP_OPTION"] = "Keep Item"
+L["PICKER_NONE_IN_RANGE"] = "No one in range, run Find Recipients"
 -- The add-on's failure, not an empty realm, so Find Recipients is not pressed forever.
-L["PICKER_UNREADABLE"] = "couldn't read this item's stats, so it isn't matched"
+L["PICKER_UNREADABLE"] = "Couldn't read this item's stats, so it isn't matched"
 --[[
 	KEPT SHORT. A note shares one 18-pixel row with a cross-realm name, a level and a class, and
-	anything longer is cut off. What to do about it belongs in the hint below.
+	anything longer is cut off. Notes are information, never gates: every name can be picked.
 ]]
 L["PICKER_NOTE_HAS_ONE"] = "(has one)"
 L["PICKER_NOTE_REFUSED"] = "(refused)"
 L["PICKER_NOTE_RECENT"] = "(recent)"
-L["PICKER_HINT_GRAYED"] = "Clear a row to free the name it holds."
+-- Below the divider at the bottom of the list: one targeted /who press for this item's band.
+L["PICKER_FIND_FOR_ITEM"] = "Find Recipients for This Item"
 
 L["TOOLTIP_RECIPIENT"] = "Recipient"
 L["TOOLTIP_RECIPIENT_CANDIDATES"] = "%d candidate(s) at level %d-%d"
 L["TOOLTIP_RECIPIENT_HINT"] = "Click to reassign."
 
--- Deliberately no status line, so no STATUS_* strings: the headings and chat report say it all.
-L["CHAT_ALREADY_HOLDS"] = "Clear that row first to give %s something else, they already have %s."
-L["CHAT_CANNOT_RECEIVE"] = "Pick somebody else, mail to %s was refused earlier this session."
--- Deliberately no CHAT_NOTHING_GIFTABLE: a visit with nothing spare is the ordinary case.
+--[[
+	Deliberately no status line, so no STATUS_* strings: the headings and chat report say it all.
+	And no CHAT_NOTHING_GIFTABLE: a visit with nothing spare is the ordinary case.
+]]
 
 --------------------------------------------------------------------------------
 -- Distributing
@@ -72,6 +79,10 @@ L["CHAT_CANNOT_RECEIVE"] = "Pick somebody else, mail to %s was refused earlier t
 	distribution paused". These arrive in a chat frame already busy, where the first few words are
 	all that gets read. Messages with no action for the player stay plain statements, and all of
 	them print white; see the color note in Features/Announcements.lua.
+
+	THE ACTION NAMES A BUTTON, SPELLED OUT. Nothing ties these mentions to the BUTTON_* keys above,
+	so renaming a button here leaves the messages telling the player to press something that is no
+	longer on screen. Change BUTTON_FIND_RECIPIENTS or BUTTON_DISTRIBUTE and read this block through.
 ]]
 L["MAIL_STILL_SENDING"] = "Still sending, give it a sec."
 L["MAIL_NOTHING_TO_DISTRIBUTE"] = "Nothing to distribute."
@@ -90,6 +101,13 @@ L["MAIL_ATTACH_FAILED"] = "Couldn't attach %s, nothing sent."
 L["MAIL_AWAITING_CONFIRM"] = "Click Accept on the popup for %s, then press Distribute to send the rest."
 L["MAIL_SENT"] = "Sent %s to %s (%d/%d)."
 L["MAIL_SEND_FAILED"] = "Mail to %s failed (%s)."
+--[[
+	The parenthetical above. On the UI_ERROR_MESSAGE path it is the client's own error text, already
+	in the player's language; these two cover the paths where the reason is ours to name, so that
+	slot never carries a bare English word the player cannot act on.
+]]
+L["MAIL_REASON_FAILED"] = "no reason given"
+L["MAIL_REASON_ERROR"] = "client error"
 L["MAIL_ABORTED"] = "Multiple mail errors, aborting distribution."
 L["MAIL_DONE"] = "Done. %d of %d delivered."
 L["MAIL_DONE_WITH_SKIPS"] = "Done. %d of %d delivered, %d skipped (moved in your bags)."
@@ -98,7 +116,7 @@ L["MAIL_SUBJECT_TOO_LONG"] = "Subject is %d characters and mail only takes %d, s
 L["MAIL_BODY_TOO_LONG"] = "Body is %d characters and mail only takes %d, so it will be cut short."
 
 L["WHO_BLOCKED"] =
-	"Click Find Recipients again. Blizzard only allows that search straight from a button press, and something interrupted this one."
+	"Press Find Recipients again. Blizzard only allows that search straight from a button press, and something interrupted this one."
 
 --------------------------------------------------------------------------------
 -- Default Mail Contents
@@ -147,6 +165,24 @@ L["OPTIONS_CONSUMABLE_GAP_LABEL"] = "Outgrown By"
 L["OPTIONS_CONSUMABLE_GAP_VALUE"] = "%d levels"
 L["OPTIONS_CONSUMABLE_GAP_DESCRIPTION"] =
 	"How many levels past a consumable you must be before it counts as spare. At 20, a level 35 water is offered once you reach 55."
+
+L["OPTIONS_HISTORY_HEADER"] = "Recipient History"
+L["OPTIONS_HISTORY_BUTTON"] = "Clear History and Roster"
+L["OPTIONS_HISTORY_CONFIRM"] = "Clear every recipient cooldown and the known-player roster? This cannot be undone."
+L["OPTIONS_HISTORY_DESCRIPTION"] = "Everyone previously gifted becomes eligible again immediately."
+
+-- Account-wide giving tally, read-only here. Item Levels counts equippable gear only.
+L["OPTIONS_GIVEN_HEADER"] = "Given Away"
+L["OPTIONS_GIVEN_GIFTS"] = "Gifts"
+L["OPTIONS_GIVEN_ITEMS"] = "Items"
+L["OPTIONS_GIVEN_ITEM_LEVELS"] = "Item Levels"
+L["OPTIONS_GIVEN_VALUE"] = "Gold Value"
+
+-- Sharing the tally with nearby players. The four labels above are reused on the tooltip.
+L["OPTIONS_SHARE_STATS"] = "Share My Giving Stats"
+L["OPTIONS_SHARE_STATS_DESCRIPTION"] =
+	"Players near you in cities and inns can see your Given Away totals on your tooltip; turning this off stops sharing but you still see theirs."
+L["TOOLTIP_GIVEN_HEADER"] = "Play It Forward // Given Away"
 
 -- No Finding Recipients, Matching or The Mail sections: Data/Default-Settings.lua records why.
 

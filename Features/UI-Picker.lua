@@ -1,6 +1,6 @@
 local _, ns = ...
 
--- The recipient dropdown, reused by the rarity control. Mail-Window calls in through ns.Picker.
+-- The recipient dropdown, reused by the rarity control. The UI files call in through ns.Picker.
 
 local ENTRY_H = 18
 local RECIP_W = 190
@@ -51,7 +51,7 @@ function Picker:Build()
 	end
 
 	--[[
-		On 1.15.8 TooltipBorderedFrameTemplate paints a border with nothing behind it, so the list
+		On Classic Era TooltipBorderedFrameTemplate paints a border with nothing behind it, so the list
 		opens see-through. A texture rather than an unconditional SetBackdrop, so a skinning add-on
 		still wins; BACKGROUND so entries and highlights sit above.
 	]]
@@ -99,6 +99,15 @@ function Picker:GetEntry(i)
 	e.text:SetJustifyH("LEFT")
 	e.text:SetWordWrap(false)
 
+	-- A divider row draws this instead of text: one hairline across the entry, nothing clickable.
+	e.line = e:CreateTexture(nil, "OVERLAY")
+	e.line:SetPoint("LEFT", 4, 0)
+	e.line:SetPoint("RIGHT", -4, 0)
+	e.line:SetHeight(1)
+	local r, g, b = ns.GetColorRGB("SEPARATOR")
+	e.line:SetColorTexture(r, g, b, 0.6)
+	e.line:Hide()
+
 	local hl = e:CreateTexture(nil, "HIGHLIGHT")
 	hl:SetAllPoints()
 	hl:SetColorTexture(1, 1, 1, 0.12)
@@ -107,7 +116,7 @@ function Picker:GetEntry(i)
 	return e
 end
 
--- options = { { text = "...", pick = candidate|nil, clear = bool, disabled = bool }, ... }
+-- options = { { text = "...", pick = candidate|nil, clear/disabled/separator/findForItem = bool }, ... }
 function Picker:Open(anchor, options, onSelect)
 	local f = self:Build()
 	for _, e in ipairs(self.entries) do
@@ -121,16 +130,21 @@ function Picker:Open(anchor, options, onSelect)
 			self.ruler = f:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 			self.ruler:Hide() -- never drawn; it exists only to be measured
 		end
-		self.ruler:SetText(opt.text)
+		self.ruler:SetText(opt.text or "")
 		width = math.max(width, self.ruler:GetStringWidth() + 24)
 	end
 	width = math.min(PICKER_MAX_WIDTH, width)
 
 	for i, opt in ipairs(options) do
 		local e = self:GetEntry(i)
-		e.text:SetText(opt.text)
-		-- An entry that will not respond to a click has to look like it.
-		e:SetAlpha(opt.disabled and 0.45 or 1)
+		e.text:SetText(opt.text or "")
+		if opt.separator then
+			e.line:Show()
+		else
+			e.line:Hide()
+		end
+		-- An entry that will not respond to a click has to look like it; a divider is furniture.
+		e:SetAlpha((opt.disabled and not opt.separator) and 0.45 or 1)
 		e:SetScript("OnClick", function()
 			if opt.disabled then
 				return

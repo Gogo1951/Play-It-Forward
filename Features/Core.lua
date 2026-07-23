@@ -4,7 +4,7 @@ local L = ns.L
 -- Identity, saved-variable lifecycle and the event dispatcher. Nothing else belongs here.
 ns.name = ADDON_NAME
 
--- An unreplaced @project-version@ token means an unpackaged dev copy, and reads as "Dev".
+-- An unreplaced @project-version@ token means an unpackaged dev copy: the @ is the signal.
 local function GetVersion()
 	local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
 	local version = GetAddOnMetadata and GetAddOnMetadata(ADDON_NAME, "Version")
@@ -75,6 +75,23 @@ ns.on("ADDON_LOADED", function(name)
 
 	-- Deprecated: a setting no control ever reached, and a constant now as ns.Data.MIN_RARITY.
 	ns.db.profile.minRarity = nil
+
+	--[[
+		A reset or a profile switch replaces ns.db.profile wholesale. Settings read live off it
+		catch up on their own; the built window does not, so it is re-read here -- the same two
+		calls the options panel makes when a giftability setting changes.
+	]]
+	function ns:ApplyProfile()
+		if ns.UI and ns.UI.frame then
+			ns.UI:_syncRarityButton()
+			ns.UI:Rescan()
+		end
+		LibStub("AceConfigRegistry-3.0"):NotifyChange(ns.OPTIONS_REGISTRY.General)
+	end
+
+	for _, msg in ipairs({ "OnProfileChanged", "OnProfileReset", "OnProfileCopied" }) do
+		ns.db.RegisterCallback(ns, msg, "ApplyProfile")
+	end
 
 	-- The cooldown is per-session, so the list starts empty at every login.
 	ns.Fairness:Reset()

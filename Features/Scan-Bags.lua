@@ -43,7 +43,7 @@ local BIND_REJECT = {
 --[[
 	One itemID -> definition lookup across every consumable table, turning the data files'
 	positional rows into named fields. Form travels with each row because what a consumable
-	restores is not enough to say what it is: forty-odd Food-And-Water rows restore mana and every
+	restores is not enough to say what it is: forty-odd Scan-Food rows restore mana and every
 	one is water, so "restores mana" alone would put mages behind priests for a bottle of water.
 ]]
 local CONSUMABLE_TABLES = {

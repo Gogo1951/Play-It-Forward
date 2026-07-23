@@ -59,7 +59,7 @@ ns.Data.ArmorSubclass = {
 
 	INVTYPE_HOLDABLE must never be added. Held off-hands look universal but turn on whether a
 	class has the off-hand slot free, and adding them here makes an Intellect orb eligible for
-	a warrior. They route through the weapon matrix as "HELD", in Data/Weapon-Priority.lua.
+	a warrior. They route through the weapon matrix as "HELD", in Data/Match-Weapons.lua.
 ]]
 ns.Data.UniversalEquipLoc = {
 	INVTYPE_CLOAK = true,
