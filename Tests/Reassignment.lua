@@ -8,7 +8,7 @@
 	revisits it. The item stays with its fallback because it is no longer "unassigned".
 
 	So every pass now clears what the add-on decided and decides again against the whole
-	roster. What it never touches is what the player decided: a row set to vendor by
+	roster. What it never touches is what the player decided: a row kept by
 	hand, a recipient picked by hand, a tick taken off by hand. Those are pinned, and
 	rebuilding over them is the reassignment-behind-your-back this add-on already got
 	wrong once.
@@ -111,12 +111,12 @@ end)
 -- What the player decided is never rebuilt
 --------------------------------------------------------------------------------
 
-test("a row sent to the vendor by hand stays there", function()
+test("a row kept by hand stays kept", function()
 	local ns = load()
 	owlStaff(ns)
 	search(ns, { HUNTER })
 
-	ns.UI:_setRecipient(ns.UI:Items()[1], nil) -- the "vendor / DE (don't send)" option
+	ns.UI:_setRecipient(ns.UI:Items()[1], nil) -- the Keep Item option
 	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), nil, "cleared")
 
 	--[[

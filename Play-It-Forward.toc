@@ -2,6 +2,9 @@
 ## Notes: Mail the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
 ## Author: Gogo1951
 
+## IconTexture: Interface/AddOns/Play-It-Forward/Includes/Images/Play-It-Forward.tga
+## X-License: MIT
+
 ## Category-enUS: Other
 ## Category-deDE: Anderes
 ## Category-esES: Otros
@@ -13,9 +16,6 @@
 ## Category-ruRU: Другое
 ## Category-zhCN: 其它
 ## Category-zhTW: 其他
-
-## IconTexture: Interface/AddOns/Play-It-Forward/Includes/Images/Play-It-Forward.tga
-## X-License: MIT
 
 ## Interface: 11509, 20506
 ## Version: @project-version@
@@ -46,29 +46,34 @@ Locales/enUS.lua
 # data files below read at load time.
 Data/Data.lua
 Data/Default-Settings.lua
-Data/Stat-Map.lua
-Data/Stat-Weights.lua
-Data/Item-Rules.lua
-Data/Armor-Priority.lua
-Data/Weapon-Priority.lua
-Data/Food-And-Water.lua
-Data/Potions.lua
-Data/Zones.lua
+Data/Match-Stats.lua
+Data/Match-Armor.lua
+Data/Match-Weapons.lua
+Data/Match-Rules.lua
+Data/Scan-Stats.lua
+Data/Scan-Food.lua
+Data/Scan-Potions.lua
+Data/Recipients-Zones.lua
 
 # Play It Forward
 Features/Core.lua
 Features/Utilities.lua
 Features/Announcements.lua
-Features/Tooltip-Scanner.lua
-Features/Bag-Scanner.lua
-Features/Matching-Engine.lua
-Features/Recipient-Search.lua
-Features/Guild-Roster.lua
-Features/Recipient-Cooldown.lua
-Features/Mail-Sender.lua
-Features/Recipient-Picker.lua
+Features/Scan-Tooltip.lua
+Features/Scan-Bags.lua
+Features/Match-Derivations.lua
+Features/Match-Engine.lua
 Features/Match-List.lua
-Features/Mail-Window.lua
+Features/Recipients-Who.lua
+Features/Recipients-Guild.lua
+Features/Recipients-Fairness.lua
+Features/Mail-Sender.lua
+Features/UI-Picker.lua
+Features/UI-Window.lua
+Features/UI-Mailbox.lua
+Features/Generosity.lua
+Features/Generosity-Broadcast.lua
+Features/Generosity-Tooltip.lua
 Features/Diagnostics.lua
 Options/Options-Utilities.lua
 Options/Options-General.lua

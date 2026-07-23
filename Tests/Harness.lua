@@ -3,7 +3,7 @@
 	assert from.
 
 	Every case loads its own copy. items, pools and assignedTo are file-scope locals in
-	Features/Mail-Window.lua and nothing wipes them by design -- that is what makes
+	Features/Match-List.lua and nothing wipes them by design -- that is what makes
 	matches survive walking away from a mailbox -- so two cases sharing one load would
 	see each other's bags.
 ]]
@@ -22,24 +22,30 @@ local FILES = {
 	"Locales/enUS.lua",
 	"Data/Data.lua",
 	"Data/Default-Settings.lua",
-	"Data/Stat-Map.lua",
-	"Data/Stat-Weights.lua",
-	"Data/Item-Rules.lua",
-	"Data/Armor-Priority.lua",
-	"Data/Weapon-Priority.lua",
-	"Data/Food-And-Water.lua",
-	"Data/Potions.lua",
-	"Data/Zones.lua",
+	"Data/Match-Stats.lua",
+	"Data/Match-Armor.lua",
+	"Data/Match-Weapons.lua",
+	"Data/Match-Rules.lua",
+	"Data/Scan-Stats.lua",
+	"Data/Scan-Food.lua",
+	"Data/Scan-Potions.lua",
+	"Data/Recipients-Zones.lua",
 	"Features/Utilities.lua",
-	"Features/Tooltip-Scanner.lua",
-	"Features/Bag-Scanner.lua",
-	"Features/Matching-Engine.lua",
-	"Features/Recipient-Cooldown.lua",
-	"Features/Recipient-Search.lua",
-	"Features/Mail-Sender.lua",
-	"Features/Recipient-Picker.lua",
+	"Features/Scan-Tooltip.lua",
+	"Features/Scan-Bags.lua",
+	"Features/Match-Derivations.lua",
+	"Features/Match-Engine.lua",
 	"Features/Match-List.lua",
-	"Features/Mail-Window.lua",
+	"Features/Recipients-Who.lua",
+	"Features/Recipients-Guild.lua",
+	"Features/Recipients-Fairness.lua",
+	"Features/Mail-Sender.lua",
+	"Features/UI-Picker.lua",
+	"Features/UI-Window.lua",
+	"Features/UI-Mailbox.lua",
+	"Features/Generosity.lua",
+	"Features/Generosity-Broadcast.lua",
+	"Features/Generosity-Tooltip.lua",
 	"Features/Diagnostics.lua",
 	--[[
 		The options panels are not loaded, but this file is not only panels: the consumable
@@ -68,7 +74,7 @@ end
 
 	There are no longer any exclusions: every file the add-on runs at a mailbox is the
 	real one. The delivery race lives in Mail-Sender.lua, the query planning in
-	Recipient-Search.lua and the suffix parsing in Tooltip-Scanner.lua, and answering any
+	Recipients-Who.lua and the suffix parsing in Scan-Tooltip.lua, and answering any
 	of them with a stub would test the answer rather than the code. The client is stubbed
 	instead, down to the scanning tooltip.
 ]]
@@ -106,8 +112,14 @@ function Harness.LoadAddon(root)
 		Saved variables arrive at ADDON_LOADED in the game, which is after every file has
 		loaded, so building them here rather than earlier is not a convenience. A file
 		reading ns.db at load time would be a bug and this ordering is what catches it.
+
+		Both scopes are seeded, the way AceDB seeds profile and global alike: the giving tally
+		lives in global.stats, so a case that never touched it would still expect it present.
 	]]
-	ns.db = { profile = copy(ns.DATABASE_DEFAULTS.profile) }
+	ns.db = {
+		profile = copy(ns.DATABASE_DEFAULTS.profile),
+		global = copy(ns.DATABASE_DEFAULTS.global),
+	}
 
 	ns.fire = function(event, ...)
 		for _, fn in ipairs(events[event] or {}) do

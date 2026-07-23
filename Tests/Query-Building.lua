@@ -1,18 +1,18 @@
 --[[
 	Getting a whole bag's worth of recipients out of one press.
 
-	/who takes repeated filters of the same kind and ORs them:
-
-	  /who 16-19 z-"Redridge Mountains" z-"Duskwood" c-"Warrior" c-"Paladin"
-
 	One query per zone was leaving fifteen-odd presses on the table for a bag that is
 	usually one tight level band -- somebody who just finished a boost with five items
-	for levels 15-25. Every zone that band touches goes in one query now, and so do the
-	classes that can actually receive the items, so what comes back is people who can
-	use something rather than a sample to be filtered afterwards.
+	for levels 15-25. Every zone that band touches goes in one query now, and the
+	character budget is the real constraint: chunking exists because one query is not
+	always enough.
 
-	The character budget is the real constraint, and it is why chunking exists rather
-	than one query always being enough.
+	CLASS FILTERS ARE ONE PER QUERY, NEVER A LIST. The client honors a single c-"..."
+	and quietly drops the rest of an OR'd set -- observed live on 1.15.9 (2026-07-23),
+	where a Warrior/Paladin/Rogue query answered with paladins alone, the first filter
+	alphabetically. A zoned query carries the filter only when exactly one class is
+	wanted; otherwise the zones do the narrowing and the class filter is spent one
+	class per query in the widened stage.
 ]]
 
 local Harness = require("Harness")
@@ -54,14 +54,35 @@ test("every zone for a band goes in one query", function()
 	check(first:find("16%-19"), "carrying the band's levels")
 end)
 
-test("the classes that want the items are filtered for", function()
+--[[
+	The invariant pinned to the observed bug: a query listing several classes silently
+	narrows to one, so no query may ever carry more than one class filter.
+]]
+test("no query ever carries more than one class filter", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 16, hi = 19, classes = { "WARRIOR", "PALADIN" } } })
 
-	local first = drain(ns, 1)[1]
-	check(first:find('c%-"Warrior"'), "warriors asked for: " .. first)
-	check(first:find('c%-"Paladin"'), "paladins asked for")
-	check(not first:find('c%-"Mage"'), "and nobody who cannot receive anything")
+	for _, query in ipairs(drain(ns)) do
+		check(countOf(query, 'c%-"') <= 1, "at most one class filter: " .. query)
+	end
+end)
+
+test("each wanted class is asked for by name, one query apiece", function()
+	local ns = load()
+	ns.Who:Plan({ { lo = 16, hi = 19, classes = { "WARRIOR", "PALADIN" } } })
+
+	local queries = drain(ns)
+	check(not queries[1]:find('c%-"'), "the zoned press is unfiltered, zones do the narrowing: " .. queries[1])
+
+	local askedWarrior, askedPaladin, askedMage = false, false, false
+	for _, query in ipairs(queries) do
+		askedWarrior = askedWarrior or query:find('c%-"Warrior"') ~= nil
+		askedPaladin = askedPaladin or query:find('c%-"Paladin"') ~= nil
+		askedMage = askedMage or query:find('c%-"Mage"') ~= nil
+	end
+	check(askedWarrior, "warriors asked for by name")
+	check(askedPaladin, "paladins asked for by name")
+	check(not askedMage, "and nobody who cannot receive anything")
 end)
 
 --[[
@@ -193,11 +214,11 @@ test("a bag of one level band is searched in a single press", function()
 end)
 
 --[[
-	The class filter has to come from what is in the bag. Cloth with Intellect on it is
-	nobody's business but the casters', and a query asking for warriors spends part of
-	its answer on people who cannot receive it.
+	The class filters still come from what is in the bag -- one per query, in the widened
+	stage. Cloth with Intellect on it is nobody's business but the casters', so a warrior
+	is never asked for by name anywhere in its plan.
 ]]
-test("the query asks for the classes the bag's items are for", function()
+test("the plan's class queries come from the bag's items", function()
 	local ns = load()
 	Stub.SetBackpack({
 		Stub.Item({
@@ -215,8 +236,19 @@ test("the query asks for the classes the bag's items are for", function()
 	ns.fire("MAIL_SHOW")
 	ns.UI:FindRecipients()
 
-	local query = Stub.whoQueries[1]
-	check(query:find('c%-"Mage"'), "mages asked for: " .. query)
-	check(not query:find('c%-"Warrior"'), "warriors not asked for")
-	check(not query:find('c%-"Rogue"'), "nor rogues")
+	local askedMage, askedWarrior, askedRogue = false, false, false
+	while ns.Who:Remaining() > 0 and #Stub.whoQueries < 40 do
+		Stub.now = Stub.now + 60
+		ns.fire("WHO_LIST_UPDATE")
+		ns.UI:FindRecipients()
+	end
+	for _, query in ipairs(Stub.whoQueries) do
+		check(countOf(query, 'c%-"') <= 1, "at most one class filter: " .. query)
+		askedMage = askedMage or query:find('c%-"Mage"') ~= nil
+		askedWarrior = askedWarrior or query:find('c%-"Warrior"') ~= nil
+		askedRogue = askedRogue or query:find('c%-"Rogue"') ~= nil
+	end
+	check(askedMage, "mages asked for by name somewhere in the plan")
+	check(not askedWarrior, "warriors never asked for")
+	check(not askedRogue, "nor rogues")
 end)

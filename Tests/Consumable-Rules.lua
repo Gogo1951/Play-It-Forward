@@ -7,7 +7,7 @@
 	they set who is in contention and leave everybody else admitted behind them.
 
 	POTIONS, NOT FOOD, and that distinction is the whole care in this file.
-	Data/Food-And-Water.lua holds 42 things that restore mana, and all of them are
+	Data/Scan-Food.lua holds 42 things that restore mana, and all of them are
 	water. A rule reading only "restores mana" would put mages behind priests for water,
 	when a mage drinks more of it than anybody in the game.
 ]]

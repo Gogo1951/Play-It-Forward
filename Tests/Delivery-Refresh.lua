@@ -304,7 +304,7 @@ test("what was kept back is still on the list after a run", function()
 end)
 
 --[[
-	Distribute is greyed until pressing it would send something. Both conditions used to
+	Distribute is dead until pressing it would send something. Both conditions used to
 	be discovered by pressing it and reading a warning.
 ]]
 test("Distribute is dead until a mailbox is open and something is ticked", function()
@@ -317,7 +317,12 @@ test("Distribute is dead until a mailbox is open and something is ticked", funct
 	ns.UI:_setRecipient(ns.UI:Items()[1], KEEFE)
 	equal(ns.UI.frame.distributeButton:IsEnabled(), true, "matched at a mailbox")
 
+	--[[
+		The re-check is deferred a frame by design -- the mailbox closing and the interaction
+		manager reporting it are not ordered -- and the stub's timers never fire on their own.
+	]]
 	ns.fire("MAIL_CLOSED")
+	Stub.FireTimers()
 	equal(ns.UI.frame.distributeButton:IsEnabled(), false, "and dead again once you walk away")
 end)
 

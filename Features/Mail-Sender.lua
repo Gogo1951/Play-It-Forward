@@ -2,7 +2,7 @@ local _, ns = ...
 local L = ns.L
 
 ns.Distributor = {}
-local Dist = ns.Distributor
+local Distributor = ns.Distributor
 
 --[[
 	Serialized, event-driven mailer. SendMail cannot be looped: one send goes out, then the run
@@ -17,7 +17,7 @@ end
 
 --[[
 	The body box, under whichever name this client keeps it. SendMailBodyEditBox is the retail
-	name; on 1.15.8 that global is nil and the body lives behind MailEditBox:GetEditBox(), so the
+	name; on Classic Era that global is nil and the body lives behind MailEditBox:GetEditBox(), so the
 	To and Subject boxes fill while the body stays empty. Picked by availability, never by flavor.
 ]]
 local function mailBodyBox()
@@ -50,20 +50,21 @@ local BODY_MAX = 500
 	Exposed so the Outgoing Mail preview in Features/Diagnostics.lua reports the same numbers
 	WarnIfOversized enforces; a second copy there would disagree silently the day either changes.
 ]]
-Dist.SUBJECT_MAX = SUBJECT_MAX
-Dist.BODY_MAX = BODY_MAX
+Distributor.SUBJECT_MAX = SUBJECT_MAX
+Distributor.BODY_MAX = BODY_MAX
 
-Dist.busy = false
-Dist.queue = {}
-Dist.errors = 0
-Dist.onProgress = nil -- optional UI callback(done, total, job, ok)
-Dist.onDone = nil -- optional UI callback(done, total, skipped)
+Distributor.busy = false
+Distributor.queue = {}
+Distributor.errors = 0
+Distributor.onProgress = nil -- optional UI callback(done, total, job, ok)
+Distributor.onDone = nil -- optional UI callback(done, total, skipped)
 
 ns.on("MAIL_SUCCESS", function()
-	Dist:_result(true)
+	Distributor:_result(true)
 end)
 ns.on("MAIL_FAILED", function()
-	Dist:_result(false, "failed")
+	-- The event carries no detail, so the reason slot says so rather than repeating "failed".
+	Distributor:_result(false, L["MAIL_REASON_FAILED"])
 end)
 
 --[[
@@ -97,19 +98,19 @@ end
 	client's own mail errors, since UI_ERROR_MESSAGE carries everything from standing too far away.
 ]]
 ns.on("UI_ERROR_MESSAGE", function(_, message)
-	if not Dist.busy or not Dist._current then
+	if not Distributor.busy or not Distributor._current then
 		return
 	end
 	if not isMailError(message) then
 		return
 	end
 	-- A name the server will not take now will not start working later in the same session.
-	ns.Fairness:MarkUnreachable(Dist._current.recipient)
-	Dist:_result(false, message)
+	ns.Fairness:MarkUnreachable(Distributor._current.recipient)
+	Distributor:_result(false, message)
 end)
 
 -- job = { bag, slot, link, recipient, level, class, subject, body }
-function Dist:Start(jobs)
+function Distributor:Start(jobs)
 	if self.busy then
 		ns:PrintMessage(L["MAIL_STILL_SENDING"])
 		return
@@ -129,7 +130,7 @@ function Dist:Start(jobs)
 	self:_next()
 end
 
-function Dist:Stop()
+function Distributor:Stop()
 	--[[
 		A send already in flight still lands, so its result event is still coming. Holding the job
 		is what lets _result put its recipient on cooldown after the run is over.
@@ -145,7 +146,7 @@ function Dist:Stop()
 	end
 end
 
-function Dist:_next()
+function Distributor:_next()
 	if self.busy then
 		return
 	end
@@ -203,6 +204,18 @@ function Dist:_next()
 	if ClearSendMail then
 		pcall(ClearSendMail)
 	end
+
+	--[[
+		Stack size captured here, through the same shim Features/Scan-Bags.lua reads: by MAIL_SUCCESS
+		the slot is stale, so a stack of 20 waters would tally as one item. It travels with the job
+		to Generosity:RecordSend. Both API shapes, since GetItemInfoC is picked by availability.
+	]]
+	local first, count = ns.GetItemInfoC(job.bag, job.slot)
+	if type(first) == "table" then
+		count = first.stackCount
+	end
+	job._count = count or 1
+
 	--[[
 		GUARDED LIKE EVERY OTHER CLIENT CALL IN THIS FUNCTION. Between busy going true and the
 		result timer being armed below, a throw unwinds with busy still set and no timer to clear
@@ -235,7 +248,7 @@ function Dist:_next()
 		if ClearSendMail then
 			pcall(ClearSendMail)
 		end
-		ns:PrintMessage(L["MAIL_SEND_FAILED"]:format(recipientOf(job), "error"))
+		ns:PrintMessage(L["MAIL_SEND_FAILED"]:format(recipientOf(job), L["MAIL_REASON_ERROR"]))
 		return self:_finish()
 	end
 
@@ -249,13 +262,17 @@ function Dist:_next()
 	end)
 end
 
-function Dist:_result(ok, reason)
+function Distributor:_result(ok, reason)
 	-- A stopped or timed-out run can still have a send in flight: record it, then stay stopped.
 	if not self.busy then
 		local pending = self._awaiting
 		self._awaiting = nil
 		if pending and ok then
 			ns.Fairness:Record(pending.recipient, pending.level or 0)
+			-- Also credit the account tally. Guarded so Generosity's load order stays flexible.
+			if ns.Generosity then
+				ns.Generosity:RecordSend(pending.link, pending._count)
+			end
 			-- It delivered, so drop it before a resume retries an already-empty slot.
 			if self.queue[1] == pending then
 				table.remove(self.queue, 1)
@@ -280,6 +297,10 @@ function Dist:_result(ok, reason)
 			bag update, so the slot still holds the old link and every delivery reads as a skip.
 		]]
 		ns.Fairness:Record(job.recipient, job.level or 0)
+		-- Also credit the account tally. Guarded so Generosity's load order stays flexible.
+		if ns.Generosity then
+			ns.Generosity:RecordSend(job.link, job._count)
+		end
 		self._done = (self._done or 0) + 1
 		ns:PrintMessage(L["MAIL_SENT"]:format(job.link, recipientOf(job), self._done, self._total))
 		table.remove(self.queue, 1)
@@ -300,7 +321,7 @@ function Dist:_result(ok, reason)
 	self:_next()
 end
 
-function Dist:_finish()
+function Distributor:_finish()
 	self.busy = false
 	local done, total, skipped = self._done or 0, self._total or 0, self._skipped or 0
 	-- Skips are items that moved in the bags, not failures, so they are counted apart.
@@ -312,6 +333,14 @@ function Dist:_finish()
 	if self.onDone then
 		self.onDone(done, total, skipped)
 	end
+	--[[
+		Push the fresh totals to nearby players right after giving. Guarded on the broadcaster so
+		load order stays flexible; it self-throttles, so a run finishing soon after a login broadcast
+		simply no-ops.
+	]]
+	if ns.Generosity and ns.Generosity.Broadcast then
+		ns.Generosity:Broadcast()
+	end
 end
 
 --[[
@@ -319,7 +348,7 @@ end
 	translation of the same paragraphs can run longer. No chat preview here; Diagnostic Tools has
 	"Preview What Strangers Receive" on demand.
 ]]
-function Dist:WarnIfOversized()
+function Distributor:WarnIfOversized()
 	local subject, body = self:BuildSubject(), self:BuildBody()
 
 	-- Silent truncation would mean sending something nobody has read.
@@ -332,10 +361,10 @@ function Dist:WarnIfOversized()
 end
 
 -- Fixed text, never a saved setting: what a stranger receives cannot drift per profile.
-function Dist:BuildSubject()
+function Distributor:BuildSubject()
 	return L["MAIL_SUBJECT"]
 end
 
-function Dist:BuildBody()
+function Distributor:BuildBody()
 	return L["MAIL_BODY"]
 end

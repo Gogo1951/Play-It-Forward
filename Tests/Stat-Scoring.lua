@@ -129,7 +129,7 @@ end)
 --[[
 	The Intellect-and-Spirit case is no longer decided here. Coverage demoted the mage
 	off an "of the Owl" roll, because a priest ranks both halves and he ranks one -- and
-	Data/Item-Rules.lua now overrules that with "Intellect and Spirit is for priests,
+	Data/Match-Rules.lua now overrules that with "Intellect and Spirit is for priests,
 	mages and druids". Tests/Item-Rules.lua owns it; what is left below is the same
 	mechanism on a combination no rule names.
 ]]
@@ -169,7 +169,7 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	The case that prompted the change. Data/Stat-Weights.lua used to name this item as
+	The case that prompted the change. Data/Match-Stats.lua used to name this item as
 	the pure example of something every class scores zero on.
 ]]
 test("of the Whale reaches a priest instead of the vendor", function()

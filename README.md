@@ -10,6 +10,8 @@ Mail the gear and consumables you've outgrown to guildies or strangers who'll ap
 
 🎒 **Keeps Your Bags Clean** // Outgrown greens and the level 35 water you stopped drinking twenty levels ago leave your bags for someone who still needs them, on a threshold you set.
 
+💛 **Generosity Tracking** // A lifetime count of everything you have given away — gifts, items, item levels, gold — kept on your own tooltip, and on the tooltips of the other givers around you.
+
 🦺 **Safety First** // Only ever offers unbound gear you could trade anyway, never soulbound or quest items, and nothing above your rarity cap. Every row can be overridden or kept.
 
 ## Setup
@@ -19,20 +21,22 @@ Mail the gear and consumables you've outgrown to guildies or strangers who'll ap
 3. Walk up to a mailbox. If your bags hold something worth passing on, the window opens by itself.
 4. Press **Find Recipients**. Press it again if the first look comes up empty.
 5. Tick the rows you like, press **Distribute**, and click Accept on each confirmation.
-6. *"Be excellent to each other."*
+6. *"That green you're wearing? You're welcome."*
 
 ## How It Works
 
 ### The window
 
-Open a mailbox and the list appears, sorted into four groups so the rows worth acting on sit at the top.
+Open a mailbox and the list appears, sorted into four groups so the rows worth acting on sit at the top. **Give Away Up To** at the top left sets the ceiling — nothing rarer than that is ever listed.
 
 | Section | What it means |
 |---|---|
 | Matched | Somebody has been found. Tick it and press Distribute. |
 | Pending Match | Worth giving away, nobody found yet. Press Find Recipients again. |
 | Stats Couldn't Be Read | The add-on could not read the item, so it will not guess. Look at these yourself. |
-| Vendor / Disenchant | Nobody wants it. Sell it or shard it. |
+| Kept | Staying with you: nobody to send it to, or you chose to keep it. |
+
+<img width="500" src="https://github.com/user-attachments/assets/1bb7b389-05bb-4e06-ad2f-b3b828078e85" />
 
 ### Where the names come from
 
@@ -44,13 +48,27 @@ Every item is scored against what each class actually builds on. A plain Stamina
 
 ### Picking someone yourself
 
-Every row has a dropdown. Click it to see everyone in range with their level and class, pick a different person, or send the row to the vendor pile instead. Names that already hold something are shown grayed with the reason beside them, so nothing moves behind your back.
+Every row has a dropdown. Click it to see everyone in range with their level and class, pick a different person, or choose Keep Item to hold onto it. Your pick always wins: names that already hold something, or that refused mail earlier this session, carry a short note beside them, and choosing one anyway simply takes the name for this row — the row that held them goes back to matching automatically. At the bottom, **Find Recipients for This Item** runs a targeted search for just that item when the names on offer are not good enough.
+
+### What lands in their mailbox
+
+Every parcel goes out with the same note, so nobody has to wonder what the catch is.
+
+> **Play It Forward!**
+>
+> Just a little something to help you level. (=
+>
+> No strings attached. Use it if you can, or disenchant or vendor it. Don't want it? Just hit Return and it'll find a new home.
+
+### What you have given away
+
+Every parcel you send adds to a running total kept for your whole account: gifts sent, items, item levels, and what it was all worth at a vendor. It sits in the options panel under **Given Away**, and on your own tooltip.
+
+In a city or an inn, you can see what the other givers around you have handed out, and they can see yours. Somebody has to be standing near you for it to work, so a friend across the world never shows up, and none of it runs outside a rest area — nothing follows you into a raid. One toggle stops your own totals going out if you would rather keep them to yourself; you still see everyone else's.
 
 ### Slash command
 
 `/pif` opens the options panel.
-
-<img width="500" src="https://github.com/user-attachments/assets/1bb7b389-05bb-4e06-ad2f-b3b828078e85" />
 
 ## Testing & Localization Status
 
@@ -73,6 +91,10 @@ Please reach out if you would like to be involved!
 
 ## Related Add-ons
 
+🟢 Pairs With // Gogo1951's [Come & Get It](https://www.curseforge.com/wow/addons/come-get-it)
+
 🟢 Pairs With // Gogo1951's [Magic Eraser](https://www.curseforge.com/wow/addons/magic-eraser)
 
 🟢 Pairs With // Gogo1951's [Open Sesame](https://www.curseforge.com/wow/addons/open-sesame)
+
+🟡 Some Overlap // TravisSpomer's [Pawn](https://www.curseforge.com/wow/addons/pawn)

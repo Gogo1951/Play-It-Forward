@@ -54,6 +54,23 @@ local function refreshWindow()
 	end
 end
 
+--[[
+	One read-only line in the Given Away tally: a gold label and its value. The value is a function
+	so the display tracks ns.db.global.stats live rather than freezing at build time, and it returns
+	the value already formatted -- the counts arrive comma-grouped and white, the money row as the
+	client's coin string -- because those two do not color the same way.
+]]
+local function givenStat(order, label, valueFn)
+	return {
+		type = "description",
+		fontSize = "medium",
+		order = order,
+		name = function()
+			return GetColor("TITLE") .. label .. "|r  " .. valueFn()
+		end,
+	}
+end
+
 --------------------------------------------------------------------------------
 -- General Panel
 --------------------------------------------------------------------------------
@@ -167,6 +184,91 @@ function ns.BuildGeneralOptions()
 			set = function(_, value)
 				ns.db.profile.consumableLevelGap = value
 				refreshWindow()
+			end,
+		},
+
+		--------------------------------------------------------------------------
+		-- Recipient history
+		--------------------------------------------------------------------------
+		--[[
+			The one control on this panel that writes saved variables, so it is confirm-gated. It
+			belongs here rather than under Diagnostic Tools: a player wanting to hand a green to
+			somebody they already gifted has no reason to be behind a developer toggle, and the
+			diagnostics panel writes nothing but the taintLog CVar.
+		]]
+		spacerHistory0 = ns.OptionsSpacer(30),
+		headerHistory = ns.OptionsHeader(L["OPTIONS_HISTORY_HEADER"], 31),
+		descHistory = ns.OptionsDesc(GetColor("HELP") .. L["OPTIONS_HISTORY_DESCRIPTION"] .. "|r", 32),
+		spacerHistory1 = ns.OptionsSpacer(33),
+		buttonHistory = {
+			type = "execute",
+			name = L["OPTIONS_HISTORY_BUTTON"],
+			order = 34,
+			confirm = true,
+			confirmText = L["OPTIONS_HISTORY_CONFIRM"],
+			func = function()
+				ns.Fairness:Reset()
+				--[[
+					Guarded because the window may never have been built this session. Re-assigning
+					is what makes the emptied roster visible: an open window would otherwise keep
+					rendering pairings drawn from the pools just wiped. Not Rescan -- the bags have
+					not moved, and re-planning the search here would spend presses on nothing.
+				]]
+				if ns.UI and ns.UI.ClearPools then
+					ns.UI:ClearPools()
+					if ns.UI.frame then
+						ns.UI:_assign()
+					end
+				end
+			end,
+		},
+
+		--------------------------------------------------------------------------
+		-- Given away
+		--------------------------------------------------------------------------
+		--[[
+			Read-only, and account-wide: these four come from ns.db.global.stats through
+			ns.Generosity:Get, so they survive Reset Profile and span every character.
+			Money renders through the client's coin string; the other three are comma-grouped counts.
+		]]
+		spacerGiven0 = ns.OptionsSpacer(40),
+		headerGiven = ns.OptionsHeader(L["OPTIONS_GIVEN_HEADER"], 41),
+		spacerGiven1 = ns.OptionsSpacer(42),
+
+		givenGifts = givenStat(43, L["OPTIONS_GIVEN_GIFTS"], function()
+			local gifts = ns.Generosity:Get()
+			return GetColor("TEXT") .. ns.CommaNumber(gifts) .. "|r"
+		end),
+		givenItems = givenStat(44, L["OPTIONS_GIVEN_ITEMS"], function()
+			local _, items = ns.Generosity:Get()
+			return GetColor("TEXT") .. ns.CommaNumber(items) .. "|r"
+		end),
+		givenItemLevels = givenStat(45, L["OPTIONS_GIVEN_ITEM_LEVELS"], function()
+			local _, _, itemLevels = ns.Generosity:Get()
+			return GetColor("TEXT") .. ns.CommaNumber(itemLevels) .. "|r"
+		end),
+		givenValue = givenStat(46, L["OPTIONS_GIVEN_VALUE"], function()
+			local _, _, _, value = ns.Generosity:Get()
+			return ns.MoneyString(value)
+		end),
+
+		--[[
+			The one control in this section that writes a setting. Sharing is proximity-scoped:
+			nearby players running the add-on see these totals on your tooltip. Off stops your own
+			broadcasts but not your view of theirs, which is why the description says so.
+		]]
+		spacerGivenShare = ns.OptionsSpacer(47),
+		toggleShareStats = {
+			type = "toggle",
+			name = L["OPTIONS_SHARE_STATS"],
+			desc = L["OPTIONS_SHARE_STATS_DESCRIPTION"],
+			width = "full",
+			order = 48,
+			get = function()
+				return ns.db and ns.db.profile.shareStats
+			end,
+			set = function(_, value)
+				ns.db.profile.shareStats = value
 			end,
 		},
 

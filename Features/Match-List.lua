@@ -2,7 +2,7 @@ local _, ns = ...
 
 --[[
 	What is in the bags, who is on the roster, and which of them holds what;
-	Features/Mail-Window.lua draws it. items, pools and assignedTo are file-scope and nothing
+	Features/UI-Window.lua draws it. items, pools and assignedTo are file-scope and nothing
 	wipes them on a window close, which is what makes matches survive walking away from a mailbox.
 ]]
 
@@ -131,10 +131,51 @@ local function mergeBands(bands)
 	return merged
 end
 
+-- Whether this class is one the verdict put in contention, not merely admitted behind them.
+local function inContention(item, classToken)
+	for _, class in ipairs((item.verdict and item.verdict.contenders) or {}) do
+		if class == classToken then
+			return true
+		end
+	end
+	return false
+end
+
+--[[
+	A gift is still worth searching for while nobody holds it -- or while only a fallback does.
+	The contenders are who the verdict says the item is FOR, and a fallback pairing must not
+	read as the search having found them: it cleared the plan the moment two paladins held a
+	pair of warrior swords, with the warrior zones never asked. A pinned row is the player's
+	decision, and final. Leftovers and unreadables are excluded, or Scan Again stays offered
+	for the whole session.
+]]
+local function stillSearching(item)
+	if item.state ~= ns.Matcher.GIFT or item.pinned then
+		return false
+	end
+	if not item.recipient then
+		return true
+	end
+	return not inContention(item, item.recipient.class)
+end
+
+--[[
+	Which classes a band should query for. A fallback-held item narrows to the contenders --
+	somebody suitable already holds it, so the only find worth a press is an upgrade -- while an
+	unheld one asks for everybody admitted, since there a fallback beats nobody. Admitted, or
+	eligible when nothing was admitted: narrowing on an empty set asks for no classes at all.
+]]
+local function bandClasses(item, verdict)
+	if item.recipient and not item.pinned and not inContention(item, item.recipient.class) then
+		return verdict.contenders
+	end
+	return (#verdict.admitted > 0) and verdict.admitted or verdict.eligible
+end
+
 local function rescanBags()
 	--[[
 		Carried across the rescan: the pairing, the tick, and whether the player set them. A
-		pinned row with no recipient is a deliberate vendor, so the pin is what must survive.
+		pinned row with no recipient is a deliberate keep, so the pin is what must survive.
 	]]
 	local previous = {}
 	for _, item in ipairs(items) do
@@ -169,15 +210,14 @@ local function rescanBags()
 
 		--[[
 			Leftovers count toward the band too: the dropdown needs candidates behind them for a
-			manual override. Classes travel with the band because Who:Plan filters on them --
-			admitted, or eligible when nothing was admitted, since narrowing on an empty set asks
-			for no classes at all.
+			manual override. Classes travel with the band because Who:Plan filters on them; a
+			kept fallback pairing narrows its band to the contenders, same as the prune path.
 		]]
 		if #eligible > 0 then
 			bands[#bands + 1] = {
 				lo = bandLo,
 				hi = bandHi,
-				classes = (#verdict.admitted > 0) and verdict.admitted or eligible,
+				classes = bandClasses(item, verdict),
 			}
 		end
 	end
@@ -196,14 +236,10 @@ function ensureScan()
 	end
 end
 
---[[
-	Gifts still looking for somebody: the only thing deciding whether another press is worth it.
-	Leftovers and unreadables are excluded, or Scan Again stays offered for the whole session.
-]]
-local function unmatchedGifts()
+local function searchingGifts()
 	local waiting = 0
 	for _, item in ipairs(items) do
-		if item.state == ns.Matcher.GIFT and not item.recipient then
+		if stillSearching(item) then
 			waiting = waiting + 1
 		end
 	end
@@ -212,22 +248,22 @@ end
 
 --[[
 	The bands a search still has something to find for. Leftovers are left out here, where the
-	scan bands keep them: the plan is dropped whole the moment no gift is unmatched, so a band
+	scan bands keep them: the plan is dropped whole the moment no gift is searching, so a band
 	held open for a leftover would spend presses on a row the search was never going to finish.
 	Reads the verdict rescanBags cached rather than asking the matcher again -- a second opinion
 	here could prune a band the list still shows as waiting.
 ]]
-local function unmatchedBands()
+local function searchingBands()
 	local bands = {}
 	for _, item in ipairs(items) do
-		if item.state == ns.Matcher.GIFT and not item.recipient then
+		if stillSearching(item) then
 			local verdict = item.verdict
 			local eligible = (verdict and verdict.eligible) or {}
 			if #eligible > 0 then
 				bands[#bands + 1] = {
 					lo = item.bandLo,
 					hi = item.bandHi,
-					classes = (#verdict.admitted > 0) and verdict.admitted or eligible,
+					classes = bandClasses(item, verdict),
 				}
 			end
 		end
@@ -246,10 +282,6 @@ end
 
 function MatchList:EnsureScan()
 	ensureScan()
-end
-
-function MatchList:UnmatchedGifts()
-	return unmatchedGifts()
 end
 
 function MatchList:SlotKey(item)
@@ -316,21 +348,28 @@ function MatchList:Assign()
 	for _, entry in ipairs(order) do
 		local pick = ns.Fairness:PickFrom(entry.ranked, isTaken)
 		if pick then
-			entry.item.recipient, entry.item.send = pick, true
+			--[[
+				Ticked only for a class in contention. A fallback pairing is a suggestion, not a
+				send: Distribute must never mail an item to a class the verdict says it is not for
+				unless the player ticked that row themselves -- which pins it, so a rebuild here
+				never reaches it again.
+			]]
+			entry.item.recipient, entry.item.send = pick, inContention(entry.item, pick.class)
 			assignedTo[pick.name] = entry.item
 		end
 	end
 
 	--[[
-		The search is over the moment every gift has somebody; a plan left standing is a countdown
-		over finished work. Short of that, the finished parts of it still are: attempts interleave
-		one per band, so a filled band keeps taking a turn that costs a click and the full
-		throttle to ask a question nothing is waiting on.
+		The search is over the moment every gift has somebody in contention -- a fallback pairing
+		keeps its band alive, narrowed to the classes the verdict named. Short of over, the
+		finished parts of the plan still end: attempts interleave one per band, so a satisfied
+		band keeps taking a turn that costs a click and the full throttle to ask a question
+		nothing is waiting on.
 	]]
-	if unmatchedGifts() == 0 then
+	if searchingGifts() == 0 then
 		ns.Who:Clear()
 	else
-		ns.Who:Prune(unmatchedBands())
+		ns.Who:Prune(searchingBands())
 	end
 end
 
@@ -414,7 +453,7 @@ function MatchList:TooLowCount()
 	return tooLow
 end
 
--- Empties the roster. The Diagnostic Tools Clear History and Roster button is the caller.
+-- Empties the roster. The General panel's Clear History and Roster button is the caller.
 function MatchList:ClearPools()
 	wipe(pools)
 	wipe(seenPlayer)
