@@ -1,5 +1,5 @@
 ## Title: Play It Forward
-## Notes: Mail the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
+## Notes: Send the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
 ## Author: Gogo1951
 
 ## IconTexture: Interface/AddOns/Play-It-Forward/Includes/Images/Play-It-Forward.tga

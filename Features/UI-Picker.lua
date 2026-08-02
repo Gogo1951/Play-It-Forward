@@ -3,7 +3,7 @@ local _, ns = ...
 -- The recipient dropdown, reused by the rarity control. The UI files call in through ns.Picker.
 
 local ENTRY_H = 18
-local RECIP_W = 190
+local PICKER_MIN_WIDTH = 190
 local PICKER_MAX = 240 -- max picker height before the list scrolls
 -- Wider runs off the screen, and SetClampedToScreen shoves the list back over its own button.
 local PICKER_MAX_WIDTH = 360
@@ -123,8 +123,9 @@ function Picker:Open(anchor, options, onSelect)
 		e:Hide()
 	end
 
+	-- Never narrower than the button it drops from, whichever control that is.
+	local width = math.max(PICKER_MIN_WIDTH, anchor:GetWidth() or 0)
 	-- A font string with both anchors set reports the width it was given, not the width it wants.
-	local width = RECIP_W
 	for _, opt in ipairs(options) do
 		if not self.ruler then
 			self.ruler = f:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")

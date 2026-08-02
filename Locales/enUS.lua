@@ -10,16 +10,31 @@ end
 L["ADDON_TITLE"] = "Play It Forward"
 L["CHAT_LOADED"] =
 	"Version %s. Settings (including the option to disable this message) can be found under Options > AddOns > Play It Forward. Enjoying the add-on? Tell a friend about it! (="
+L["CHAT_OPTIONS_IN_COMBAT"] = "As a safety precaution, the Options Interface cannot be opened during combat."
 
 --------------------------------------------------------------------------------
 -- Mail Window
 --------------------------------------------------------------------------------
 
-L["WINDOW_RARITY_LABEL"] = "Give Away Up To:"
+--[[
+	Captions for the window's two dropdowns. The options panel gets this context from the toggle
+	beside each control; the window has no toggles, so it names the two halves itself. The values
+	are the panel's own strings, so a setting is never worded two ways.
+]]
+L["WINDOW_GEAR_LABEL"] = "Gear"
+L["WINDOW_CONSUMABLES_LABEL"] = "Consumables"
 
-L["QUALITY_UNCOMMON"] = "Green"
-L["QUALITY_RARE"] = "Blue"
-L["QUALITY_EPIC"] = "Purple"
+--[[
+	Quality names, not color words. The dropdown carries no caption, so each value states the cap
+	it sets: that quality and everything beneath it, which is what the scan actually admits.
+
+	Uncommon stands alone because nothing is ever beneath it: ns.Data.MIN_RARITY floors the gear
+	scan at uncommon, so a grey or a white is never offered, and an "& Lower" here would promise
+	one. Consumables never reach the cap at all, being returned before it.
+]]
+L["QUALITY_UNCOMMON"] = "Uncommon"
+L["QUALITY_RARE"] = "Rare & Lower"
+L["QUALITY_EPIC"] = "Epic & Lower"
 
 L["BUTTON_FIND_RECIPIENTS"] = "Find Recipients"
 L["BUTTON_SCAN_AGAIN"] = "Scan Again"
@@ -144,51 +159,69 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Mail the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time."
+	"Send the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time."
 L["OPTIONS_WELCOME"] = "Enable Welcome Message"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "Print the version and settings reminder when you log in."
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
-L["OPTIONS_COMMAND_PIF"] = "/pif"
-L["OPTIONS_COMMAND_PIF_DESCRIPTION"] = "Opens this options panel."
+L["OPTIONS_COMMAND"] = "/pif"
+L["OPTIONS_COMMAND_DESCRIPTION"] = "Opens the Options Interface for this add-on."
 
 L["OPTIONS_GIVE_HEADER"] = "What to Give Away"
-L["OPTIONS_MAX_RARITY"] = "Give Away Up To"
 L["OPTIONS_MAX_RARITY_DESCRIPTION"] =
 	"The highest rarity offered. Anything above this is never listed, so a good drop cannot be mailed off by accident."
 L["OPTIONS_INCLUDE_GEAR"] = "Include Gear"
 L["OPTIONS_INCLUDE_GEAR_DESCRIPTION"] = "Offer bind-on-equip weapons and armor."
 L["OPTIONS_INCLUDE_CONSUMABLES"] = "Include Consumables"
-L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] = "Offer low-level food, drink and potions you have outgrown."
--- Read together: "Outgrown By" over "20 levels", or the number says nothing about what it counts from.
-L["OPTIONS_CONSUMABLE_GAP_LABEL"] = "Outgrown By"
-L["OPTIONS_CONSUMABLE_GAP_VALUE"] = "%d levels"
+L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] = "Offer low-level food, drink, and potions you have outgrown."
+--[[
+	Self-describing, since the dropdown carries no caption: a bare "20" says nothing on its own.
+	"%d+" rather than ">%d" because the scan admits an item at exactly that many levels past it,
+	which "more than 20" would say it does not. The zero stop lifts the rule instead of tightening
+	it to nothing, so it gets its own words rather than "Outgrown by 0+ Levels".
+]]
+L["OPTIONS_CONSUMABLE_GAP_VALUE"] = "Outgrown by %d+ Levels"
+L["OPTIONS_CONSUMABLE_GAP_ALL"] = "All Consumables"
 L["OPTIONS_CONSUMABLE_GAP_DESCRIPTION"] =
-	"How many levels past a consumable you must be before it counts as spare. At 20, a level 35 water is offered once you reach 55."
+	"How far past a consumable you must be before it counts as spare. At 20 or more, a level 35 water is offered once you reach 55. All Consumables offers every one in your bags, whatever your level."
 
-L["OPTIONS_HISTORY_HEADER"] = "Recipient History"
-L["OPTIONS_HISTORY_BUTTON"] = "Clear History and Roster"
-L["OPTIONS_HISTORY_CONFIRM"] = "Clear every recipient cooldown and the known-player roster? This cannot be undone."
-L["OPTIONS_HISTORY_DESCRIPTION"] = "Everyone previously gifted becomes eligible again immediately."
+--[[
+	No Recipient History section: the cooldown list is wiped in Core's ADDON_LOADED handler, so
+	every login already makes everybody eligible again and a button to do it by hand earned
+	nothing.
+]]
 
--- Account-wide giving tally, read-only here. Item Levels counts equippable gear only.
-L["OPTIONS_GIVEN_HEADER"] = "Given Away"
-L["OPTIONS_GIVEN_GIFTS"] = "Gifts"
-L["OPTIONS_GIVEN_ITEMS"] = "Items"
-L["OPTIONS_GIVEN_ITEM_LEVELS"] = "Item Levels"
-L["OPTIONS_GIVEN_VALUE"] = "Gold Value"
+--[[
+	Account-wide giving tally, read-only here. Item Levels counts equippable gear only. The header
+	names the feature and the toggle below names what it does, so neither repeats the other.
+]]
+L["OPTIONS_GENEROSITY_HEADER"] = "Generosity"
+L["OPTIONS_GENEROSITY_GIFTS"] = "Gifts"
+L["OPTIONS_GENEROSITY_ITEMS"] = "Items"
+L["OPTIONS_GENEROSITY_ITEM_LEVELS"] = "Item Levels"
+L["OPTIONS_GENEROSITY_VALUE"] = "Gold Value"
 
--- Sharing the tally with nearby players. The four labels above are reused on the tooltip.
-L["OPTIONS_SHARE_STATS"] = "Share My Giving Stats"
+-- Sharing the tally with nearby players. The four labels above are reused on the unit tooltip.
+L["OPTIONS_SHARE_STATS"] = "Enable Generosity Tooltips"
 L["OPTIONS_SHARE_STATS_DESCRIPTION"] =
-	"Players near you in cities and inns can see your Given Away totals on your tooltip; turning this off stops sharing but you still see theirs."
-L["TOOLTIP_GIVEN_HEADER"] = "Play It Forward // Given Away"
+	"Players near you in cities and inns can see your totals on your tooltip. Turning this off stops sharing but you still see theirs, and your own totals below keep counting either way."
 
 -- No Finding Recipients, Matching or The Mail sections: Data/Default-Settings.lua records why.
 
-L["OPTIONS_FEEDBACK"] = "Feedback & Support"
+L["OPTIONS_FEEDBACK_HEADER"] = "Feedback & Support"
 L["OPTIONS_DISCORD"] = "Discord"
 L["OPTIONS_GITHUB"] = "GitHub"
 L["OPTIONS_CURSEFORGE"] = "CurseForge"
 L["OPTIONS_WAGO"] = "Wago"
 L["OPTIONS_VERSION"] = "Version %s"
+
+--------------------------------------------------------------------------------
+-- Unit Tooltip
+--------------------------------------------------------------------------------
+
+--[[
+	The body alone. ns:BuildBrandedLine puts the add-on name and the // in front of it, in the
+	colors a chat print uses, so this string never carries either. The four rows beneath it are
+	the OPTIONS_GENEROSITY_* labels above, shared with the panel so the two never disagree.
+]]
+L["TOOLTIP_GENEROSITY_HEADER"] = "Generosity"

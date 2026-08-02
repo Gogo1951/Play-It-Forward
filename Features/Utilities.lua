@@ -138,6 +138,33 @@ function ns.QualityName(quality)
 end
 
 --------------------------------------------------------------------------------
+-- Player Names
+--------------------------------------------------------------------------------
+
+--[[
+	One character's identity as "Name-Realm", for telling two sightings of the same player
+	apart from two players. /who answers with a bare name for somebody on your own realm where
+	the guild roster qualifies them, so the raw strings differ for one person and only this
+	form matches them up.
+
+	AN IDENTITY, NEVER AN ADDRESS. What reaches SendMail is the name the client handed us,
+	kept verbatim wherever it is stored; a string assembled here was never given by any API.
+	Never filter or branch on the suffix either: Classic realms are all connected, so every
+	name in reach is mailable.
+]]
+function ns.QualifyPlayerName(name)
+	if not name or name == "" then
+		return nil
+	end
+	if name:find("-", 1, true) then
+		return name
+	end
+	-- Suffixes carry no spaces, so "Blade's Edge" is "BladesEdge" in a qualified name.
+	local realm = (GetNormalizedRealmName and GetNormalizedRealmName()) or (GetRealmName and GetRealmName()) or ""
+	return name .. "-" .. (realm:gsub("%s+", ""))
+end
+
+--------------------------------------------------------------------------------
 -- Item Links
 --------------------------------------------------------------------------------
 

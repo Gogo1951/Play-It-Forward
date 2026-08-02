@@ -10,10 +10,11 @@ local MatchList = ns.MatchList
 local Picker = ns.Picker
 
 local ROW_H = 24
-local FRAME_W = 540
+local FRAME_W = 600
 local FRAME_H = 470
 local ITEM_W = 250
-local RECIP_W = 190
+-- The widest labels in the column are cross-realm names, "Bubbafrances-Ashkandi (26)" shaped.
+local RECIP_W = 250
 -- A floor, not the width: both buttons are sized to the widest label either can show.
 local BUTTON_W = 150
 local BUTTON_PAD = 24 -- room around the label, matching the picker's ruler allowance
@@ -25,9 +26,50 @@ local INSET_TEMPLATE = ns.PickTemplate("InsetFrameTemplate3", "InsetFrameTemplat
 
 local rows = {}
 
+-- Sized to their longest value: "Epic & Lower" and "Outgrown by 20+ Levels".
+local RARITY_WIDTH = 130
+local GAP_WIDTH = 200
+
 --------------------------------------------------------------------------------
 -- Frame construction
 --------------------------------------------------------------------------------
+
+--[[
+	A top-bar dropdown: a gold caption naming what it governs, then its current value, an arrow and
+	a hover highlight. Two are built from this, so the pair cannot drift apart the way two
+	hand-rolled copies would. The caption is what carries the context the options panel gets from
+	the toggle beside each control, since the window has no toggles.
+
+	The caller anchors the caption and the button follows it, so a row is positioned once. The
+	value text is anchored on both sides and ellipsized, or a long one runs under the arrow.
+]]
+local function buildDropdown(parent, width, labelText)
+	local label = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	label:SetText(labelText)
+	label:SetTextColor(ns.GetColorRGB("TITLE"))
+
+	local button = CreateFrame("Button", nil, parent)
+	button:SetSize(width, 18)
+	button:SetPoint("LEFT", label, "RIGHT", 6, 0)
+	button.label = label
+
+	button.text = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	button.text:SetPoint("LEFT", 3, 0)
+	button.text:SetPoint("RIGHT", -16, 0)
+	button.text:SetJustifyH("LEFT")
+	button.text:SetWordWrap(false)
+
+	local arrow = button:CreateTexture(nil, "OVERLAY")
+	arrow:SetTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
+	arrow:SetSize(14, 14)
+	arrow:SetPoint("RIGHT", 0, 0)
+
+	local highlight = button:CreateTexture(nil, "HIGHLIGHT")
+	highlight:SetAllPoints()
+	highlight:SetColorTexture(1, 1, 1, 0.10)
+
+	return button
+end
 function UI:_buildFrame()
 	if UI.frame then
 		return UI.frame
@@ -78,6 +120,8 @@ function UI:_buildFrame()
 		title:SetPoint("TOP", 0, -10)
 	end
 	title:SetText(L["ADDON_TITLE"])
+	-- Gold, as every title the add-on draws is: the template's own font string is white.
+	title:SetTextColor(ns.GetColorRGB("TITLE"))
 
 	-- BasicFrameTemplate supplies CloseButton, so only build one when it did not.
 	local close = f.CloseButton
@@ -89,28 +133,24 @@ function UI:_buildFrame()
 		UI:Close()
 	end)
 
-	-- Rarity cap. Default green, so a blue drop can't be mailed off by accident.
-	local rarityLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	rarityLabel:SetPoint("TOPLEFT", 12, -30)
-	rarityLabel:SetText(L["WINDOW_RARITY_LABEL"])
-
-	local rarity = CreateFrame("Button", nil, f)
-	rarity:SetPoint("LEFT", rarityLabel, "RIGHT", 4, 0)
-	rarity:SetSize(110, 18)
-	rarity.text = rarity:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	rarity.text:SetPoint("LEFT", 3, 0)
-	rarity.text:SetJustifyH("LEFT")
-	local rarityArrow = rarity:CreateTexture(nil, "OVERLAY")
-	rarityArrow:SetTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
-	rarityArrow:SetSize(14, 14)
-	rarityArrow:SetPoint("RIGHT", 0, 0)
-	local rarityHL = rarity:CreateTexture(nil, "HIGHLIGHT")
-	rarityHL:SetAllPoints()
-	rarityHL:SetColorTexture(1, 1, 1, 0.10)
+	--[[
+		The two giftability controls, the same pair the options panel carries and drawing the same
+		locale strings. Each value states what it means ("Rare & Lower", "Outgrown by 20+ Levels"),
+		so neither needs a caption and the window cannot word a setting differently to the panel.
+	]]
+	local rarity = buildDropdown(f, RARITY_WIDTH, L["WINDOW_GEAR_LABEL"])
+	rarity.label:SetPoint("TOPLEFT", 12, -30)
 	rarity:SetScript("OnClick", function(self)
 		UI:_openRarityPicker(self)
 	end)
 	f.rarityButton = rarity
+
+	local gap = buildDropdown(f, GAP_WIDTH, L["WINDOW_CONSUMABLES_LABEL"])
+	gap.label:SetPoint("LEFT", rarity, "RIGHT", 16, 0)
+	gap:SetScript("OnClick", function(self)
+		UI:_openGapPicker(self)
+	end)
+	f.gapButton = gap
 
 	local inset = CreateFrame("Frame", nil, f, INSET_TEMPLATE)
 	inset:SetPoint("TOPLEFT", 6, -52)
@@ -166,8 +206,18 @@ function UI:_buildFrame()
 	dist:SetSize(widest, 22)
 
 	UI.frame = f
-	UI:_syncRarityButton()
+	UI:_syncControls()
 	return f
+end
+
+--[[
+	Both top-bar buttons at once. The one entry point, so a caller that changes either setting
+	cannot refresh half the bar: Features/Core.lua's profile hook and the options panel's own
+	setters both come through here.
+]]
+function UI:_syncControls()
+	self:_syncRarityButton()
+	self:_syncGapButton()
 end
 
 function UI:_syncRarityButton()
@@ -178,7 +228,24 @@ function UI:_syncRarityButton()
 	self.frame.rarityButton.text:SetText(("%s%s|r"):format(ns.QualityColor(cap), ns.QualityName(cap)))
 end
 
-function UI:_openRarityPicker(anchor)
+--[[
+	Snapped for display the same way the panel's dropdown is, so a stored value between stops
+	shows the stop it reads as rather than blank. The stored number is left alone.
+]]
+function UI:_syncGapButton()
+	if not self.frame or not self.frame.gapButton then
+		return
+	end
+	local gap = ns.NearestConsumableGap(ns.db.profile.consumableLevelGap)
+	self.frame.gapButton.text:SetText(GetColor("TEXT") .. (ns.CONSUMABLE_GAP_VALUES[gap] or "") .. "|r")
+end
+
+--[[
+	The option lists are split from opening the pickers so Tests/Options-Values.lua can read them
+	without a frame, the same split Tests/Manual-Assignment.lua relies on for the recipient list.
+	Both draw the panel's own strings rather than wording anything a second time.
+]]
+function UI:_rarityPickerOptions()
 	local options = {}
 	for _, quality in ipairs({ 2, 3, 4 }) do
 		options[#options + 1] = {
@@ -186,13 +253,40 @@ function UI:_openRarityPicker(anchor)
 			quality = quality,
 		}
 	end
-	Picker:Open(anchor, options, function(opt)
+	return options
+end
+
+function UI:_gapPickerOptions()
+	local options = {}
+	for _, gap in ipairs(ns.CONSUMABLE_GAP_ORDER) do
+		options[#options + 1] = {
+			text = GetColor("TEXT") .. (ns.CONSUMABLE_GAP_VALUES[gap] or "") .. "|r",
+			gap = gap,
+		}
+	end
+	return options
+end
+
+function UI:_openRarityPicker(anchor)
+	Picker:Open(anchor, self:_rarityPickerOptions(), function(opt)
 		if not opt.quality then
 			return
 		end
 		ns.db.profile.maxRarity = opt.quality
-		UI:_syncRarityButton()
+		UI:_syncControls()
 		-- Re-read the bags against the new cap, reusing the /who pool we already have.
+		UI:Rescan()
+	end)
+end
+
+function UI:_openGapPicker(anchor)
+	Picker:Open(anchor, self:_gapPickerOptions(), function(opt)
+		-- Compared against nil, never truthiness: the All Consumables stop is a zero.
+		if opt.gap == nil then
+			return
+		end
+		ns.db.profile.consumableLevelGap = opt.gap
+		UI:_syncControls()
 		UI:Rescan()
 	end)
 end
@@ -253,6 +347,8 @@ local function getRow(i)
 	btn.text:SetPoint("LEFT", 3, 0)
 	btn.text:SetPoint("RIGHT", -14, 0)
 	btn.text:SetJustifyH("LEFT")
+	-- Ellipsized for the same reason itemText is: a wrapped name draws over the row below.
+	btn.text:SetWordWrap(false)
 
 	btn.arrow = btn:CreateTexture(nil, "OVERLAY")
 	btn.arrow:SetTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
@@ -614,10 +710,6 @@ end
 
 function UI:Pools()
 	return MatchList:Pools()
-end
-
-function UI:ClearPools()
-	MatchList:ClearPools()
 end
 
 function UI:_candidates(item)

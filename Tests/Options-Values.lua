@@ -76,3 +76,75 @@ test("the stored gap is what the scanner actually uses", function()
 
 	check(#loose >= #tight, "a smaller gap never offers fewer consumables")
 end)
+
+--[[
+	Zero is "All Consumables", not a gap of nothing. The two differ on exactly the items a player
+	has NOT outgrown: at a gap of zero the old test still demanded the player be at or above the
+	item's own level, so a low-level character could never pass on a stack of high-level potions
+	they had no use for. Picking the option off the dropdown has to lift the level rule outright.
+]]
+test("All Consumables offers a consumable the player is under the level for", function()
+	local ns = load()
+	local Stub = Harness.Stub
+
+	-- Major Healing Potion, useLevel 45, against a character twenty levels short of drinking it.
+	local potion
+	for _, row in ipairs(ns.Data.Potions) do
+		if row[3] == 45 then
+			potion = row
+			break
+		end
+	end
+	check(potion ~= nil, "there is a high-level potion to test with")
+
+	Stub.playerLevel = 25
+	Stub.SetBackpack({
+		Stub.Item({ id = potion[1], name = "A Potion", quality = 1, classID = 0, subclassID = 1, bindType = 0 }),
+	})
+
+	ns.db.profile.consumableLevelGap = 20
+	equal(#ns.Scanner:Scan(), 0, "held back at a gap of twenty")
+
+	ns.db.profile.consumableLevelGap = 0
+	equal(#ns.Scanner:Scan(), 1, "offered once the level rule is lifted")
+end)
+
+--[[
+	The mail window carries the same two controls the panel does and reads the same strings, so
+	one setting can never be worded two ways. Zero is the trap worth pinning on the gap list: it
+	is a real stop, and anything that treated it as an absent value would drop All Consumables.
+]]
+test("the window gap dropdown offers every stop, All Consumables included", function()
+	local ns = load()
+
+	local options = ns.UI:_gapPickerOptions()
+	equal(#options, #ns.CONSUMABLE_GAP_ORDER, "one entry per stop")
+
+	local byGap = {}
+	for _, option in ipairs(options) do
+		byGap[option.gap] = option.text
+	end
+	for _, gap in ipairs(ns.CONSUMABLE_GAP_ORDER) do
+		check(byGap[gap] ~= nil, gap .. " is on the list")
+		check(byGap[gap]:find(ns.CONSUMABLE_GAP_VALUES[gap], 1, true) ~= nil, gap .. " uses the panel's words")
+	end
+end)
+
+test("the window rarity dropdown uses the panel's quality names", function()
+	local ns = load()
+
+	local options = ns.UI:_rarityPickerOptions()
+	equal(#options, 3, "uncommon, rare and epic")
+	for _, option in ipairs(options) do
+		check(
+			option.text:find(ns.QualityName(option.quality), 1, true) ~= nil,
+			"quality " .. option.quality .. " uses the panel's words"
+		)
+	end
+end)
+
+test("All Consumables has its own label rather than a gap of zero", function()
+	local ns = load()
+	equal(ns.CONSUMABLE_GAP_VALUES[0], ns.L["OPTIONS_CONSUMABLE_GAP_ALL"], "zero reads as All Consumables")
+	check(ns.CONSUMABLE_GAP_VALUES[20]:find("20") ~= nil, "the others still name their number")
+end)

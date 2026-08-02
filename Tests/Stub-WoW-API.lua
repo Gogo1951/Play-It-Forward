@@ -297,6 +297,11 @@ function Stub.Install()
 	IsResting = function()
 		return Stub.resting
 	end
+	-- Combat is player state the way resting is: a case that wants the lockdown sets it.
+	Stub.inCombat = false
+	InCombatLockdown = function()
+		return Stub.inCombat
+	end
 	GetRealmName = function()
 		return "Test"
 	end
@@ -646,6 +651,73 @@ function Stub.Install()
 	}
 
 	--[[
+		The guild roster, the second recipient source. A case seeds Stub.guild with rows; absent
+		one the player is in no guild, which is what every case that never mentions a guild wants.
+
+		GetGuildRosterInfo's eleventh return is the class TOKEN and its fifth the localized name,
+		so a row carrying no class models the one gap the reader treats as unreadable.
+		GetGuildRosterLastOnline answers the way the client does: nothing at all for somebody
+		online, and four duration components otherwise, never a total.
+	]]
+	Stub.guild = nil
+	Stub.guildRosterRequests = 0
+	IsInGuild = function()
+		return Stub.guild ~= nil
+	end
+	GetNumGuildMembers = function()
+		return Stub.guild and #Stub.guild or 0
+	end
+	GetGuildRosterInfo = function(index)
+		local member = Stub.guild and Stub.guild[index]
+		if not member then
+			return nil
+		end
+		return member.name,
+			"Member",
+			1,
+			member.level,
+			member.class and member.class:lower():gsub("^%l", string.upper) or "Warrior",
+			member.zone or "Somewhere",
+			"",
+			"",
+			member.online or false,
+			0,
+			member.class
+	end
+	GetGuildRosterLastOnline = function(index)
+		local member = Stub.guild and Stub.guild[index]
+		if not member or member.online then
+			return nil
+		end
+		return member.years or 0, member.months or 0, member.daysAgo or 0, member.hours or 0
+	end
+	C_GuildInfo = {
+		GuildRoster = function()
+			Stub.guildRosterRequests = Stub.guildRosterRequests + 1
+		end,
+	}
+
+	-- The slash registry is just a table the client reads; a case types /pif by calling into it.
+	SlashCmdList = {}
+
+	--[[
+		The modern Settings panel, down to its one sharp edge: OpenToCategory reaches the
+		protected OpenSettingsPanel(), which the client blocks from add-on code in combat.
+		The stub raises the block as an error so a case that trips it fails the way the
+		game does -- ADDON_ACTION_BLOCKED in the player's face -- rather than recording
+		an open that the client would never have performed.
+	]]
+	Stub.settingsOpened = {}
+	Settings = {
+		OpenToCategory = function(categoryID)
+			if Stub.inCombat then
+				error("ADDON_ACTION_BLOCKED: OpenSettingsPanel()")
+			end
+			table.insert(Stub.settingsOpened, categoryID)
+		end,
+	}
+
+	--[[
 		AceLocale, reduced to what the add-on asks of it. GetLocale hands back a table
 		that errors on an unknown key rather than answering nil, so a status line
 		referring to a string nobody added fails in the test that renders it instead of
@@ -671,6 +743,14 @@ function Stub.Install()
 					})
 				end,
 			}
+		end
+		--[[
+			The config libraries, answered with catch-alls: registering tables and building
+			panels is Ace's business and no case asserts on it. Options/Options.lua only
+			needs its file-scope LibStub calls to land somewhere.
+		]]
+		if name == "AceConfig-3.0" or name == "AceConfigDialog-3.0" then
+			return newFrame()
 		end
 		error("no stub for LibStub library " .. tostring(name), 2)
 	end

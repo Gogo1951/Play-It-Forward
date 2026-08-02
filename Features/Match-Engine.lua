@@ -505,7 +505,7 @@ end
 	Everyone in pools (classToken -> players) who can use this item and sits in its level band, in
 	the order it would be handed out:
 
-	  fit bucket -> level proximity -> armor/weapon group -> class fit -> random
+	  fit bucket -> level proximity -> armor/weapon group -> class fit -> guild -> random
 
 	Bucket leads, so a class that genuinely wants the item beats one that barely does however
 	close to equipping it they are. Level comes next, ahead of group, so a druid one level off

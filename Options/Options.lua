@@ -1,4 +1,5 @@
 local _, ns = ...
+local L = ns.L
 
 local D = ns.DiagnosticsStrings
 
@@ -56,6 +57,16 @@ function ns:OptionsPanelRoute()
 end
 
 function ns:OpenOptionsPanel()
+	--[[
+		Combat first: the Settings panel is protected there, so the modern route's
+		OpenToCategory would be stopped at OpenSettingsPanel() with ADDON_ACTION_BLOCKED
+		shown to the player. One gate in front of every route rather than a check on that
+		one, so /pif in a fight answers the same way on every flavor.
+	]]
+	if InCombatLockdown() then
+		ns:PrintMessage(L["CHAT_OPTIONS_IN_COMBAT"])
+		return
+	end
 	local route = ns:OptionsPanelRoute()
 	if route == "settings" then
 		Settings.OpenToCategory(ns.GeneralCategoryID)

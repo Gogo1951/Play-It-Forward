@@ -1,18 +1,20 @@
 # Play It Forward
 
-Mail the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
+Send the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
+
+<img width="500" src="https://github.com/user-attachments/assets/1bb7b389-05bb-4e06-ad2f-b3b828078e85" />
 
 ## Features
 
 🎁 **Makes Someone's Day** // Azeroth can be a harsh place. An unexpected parcel from a stranger costs you next to nothing and is the kind of small kindness that keeps a server worth playing on.
 
-🎯 **Finds a Real Recipient** // Reads every stat on an item, works out which class it is actually for, then goes looking for someone of that class a level or two below the requirement — out in the world, and in your guild among anyone who has been on recently.
+📬 **Opens Itself at the Mailbox** // Walk up to any mailbox and the list is already there, filled with the gear and the consumables you have outgrown. Tick the rows you like, press Distribute, and get on with your day.
 
-🎒 **Keeps Your Bags Clean** // Outgrown greens and the level 35 water you stopped drinking twenty levels ago leave your bags for someone who still needs them, on a threshold you set.
+🎯 **Finds a Real Recipient** // Reads every stat on an item, works out which class it is actually for, then goes looking for someone of that class a level or two below the requirement — out in the world where people are questing, and in your guild among anyone who has been on in the last few days.
 
 💛 **Generosity Tracking** // A lifetime count of everything you have given away — gifts, items, item levels, gold — kept on your own tooltip, and on the tooltips of the other givers around you.
 
-🦺 **Safety First** // Only ever offers unbound gear you could trade anyway, never soulbound or quest items, and nothing above your rarity cap. Every row can be overridden or kept.
+🦺 **Safety First** // Only ever offers unbound gear you could trade anyway, never soulbound or quest items, and nothing above the rarity cap you set. Every row can be overridden or kept.
 
 ## Setup
 
@@ -27,7 +29,7 @@ Mail the gear and consumables you've outgrown to guildies or strangers who'll ap
 
 ### The window
 
-Open a mailbox and the list appears, sorted into four groups so the rows worth acting on sit at the top. **Give Away Up To** at the top left sets the ceiling — nothing rarer than that is ever listed.
+Open a mailbox and the list appears, sorted into four groups so the rows worth acting on sit at the top. Two dropdowns at the top left decide what is offered at all: **Gear** sets the rarity ceiling, so nothing better than that is ever listed, and **Consumables** sets how far past a food or potion you have to be before it counts as spare.
 
 | Section | What it means |
 |---|---|
@@ -36,11 +38,9 @@ Open a mailbox and the list appears, sorted into four groups so the rows worth a
 | Stats Couldn't Be Read | The add-on could not read the item, so it will not guess. Look at these yourself. |
 | Kept | Staying with you: nobody to send it to, or you chose to keep it. |
 
-<img width="500" src="https://github.com/user-attachments/assets/1bb7b389-05bb-4e06-ad2f-b3b828078e85" />
-
 ### Where the names come from
 
-Press **Find Recipients** and the add-on goes looking out in the world, in the zones people are actually questing in rather than whoever is parked in a boosting dungeon. Your guild comes along too — anyone who has been on recently is already in the pool when the window opens.
+Press **Find Recipients** and the add-on goes looking out in the world, in the zones people are actually questing in rather than whoever is parked in a boosting dungeon. Your guild comes along too — anyone who has logged in over the last few days is already in the pool when the window opens.
 
 ### Who gets what
 
@@ -48,7 +48,7 @@ Every item is scored against what each class actually builds on. A plain Stamina
 
 ### Picking someone yourself
 
-Every row has a dropdown. Click it to see everyone in range with their level and class, pick a different person, or choose Keep Item to hold onto it. Your pick always wins: names that already hold something, or that refused mail earlier this session, carry a short note beside them, and choosing one anyway simply takes the name for this row — the row that held them goes back to matching automatically. At the bottom, **Find Recipients for This Item** runs a targeted search for just that item when the names on offer are not good enough.
+Every row has a dropdown. Click it to see everyone in range with their level and class, pick a different person, or choose Keep Item to hold onto it. Your pick always wins: names that already hold something this run, that have had a gift from you recently, or that refused mail earlier this session carry a short note beside them, and choosing one anyway simply takes the name for this row — the row that held them goes back to matching automatically. At the bottom, **Find Recipients for This Item** runs a targeted search for just that item when the names on offer are not good enough.
 
 ### What lands in their mailbox
 
@@ -59,16 +59,20 @@ Every parcel goes out with the same note, so nobody has to wonder what the catch
 > Just a little something to help you level. (=
 >
 > No strings attached. Use it if you can, or disenchant or vendor it. Don't want it? Just hit Return and it'll find a new home.
+>
+> This came through Play It Forward, an add-on that automatically passes unwanted gear and leftover consumables to players who can still use them. Find it on CurseForge and Wago.
+>
+> Happy adventuring!
 
 ### What you have given away
 
-Every parcel you send adds to a running total kept for your whole account: gifts sent, items, item levels, and what it was all worth at a vendor. It sits in the options panel under **Given Away**, and on your own tooltip.
+Every parcel you send adds to a running total kept for your whole account: gifts sent, items, item levels, and what it was all worth at a vendor. It sits in the options panel under **Generosity**, and on your own tooltip.
 
 In a city or an inn, you can see what the other givers around you have handed out, and they can see yours. Somebody has to be standing near you for it to work, so a friend across the world never shows up, and none of it runs outside a rest area — nothing follows you into a raid. One toggle stops your own totals going out if you would rather keep them to yourself; you still see everyone else's.
 
-### Slash command
+### Slash Commands
 
-`/pif` opens the options panel.
+`/pif` opens the Options Interface.
 
 ## Testing & Localization Status
 
@@ -95,6 +99,4 @@ Please reach out if you would like to be involved!
 
 🟢 Pairs With // Gogo1951's [Magic Eraser](https://www.curseforge.com/wow/addons/magic-eraser)
 
-🟢 Pairs With // Gogo1951's [Open Sesame](https://www.curseforge.com/wow/addons/open-sesame)
-
-🟡 Some Overlap // TravisSpomer's [Pawn](https://www.curseforge.com/wow/addons/pawn)
+🟢 Pairs With // Gogo1951's [Thanks for the Buff (TFTB)](https://www.curseforge.com/wow/addons/thanks-for-the-buff-revisited)
