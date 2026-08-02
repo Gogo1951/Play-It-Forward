@@ -21,7 +21,7 @@ Send the gear and consumables you've outgrown to guildies or strangers who'll ap
 3. Walk up to a mailbox. If your bags hold something worth passing on, the window opens by itself.
 4. Press **Find Recipients**. Press it again if the first look comes up empty.
 5. Tick the rows you like, press **Distribute**, and click Accept on each confirmation.
-6. *"Be excellent to each other."*
+6. *"Be excellent to each other. And... PARTY ON, DUDES!"*
 
 ## How It Works
 
