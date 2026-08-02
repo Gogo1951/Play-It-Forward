@@ -9,9 +9,9 @@ local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
 --------------------------------------------------------------------------------
 
 --[[
-	One runtime toggle gates the whole panel: with it off, only the warning text and the
-	toggle are visible. ns.OptionsHeader and ns.OptionsSpacer take no hidden argument,
-	which is why the gated sections inline their header widgets.
+	One runtime toggle gates the whole panel: with it off, only the warning text and the toggle
+	are visible. Every gated section hides on that one condition, so the builders below bake it
+	in rather than passing it to ns.OptionsHeader on each of them.
 ]]
 
 local function DiagnosticsOn()

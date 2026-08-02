@@ -5,13 +5,13 @@ local _, ns = ...
 --------------------------------------------------------------------------------
 
 --[[
-	Header and Spacer take two arguments only: to hide a section built from them, inline the
-	widgets with their own hidden functions rather than adding a third argument here.
+	Header takes an optional third argument to collapse a gated section. Spacer does not, so a
+	gated spacer is inlined as its own description widget carrying a hidden function.
 ]]
 local GetColor = ns.GetColor
 
-function ns.OptionsHeader(text, order)
-	return { type = "header", name = GetColor("TITLE") .. text .. "|r", order = order }
+function ns.OptionsHeader(text, order, hidden)
+	return { type = "header", name = GetColor("TITLE") .. text .. "|r", order = order, hidden = hidden }
 end
 
 function ns.OptionsDesc(text, order)
@@ -22,13 +22,18 @@ function ns.OptionsSpacer(order)
 	return { type = "description", name = " ", order = order }
 end
 
-function ns.OptionsSubHeader(text, order, hidden)
+--[[
+	The left half of a label-beside-control row. The control that follows carries name = "" and
+	the remaining width, ordered one past this: a caption left on the control puts the label back
+	above the widget and breaks the row in two.
+]]
+function ns.OptionsRowLabel(text, order, width)
 	return {
 		type = "description",
-		name = "\n" .. GetColor("TITLE") .. text .. "|r",
+		name = text,
 		fontSize = "medium",
+		width = width or ns.OPTIONS_LABEL_WIDTH,
 		order = order,
-		hidden = hidden,
 	}
 end
 
@@ -36,10 +41,15 @@ end
 -- Consumable Level Gap
 --------------------------------------------------------------------------------
 
--- The stops are data, in Data/Data.lua. "20 levels", because a bare number says nothing.
+--[[
+	The stops are data, in Data/Data.lua; the words are here. Zero is the "All Consumables" stop
+	and lifts the level rule outright (see Features/Scan-Bags.lua), so it reads as itself rather
+	than as a gap of nothing.
+]]
 ns.CONSUMABLE_GAP_VALUES = {}
 for _, gap in ipairs(ns.CONSUMABLE_GAP_ORDER) do
-	ns.CONSUMABLE_GAP_VALUES[gap] = ns.L["OPTIONS_CONSUMABLE_GAP_VALUE"]:format(gap)
+	ns.CONSUMABLE_GAP_VALUES[gap] = (gap == 0) and ns.L["OPTIONS_CONSUMABLE_GAP_ALL"]
+		or ns.L["OPTIONS_CONSUMABLE_GAP_VALUE"]:format(gap)
 end
 
 --[[

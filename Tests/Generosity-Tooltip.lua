@@ -38,16 +38,19 @@ end
 
 --------------------------------------------------------------------------------
 
-test("a hovered peer with cached totals gets a Given Away block", function()
+test("a hovered peer with cached totals gets a Generosity block", function()
 	local ns = load()
 	ns.fire("CHAT_MSG_ADDON", ns.ADDON_MESSAGE_PREFIX, "1|S|7|120|450|9988", "YELL", "Robin-Grobbulus")
 
 	local handler, rows = rig("mouseover", "Robin", "Grobbulus")
 	handler(GameTooltip)
 
-	equal(#rows, 5, "header plus four rows")
-	check(rows[1].line ~= nil and rows[1].line:find("Given Away") ~= nil, "the header names the block")
-	check(rows[2].right:find("7") ~= nil, "gifts value on the first row")
+	equal(#rows, 6, "a blank line, the header, then four rows")
+	-- The block sits under whatever the client and other add-ons wrote above it, never against it.
+	equal(rows[1].line, " ", "a blank line opens the block")
+	check(rows[2].line ~= nil and rows[2].line:find("Generosity") ~= nil, "the header names the block")
+	check(rows[3].left ~= nil and rows[3].left:find("^ ") ~= nil, "rows are indented under the header")
+	check(rows[3].right:find("7") ~= nil, "gifts value on the first row")
 end)
 
 test("a player we have not heard from adds nothing and fires one ping", function()
@@ -79,7 +82,7 @@ test("your own tooltip shows your live tally, block always present", function()
 	local handler, rows = rig("player", "Tester", "Test")
 	handler(GameTooltip)
 
-	equal(#rows, 5, "own block present even at all zeros")
+	equal(#rows, 6, "own block present even at all zeros")
 end)
 
 --[[

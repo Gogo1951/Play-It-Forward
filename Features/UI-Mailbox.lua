@@ -51,7 +51,7 @@ function UI:FindRecipients()
 
 	--[[
 		Pools are deliberately not wiped: one query returns at most ~49 people, so pressing again
-		adds to the roster. Only Clear History and Roster empties it.
+		adds to the roster. Nothing empties it inside a session; it dies with the session.
 	]]
 	local bands = MatchList:RescanBags()
 	if #bands == 0 then

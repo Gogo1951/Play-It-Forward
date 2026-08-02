@@ -57,27 +57,12 @@ if RegisterPrefix then
 end
 
 --[[
-	Peers we have heard from, keyed "Name-Realm": { gifts, items, itemLevels, value, t }, t from
-	GetTime() and what PEER_MAX_AGE is measured against. The tooltip reads this; the diagnostics
-	report prints the age.
+	Peers we have heard from, keyed by ns.QualifyPlayerName: { gifts, items, itemLevels, value, t },
+	t from GetTime() and what PEER_MAX_AGE is measured against. CHAT_MSG_ADDON's sender carries a
+	realm from a connected realm and none from your own, which is exactly the gap that helper
+	closes. The tooltip reads this; the diagnostics report prints the age.
 ]]
 local peers = {}
-
---[[
-	Normalize a sender to "Name-Realm". CHAT_MSG_ADDON's sender carries a realm from a connected
-	realm and none from your own, so append our realm when it is missing. Never filter or branch on
-	the suffix: Classic realms are all connected, so every name in reach is reachable.
-]]
-local function normalize(nameRealm)
-	if not nameRealm or nameRealm == "" then
-		return nil
-	end
-	if nameRealm:find("-", 1, true) then
-		return nameRealm
-	end
-	local realm = (GetNormalizedRealmName and GetNormalizedRealmName()) or (GetRealmName and GetRealmName()) or ""
-	return nameRealm .. "-" .. realm
-end
 
 --[[
 	A peer's cached totals, or nil once the entry is past PEER_MAX_AGE -- an expired peer is reported
@@ -85,7 +70,7 @@ end
 	The key is normalized the same way the handler stores it. Reads only; the sweep is on the write.
 ]]
 function Generosity:Peer(nameRealm)
-	local key = normalize(nameRealm)
+	local key = ns.QualifyPlayerName(nameRealm)
 	local peer = key and peers[key]
 	if not peer or GetTime() - (peer.t or 0) > PEER_MAX_AGE then
 		return nil
@@ -191,7 +176,7 @@ ns.on("CHAT_MSG_ADDON", function(prefix, message, _, sender)
 	end
 	local kind = parts[2]
 	if kind == "S" then
-		local key = normalize(sender)
+		local key = ns.QualifyPlayerName(sender)
 		if key then
 			--[[
 				Swept here because this is the only place the table grows, so nothing needs a timer.

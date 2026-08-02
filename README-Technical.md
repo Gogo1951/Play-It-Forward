@@ -9,11 +9,13 @@ Play-It-Forward/
 ├── .github/
 │   └── workflows/
 │       └── package.yml              CurseForge release + library vendoring.
+├── .gitattributes                   LF normalization; identical in every add-on.
 ├── .pkgmeta                         Externals and ignore list.
 ├── LICENSE                          MIT.
 ├── Play-It-Forward.toc              Single TOC; dual interface (Classic Era, TBC Anniversary).
 ├── README.md                        Player-facing documentation.
 ├── README-Technical.md              This document.
+├── README-Testing.md                Manual QA script.
 ├── Data/
 │   ├── Data.lua                     Locale init, ns.Data, flavor flags, palette, links, options registry.
 │   ├── Default-Settings.lua         ns.DATABASE_DEFAULTS — the AceDB defaults table (profile + global.stats).
@@ -27,7 +29,7 @@ Play-It-Forward/
 │   └── Recipients-Zones.lua         Levelling zones per flavor and faction, for /who filtering.
 ├── Features/
 │   ├── Core.lua                     Identity, AceDB lifecycle, central event dispatcher.
-│   ├── Utilities.lua                Container API shims, frame templates, color accessors, number formatting, ns.AtMailbox / ns.AtRest.
+│   ├── Utilities.lua                Container API shims, frame templates, color accessors, number formatting, ns.QualifyPlayerName, ns.AtMailbox / ns.AtRest.
 │   ├── Announcements.lua            ns:PrintMessage — the only output path, player-only.
 │   ├── Scan-Tooltip.lua             Reads stats off a rendered tooltip, which is where suffix stats live.
 │   ├── Scan-Bags.lua                Bag slot -> giftable item record, or nil plus a reject code.
@@ -38,12 +40,12 @@ Play-It-Forward/
 │   ├── Recipients-Guild.lua         Second recipient source; activity window, own-alt and summon-alt filters.
 │   ├── Recipients-Fairness.lua      Fairness history and this session's unreachable names.
 │   ├── Mail-Sender.lua              Serialized, event-driven mailer.
-│   ├── UI-Picker.lua                Scrolling dropdown widget, shared by the rarity and recipient controls.
-│   ├── UI-Window.lua                Frame, rows, rendering, and the dropdown's manual assignment.
+│   ├── UI-Picker.lua                Scrolling dropdown widget, shared by the rarity, consumable-gap and recipient controls.
+│   ├── UI-Window.lua                Frame, top-bar dropdowns, rows, rendering, and manual assignment.
 │   ├── UI-Mailbox.lua               Search stepper, distribution glue, open/close behavior at a mailbox.
 │   ├── Generosity.lua               Account-wide giving tally; RecordSend on each mailing, into global.stats.
 │   ├── Generosity-Broadcast.lua     Shares the tally to nearby players over YELL addon messages; peers cache.
-│   ├── Generosity-Tooltip.lua       Renders a player's Given Away totals at the bottom of their unit tooltip.
+│   ├── Generosity-Tooltip.lua       Renders a player's Generosity totals at the bottom of their unit tooltip.
 │   └── Diagnostics.lua              Report builders, manifests, event log, taint log.
 ├── Includes/
 │   ├── Images/
@@ -54,15 +56,17 @@ Play-It-Forward/
 │   └── enUS.lua                     Source of truth; the only locale file currently shipped.
 ├── Options/
 │   ├── Options-Utilities.lua        Shared ns.Options* widget constructors, consumable-gap labels.
-│   ├── Options-General.lua          ns.BuildGeneralOptions — root panel.
+│   ├── Options-General.lua          ns.BuildGeneralOptions — root panel; label-beside-control rows.
 │   ├── Options-Profiles.lua         ns.BuildProfilesOptions — stock AceDBOptions-3.0 table, unmodified.
 │   ├── Options-Diagnostics.lua      ns.BuildDiagnosticsOptions — Diagnostic Tools panel.
 │   └── Options.lua                  Panel registration and the /pif slash command.
-├── Tests/                           Headless suite; excluded from the packaged zip.
-└── Suffix.md                        Random-enchantment reference; excluded from the zip.
+├── Tests/                           Headless suite; 26 files, run through Tests/Run.lua.
+└── Suffix.md                        Random-enchantment reference.
 ```
 
-There is no minimap button, so `Features/Minimap-Button.lua`, LibDataBroker-1.1 and LibDBIcon-1.0 are all deliberately absent. `Suffix.md` and `Tests/` are development-only and are listed in `.pkgmeta`'s ignore block.
+There is no minimap button, so `Features/Minimap-Button.lua`, LibDataBroker-1.1 and LibDBIcon-1.0 are all deliberately absent.
+
+`Suffix.md` and `Tests/` are development-only but **do ship in the player zip**: `.pkgmeta`'s ignore list covers repo plumbing (`.git`, `.github`, `.pkgmeta`, `LICENSE` and the like) and nothing else, because the factory deliberately declined a rule ignoring dev-only files by path. Don't "fix" that by adding them.
 
 ## Architecture
 
@@ -83,7 +87,7 @@ There is no minimap button, so `Features/Minimap-Button.lua`, LibDataBroker-1.1 
 | `MAIL_SUCCESS` / `MAIL_FAILED` | `Mail-Sender.lua` | Advances the send queue. |
 | `UI_ERROR_MESSAGE` | `Mail-Sender.lua` | Catches a refusal the server reports without either result event. |
 | `GUILD_ROSTER_UPDATE` | `Recipients-Guild.lua` | Delivers a roster the add-on asked for. Ignored when no request is outstanding. |
-| `CHAT_MSG_ADDON` | `Generosity-Broadcast.lua` | A peer's Given Away broadcast, or a ping to answer. Own prefix only. |
+| `CHAT_MSG_ADDON` | `Generosity-Broadcast.lua` | A peer's Generosity broadcast, or a ping to answer. Own prefix only. |
 | `PLAYER_ENTERING_WORLD` | `Generosity-Broadcast.lua` | Broadcasts presence; the broadcast throttle absorbs the refire on every loading screen. |
 | `PLAYER_UPDATE_RESTING` | `Generosity-Broadcast.lua` | The town gate opening. Walking into a city fires no loading screen, so this is what announces presence. |
 
@@ -112,7 +116,7 @@ Four phases, each in its own file.
 
 Stats are read twice and merged by taking the **max** per stat, never the sum: `GetItemStats` resolves the base item and ignores random suffixes, while the tooltip renders the item as the player sees it. Both report the same value on a fixed-stat item, so summing would double it. The merge is lossy, so `record.statRead` keeps each source's own answer for the diagnostics report.
 
-A second cache covers candidate ranking. `MatchList:Candidates(item)` stores the ranked recipient list on the item, validated against a `poolsGeneration` counter. Ranking walks every admitted class against every pooled player and sorts the result, and the same answer is asked for repeatedly — once per allocation pass, once per dropdown open, and once per mouse-over of a recipient button, which is the one with no ceiling. The generation bumps in `AddResults` (only when somebody new actually entered a pool, so a query returning nothing already known costs nothing) and in `ClearPools`; `rescanBags` needs no bump because it replaces every item table outright. Ranking reads only the pools and the item's own verdict and band — never `item.recipient` — so an assignment cannot stale a cached list. **The list is handed out by reference**: a caller that sorted or removed in place would poison it for everybody after.
+A second cache covers candidate ranking. `MatchList:Candidates(item)` stores the ranked recipient list on the item, validated against a `poolsGeneration` counter. Ranking walks every admitted class against every pooled player and sorts the result, and the same answer is asked for repeatedly — once per allocation pass, once per dropdown open, and once per mouse-over of a recipient button, which is the one with no ceiling. The generation bumps in exactly one place, `AddResults`, and only when somebody new actually entered a pool, so a query returning nothing already known costs nothing; `rescanBags` needs no bump because it replaces every item table outright. Ranking reads only the pools and the item's own verdict and band — never `item.recipient` — so an assignment cannot stale a cached list. **The list is handed out by reference**: a caller that sorted or removed in place would poison it for everybody after.
 
 Derived per-item data is cached under underscore-prefixed fields (`_weaponKey`, `_candidates`) to keep it out of the record's public shape.
 
@@ -202,6 +206,8 @@ Three throttles keep a crowd from becoming a storm, all against `GetTime()`:
 - **`PING_ANSWER_INTERVAL`** (30s) caps how often we answer a received ping, regardless of how many arrive.
 - **`HOVER_PING_INTERVAL`** (10s, tooltip-side) caps how often hovering unknown players fires a presence ping.
 
+**The tooltip block's shape is constrained, not styled to taste.** It opens with a blank line so it never reads as another line of whatever sits above it, then the branded header, then four indented rows. `ns:BuildBrandedLine` (`Features/Announcements.lua`) builds that header — the same blue name, gray `//` and white body a chat print carries — so the two surfaces cannot brand the add-on differently, and the locale string is the body word alone. **Values must be white**: the money row comes from `GetCoinTextureString`, which carries the client's own markup and ignores a color prefix, so coloring the other three anything else leaves that row visibly out of step. Labels are `HELP` silver rather than `TITLE` gold because gold field titles are the options panel's rule, where a caption sits beside a control the player acts on, and nothing in a readout is a control.
+
 **Accepted latency:** in town, hovering a player you have never heard from shows nothing on the first pass and fires a ping; nearby clients answer, and the block is present on the next hover. A peer who has gone quiet for longer than `PEER_MAX_AGE` drops back to exactly that first-hover state, which is the intended reading — half an hour of silence is no longer evidence they are nearby. Your own tooltip shows your live tally, even at all zeros. Turning sharing off stops your broadcasts but not your view of others — you still see theirs. Outside a rest area none of this runs at all, which is the intended answer to "does this fire during a raid".
 
 ## /who Search Planning
@@ -250,9 +256,13 @@ Four filters drop members, each counted separately so "the guild added nobody" a
 
 There is deliberately **no level floor here**. The low levels are turned away for every source at once by `ns.Data.MIN_RECIPIENT_LEVEL` in `Features/Match-List.lua`; a second copy of that rule living in this file is how the guild floor and the consumable band drifted into each other the first time.
 
-Own-character detection reads `ns.db.sv.profileKeys` — AceDB's record of every character that has loaded the add-on, keyed `"Character - Realm"`, rebuilt into the roster's `"Character-Realm"` shape purely as a comparison key. **That table lives on `db.sv`, not on `db`.** AceDB's metatable resolves only scope names, so `ns.db.profileKeys` reads `nil` and the whole check silently passes everyone through. An alt that has never run the add-on is not in there and is not caught, which is the honest limit of the approach.
+Own-character detection reads `ns.db.sv.profileKeys` — AceDB's record of every character that has loaded the add-on, keyed `"Character - Realm"`, rebuilt into a `"Character-Realm"` comparison key. **That table lives on `db.sv`, not on `db`.** AceDB's metatable resolves only scope names, so `ns.db.profileKeys` reads `nil` and the whole check silently passes everyone through. An alt that has never run the add-on is not in there and is not caught, which is the honest limit of the approach.
+
+**Both sides of that comparison go through `ns.QualifyPlayerName`.** The roster spells a member on your own realm bare and suffixes only a character from another realm in the cluster, so keys built as `"Character-Realm"` matched no bare row and your own alts were handed your own gear. A bare name means "on my realm", which is the client's own convention, so the roster row is qualified before the lookup rather than the keys being stripped — stripping would collide two characters of one name on different realms in the cluster.
 
 Names enter the pool exactly as the roster gave them, suffix and all. A name is an address: `SendMail` takes the full form, and rewriting it means mailing to an address the client never gave us.
+
+**Identity is not the address.** `/who` answers with a bare name for somebody on your own realm where the roster qualifies the same character, so the two sources hand back different strings for one person. `MatchList:AddResults` therefore dedupes on `ns.QualifyPlayerName` (`Features/Utilities.lua`) rather than the raw name, while the pool entry keeps whichever spelling arrived first — the one an API actually produced. Pooling one person twice means mailing them twice, since `assignedTo`, the fairness cooldown and Distribute's own guard all key on that entry's name. A later sighting still contributes its `guild` flag to the entry already there.
 
 ## Mailing
 
@@ -278,6 +288,18 @@ Rows are sorted into four sections — matched, pending match, unreadable, kept 
 
 **Never hook `MailFrame`'s `OnHide` to close the window.** It breaks twice over: mail-replacement add-ons hide `MailFrame` and show their own, killing the window the instant it opens, and `SendWho` raises the Who panel, which the UIPanel system swaps in over `MailFrame`, so pressing Find Recipients would close the window mid-query. Track the mailbox itself through `ns.AtMailbox()` instead.
 
+## The Options Panel Layout
+
+AceConfig's flow layout is the source of every layout bug this panel has had, and two rules explain all of them.
+
+**A row is a label cell plus a real control, and it needs a spacer behind it.** `ns.OptionsRowLabel` (a `description` at `ROW_LABEL_WIDTH`, 0.6) followed by a control at `ROW_VALUE_WIDTH` (2.0) fills exactly `ns.OPTIONS_ROW_WIDTH`, and a full-width spacer is what ends the row. Both builders in `Options/Options-General.lua` — `addFeedbackLinks` and `addGenerosityStats` — emit that spacer between pairs and not after the last one, which is where the gap before the next section would otherwise double.
+
+**Two `description` widgets will not share a row.** Written without the spacer, four label/value pairs pack into the flow until it fills and the rows interleave into a jumble; GogoLoot never pairs two descriptions for this reason, always a description against an input or a select. The Generosity totals are text on both sides, so they depend entirely on the spacer to break each row.
+
+**A toggle can be its own caption.** The two What to Give Away rows carry no label cell: the toggle sits at `ns.OPTIONS_LABEL_WIDTH` with its select beside it at `ns.OPTIONS_CONTROL_WIDTH`, and each select's *values* are self-describing ("Rare & Lower", "Outgrown by 20+ Levels") so nothing needs a caption. Those selects are **disabled, never hidden**, when their toggle is off — a hidden select leaves a gap the next toggle flows up into, pairing two toggles on one row.
+
+The mail window's top bar carries the same two settings, built from one `buildDropdown` constructor in `Features/UI-Window.lua` so the pair cannot drift apart. It captions them ("Gear", "Consumables") because it has no toggles to borrow context from. Both surfaces read the same locale strings, and `UI:_syncControls` is the single refresh entry point — `Features/Core.lua`'s profile hook and the panel's own setters both call it, so a settings change can never refresh half the bar. `UI:_rarityPickerOptions` and `UI:_gapPickerOptions` are split from opening the pickers so `Tests/Options-Values.lua` can read the lists without a frame, and the gap picker compares `opt.gap == nil` rather than truthiness because **the All Consumables stop is a zero**.
+
 ## Diagnostic Tools
 
 `Features/Diagnostics.lua` plus `Options/Options-Diagnostics.lua` provide a gated panel at **Options > AddOns > Play It Forward > Diagnostic Tools**: environment probing and state capture for bug reports, not unit tests. State lives in `ns.diagnostics` (`{ enabled, logging, log }`), a plain namespace table that is never a SavedVariable, so it defaults off and resets every session. Reports build only on a button press.
@@ -292,7 +314,7 @@ The framework — event log, event registration, API endpoints, display context,
 - **Mail Window** — `ForceShow`: drops the saved position, re-centers, re-reads the bags, and reports what it found, which separates an off-screen window from an empty one.
 - **Given Away Sharing** — `BuildGenerosityReport`: whether sharing is on, whether the player is resting, whether the message prefix registered, this account's four totals, and every nearby player heard from with the age of each entry. It answers "why don't I see anyone" — usually the resting line, since sharing is town-only, and otherwise because it reaches only players near you.
 
-The panel writes nothing but the `taintLog` CVar. **Clear History and Roster** lives on the General panel (maintainer ruling, 2026-07-23) — a player wanting to re-gift somebody has no reason to be behind a developer toggle, and it keeps the diagnostics panel to its read-only contract.
+The panel writes nothing but the `taintLog` CVar, which keeps it to its read-only contract.
 
 `ns.DIAGNOSTIC_EVENT_EXCLUDE` holds `BAG_UPDATE`, `GET_ITEM_INFO_RECEIVED` and `CHAT_MSG_ADDON`. All three are registered and all three are firehoses — `CHAT_MSG_ADDON` especially, in cities and raids full of add-on chatter — and any of them would bury the mailbox and `/who` events past the 500-entry cap.
 
@@ -300,20 +322,24 @@ The panel writes nothing but the `taintLog` CVar. **Clear History and Roster** l
 
 ## Saved Variables
 
-One saved-variable table, `PlayItForwardDB`, managed by AceDB-3.0 and created in the name-guarded `ADDON_LOADED` handler with `LibStub("AceDB-3.0"):New("PlayItForwardDB", ns.DATABASE_DEFAULTS, true)`. Settings live under `profile`; the account-wide giving tally lives under `global` (see below). AceDB seeds both scopes from `ns.DATABASE_DEFAULTS` the same way, so neither needs init code — see *The defaults model* below for what "seeds" actually means, because it is not what the usual shorthand says.
+One saved-variable table, `PlayItForwardDB`, managed by AceDB-3.0 and created in the name-guarded `ADDON_LOADED` handler with `LibStub("AceDB-3.0"):New("PlayItForwardDB", ns.DATABASE_DEFAULTS, true)`.
+
+**The model is Simple** (Style Guide → SAVED VARIABLES → The Two Models): that third argument `true` is what puts every character on the shared `"Default"` profile, and it is the entire mechanical difference between the two models. **Reset Profile therefore wipes every setting back to install defaults** — but not the giving tally, which is the one thing held in `global` precisely so it survives (see below). That is the fact to know before adding a setting: a new user setting goes in `profile`, and only account-lifetime state earns `global`.
+
+AceDB seeds both scopes from `ns.DATABASE_DEFAULTS` the same way, so neither needs init code — see *The defaults model* below for what "seeds" actually means, because it is not what the usual shorthand says.
 
 | `profile` field | Holds |
 |---|---|
 | `showWelcome` | Print the login message. |
-| `shareStats` | Broadcast this account's Given Away totals to nearby players. Off stops your own sends, never your view of theirs. |
+| `shareStats` | Broadcast this account's Generosity totals to nearby players. Off stops your own sends, never your view of theirs. |
 | `maxRarity` | Rarity cap; nothing above it is ever listed. Defaults to Uncommon. |
 | `includeGear` | Offer bind-on-equip weapons and armor. |
 | `includeConsumables` | Offer outgrown food, drink and potions. |
-| `consumableLevelGap` | Levels past a consumable before it counts as spare. Defaults to 20, and must stay one of `ns.CONSUMABLE_GAP_ORDER` or the dropdown opens on a value it cannot show. |
+| `consumableLevelGap` | Levels past a consumable before it counts as spare, as "at least this many". Defaults to 20, and must stay one of `ns.CONSUMABLE_GAP_ORDER` or the dropdown opens on a value it cannot show. **Zero is a sentinel, not a gap**: it is the "All Consumables" stop and lifts the level test outright, so items the player is under the level for are still offered. |
 | `windowPos` | Dragged window position; its `point` field is what says the player moved it. |
 | `recipients` | Fairness history, `name -> { level }`. |
 
-**`recipients` is session-scoped.** It is wiped at every login, in the same `ADDON_LOADED` handler that creates the database, so the cooldown only ever spreads gifts out within one session. It lives in the profile rather than in a runtime table so the stock **Reset Profile** and the General panel's **Clear History and Roster** button both reach it.
+**`recipients` is session-scoped.** It is wiped at every login, in the same `ADDON_LOADED` handler that creates the database, so the cooldown only ever spreads gifts out within one session. It lives in the profile rather than in a runtime table so the stock **Reset Profile** reaches it. There is deliberately no Recipient History control on the General panel: every login already makes everybody eligible again, so a button to do it by hand cleared nothing a reload would not.
 
 **`global.stats` is account-wide and outlives Reset Profile.** It is the giving tally — a lifetime record that has to span every character on the account and survive a profile wipe, which is exactly why it sits in `global` rather than `profile`. Four integer counters, `value` in copper, all written only by `ns.Generosity:RecordSend`.
 
@@ -376,7 +402,7 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 ## Adding a New Options Control
 
 1. Add its key and default to `ns.DATABASE_DEFAULTS.profile` in `Data/Default-Settings.lua`.
-2. Add the widget to `ns.BuildGeneralOptions` in `Options/Options-General.lua`, using the `ns.OptionsHeader` / `Desc` / `Spacer` / `SubHeader` constructors from `Options/Options-Utilities.lua`.
+2. Add the widget to `ns.BuildGeneralOptions` in `Options/Options-General.lua`, using the `ns.OptionsHeader` / `Desc` / `Spacer` / `RowLabel` constructors from `Options/Options-Utilities.lua`. A control needing a caption becomes a label-beside-control row — see *The Options Panel Layout* for the widths and the spacer rule, both of which are load-bearing.
 3. Add its strings to `Locales/enUS.lua`. Every user-facing string goes through `L["KEY"]`.
 4. If the control changes what counts as giftable, call `refreshWindow()` from its setter. That routes to `UI:Rescan`, which re-reads the bags *and* re-plans the search.
 
@@ -415,6 +441,11 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 - **Testing `classID == 2` to mean "weapon"**: shields and held off-hands are armor by class but rank on the weapon matrix. Use `ns.Data.UsesWeaponMatrix(item)`.
 - **Reading a weapon key without checking `classID` first**: `WeaponKey` falls through to the weapon subclass table, and armor subclass 1 (cloth) collides with weapon subclass 1 (two-hand axe), so a cloth chest answers `2H_AXE`.
 - **Reading `ns.db.profileKeys`**: always `nil`. AceDB keeps that table on `ns.db.sv`, and its metatable resolves only scope names, so the read fails silently rather than erroring — an own-alt check written against it passes everybody through.
+- **Pairing two `description` widgets on one AceConfig row**: they do not lay out. The flow packs cells until a row fills, so four label/value pairs written without a full-width spacer behind each one interleave into a jumble. Every label-beside-value row needs its spacer; a label beside an input or a select is the only pair that can stand without one.
+- **Hiding an options control instead of disabling it**: the widget after it flows up into the gap. Hiding the rarity select pairs "Include Gear" and "Include Consumables" onto one row.
+- **Coloring the Generosity values anything but white**: `GetCoinTextureString` ignores a color prefix, so the Gold Value row renders white regardless and any other color leaves it out of step with the three above it.
+- **Comparing a roster or `/who` name as a raw string**: one player has two spellings. Both sources give a bare name for somebody on your own realm and a suffixed one for a character elsewhere in the cluster, so a raw comparison pools one person twice and lets your own alts past the own-character check. Compare `ns.QualifyPlayerName`; store and mail the name the client gave.
+- **Treating a `consumableLevelGap` of 0 as an ordinary gap**: it is the "All Consumables" sentinel. Compared as a gap it still requires the player to be at or above the item's own level, so the one option meant to offer everything quietly withholds every consumable the player has not reached yet.
 - **Treating a consumable's `useLevel` of 0 as level 1**: it is the database's `RequiredLevel`, not the level the item is worth having. Banding on it gives 1 to `CONSUMABLE_RECIPIENT_GAP` against a recipient floor of 3, so the item can only ever reach a level-3 player. The scanner rejects those rows as `NO_USE_LEVEL` rather than offering them to nobody.
 - **Rolling a random tiebreak inside a sort comparator**: `table.sort` throws when the comparator is inconsistent. The shuffle key is rolled once per player as they enter the pool.
 - **Mutating the list `MatchList:Candidates` returns**: it is a cached table handed out by reference. Sorting or removing in place poisons it for every later caller until the pools generation changes.
@@ -423,6 +454,7 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 - **Re-reading the bags at the end of a distribution run**: the client has not finished emptying the sent slots, so the scan finds delivered items and restores the pairing they were just sent under. `UI:_afterDelivery` re-assigns without scanning for exactly this reason.
 - **Reordering `ns.Data.ItemRules`**: `prefer` is first-match-wins, so moving a stat rule above another silently takes items from it. `veto` and `demote` accumulate and do not care where they sit — which makes the table look more reorderable than it is.
 - **Adding a recipient level floor to a new source**: there is one, in `MatchList:AddResults`, and it is the single door every source comes through. A second copy in `Recipients-Guild.lua` or `Recipients-Who.lua` is how the guild floor and the consumable band drifted apart the first time.
+- **Deduping recipients on the raw name**: `/who` and the guild roster spell one same-realm player two different ways, so the raw string pools them twice and mails them twice. Compare `ns.QualifyPlayerName`; store the name the client gave.
 - **Removing a key from `ns.DATABASE_DEFAULTS` and expecting it to disappear**: AceDB copies scalar defaults into the saved table and its cleanup only visits keys still in the defaults, so the orphan persists in every existing player's file. Clear it explicitly in `Core.lua`, as `minRarity` is.
 
 ## Contributing

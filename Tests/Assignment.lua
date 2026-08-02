@@ -122,6 +122,55 @@ test("nobody receives two items in one pass", function()
 end)
 
 --[[
+	One person under two spellings. /who answers with a bare name for somebody on your own
+	realm while the guild roster qualifies the same character "Name-Realm", so an identity
+	compared on the raw string holds them twice: two pool entries, two items, two parcels in
+	one stranger's mailbox -- and the sighting that arrives second never hands over the guild
+	flag that earns them their tiebreak.
+]]
+local function mailPair(ns)
+	Stub.SetBackpack({
+		gear("Chain Vest", "INVTYPE_CHEST", 4, 3, { ITEM_MOD_STRENGTH_SHORT = 6 }),
+		gear("Chain Legs", "INVTYPE_LEGS", 4, 3, { ITEM_MOD_STRENGTH_SHORT = 5 }),
+	})
+	ns.fire("MAIL_SHOW")
+end
+
+test("a player found under both name spellings is one person, not two", function()
+	local ns = load()
+	mailPair(ns)
+
+	equal(ns.MatchList:AddResults({ { name = "Bob", level = 19, class = "WARRIOR" } }), 1, "the bare name is new")
+	equal(
+		ns.MatchList:AddResults({ { name = "Bob-Test", level = 19, class = "WARRIOR", guild = true } }),
+		0,
+		"the qualified spelling is the same person"
+	)
+
+	local warriors = ns.UI:Pools()["WARRIOR"] or {}
+	equal(#warriors, 1, "one pool entry")
+	check(warriors[1].guild, "carrying the guild flag the second sighting brought")
+	equal(warriors[1].name, "Bob", "under the name the client actually gave us, which is the address")
+end)
+
+test("neither spelling of one player is handed a second item", function()
+	local ns = load()
+	mailPair(ns)
+
+	ns.MatchList:AddResults({ { name = "Bob", level = 19, class = "WARRIOR" } })
+	ns.MatchList:AddResults({ { name = "Bob-Test", level = 19, class = "WARRIOR", guild = true } })
+	ns.UI:_assign()
+
+	local held = 0
+	for _, item in ipairs(ns.UI:Items()) do
+		if item.recipient then
+			held = held + 1
+		end
+	end
+	equal(held, 1, "one person, one parcel")
+end)
+
+--[[
 	Scarcity leads, but it must not throw away the ranking. Between two items that can
 	reach the same number of people, the better item still picks first.
 ]]

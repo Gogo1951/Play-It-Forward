@@ -21,11 +21,9 @@ local Generosity = ns.Generosity
 local HOVER_PING_INTERVAL = 10
 local lastPing = 0
 
--- Our own "Name-Realm", to tell our own tooltip from a peer's. Realm is normalized like the broadcaster's.
+-- Our own identity, to tell our own tooltip from a peer's. The same helper the peers cache keys on.
 local function ownKey()
-	local name = UnitName("player")
-	local realm = (GetNormalizedRealmName and GetNormalizedRealmName()) or (GetRealmName and GetRealmName()) or ""
-	return (name or "?") .. "-" .. realm
+	return ns.QualifyPlayerName(UnitName("player")) or "?"
 end
 
 local function hoverPing()
@@ -40,17 +38,37 @@ local function hoverPing()
 end
 
 --[[
-	The four rows plus a header, labels left and values right. Counts go through ns.CommaNumber and
-	the money through GetCoinTextureString (ns.MoneyString wraps it with a fallback). Show() once at
-	the end so the frame resizes to fit the block just added.
+	A blank line, the branded header, then the four rows: labels left and values right. The blank
+	line separates the block from whatever the client and other add-ons put above it, so ours never
+	reads as another line of theirs.
+
+	Rows are indented under the header, a silver HELP label against a white value. The four labels
+	are the same words on every tooltip and the figures are what a reader stopped for, so the
+	label is muted and the number carries the weight. HELP rather than TITLE deliberately: gold
+	field titles are the options panel's rule, where a caption sits beside a control the player
+	acts on, and nothing here is a control.
+
+	THE VALUES CANNOT BE ANY OTHER COLOR. The money row comes from GetCoinTextureString, which
+	carries the client's own markup and ignores a color prefix, so it renders white whatever it is
+	given. Coloring the other three anything else leaves that row visibly out of step with them.
+	Counts go through ns.CommaNumber, the money through ns.MoneyString. Show() once at the end so
+	the frame resizes to fit.
 ]]
+local ROW_INDENT = " "
+
 local function appendBlock(tooltip, gifts, items, itemLevels, value)
-	local title, text = ns.GetColor("TITLE"), ns.GetColor("TEXT")
-	tooltip:AddLine(title .. L["TOOLTIP_GIVEN_HEADER"] .. "|r")
-	tooltip:AddDoubleLine(title .. L["OPTIONS_GIVEN_GIFTS"] .. "|r", text .. ns.CommaNumber(gifts) .. "|r")
-	tooltip:AddDoubleLine(title .. L["OPTIONS_GIVEN_ITEMS"] .. "|r", text .. ns.CommaNumber(items) .. "|r")
-	tooltip:AddDoubleLine(title .. L["OPTIONS_GIVEN_ITEM_LEVELS"] .. "|r", text .. ns.CommaNumber(itemLevels) .. "|r")
-	tooltip:AddDoubleLine(title .. L["OPTIONS_GIVEN_VALUE"] .. "|r", ns.MoneyString(value))
+	local labelColor, valueColor = ns.GetColor("HELP"), ns.GetColor("TEXT")
+	local function row(label, shown)
+		tooltip:AddDoubleLine(ROW_INDENT .. labelColor .. label .. "|r", valueColor .. shown .. "|r")
+	end
+
+	tooltip:AddLine(" ")
+	-- The same branded line a chat print carries: blue name, gray separator, white body.
+	tooltip:AddLine(ns:BuildBrandedLine(L["TOOLTIP_GENEROSITY_HEADER"]))
+	row(L["OPTIONS_GENEROSITY_GIFTS"], ns.CommaNumber(gifts))
+	row(L["OPTIONS_GENEROSITY_ITEMS"], ns.CommaNumber(items))
+	row(L["OPTIONS_GENEROSITY_ITEM_LEVELS"], ns.CommaNumber(itemLevels))
+	row(L["OPTIONS_GENEROSITY_VALUE"], ns.MoneyString(value))
 	tooltip:Show()
 end
 
@@ -73,10 +91,8 @@ local function onTooltipSetUnit(tooltip)
 	if not name then
 		return
 	end
-	if not realm or realm == "" then
-		realm = (GetNormalizedRealmName and GetNormalizedRealmName()) or (GetRealmName and GetRealmName()) or ""
-	end
-	local key = name .. "-" .. realm
+	-- UnitName hands back a realm only for somebody from another one; ours is appended for us.
+	local key = (realm and realm ~= "") and (name .. "-" .. realm) or ns.QualifyPlayerName(name)
 
 	local gifts, items, itemLevels, value
 	if key == ownKey() then

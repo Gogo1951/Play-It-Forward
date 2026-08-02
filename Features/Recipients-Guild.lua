@@ -74,34 +74,33 @@ end
 	NAMES GO INTO THE POOL EXACTLY AS THE ROSTER GAVE THEM, suffix and all. A name is an address:
 	SendMail takes the full "Character-Realm" form, so rewriting it here -- stripping the player's
 	own realm off, say -- means mailing to an address the client never gave us.
-]]
-local function packedRealm()
-	local realm = GetRealmName and GetRealmName()
-	if not realm or realm == "" then
-		return nil
-	end
-	-- Suffixes carry no spaces, so "Blade's Edge" appears as "BladesEdge".
-	return (realm:gsub("%s+", ""))
-end
 
+	Telling one person from another is a separate question, answered once in MatchList:AddResults
+	against ns.QualifyPlayerName. No dedupe belongs here: a second one keyed differently is how a
+	guildmate /who also found ends up pooled twice.
+]]
 --[[
-	The player's own characters, keyed in the form the roster names them. They are guildmates like
-	any other, but mailing yourself is not paying anything forward; /who never raised this, since
-	nobody is online on two characters at once.
+	The player's own characters, keyed by qualified identity. They are guildmates like any other,
+	but mailing yourself is not paying anything forward; /who never raised this, since nobody is
+	online on two characters at once.
+
+	KEYED THROUGH ns.QualifyPlayerName, BOTH SIDES, and the lookup below qualifies the roster row
+	the same way. The roster spells somebody on your own realm bare and only suffixes a character
+	from another realm in the cluster, so a raw-string comparison against a built "Name-Realm" key
+	misses your own alts entirely and mails them your gear.
 
 	AceDB keeps profileKeys on ns.db.sv, never on ns.db. It holds a key per character that has ever
-	loaded the add-on, written as "Character - Realm", spaces and all. Rebuilding that into the
-	roster's "Character-Realm" is a COMPARISON KEY and nothing else. An alt that has never run the
-	add-on is not in there and is not caught, which is the honest limit of this.
+	loaded the add-on, written as "Character - Realm", spaces and all. These are COMPARISON KEYS and
+	nothing else. An alt that has never run the add-on is not in there and is not caught, which is
+	the honest limit of this.
 ]]
 local function ownCharacters()
 	local out = {}
-	local suffix = packedRealm()
 
-	-- UnitName returns the player bare, so the realm is appended to match the roster's shape.
-	local current = UnitName and UnitName("player")
-	if current and suffix then
-		out[current .. "-" .. suffix] = true
+	-- UnitName returns the player bare; the helper appends our realm, as it does for a roster row.
+	local current = ns.QualifyPlayerName(UnitName and UnitName("player"))
+	if current then
+		out[current] = true
 	end
 
 	local keys = ns.db and ns.db.sv and ns.db.sv.profileKeys
@@ -111,6 +110,7 @@ local function ownCharacters()
 	for key in pairs(keys) do
 		local character, realm = key:match("^(.-)%s+%-%s+(.+)$")
 		if character and realm then
+			-- Suffixes carry no spaces, so "Blade's Edge" is "BladesEdge" here.
 			out[character .. "-" .. (realm:gsub("%s+", ""))] = true
 		else
 			-- An unexpected key shape is matched whole rather than dropped.
@@ -161,7 +161,7 @@ function Guild:Read()
 		-- Without the class token there is no way to tell whether they can wear the item.
 		if not name or name == "" or not classToken then
 			counts.unreadable = counts.unreadable + 1
-		elseif mine[name] then
+		elseif mine[ns.QualifyPlayerName(name)] then
 			-- Ahead of the other rules: one of yours is one of yours at any level or recency.
 			counts.ownAlts = counts.ownAlts + 1
 		elseif classToken == SUMMON_ALT_CLASS and level >= SUMMON_ALT_MIN_LEVEL and level <= SUMMON_ALT_MAX_LEVEL then

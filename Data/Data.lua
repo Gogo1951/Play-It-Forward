@@ -55,6 +55,22 @@ ns.OPTIONS_REGISTRY = {
 }
 
 --------------------------------------------------------------------------------
+-- Options Layout Grid
+--------------------------------------------------------------------------------
+
+--[[
+	A label cell plus its control add up to exactly one row, which is what puts a caption beside
+	a widget rather than above it. A control wanting more room passes its own width to
+	ns.OptionsRowLabel and takes ROW minus that, so every row still ends where the others do.
+]]
+ns.OPTIONS_ROW_WIDTH = 2.6
+ns.OPTIONS_LABEL_WIDTH = 1.3
+ns.OPTIONS_CONTROL_WIDTH = ns.OPTIONS_ROW_WIDTH - ns.OPTIONS_LABEL_WIDTH
+
+-- The remove column of a player-managed item list, sized to its icon. This add-on ships no list.
+ns.OPTIONS_REMOVE_ICON_WIDTH = 0.25
+
+--------------------------------------------------------------------------------
 -- Addon Message Prefix
 --------------------------------------------------------------------------------
 
@@ -142,7 +158,11 @@ ns.Data.MIN_RECIPIENT_LEVEL = 5
 -- Consumable Level Gap
 --------------------------------------------------------------------------------
 
--- The gaps the options panel offers; Options/Options-Utilities.lua labels and snaps them.
+--[[
+	The stops the options panel offers; Options/Options-Utilities.lua labels and snaps them. Zero
+	is a sentinel rather than a gap: it reads as "All Consumables" and lifts the level rule in
+	Features/Scan-Bags.lua entirely. The rest mean "at least this far past the item's own level".
+]]
 ns.CONSUMABLE_GAP_ORDER = { 0, 5, 10, 15, 20 }
 
 --------------------------------------------------------------------------------
@@ -167,7 +187,7 @@ ns.Data.ConsumableClasses = {
 
 --[[
 	The lowest quality worth mailing a stranger: a letter from somebody you have never met
-	containing a grey reads as junk rather than a gift. A constant, not a setting -- a floor
+	containing a gray reads as junk rather than a gift. A constant, not a setting -- a floor
 	below uncommon has no use that is not "send something worse".
 
 	GEAR ONLY. Features/Scan-Bags.lua returns a listed consumable before the rarity checks,

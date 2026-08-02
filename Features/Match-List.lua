@@ -12,10 +12,10 @@ local MatchList = ns.MatchList
 local pools = {} -- classToken -> { {name, level, class, area}, ... } from /who
 local items = {} -- current scan, decorated with .best/.eligible/.band/.recipient
 local assignedTo = {} -- recipient name -> the item they're currently holding
-local seenPlayer = {} -- name -> true, dedupes across query chunks
+local seenPlayer = {} -- qualified identity -> its pool entry, dedupes across sources and chunks
 --[[
-	Session total for the roster report, never reset by ClearPools: the report explains what a
-	search found, and who was too low is part of that whether or not the pools were since emptied.
+	Session total for the roster report: the report explains what a search found, and who was too
+	low is part of that.
 ]]
 local tooLow = 0
 
@@ -428,12 +428,28 @@ function MatchList:AddResults(results)
 		]]
 		if (p.level or 0) < ns.Data.MIN_RECIPIENT_LEVEL then
 			tooLow = tooLow + 1
-		elseif not seenPlayer[p.name] then
-			seenPlayer[p.name] = true
-			p.shuffle = math.random()
-			pools[p.class] = pools[p.class] or {}
-			table.insert(pools[p.class], p)
-			added = added + 1
+		else
+			--[[
+				DEDUPED ON THE QUALIFIED IDENTITY, NOT THE RAW NAME. /who answers bare for
+				somebody on your own realm where the guild roster qualifies the same character,
+				so one person arrives under two spellings and a raw-string check pools them
+				twice -- two entries, two items, two parcels in one mailbox. The entry itself
+				keeps the name it arrived under, because that is the address.
+			]]
+			local key = ns.QualifyPlayerName(p.name) or p.name
+			local known = seenPlayer[key]
+			if known then
+				-- The later sighting still has something to add: a guildmate's tiebreak.
+				if p.guild then
+					known.guild = true
+				end
+			else
+				p.shuffle = math.random()
+				seenPlayer[key] = p
+				pools[p.class] = pools[p.class] or {}
+				table.insert(pools[p.class], p)
+				added = added + 1
+			end
 		end
 	end
 	--[[
@@ -453,9 +469,8 @@ function MatchList:TooLowCount()
 	return tooLow
 end
 
--- Empties the roster. The General panel's Clear History and Roster button is the caller.
-function MatchList:ClearPools()
-	wipe(pools)
-	wipe(seenPlayer)
-	poolsGeneration = poolsGeneration + 1
-end
+--[[
+	There is deliberately no ClearPools. The roster is runtime state that dies with the session,
+	and the cooldown list it used to be cleared alongside is already wiped in Core's ADDON_LOADED
+	handler, so nothing was left for a by-hand clear to do.
+]]

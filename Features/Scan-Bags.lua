@@ -164,8 +164,15 @@ local function filterSlot(bag, slot)
 		if (cdef.useLevel or 0) <= 0 then
 			return nil, REJECT.NO_USE_LEVEL
 		end
+		--[[
+			A gap of zero is the "All Consumables" stop, and it lifts the level rule outright
+			rather than tightening it to nothing: tested as a gap it would still demand the player
+			be at or above the item's own level, so a low character could never pass on the
+			high-level potions they have least use for. Every other stop reads "at least this far
+			past it", which is what the >= comparison below says.
+		]]
 		local gap = ns.db.profile.consumableLevelGap
-		if (UnitLevel("player") or 1) - cdef.useLevel < gap then
+		if gap > 0 and (UnitLevel("player") or 1) - cdef.useLevel < gap then
 			return nil, REJECT.LEVEL_GAP
 		end
 		return {

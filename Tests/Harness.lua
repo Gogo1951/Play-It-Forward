@@ -53,6 +53,12 @@ local FILES = {
 		asserts on both. It loads last because it reads ns.GetColor and ns.L.
 	]]
 	"Options/Options-Utilities.lua",
+	--[[
+		Not only panels either: the /pif slash command and the combat gate in front of
+		the Settings panel live here, and Tests/Options-Open.lua drives both. The panel
+		builders themselves stay out; the stub answers their libraries with catch-alls.
+	]]
+	"Options/Options.lua",
 }
 
 local ADDON = "Play-It-Forward"
@@ -89,6 +95,15 @@ local function injectModules(ns, events)
 	end
 	ns.PrintWarning = ns.PrintMessage
 
+	--[[
+		Undecorated on purpose: cases assert what a line says, never its color escapes, and the
+		real format lives in Features/Announcements.lua rather than being pinned a second time
+		here. The name and separator are present because callers render them as one string.
+	]]
+	ns.BuildBrandedLine = function(_, message)
+		return ((ns.L and ns.L["ADDON_TITLE"]) or "") .. " // " .. tostring(message)
+	end
+
 	ns.diagnostics = { enabled = false, logging = false }
 end
 
@@ -116,9 +131,15 @@ function Harness.LoadAddon(root)
 		Both scopes are seeded, the way AceDB seeds profile and global alike: the giving tally
 		lives in global.stats, so a case that never touched it would still expect it present.
 	]]
+	--[[
+		sv is the raw saved table AceDB hangs its own bookkeeping off, and profileKeys lives
+		there rather than on db: the own-alt check in Features/Recipients-Guild.lua reads it,
+		and db.profileKeys answers nil. Empty by default; a case that wants alts seeds it.
+	]]
 	ns.db = {
 		profile = copy(ns.DATABASE_DEFAULTS.profile),
 		global = copy(ns.DATABASE_DEFAULTS.global),
+		sv = { profileKeys = {} },
 	}
 
 	ns.fire = function(event, ...)

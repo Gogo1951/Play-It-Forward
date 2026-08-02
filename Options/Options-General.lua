@@ -3,7 +3,29 @@ local L = ns.L
 
 local GetColor = ns.GetColor
 
--- Inlined rather than using ns.OptionsDesc/OptionsSpacer, which take no hidden argument.
+--[[
+	A gated label row: ns.OptionsRowLabel takes no hidden argument, so a label that hides with its
+	control sets it on the returned table.
+]]
+local function gatedRowLabel(text, order, hidden, width)
+	local label = ns.OptionsRowLabel(text, order, width)
+	label.hidden = hidden
+	return label
+end
+
+--[[
+	One split for every label-beside-value row on this panel, copied from GogoLoot: a one-word
+	label against a wide cell. The label takes 0.6 so the cell beside it lands on exactly 2.0 --
+	the guide's double width for a read-only input -- without the row outgrowing every other row.
+	Shared by the link rows and the Generosity totals, so the numbers start where the URLs do.
+
+	EVERY PAIR NEEDS ITS SPACER. AceConfig's flow packs cells until a row fills, and a full-width
+	spacer is what ends one; pairs written without them run together and the rows interleave.
+]]
+local ROW_LABEL_WIDTH = 0.6
+local ROW_VALUE_WIDTH = ns.OPTIONS_ROW_WIDTH - ROW_LABEL_WIDTH
+
+-- The input and spacer stay inlined: ns.OptionsDesc and ns.OptionsSpacer take no hidden argument.
 local FEEDBACK_LINKS = {
 	{ id = "Discord", label = L["OPTIONS_DISCORD"], key = "DISCORD" },
 	{ id = "GitHub", label = L["OPTIONS_GITHUB"], key = "GITHUB" },
@@ -13,22 +35,17 @@ local FEEDBACK_LINKS = {
 
 local function addFeedbackLinks(args, startOrder)
 	local order = startOrder
-	for _, link in ipairs(FEEDBACK_LINKS) do
+	for index, link in ipairs(FEEDBACK_LINKS) do
 		local key = link.key
 		local hidden = function()
 			return not ns.Links[key]
 		end
-		args["label" .. link.id] = {
-			type = "description",
-			name = GetColor("TITLE") .. link.label .. "|r",
-			fontSize = "medium",
-			order = order,
-			hidden = hidden,
-		}
+		args["label" .. link.id] =
+			gatedRowLabel(GetColor("TITLE") .. link.label .. "|r", order, hidden, ROW_LABEL_WIDTH)
 		args["link" .. link.id] = {
 			type = "input",
 			name = "",
-			width = "double",
+			width = ROW_VALUE_WIDTH,
 			order = order + 1,
 			get = function()
 				return ns.Links[key]
@@ -36,39 +53,102 @@ local function addFeedbackLinks(args, startOrder)
 			set = function() end,
 			hidden = hidden,
 		}
-		args["spacer" .. link.id] = {
-			type = "description",
-			name = " ",
-			order = order + 2,
-			hidden = hidden,
-		}
-		order = order + 3
+		order = order + 2
+
+		-- Between rows only: a trailing one would double the gap before the version line.
+		if index < #FEEDBACK_LINKS then
+			args["spacer" .. link.id] = {
+				type = "description",
+				name = " ",
+				order = order,
+				hidden = hidden,
+			}
+			order = order + 1
+		end
 	end
+end
+
+--[[
+	Each select greys out with the toggle beside it rather than hiding: a hidden select leaves a
+	gap the next toggle flows up into, which pairs two toggles on one row and is exactly the
+	formatting this section was cleaned up to avoid.
+]]
+local function gearOff()
+	return not (ns.db and ns.db.profile.includeGear)
+end
+
+local function consumablesOff()
+	return not (ns.db and ns.db.profile.includeConsumables)
 end
 
 -- Rarity cap changes what the bag scan returns, so the open window is re-read.
 local function refreshWindow()
 	if ns.UI and ns.UI.frame then
-		ns.UI:_syncRarityButton()
+		ns.UI:_syncControls()
 		ns.UI:Rescan()
 	end
 end
 
 --[[
-	One read-only line in the Given Away tally: a gold label and its value. The value is a function
-	so the display tracks ns.db.global.stats live rather than freezing at build time, and it returns
-	the value already formatted -- the counts arrive comma-grouped and white, the money row as the
-	client's coin string -- because those two do not color the same way.
+	The read-only tally, on the same split as the link rows above, so its numbers start exactly
+	where the URL boxes do. Each value is a function, so the display tracks ns.db.global.stats
+	live rather than freezing at build time, and it returns its own formatting: the counts
+	comma-grouped and white, the money as the client's coin string, which do not color alike.
 ]]
-local function givenStat(order, label, valueFn)
-	return {
-		type = "description",
-		fontSize = "medium",
-		order = order,
-		name = function()
-			return GetColor("TITLE") .. label .. "|r  " .. valueFn()
+local GENEROSITY_STATS = {
+	{
+		id = "Gifts",
+		label = L["OPTIONS_GENEROSITY_GIFTS"],
+		value = function()
+			local gifts = ns.Generosity:Get()
+			return GetColor("TEXT") .. ns.CommaNumber(gifts) .. "|r"
 		end,
-	}
+	},
+	{
+		id = "Items",
+		label = L["OPTIONS_GENEROSITY_ITEMS"],
+		value = function()
+			local _, items = ns.Generosity:Get()
+			return GetColor("TEXT") .. ns.CommaNumber(items) .. "|r"
+		end,
+	},
+	{
+		id = "ItemLevels",
+		label = L["OPTIONS_GENEROSITY_ITEM_LEVELS"],
+		value = function()
+			local _, _, itemLevels = ns.Generosity:Get()
+			return GetColor("TEXT") .. ns.CommaNumber(itemLevels) .. "|r"
+		end,
+	},
+	{
+		id = "Value",
+		label = L["OPTIONS_GENEROSITY_VALUE"],
+		value = function()
+			local _, _, _, value = ns.Generosity:Get()
+			return ns.MoneyString(value)
+		end,
+	},
+}
+
+local function addGenerosityStats(args, startOrder)
+	local order = startOrder
+	for index, row in ipairs(GENEROSITY_STATS) do
+		args["label" .. row.id] = ns.OptionsRowLabel(GetColor("TITLE") .. row.label .. "|r", order, ROW_LABEL_WIDTH)
+		args["value" .. row.id] = {
+			type = "description",
+			name = row.value,
+			fontSize = "medium",
+			width = ROW_VALUE_WIDTH,
+			order = order + 1,
+		}
+		order = order + 2
+
+		-- Between rows only, as the link rows do: a trailing one doubles the gap before Feedback.
+		if index < #GENEROSITY_STATS then
+			args["spacer" .. row.id] = { type = "description", name = " ", order = order }
+			order = order + 1
+		end
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -98,7 +178,7 @@ function ns.BuildGeneralOptions()
 		headerCommands = ns.OptionsHeader(L["OPTIONS_COMMANDS_HEADER"], 11),
 		spacerCommands1 = ns.OptionsSpacer(12),
 		descCommands = ns.OptionsDesc(
-			GetColor("INFO") .. L["OPTIONS_COMMAND_PIF"] .. "|r" .. "  " .. L["OPTIONS_COMMAND_PIF_DESCRIPTION"],
+			GetColor("INFO") .. L["OPTIONS_COMMAND"] .. "|r" .. "  " .. L["OPTIONS_COMMAND_DESCRIPTION"],
 			13
 		),
 
@@ -106,9 +186,10 @@ function ns.BuildGeneralOptions()
 		-- What to give away
 		--------------------------------------------------------------------------
 		--[[
-			One row per toggle: a double-width checkbox with its select on the right, the select's
-			own name as the caption -- a description widget beside it counts as a second control and
-			breaks the row in two. Each select hides with its toggle rather than graying out.
+			The toggle IS the caption: it sits at label width with its select beside it, so these
+			rows need no separate label cell and each select carries name = "". The select's own
+			values say what they mean ("Rare & Lower", "Outgrown by 20+ Levels"), which is what
+			lets the caption go.
 		]]
 		spacerGive0 = ns.OptionsSpacer(20),
 		headerGive = ns.OptionsHeader(L["OPTIONS_GIVE_HEADER"], 21),
@@ -118,7 +199,7 @@ function ns.BuildGeneralOptions()
 			type = "toggle",
 			name = L["OPTIONS_INCLUDE_GEAR"],
 			desc = L["OPTIONS_INCLUDE_GEAR_DESCRIPTION"],
-			width = "double",
+			width = ns.OPTIONS_LABEL_WIDTH,
 			order = 23,
 			get = function()
 				return ns.db and ns.db.profile.includeGear
@@ -130,13 +211,11 @@ function ns.BuildGeneralOptions()
 		},
 		selectMaxRarity = {
 			type = "select",
-			name = L["OPTIONS_MAX_RARITY"],
+			name = "",
 			desc = L["OPTIONS_MAX_RARITY_DESCRIPTION"],
-			width = "normal",
+			width = ns.OPTIONS_CONTROL_WIDTH,
 			order = 24,
-			hidden = function()
-				return not (ns.db and ns.db.profile.includeGear)
-			end,
+			disabled = gearOff,
 			values = function()
 				local out = {}
 				for _, quality in ipairs({ 2, 3, 4 }) do
@@ -153,12 +232,14 @@ function ns.BuildGeneralOptions()
 			end,
 		},
 
+		-- Between the two rows only, matching the link rows below: no trailing one.
+		spacerGive2 = ns.OptionsSpacer(25),
 		toggleIncludeConsumables = {
 			type = "toggle",
 			name = L["OPTIONS_INCLUDE_CONSUMABLES"],
 			desc = L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"],
-			width = "double",
-			order = 25,
+			width = ns.OPTIONS_LABEL_WIDTH,
+			order = 26,
 			get = function()
 				return ns.db and ns.db.profile.includeConsumables
 			end,
@@ -169,13 +250,11 @@ function ns.BuildGeneralOptions()
 		},
 		selectConsumableLevelGap = {
 			type = "select",
-			name = L["OPTIONS_CONSUMABLE_GAP_LABEL"],
+			name = "",
 			desc = L["OPTIONS_CONSUMABLE_GAP_DESCRIPTION"],
-			width = "normal",
-			order = 26,
-			hidden = function()
-				return not (ns.db and ns.db.profile.includeConsumables)
-			end,
+			width = ns.OPTIONS_CONTROL_WIDTH,
+			order = 27,
+			disabled = consumablesOff,
 			values = ns.CONSUMABLE_GAP_VALUES,
 			sorting = ns.CONSUMABLE_GAP_ORDER,
 			get = function()
@@ -188,82 +267,24 @@ function ns.BuildGeneralOptions()
 		},
 
 		--------------------------------------------------------------------------
-		-- Recipient history
+		-- Generosity stats
 		--------------------------------------------------------------------------
 		--[[
-			The one control on this panel that writes saved variables, so it is confirm-gated. It
-			belongs here rather than under Diagnostic Tools: a player wanting to hand a green to
-			somebody they already gifted has no reason to be behind a developer toggle, and the
-			diagnostics panel writes nothing but the taintLog CVar.
-		]]
-		spacerHistory0 = ns.OptionsSpacer(30),
-		headerHistory = ns.OptionsHeader(L["OPTIONS_HISTORY_HEADER"], 31),
-		descHistory = ns.OptionsDesc(GetColor("HELP") .. L["OPTIONS_HISTORY_DESCRIPTION"] .. "|r", 32),
-		spacerHistory1 = ns.OptionsSpacer(33),
-		buttonHistory = {
-			type = "execute",
-			name = L["OPTIONS_HISTORY_BUTTON"],
-			order = 34,
-			confirm = true,
-			confirmText = L["OPTIONS_HISTORY_CONFIRM"],
-			func = function()
-				ns.Fairness:Reset()
-				--[[
-					Guarded because the window may never have been built this session. Re-assigning
-					is what makes the emptied roster visible: an open window would otherwise keep
-					rendering pairings drawn from the pools just wiped. Not Rescan -- the bags have
-					not moved, and re-planning the search here would spend presses on nothing.
-				]]
-				if ns.UI and ns.UI.ClearPools then
-					ns.UI:ClearPools()
-					if ns.UI.frame then
-						ns.UI:_assign()
-					end
-				end
-			end,
-		},
-
-		--------------------------------------------------------------------------
-		-- Given away
-		--------------------------------------------------------------------------
-		--[[
-			Read-only, and account-wide: these four come from ns.db.global.stats through
-			ns.Generosity:Get, so they survive Reset Profile and span every character.
-			Money renders through the client's coin string; the other three are comma-grouped counts.
+			The toggle leads, then the four totals. It is proximity-scoped sharing: nearby players
+			running the add-on see these totals on your tooltip, and you see theirs on the same
+			terms. Off stops your own broadcasts but not your view of theirs, and the totals below
+			keep counting either way, which is why they are not gated on it.
 		]]
 		spacerGiven0 = ns.OptionsSpacer(40),
-		headerGiven = ns.OptionsHeader(L["OPTIONS_GIVEN_HEADER"], 41),
+		headerGiven = ns.OptionsHeader(L["OPTIONS_GENEROSITY_HEADER"], 41),
 		spacerGiven1 = ns.OptionsSpacer(42),
 
-		givenGifts = givenStat(43, L["OPTIONS_GIVEN_GIFTS"], function()
-			local gifts = ns.Generosity:Get()
-			return GetColor("TEXT") .. ns.CommaNumber(gifts) .. "|r"
-		end),
-		givenItems = givenStat(44, L["OPTIONS_GIVEN_ITEMS"], function()
-			local _, items = ns.Generosity:Get()
-			return GetColor("TEXT") .. ns.CommaNumber(items) .. "|r"
-		end),
-		givenItemLevels = givenStat(45, L["OPTIONS_GIVEN_ITEM_LEVELS"], function()
-			local _, _, itemLevels = ns.Generosity:Get()
-			return GetColor("TEXT") .. ns.CommaNumber(itemLevels) .. "|r"
-		end),
-		givenValue = givenStat(46, L["OPTIONS_GIVEN_VALUE"], function()
-			local _, _, _, value = ns.Generosity:Get()
-			return ns.MoneyString(value)
-		end),
-
-		--[[
-			The one control in this section that writes a setting. Sharing is proximity-scoped:
-			nearby players running the add-on see these totals on your tooltip. Off stops your own
-			broadcasts but not your view of theirs, which is why the description says so.
-		]]
-		spacerGivenShare = ns.OptionsSpacer(47),
 		toggleShareStats = {
 			type = "toggle",
 			name = L["OPTIONS_SHARE_STATS"],
 			desc = L["OPTIONS_SHARE_STATS_DESCRIPTION"],
 			width = "full",
-			order = 48,
+			order = 43,
 			get = function()
 				return ns.db and ns.db.profile.shareStats
 			end,
@@ -271,6 +292,8 @@ function ns.BuildGeneralOptions()
 				ns.db.profile.shareStats = value
 			end,
 		},
+		spacerGiven2 = ns.OptionsSpacer(44),
+		-- The four totals are added by addGenerosityStats below, from order 45.
 
 		-- No Finding Recipients, Matching or The Mail section: Data/Default-Settings.lua records why.
 
@@ -278,7 +301,7 @@ function ns.BuildGeneralOptions()
 		-- Feedback and version
 		--------------------------------------------------------------------------
 		spacerFeedback0 = ns.OptionsSpacer(90),
-		headerFeedback = ns.OptionsHeader(L["OPTIONS_FEEDBACK"], 91),
+		headerFeedback = ns.OptionsHeader(L["OPTIONS_FEEDBACK_HEADER"], 91),
 		spacerFeedback1 = ns.OptionsSpacer(92),
 
 		spaceVersion0 = {
@@ -295,6 +318,7 @@ function ns.BuildGeneralOptions()
 		},
 	}
 
+	addGenerosityStats(args, 45)
 	addFeedbackLinks(args, 93)
 
 	return {

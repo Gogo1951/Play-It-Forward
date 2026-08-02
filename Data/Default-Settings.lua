@@ -1,8 +1,9 @@
 local _, ns = ...
 
 --[[
-	AceDB-3.0 defaults, all under profile. Applied through metatables, so no call site needs an
-	"or default" fallback, and table defaults are per profile: safe to write into and wipe.
+	The AceDB-3.0 defaults: settings under profile, the account-wide giving tally under global.
+	AceDB copies these into the saved table on first access, so no call site needs an "or default"
+	fallback, and table defaults are per profile: safe to write into and wipe.
 ]]
 
 local UNCOMMON = (Enum and Enum.ItemQuality and Enum.ItemQuality.Uncommon) or 2
@@ -24,9 +25,11 @@ ns.DATABASE_DEFAULTS = {
 		includeConsumables = true,
 
 		--[[
-			Only offer a consumable once the player is this far past its level. Twenty rather than
-			ten because the tier immediately behind still gets drunk on a long fight. Has to stay
-			one of ns.CONSUMABLE_GAP_ORDER or the dropdown opens on a value it cannot show.
+			Only offer a consumable once the player is at least this far past its level. Twenty
+			rather than ten because the tier immediately behind still gets drunk on a long fight.
+			Zero is not a gap of nothing: it is the "All Consumables" stop and lifts the level rule
+			outright, so an item the player is under the level for is still offered. Has to stay one
+			of ns.CONSUMABLE_GAP_ORDER or the dropdown opens on a value it cannot show.
 		]]
 		consumableLevelGap = 20,
 
@@ -49,9 +52,9 @@ ns.DATABASE_DEFAULTS = {
 	--[[
 		global.stats is account-wide and INTENTIONALLY survives Reset Profile, unlike everything
 		under profile above: a lifetime giving tally has to span every character on the account and
-		outlive a profile wipe. AceDB seeds global through metatables exactly as it does profile,
-		so Features/Core.lua needs no init code for it. All four counters are integers, value in
-		copper. Written only by Features/Generosity.lua.
+		outlive a profile wipe. AceDB seeds global exactly as it does profile, so Features/Core.lua
+		needs no init code for it. All four counters are integers, value in copper. Written only by
+		Features/Generosity.lua.
 	]]
 	global = {
 		stats = {

@@ -83,7 +83,7 @@ ns.on("ADDON_LOADED", function(name)
 	]]
 	function ns:ApplyProfile()
 		if ns.UI and ns.UI.frame then
-			ns.UI:_syncRarityButton()
+			ns.UI:_syncControls()
 			ns.UI:Rescan()
 		end
 		LibStub("AceConfigRegistry-3.0"):NotifyChange(ns.OPTIONS_REGISTRY.General)
