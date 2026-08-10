@@ -75,11 +75,43 @@ end
 local function newFrame()
 	local f = newStub()
 	local shown = false
+
+	--[[
+		OnShow and OnHide are real, and they have to be: Escape closes a window through
+		UISpecialFrames, which only calls Hide, so a stub swallowing SetScript would report a
+		closed window that never ran a line of its closing work. Only on a genuine change of
+		state, as the client does -- hiding an already-hidden frame fires nothing.
+
+		HookScript is deliberately left alone. MailFrame's hooks are fired by name from the
+		cases that want them, and driving them from Show would fire a mailbox open twice.
+	]]
+	local scripts = {}
+	rawset(f, "SetScript", function(self, name, fn)
+		scripts[name] = fn
+		return self
+	end)
+	rawset(f, "GetScript", function(_, name)
+		return scripts[name]
+	end)
+	local function runScript(name)
+		if scripts[name] then
+			scripts[name](f)
+		end
+	end
+
 	rawset(f, "Show", function()
+		if shown then
+			return
+		end
 		shown = true
+		runScript("OnShow")
 	end)
 	rawset(f, "Hide", function()
+		if not shown then
+			return
+		end
 		shown = false
+		runScript("OnHide")
 	end)
 	rawset(f, "IsShown", function()
 		return shown

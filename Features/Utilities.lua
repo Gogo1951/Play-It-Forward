@@ -72,25 +72,15 @@ function ns.GetColorRGB(key)
 end
 
 --------------------------------------------------------------------------------
--- Class Names and Colors
+-- Class Colors
 --------------------------------------------------------------------------------
-
--- Localized class name -> token, so /who results read locale-safely.
-ns.classTokenByName = {}
-do
-	for token, name in pairs(LOCALIZED_CLASS_NAMES_MALE or {}) do
-		ns.classTokenByName[name] = token
-	end
-	for token, name in pairs(LOCALIZED_CLASS_NAMES_FEMALE or {}) do
-		ns.classTokenByName[name] = token
-	end
-end
 
 --[[
 	Honors a ClassColors or oUF-style override. Returns the bare "ffRRGGBB" form the |c escape
-	takes, not a |cff prefix, which is why the fallback prepends "ff" itself.
+	takes, not a |cff prefix, which is why the fallback prepends "ff" itself. File-local: the
+	colored name below is what the rest of the add-on asks for.
 ]]
-function ns.ClassColor(token)
+local function classColor(token)
 	local c = (CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[token]) or (RAID_CLASS_COLORS and RAID_CLASS_COLORS[token])
 	if not c then
 		return "ff" .. (ns.CLASS_COLORS[token] or ns.PALETTE.TEXT)
@@ -106,11 +96,7 @@ function ns.ClassColor(token)
 end
 
 function ns.ColorName(name, token)
-	return ("|c%s%s|r"):format(ns.ClassColor(token), name or "?")
-end
-
-function ns.ClassName(token)
-	return (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[token]) or token or ""
+	return ("|c%s%s|r"):format(classColor(token), name or "?")
 end
 
 --------------------------------------------------------------------------------
@@ -159,9 +145,20 @@ function ns.QualifyPlayerName(name)
 	if name:find("-", 1, true) then
 		return name
 	end
+	--[[
+		PICKED BY AVAILABILITY, then retried on an unresolved answer. The second read is not a
+		legacy fallback: both shipped flavors have GetNormalizedRealmName, and it answers nil
+		early in login before the realm resolves, which is the one case worth asking twice for.
+	]]
+	local realm
+	if GetNormalizedRealmName then
+		realm = GetNormalizedRealmName()
+	end
+	if (realm == nil or realm == "") and GetRealmName then
+		realm = GetRealmName()
+	end
 	-- Suffixes carry no spaces, so "Blade's Edge" is "BladesEdge" in a qualified name.
-	local realm = (GetNormalizedRealmName and GetNormalizedRealmName()) or (GetRealmName and GetRealmName()) or ""
-	return name .. "-" .. (realm:gsub("%s+", ""))
+	return name .. "-" .. ((realm or ""):gsub("%s+", ""))
 end
 
 --------------------------------------------------------------------------------

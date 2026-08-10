@@ -20,10 +20,11 @@ local function load()
 end
 
 --[[
-	Plate at level 20. Nobody can wear it: Data/Match-Armor.lua derives the plate
-	group from what each class wears at the item's level, and no class is in plate
-	before 40 except a death knight, who does not exist on Era. It still passes every
-	check the bag filter makes, which is exactly why it is the fixture here.
+	Plate at level 20. Nobody can wear it: nothing is in plate before 40 except a death
+	knight, who does not exist on Era, and 20 is far enough below that training level
+	that ns.Data.PROFICIENCY_REACH does not admit the warrior and the paladin either --
+	a level 20 plate chest is no gift to somebody who first equips it at 40. It still
+	passes every check the bag filter makes, which is exactly why it is the fixture here.
 ]]
 local function lowLevelPlate()
 	return Stub.Item({

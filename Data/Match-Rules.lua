@@ -18,6 +18,8 @@ local _, ns = ...
 	form       "POTION" or "FOOD", for a consumable rule
 	restores   any one of these, for a consumable rule
 	weapon     any one of these weapon keys, for a weapon rule
+	unclaimed  only when no eligible class had a stat claim on the item. Pairs with prefer or
+	           demote and never with veto, which is applied before anything is scored.
 	prefer     these classes are the contenders, if any of them is admitted at all
 	demote     these classes drop out of contention, but stay as fallbacks
 	veto       these classes are removed outright, before anything is scored
@@ -56,9 +58,11 @@ ns.Data.ItemRules = {
 		Scoring alone already keeps a warrior and a rogue off a pure caster item; the hybrid
 		roll is the gap, since on "of the Gorilla" the warrior claims the Strength half.
 
-		DEMOTED, NOT VETOED, and the difference is what keeps items moving. Sub-40 mail and
-		plate carrying Intellect has nobody else in heavy armor to fall back to, so a veto
-		sends those to a vendor rather than to a warrior who would use the Strength.
+		DEMOTED, NOT VETOED, and the difference is what keeps items moving. Heavy armor
+		carrying Intellect too far below its material's training level for PROFICIENCY_REACH
+		to help -- a level 20 mail chest, where the shaman it was written for is still five
+		armor tiers away -- has nobody but the warrior left, so a veto sends it to a vendor
+		rather than to somebody who would at least use the Strength.
 
 		Applied last, after the weapon rules, so a rule cannot promote a demoted class back
 		into contention. When the demoted are the only ones left, they are the answer.
@@ -140,6 +144,24 @@ ns.Data.ItemRules = {
 	{
 		name = "Polearms",
 		weapon = { "POLEARM" },
+		prefer = { "HUNTER" },
+	},
+	--[[
+		A ranged weapon with nothing on it to say who it is for. All three of a hunter's trees
+		build on the ranged slot and nobody else's does -- a warrior or a rogue carries a gun to
+		pull with -- so when the scoring cannot separate them, he is who it is for. Without this
+		the tie fell to whoever came first in the class list, which is the warrior.
+
+		UNCLAIMED, NOT EVERY BOW. A ranged weapon carrying stats is decided by them: an Agility
+		bow is a rogue's as much as a hunter's and a Strength one is the warrior's, and hunters
+		have no special claim on either. Thrown is left out from the other side -- the matrix
+		gives a hunter no proficiency for it, so naming him there would be a line that can never
+		apply.
+	]]
+	{
+		name = "Unclaimed ranged weapons",
+		weapon = { "BOW", "GUN", "CROSSBOW" },
+		unclaimed = true,
 		prefer = { "HUNTER" },
 	},
 }

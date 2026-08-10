@@ -156,10 +156,10 @@ local function filterSlot(bag, slot)
 		--[[
 			A useLevel of 0 is the database's RequiredLevel, not the level the consumable is
 			worth having: Bountiful Feast and Delicious Chocolate Cake both carry it. Banding on
-			it gives a low of 1 and a high of CONSUMABLE_RECIPIENT_GAP, which against
-			MIN_RECIPIENT_LEVEL leaves exactly one reachable recipient level, so the item never
-			finds anybody and sits on the list instead. Held back until a real level is sourced
-			for those rows, rather than offered to nobody.
+			it gives levels 1 to 3, which sits entirely below the recipient floor of 5 that
+			MIN_RECIPIENT_LEVEL sets, so no pooled player can ever fall inside it and the item
+			sits on the list forever. Held back until a real level is sourced for those rows,
+			rather than offered to nobody.
 		]]
 		if (cdef.useLevel or 0) <= 0 then
 			return nil, REJECT.NO_USE_LEVEL

@@ -53,6 +53,46 @@ local function contains(list, wanted)
 end
 
 --------------------------------------------------------------------------------
+-- The scale
+--------------------------------------------------------------------------------
+
+--[[
+	What Data/Match-Stats.lua's THE SCALE block promises is pinned here, and this is the
+	pin it names: the gap between a secondary 2 and a competes 3 is one point and it is
+	categorical, because ns.Data.CLASS_SHARE puts the admission line at 2.1 against a
+	primary 6. Move the constant and one of these fails rather than every item quietly
+	rerouting.
+
+	Read off ns.Data rather than restated, so tuning a number is what breaks the case.
+]]
+test("the point scale straddles the contention line", function()
+	local ns = load()
+	local PRIMARY, SECONDARY, COMPETES = 6, 2, 3
+	local line = PRIMARY * ns.Data.CLASS_SHARE
+
+	check(SECONDARY < line, ("a secondary %d sits below the line at %.2f"):format(SECONDARY, line))
+	check(COMPETES >= line, ("a competes %d reaches it"):format(COMPETES))
+end)
+
+--[[
+	The same boundary as behavior, on a real pair rather than on the numbers alone: a
+	rogue builds on Agility at 6 and a warrior takes it at 2, so the rogue competes and
+	the warrior stays a fallback. The weights are asserted too, or a later edit to either
+	would leave the case passing while proving something else.
+]]
+test("a secondary weight is admitted but never in contention against a primary", function()
+	local ns = load()
+	equal(ns.Data.StatWeights.ROGUE.AGILITY, 6, "the rogue's primary")
+	equal(ns.Data.StatWeights.WARRIOR.AGILITY, 2, "the warrior's secondary")
+
+	local verdict = ns.Matcher:Verdict(cloth(ns, { ITEM_MOD_AGILITY_SHORT = 8 }))
+
+	check(contains(verdict.contenders, "ROGUE"), "the rogue competes")
+	check(contains(verdict.admitted, "WARRIOR"), "the warrior is admitted, so the item still reaches him")
+	check(not contains(verdict.contenders, "WARRIOR"), "but never ahead of the rogue")
+end)
+
+--------------------------------------------------------------------------------
 -- The weights themselves
 --------------------------------------------------------------------------------
 

@@ -70,6 +70,9 @@ ns.OPTIONS_CONTROL_WIDTH = ns.OPTIONS_ROW_WIDTH - ns.OPTIONS_LABEL_WIDTH
 -- The remove column of a player-managed item list, sized to its icon. This add-on ships no list.
 ns.OPTIONS_REMOVE_ICON_WIDTH = 0.25
 
+-- The blank cell a sub-option row leads with, so its control indents. This add-on ships no sub-options.
+ns.OPTIONS_SUB_INDENT_WIDTH = 0.115
+
 --------------------------------------------------------------------------------
 -- Addon Message Prefix
 --------------------------------------------------------------------------------

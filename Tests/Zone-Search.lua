@@ -394,6 +394,53 @@ test("closing the window mid-search leaves no Who panel and no assignment", func
 	equal(ns.UI:Items()[1].recipient, nil, "and the closed window took no recipient")
 end)
 
+--[[
+	Escape closes the window, the way it closes every other window the game opens. It
+	reaches the frame through UISpecialFrames, which only calls Hide and never touches
+	UI:Close -- so this is what the client does, name lookup and all.
+]]
+local function pressEscape()
+	for _, name in ipairs(UISpecialFrames) do
+		local frame = _G[name]
+		if frame and frame:IsShown() then
+			frame:Hide()
+			return name
+		end
+	end
+end
+
+test("the window is registered for Escape", function()
+	local ns = load()
+	bagWithOneCloak(ns)
+
+	check(ns.UI.frame:IsShown(), "the mailbox opened it")
+	check(contains(UISpecialFrames, "PlayItForwardMailFrame"), "and it is in the Escape list")
+	equal(pressEscape(), "PlayItForwardMailFrame", "Escape reaches it")
+	check(not ns.UI.frame:IsShown(), "and it closes")
+end)
+
+--[[
+	The whole reason the closing work hangs off OnHide rather than off the X: Escape
+	skips UI:Close entirely, and a plan left standing behind a closed window would
+	assign recipients into a window nobody is looking at.
+]]
+test("Escape stops the search the same way the X does", function()
+	local ns = load()
+	bagWithOneCloak(ns)
+
+	ns.UI:FindRecipients()
+	pressEscape()
+
+	equal(ns.Who:Remaining(), 0, "the plan went with the window")
+
+	FriendsFrame:Show()
+	Stub.whoResults = { { name = "Agathe", level = 18, class = "MAGE" } }
+	ns.fire("WHO_LIST_UPDATE")
+
+	check(not FriendsFrame:IsShown(), "the Who panel did not outlive it either")
+	equal(ns.UI:Items()[1].recipient, nil, "and no recipient was assigned behind it")
+end)
+
 test("an empty answer keeps the search going", function()
 	local ns = load()
 	bagWithOneCloak(ns)
