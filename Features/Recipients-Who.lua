@@ -5,6 +5,31 @@ ns.Who = {}
 local Who = ns.Who
 
 --------------------------------------------------------------------------------
+-- Class Names
+--------------------------------------------------------------------------------
+
+--[[
+	Both halves of the /who class round trip, and this file is the only place either is wanted:
+	the localized name goes out on the filter, and the name a result comes back with is turned
+	into a token here. Built once at load, since the locale cannot change without a restart.
+]]
+local classNameByToken = LOCALIZED_CLASS_NAMES_MALE or {}
+
+local classTokenByName = {}
+do
+	for token, name in pairs(LOCALIZED_CLASS_NAMES_MALE or {}) do
+		classTokenByName[name] = token
+	end
+	for token, name in pairs(LOCALIZED_CLASS_NAMES_FEMALE or {}) do
+		classTokenByName[name] = token
+	end
+end
+
+local function className(token)
+	return classNameByToken[token] or token or ""
+end
+
+--------------------------------------------------------------------------------
 -- Zone Search Order
 --------------------------------------------------------------------------------
 
@@ -155,7 +180,7 @@ local function classFilter(classes)
 
 	local names, parts = {}, {}
 	for _, token in ipairs(classes) do
-		local name = ns.ClassName(token)
+		local name = className(token)
 		if name and name ~= "" then
 			names[#names + 1] = name
 			parts[#parts + 1] = ('c-"%s"'):format(name)
@@ -241,7 +266,7 @@ local function parseResults()
 				An unreadable class token is the only reason a result is discarded: without it
 				there is no way to tell whether they can wear the item.
 			]]
-			local token = info.filename or ns.classTokenByName[info.classStr]
+			local token = info.filename or classTokenByName[info.classStr]
 			if token then
 				table.insert(list, {
 					name = info.fullName,
@@ -316,9 +341,22 @@ ns.on("WHO_LIST_UPDATE", function()
 	end
 	local job = pending
 	pending = nil
-	-- Read before restoring, then close the window this add-on caused to open.
-	local results, raw = parseResults()
+
+	--[[
+		Read before restoring, then close the window this add-on caused to open.
+
+		THE RESTORE RUNS WHETHER OR NOT THE READ SUCCEEDED, which is why the read is guarded. By
+		here `pending` is already nil, so Who:Step's timeout will not fire either: a throw inside
+		parseResults would leave SetWhoToUi routed at a list nothing reads and WHO_LIST_UPDATE
+		still unregistered from the Blizzard frames, and the player's own /who would answer with
+		silence until they reloaded. endQuery is the only path back.
+	]]
+	local ok, results, raw = pcall(parseResults)
 	endQuery()
+	if not ok then
+		-- An unreadable answer is an empty one: the plan moves on rather than stalling on it.
+		results, raw = {}, 0
+	end
 
 	if raw >= WHO_RESULT_CAP then
 		counts.capped = counts.capped + 1

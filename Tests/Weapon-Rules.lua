@@ -40,6 +40,8 @@ end
 
 local ONE_HAND, TWO_HAND = "INVTYPE_WEAPON", "INVTYPE_2HWEAPON"
 local SWORD, MACE_1H, MACE_2H, DAGGER, STAFF, BOW, POLEARM, FIST = 7, 4, 5, 15, 10, 2, 6, 13
+-- The rest of the ranged slot, which the unclaimed rule covers and pointedly does not.
+local GUN, CROSSBOW, THROWN = 3, 18, 16
 -- The kinds a rogue and a hunter respectively cannot hold, which is what makes them worth pinning.
 local AXE_1H, SWORD_2H = 0, 8
 
@@ -208,6 +210,80 @@ test("a bow is neither", function()
 	local verdict = ns.Matcher:Verdict(weapon(ns, BOW, "INVTYPE_RANGED", {}))
 
 	check(contains(verdict.contenders, "HUNTER"), "a ranged weapon is decided by the weapon matrix")
+end)
+
+--------------------------------------------------------------------------------
+
+--[[
+	A ranged weapon carrying nothing anybody ranks. The matrix admits a warrior, a hunter
+	and a rogue equally and the baseline gives all three the same score, so before this
+	rule the tie fell to whoever came first in the class list -- the warrior, every time.
+
+	A hunter's whole damage comes out of that slot in all three of his specs; a warrior or
+	a rogue carries a gun to pull with. When there is nothing on the item to separate them,
+	that is the tiebreak.
+]]
+test("a statless gun is the hunter's", function()
+	local ns = load()
+	local verdict = ns.Matcher:Verdict(weapon(ns, GUN, "INVTYPE_RANGED", {}))
+
+	equal(sorted(verdict.contenders), "HUNTER", "the hunter leads alone")
+	check(contains(verdict.admitted, "WARRIOR"), "a warrior can still have it when no hunter is around")
+	check(contains(verdict.admitted, "ROGUE"), "and a rogue")
+end)
+
+test("a statless bow and crossbow are the same case", function()
+	local ns = load()
+
+	equal(sorted(ns.Matcher:Verdict(weapon(ns, BOW, "INVTYPE_RANGED", {})).contenders), "HUNTER", "bow")
+	equal(sorted(ns.Matcher:Verdict(weapon(ns, CROSSBOW, "INVTYPE_RANGED", {})).contenders), "HUNTER", "crossbow")
+end)
+
+--[[
+	The limit of the rule, and it is the whole reason it is written on "unclaimed" rather
+	than on "ranged": a bow is good for everyone and stats decide it. Agility is a rogue's
+	stat as much as a hunter's, so both compete -- the hunter has no special claim once
+	there is something on the item to read.
+]]
+test("an agility bow is still shared with the rogue", function()
+	local ns = load()
+	local verdict = ns.Matcher:Verdict(weapon(ns, BOW, "INVTYPE_RANGED", { ITEM_MOD_AGILITY_SHORT = 6 }))
+
+	equal(sorted(verdict.contenders), "HUNTER ROGUE", "stats decide, and both build on Agility")
+end)
+
+test("a strength gun is the warrior's", function()
+	local ns = load()
+	local verdict = ns.Matcher:Verdict(weapon(ns, GUN, "INVTYPE_RANGED", { ITEM_MOD_STRENGTH_SHORT = 6 }))
+
+	equal(sorted(verdict.contenders), "WARRIOR", "the rule never got to name the hunter")
+	check(not contains(verdict.admitted, "HUNTER"), "he has no claim on Strength at all")
+end)
+
+--[[
+	Thrown is deliberately out of the rule: the matrix gives a hunter no proficiency for
+	it, so naming him there would be a line that could never apply.
+]]
+test("statless thrown is left to the two classes that carry it", function()
+	local ns = load()
+	local verdict = ns.Matcher:Verdict(weapon(ns, THROWN, "INVTYPE_THROWN", {}))
+
+	check(not contains(verdict.admitted, "HUNTER"), "a hunter cannot use a thrown weapon")
+	check(contains(verdict.contenders, "WARRIOR"), "the warrior competes for it")
+	check(contains(verdict.contenders, "ROGUE"), "and the rogue")
+end)
+
+--[[
+	The rule asks about the scoring, not about the item, and only a preference may: a veto
+	is applied before anything is scored, so it could never answer the question.
+]]
+test("the unclaimed rule never carries a veto", function()
+	local ns = load()
+	for _, rule in ipairs(ns.Data.ItemRules) do
+		if rule.unclaimed then
+			check(rule.veto == nil, rule.name .. " does not veto")
+		end
+	end
 end)
 
 --[[

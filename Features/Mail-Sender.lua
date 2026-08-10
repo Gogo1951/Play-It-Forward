@@ -72,9 +72,13 @@ end)
 	listed, since a hardcoded English sentence would never fire on another locale. Strings carrying
 	a format specifier are skipped -- they arrive with the placeholder filled in, so an exact
 	comparison never matches. A skipped error is a missed catch, never a wrong one.
+
+	ON THE DISTRIBUTOR RATHER THAN FILE-LOCAL, because the diagnostics event-log filter classifies
+	UI_ERROR_MESSAGE with it: the filter has to ask the same question the live handler asks, or the
+	log suppresses a firing this file acted on and says nothing about it.
 ]]
 local mailErrors
-local function isMailError(message)
+function Distributor:IsMailError(message)
 	if not message or message == "" then
 		return false
 	end
@@ -101,7 +105,7 @@ ns.on("UI_ERROR_MESSAGE", function(_, message)
 	if not Distributor.busy or not Distributor._current then
 		return
 	end
-	if not isMailError(message) then
+	if not Distributor:IsMailError(message) then
 		return
 	end
 	-- A name the server will not take now will not start working later in the same session.

@@ -4,7 +4,13 @@ local L = ns.L
 -- Identity, saved-variable lifecycle and the event dispatcher. Nothing else belongs here.
 ns.name = ADDON_NAME
 
--- An unreplaced @project-version@ token means an unpackaged dev copy: the @ is the signal.
+--[[
+	The TOC ships the literal token @project-version@ and the CurseForge packager replaces it at
+	build time, so a version still carrying an @ is an unpackaged dev copy.
+
+	THE NIL TEST COMES FIRST AND IS LOAD-BEARING. An unpackaged metadata read answers nil, so
+	testing for the @ first would error on exactly the local-dev path this exists for.
+]]
 local function GetVersion()
 	local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
 	local version = GetAddOnMetadata and GetAddOnMetadata(ADDON_NAME, "Version")

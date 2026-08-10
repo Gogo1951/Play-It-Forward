@@ -44,23 +44,37 @@ L["BUTTON_DISTRIBUTE"] = "Distribute"
 -- On the Distribute button away from a mailbox: an ordinary state, not an error.
 L["BUTTON_NEEDS_MAILBOX"] = "Requires Open Mailbox"
 
+--[[
+	The search behind Find Recipients, filed here with that button rather than under Distributing:
+	nothing is being sent when it prints. SendWho only answers from a real button press, so a
+	blocked call is explained instead of reading as a dead press.
+]]
+L["WHO_BLOCKED"] =
+	"Press Find Recipients again. Blizzard only allows that search straight from a button press, and something interrupted this one."
+
 -- Labels for where a query is looking live in ns.DiagnosticsStrings: roster report only.
 
 L["SECTION_MATCHED"] = "Matched"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
 L["SECTION_NO_RECIPIENT"] = "Pending Match"
 L["SECTION_UNREADABLE"] = "Stats Couldn't Be Read"
+
 --[[
 	"Kept", never "vendor / disenchant" (maintainer ruling, 2026-07-23): the add-on does not
 	tell the player what to do with what stays. Covers both the rows nobody was found for and
 	the rows the player chose to keep.
+
+	ONE KEY FOR TWO SURFACES, and the only pair that shares one: the section band and the row
+	label read the same single word, so two keys could only drift apart. Every other section
+	and row pair deliberately says something different on each -- "Pending Match" over a band
+	of rows that each read "No Recipient".
 ]]
-L["SECTION_KEPT"] = "Kept"
+L["WINDOW_KEPT"] = "Kept"
 
 -- Row labels are Title Case, like the dropdown's own actions.
-L["ROW_KEPT"] = "Kept"
 L["ROW_NO_RECIPIENT"] = "No Recipient"
-L["ROW_UNREADABLE"] = "Stats Unknown"
+-- The same words as the section band above it, so one state is not named two ways.
+L["ROW_UNREADABLE"] = "Couldn't Read Stats"
 
 L["PICKER_KEEP_OPTION"] = "Keep Item"
 L["PICKER_NONE_IN_RANGE"] = "No one in range, run Find Recipients"
@@ -73,11 +87,15 @@ L["PICKER_UNREADABLE"] = "Couldn't read this item's stats, so it isn't matched"
 L["PICKER_NOTE_HAS_ONE"] = "(has one)"
 L["PICKER_NOTE_REFUSED"] = "(refused)"
 L["PICKER_NOTE_RECENT"] = "(recent)"
--- Below the divider at the bottom of the list: one targeted /who press for this item's band.
+--[[
+	Below the divider at the bottom of the list: a /who aimed at the classes the verdict says
+	this item is for, their own bands first and the fallbacks a press behind them.
+]]
 L["PICKER_FIND_FOR_ITEM"] = "Find Recipients for This Item"
 
+-- A heading takes no full stop; the two body lines under it both do.
 L["TOOLTIP_RECIPIENT"] = "Recipient"
-L["TOOLTIP_RECIPIENT_CANDIDATES"] = "%d candidate(s) at level %d-%d"
+L["TOOLTIP_RECIPIENT_CANDIDATES"] = "%d candidate(s), levels %d-%d."
 L["TOOLTIP_RECIPIENT_HINT"] = "Click to reassign."
 
 --[[
@@ -129,9 +147,6 @@ L["MAIL_DONE_WITH_SKIPS"] = "Done. %d of %d delivered, %d skipped (moved in your
 -- Deliberately no MAIL_PREVIEW_* strings: the Diagnostic Tools panel keeps the preview.
 L["MAIL_SUBJECT_TOO_LONG"] = "Subject is %d characters and mail only takes %d, so it will be cut short."
 L["MAIL_BODY_TOO_LONG"] = "Body is %d characters and mail only takes %d, so it will be cut short."
-
-L["WHO_BLOCKED"] =
-	"Press Find Recipients again. Blizzard only allows that search straight from a button press, and something interrupted this one."
 
 --------------------------------------------------------------------------------
 -- Default Mail Contents

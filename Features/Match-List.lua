@@ -191,11 +191,16 @@ local function rescanBags()
 	for _, item in ipairs(items) do
 		-- Computed once and cached: everything downstream reads this verdict, never a new one.
 		local verdict = ns.Matcher:Verdict(item)
-		local bandLo, bandHi = ns.Matcher:LevelBand(item)
 		item.verdict, item.state = verdict, verdict.state
 		item.best, item.score, item.eligible = verdict.best, verdict.score, verdict.eligible
-		item.bandLo, item.bandHi = bandLo, bandHi
 		local eligible = verdict.eligible
+		--[[
+			The span across everybody who could receive it, which is the item's own band unless a
+			class has to train the armor material first. Displayed, never searched: the groups
+			below carry a band apiece so a hunter's mail query is not widened to the paladin's.
+		]]
+		local reachable = (#verdict.admitted > 0) and verdict.admitted or eligible
+		item.bandLo, item.bandHi = ns.Matcher:SearchBand(item, reachable)
 
 		local kept = previous[slotKey(item)]
 		local taken = kept and kept.recipient and assignedTo[kept.recipient.name]
@@ -214,11 +219,9 @@ local function rescanBags()
 			kept fallback pairing narrows its band to the contenders, same as the prune path.
 		]]
 		if #eligible > 0 then
-			bands[#bands + 1] = {
-				lo = bandLo,
-				hi = bandHi,
-				classes = bandClasses(item, verdict),
-			}
+			for _, group in ipairs(ns.Matcher:BandGroups(item, bandClasses(item, verdict))) do
+				bands[#bands + 1] = group
+			end
 		end
 	end
 
@@ -260,11 +263,9 @@ local function searchingBands()
 			local verdict = item.verdict
 			local eligible = (verdict and verdict.eligible) or {}
 			if #eligible > 0 then
-				bands[#bands + 1] = {
-					lo = item.bandLo,
-					hi = item.bandHi,
-					classes = bandClasses(item, verdict),
-				}
+				for _, group in ipairs(ns.Matcher:BandGroups(item, bandClasses(item, verdict))) do
+					bands[#bands + 1] = group
+				end
 			end
 		end
 	end

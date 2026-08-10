@@ -205,6 +205,20 @@ function UI:_buildFrame()
 	find:SetSize(widest, 22)
 	dist:SetSize(widest, 22)
 
+	--[[
+		Escape closes it, the way it closes every other window the game opens -- the one thing
+		players reach for before the X and the only close this window did not answer.
+
+		THE CLOSING WORK LIVES ON OnHide, not on the X. UISpecialFrames only calls Hide, so
+		anything hung off the button alone would be skipped by Escape and the pairings, the query
+		plan and a half-finished mail run would all outlive the window. Registered after the
+		f:Hide() above, or building the frame would fire this before UI.frame exists.
+	]]
+	tinsert(UISpecialFrames, "PlayItForwardMailFrame")
+	f:SetScript("OnHide", function()
+		UI:_onClosed()
+	end)
+
 	UI.frame = f
 	UI:_syncControls()
 	return f
@@ -438,7 +452,8 @@ local SECTION = {
 	[1] = L["SECTION_MATCHED"],
 	[2] = L["SECTION_NO_RECIPIENT"],
 	[3] = L["SECTION_UNREADABLE"],
-	[4] = L["SECTION_KEPT"],
+	-- One key with the row label below: both surfaces read the same single word. See Locales/enUS.lua.
+	[4] = L["WINDOW_KEPT"],
 }
 
 local function renderList()
@@ -504,7 +519,7 @@ function UI:Refresh()
 				elseif item.state == ns.Matcher.GIFT then
 					label = GetColor("TITLE") .. L["ROW_NO_RECIPIENT"] .. "|r"
 				else
-					label = GetColor("MUTED") .. L["ROW_KEPT"] .. "|r"
+					label = GetColor("MUTED") .. L["WINDOW_KEPT"] .. "|r"
 				end
 				row.recipButton.text:SetText(label)
 				row.check:SetChecked(false)

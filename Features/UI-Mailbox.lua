@@ -107,26 +107,22 @@ function UI:_lockFindButton()
 end
 
 --[[
-	One press of a targeted search over this item's band alone, from the bottom of its
-	dropdown -- for when the names on offer are not good enough. It RETASKS the plan: whatever
-	the previous plan still held is dropped for this item's attempts, and the next fresh press
-	of Find Recipients rebuilds the full plan for every item. Runs off the picker click, which
-	is the hardware event SendWho demands.
+	One press of a targeted search for this item alone, from the bottom of its dropdown -- for
+	when the names on offer are not good enough. It asks who this item is actually for and goes
+	looking for exactly them: Matcher:TargetedBands puts the classes the verdict named at the
+	front, so a lone contender becomes a query carrying c-"Hunter" over the zones its band
+	passes through, with the fallbacks behind it a press later.
+
+	It RETASKS the plan: whatever the previous plan still held is dropped for this item's
+	attempts, and the next fresh press of Find Recipients rebuilds the full plan for every item.
+	Runs off the picker click, which is the hardware event SendWho demands.
 ]]
 function UI:FindRecipientsForItem(item)
 	local verdict = item.verdict or ns.Matcher:VerdictFor(item)
-	local eligible = (verdict and verdict.eligible) or {}
-	if #eligible == 0 then
+	if #((verdict and verdict.eligible) or {}) == 0 then
 		return
 	end
-	ns.Who:Plan({
-		{
-			lo = item.bandLo,
-			hi = item.bandHi,
-			-- Admitted, not contenders: the point is more names to choose from by hand.
-			classes = (#verdict.admitted > 0) and verdict.admitted or eligible,
-		},
-	})
+	ns.Who:Plan(ns.Matcher:TargetedBands(item))
 	self:_step()
 end
 
@@ -313,13 +309,33 @@ function UI:ForceShow()
 	)
 end
 
--- Closing is manual, via the X. Nothing else hides this window.
+--[[
+	Closing is manual: the X, or Escape. Nothing else hides this window.
+
+	Both routes land in _onClosed rather than here, because Escape reaches the frame through
+	UISpecialFrames and never touches this function -- see the registration in
+	Features/UI-Window.lua. This is left as the name every caller already knows.
+]]
 function UI:Close()
 	Picker:Close()
 	if not self.frame then
 		return
 	end
 	self.frame:Hide()
+	-- Called here as well as from OnHide, for the window that was closed without ever being shown.
+	self:_onClosed()
+end
+
+--[[
+	Everything that has to stop when the window goes away, wherever the close came from. Every line
+	is idempotent, which is what lets both routes call it: Escape arrives through OnHide, the X
+	through UI:Close, and a press of the X runs both.
+]]
+function UI:_onClosed()
+	if not self.frame then
+		return
+	end
+	Picker:Close()
 	ns.Distributor:Stop()
 	ns.Who:Clear() -- a half-finished query plan is stale; pairings are not
 	self:_syncFindButton()

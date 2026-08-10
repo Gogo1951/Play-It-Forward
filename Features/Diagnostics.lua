@@ -133,25 +133,102 @@ local EVENT_LOG_MAX_ARGS = 8
 local EVENT_LOG_MAX_ARG_LENGTH = 255
 
 --[[
-	Dropped on volume alone: BAG_UPDATE fires per bag on every loot, sale and stack merge, and
-	GET_ITEM_INFO_RECEIVED once per item the client resolves. Either buries the mailbox and /who
-	events past the 500-entry cap, and the Bag Scan report already prints the scan they triggered.
+	Dropped on volume alone, and only because no instance of either is ever signal: BAG_UPDATE fires
+	per bag on every loot, sale and stack merge, and GET_ITEM_INFO_RECEIVED once per item the client
+	resolves. Either buries the mailbox and /who events past the 500-entry cap, and the Bag Scan
+	report already prints the scan they triggered.
+
+	AN EVENT THAT IS SOMETIMES SIGNAL DOES NOT BELONG HERE. It gets the per-id filter below, which
+	keeps the firings the add-on acts on and counts the rest.
 ]]
 ns.DIAGNOSTIC_EVENT_EXCLUDE = {
 	BAG_UPDATE = true,
 	GET_ITEM_INFO_RECEIVED = true,
-	-- Registered in Features/Generosity-Broadcast.lua; a firehose of peer broadcasts in cities and raids.
-	CHAT_MSG_ADDON = true,
+}
+
+--[[
+	The firehoses that are sometimes signal, and where in their arguments the id that says which
+	is which arrives. Both are registered: UI_ERROR_MESSAGE in Features/Mail-Sender.lua, where a
+	mail refusal arrives as a red error, and CHAT_MSG_ADDON in Features/Generosity-Broadcast.lua.
+	Logged raw, the combat errors and the other add-ons' chatter evict the mailbox and /who entries
+	the log exists to carry; dropped outright, the log can never show a refusal or a peer arriving.
+
+	FILTER BY WHAT THE ADD-ON ACTS ON, NEVER BY A DENYLIST OF NOISE. Noise is unbounded, varies by
+	class and activity, and renumbers across patches. Each rule's `correlated` is the live handler's
+	own test, called rather than restated: a filter that classified differently would make the log
+	lie about what fired.
+]]
+ns.MESSAGE_ID_FILTERED_EVENTS = {
+	UI_ERROR_MESSAGE = {
+		id = 1, -- (messageType, message)
+		correlated = function(_, message)
+			return ns.Distributor:IsMailError(message)
+		end,
+	},
+	CHAT_MSG_ADDON = {
+		id = 1, -- (prefix, message, channel, sender)
+		correlated = function(prefix)
+			return prefix == ns.ADDON_MESSAGE_PREFIX
+		end,
+	},
 }
 
 function ns:StartEventLog()
 	ns.diagnostics.log = {}
+	ns.diagnostics.suppressed = {}
 	ns.diagnostics.logging = true
 end
 
 function ns:StopEventLog()
 	ns.diagnostics.logging = false
 	ns.diagnostics.log = nil
+	-- Released with the log: the counters are the log's own footnote, not state that outlives it.
+	ns.diagnostics.suppressed = nil
+end
+
+--[[
+	Whether this firing folds into a counter instead of reaching the buffer. Applied AT CAPTURE, in
+	ns:LogEvent below, never at render: filtering at display time still lets spam push real entries
+	out of a bounded buffer.
+
+	UNCLASSIFIABLE IS SIGNAL. A firing with nothing at the id position is logged verbatim rather
+	than counted, because the thing that would have decided is missing. So is one with nowhere to
+	count it: this never deletes an entry it did not record.
+]]
+function ns:SuppressUncorrelatedMessage(event, ...)
+	local rule = ns.MESSAGE_ID_FILTERED_EVENTS[event]
+	if not rule then
+		return false
+	end
+
+	local id = (select(rule.id, ...))
+	if id == nil or id == "" then
+		return false
+	end
+	if rule.correlated(...) then
+		return false
+	end
+
+	local suppressed = ns.diagnostics.suppressed
+	if not suppressed then
+		return false
+	end
+
+	local key = string.format("%s(%s)", event, tostring(id))
+	local entry = suppressed[key]
+	if entry then
+		entry.count = entry.count + 1
+		return true
+	end
+
+	--[[
+		First-seen text only, cut and escaped the way a logged argument is: this is what tells a
+		tester an id the add-on SHOULD be correlating from one it is right to ignore.
+	]]
+	local text = (select(rule.id + 1, ...))
+	text = string.sub(tostring(text == nil and "" or text), 1, EVENT_LOG_MAX_ARG_LENGTH)
+	suppressed[key] = { event = event, id = id, text = (text:gsub("|", "||")), count = 1 }
+	return true
 end
 
 --[[
@@ -161,6 +238,9 @@ end
 ]]
 function ns:LogEvent(event, ...)
 	if ns.DIAGNOSTIC_EVENT_EXCLUDE[event] then
+		return
+	end
+	if ns:SuppressUncorrelatedMessage(event, ...) then
 		return
 	end
 	local parts = {}
@@ -178,6 +258,38 @@ function ns:LogEvent(event, ...)
 	end
 end
 
+--[[
+	The captured entries, then what was folded into a counter instead. The summary is the second
+	half of the report rather than a separate button: an id showing up here in the hundreds is how
+	a tester discovers something the add-on should be correlating and is not.
+]]
+local function AppendSuppressed(lines)
+	local suppressed = ns.diagnostics.suppressed
+	if not suppressed then
+		return
+	end
+	local entries = {}
+	for _, entry in pairs(suppressed) do
+		entries[#entries + 1] = entry
+	end
+	if #entries == 0 then
+		return
+	end
+	-- Biggest offender first; the key breaks ties so the block holds still between renders.
+	table.sort(entries, function(a, b)
+		if a.count ~= b.count then
+			return a.count > b.count
+		end
+		return string.format("%s%s", a.event, tostring(a.id)) < string.format("%s%s", b.event, tostring(b.id))
+	end)
+
+	lines[#lines + 1] = ""
+	lines[#lines + 1] = "Suppressed, counted rather than logged (nothing the add-on acts on):"
+	for _, entry in ipairs(entries) do
+		lines[#lines + 1] = string.format("  %s(%s, %s) x%d", entry.event, tostring(entry.id), entry.text, entry.count)
+	end
+end
+
 function ns:BuildEventLogReport()
 	local lines = { GetClientHeader(), "" }
 	local log = ns.diagnostics.log
@@ -188,6 +300,7 @@ function ns:BuildEventLogReport()
 			lines[#lines + 1] = entry
 		end
 	end
+	AppendSuppressed(lines)
 	return table.concat(lines, "\n")
 end
 
@@ -438,6 +551,26 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return faction == "Alliance" or faction == "Horde"
 		end,
 	},
+	--[[
+		Load-bearing for identity. ns.QualifyPlayerName is what tells two sightings of one player
+		apart from two players -- /who answers bare where the guild roster qualifies the same
+		character -- and pooling one person twice means two parcels in one mailbox. Reports which
+		read answered, since the second is a retry on an unresolved realm rather than a fallback.
+	]]
+	{
+		"Realm name for the identity key",
+		function()
+			local normalized = GetNormalizedRealmName and GetNormalizedRealmName()
+			if normalized and normalized ~= "" then
+				return true, "via GetNormalizedRealmName: " .. normalized
+			end
+			local plain = GetRealmName and GetRealmName()
+			if plain and plain ~= "" then
+				return true, "via GetRealmName: " .. plain
+			end
+			return false, "neither GetNormalizedRealmName nor GetRealmName answered"
+		end,
+	},
 	{
 		"C_FriendList.SendWho",
 		function()
@@ -556,6 +689,20 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		"IsResting",
 		function()
 			return type(IsResting) == "function"
+		end,
+	},
+	--[[
+		The client's own money formatter, which renders the coin icons in the Generosity block.
+		ns.MoneyString falls back to a plain "Xg Ys Zc" without it, so this failing is cosmetic --
+		but a fallback nothing reports is a fallback nobody knows they took.
+	]]
+	{
+		"Money formatting for the Generosity totals",
+		function()
+			if type(GetCoinTextureString) == "function" then
+				return true, "via GetCoinTextureString, with coin icons"
+			end
+			return false, "falling back to a plain gold/silver/copper string"
 		end,
 	},
 	{
@@ -850,6 +997,28 @@ local function AppendVerdict(lines, item, indent)
 		low,
 		high
 	)
+	--[[
+		The classes searching somewhere else, and why. A hunter trains mail at 40, so a level 36
+		mail belt looks for him at 38 and 39 while the paladin beside him is looked for at 34 and
+		35 -- two searches under one band line, and invisible without this.
+	]]
+	local shifted = {}
+	for _, class in ipairs(verdict.admitted) do
+		local lo, hi = ns.Matcher:LevelBand(item, class)
+		if lo ~= bandLo or hi ~= bandHi then
+			shifted[#shifted + 1] = string.format("%s %d to %d", class, lo, hi)
+		end
+	end
+	if #shifted > 0 then
+		table.sort(shifted)
+		lines[#lines + 1] = string.format(
+			"%s  trains the armor later, so it is searched for higher up: %s (reach %d)",
+			indent,
+			table.concat(shifted, ", "),
+			ns.Data.PROFICIENCY_REACH
+		)
+	end
+
 	-- WIDEST at or below CLOSEST collapses the band to one level, which is drastic and invisible.
 	if bandLo == bandHi then
 		lines[#lines + 1] = string.format(

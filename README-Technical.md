@@ -8,65 +8,66 @@ This document combines architecture notes and contribution guidance for develope
 Play-It-Forward/
 ├── .github/
 │   └── workflows/
-│       └── package.yml              CurseForge release + library vendoring.
-├── .gitattributes                   LF normalization; identical in every add-on.
-├── .pkgmeta                         Externals and ignore list.
-├── LICENSE                          MIT.
-├── Play-It-Forward.toc              Single TOC; dual interface (Classic Era, TBC Anniversary).
-├── README.md                        Player-facing documentation.
-├── README-Technical.md              This document.
-├── README-Testing.md                Manual QA script.
+│       └── package.yml           CurseForge release + library vendoring.
+├── .gitattributes                LF normalization; identical in every add-on.
+├── .pkgmeta                      Externals and ignore list.
+├── LICENSE                       MIT.
+├── Play-It-Forward.toc           Single TOC; dual interface (Classic Era, TBC Anniversary).
+├── README.md                     Player-facing documentation.
+├── README-Technical.md           This document.
+├── README-Testing.md             Manual QA script.
+├── Suffix.md                     Random-enchantment reference. Development only.
 ├── Data/
-│   ├── Data.lua                     Locale init, ns.Data, flavor flags, palette, links, options registry.
-│   ├── Default-Settings.lua         ns.DATABASE_DEFAULTS — the AceDB defaults table (profile + global.stats).
-│   ├── Match-Stats.lua              Per-class stat point tables and the scoring constants.
-│   ├── Match-Armor.lua              Native armor per class per level; universal equip slots.
-│   ├── Match-Weapons.lua            Spec-count matrix per weapon type, plus proficiency level gates.
-│   ├── Match-Rules.lua              Stat, form and weapon combinations that name their own class.
-│   ├── Scan-Stats.lua               GetItemStats keys -> internal stat tokens.
-│   ├── Scan-Food.lua                Giftable food and drink (SQL-sourced).
-│   ├── Scan-Potions.lua             Giftable potions (SQL-sourced).
-│   └── Recipients-Zones.lua         Levelling zones per flavor and faction, for /who filtering.
+│   ├── Data.lua                  Locale init, ns.Data, flavor flags, palette, links, options registry.
+│   ├── Default-Settings.lua      ns.DATABASE_DEFAULTS, the AceDB defaults table (profile + global.stats).
+│   ├── Match-Stats.lua           Per-class stat point tables and the scoring constants.
+│   ├── Match-Armor.lua           Native armor per class per level, the proficiency reach, universal equip slots.
+│   ├── Match-Weapons.lua         Spec-count matrix per weapon type, plus proficiency level gates.
+│   ├── Match-Rules.lua           Stat, form and weapon combinations that name their own class.
+│   ├── Scan-Stats.lua            GetItemStats keys to internal stat tokens.
+│   ├── Scan-Food.lua             Giftable food and drink (SQL-sourced).
+│   ├── Scan-Potions.lua          Giftable potions (SQL-sourced).
+│   └── Recipients-Zones.lua      Levelling zones per flavor and faction, for /who filtering.
 ├── Features/
-│   ├── Core.lua                     Identity, AceDB lifecycle, central event dispatcher.
-│   ├── Utilities.lua                Container API shims, frame templates, color accessors, number formatting, ns.QualifyPlayerName, ns.AtMailbox / ns.AtRest.
-│   ├── Announcements.lua            ns:PrintMessage — the only output path, player-only.
-│   ├── Scan-Tooltip.lua             Reads stats off a rendered tooltip, which is where suffix stats live.
-│   ├── Scan-Bags.lua                Bag slot -> giftable item record, or nil plus a reject code.
-│   ├── Match-Derivations.lua        ns.Data answers over the Data/ tables: priority groups, weapon keys, rules.
-│   ├── Match-Engine.lua             Eligibility, claim/fit scoring, coverage, verdict, candidate ranking.
-│   ├── Match-List.lua               items / pools / assignedTo state, the rescan, and the allocator.
-│   ├── Recipients-Who.lua           /who planning, chunking, throttling, result parsing.
-│   ├── Recipients-Guild.lua         Second recipient source; activity window, own-alt and summon-alt filters.
-│   ├── Recipients-Fairness.lua      Fairness history and this session's unreachable names.
-│   ├── Mail-Sender.lua              Serialized, event-driven mailer.
-│   ├── UI-Picker.lua                Scrolling dropdown widget, shared by the rarity, consumable-gap and recipient controls.
-│   ├── UI-Window.lua                Frame, top-bar dropdowns, rows, rendering, and manual assignment.
-│   ├── UI-Mailbox.lua               Search stepper, distribution glue, open/close behavior at a mailbox.
-│   ├── Generosity.lua               Account-wide giving tally; RecordSend on each mailing, into global.stats.
-│   ├── Generosity-Broadcast.lua     Shares the tally to nearby players over YELL addon messages; peers cache.
-│   ├── Generosity-Tooltip.lua       Renders a player's Generosity totals at the bottom of their unit tooltip.
-│   └── Diagnostics.lua              Report builders, manifests, event log, taint log.
+│   ├── Core.lua                  Identity, AceDB lifecycle, central event dispatcher.
+│   ├── Utilities.lua             Container API shims, frame templates, color accessors, number formatting, ns.QualifyPlayerName, ns.AtMailbox / ns.AtRest.
+│   ├── Announcements.lua         ns:BuildBrandedLine and ns:PrintMessage, the only output path. Player-only.
+│   ├── Scan-Tooltip.lua          Reads stats off a rendered tooltip, which is where suffix stats live.
+│   ├── Scan-Bags.lua             Bag slot to giftable item record, or nil plus a reject code.
+│   ├── Match-Derivations.lua     ns.Data answers over the Data/ tables: priority groups, weapon keys, rules.
+│   ├── Match-Engine.lua          Eligibility, claim/fit scoring, coverage, verdict, candidate ranking.
+│   ├── Match-List.lua            items / pools / assignedTo state, the rescan, and the allocator.
+│   ├── Recipients-Who.lua        /who planning, chunking, throttling, result parsing.
+│   ├── Recipients-Guild.lua      Second recipient source; activity window, own-alt and summon-alt filters.
+│   ├── Recipients-Fairness.lua   Fairness history and this session's unreachable names.
+│   ├── Mail-Sender.lua           Serialized, event-driven mailer.
+│   ├── UI-Picker.lua             Scrolling dropdown widget, shared by the rarity, consumable-gap and recipient controls.
+│   ├── UI-Window.lua             Frame, top-bar dropdowns, rows, rendering, and manual assignment.
+│   ├── UI-Mailbox.lua            Search stepper, distribution glue, open/close behavior at a mailbox.
+│   ├── Generosity.lua            Account-wide giving tally; RecordSend on each mailing, into global.stats.
+│   ├── Generosity-Broadcast.lua  Shares the tally with nearby players over YELL addon messages; peers cache.
+│   ├── Generosity-Tooltip.lua    Renders a player's Generosity totals at the bottom of their unit tooltip.
+│   └── Diagnostics.lua           Report builders, manifests, event log, taint log.
 ├── Includes/
 │   ├── Images/
-│   │   └── Play-It-Forward.tga      Icon art.
-│   └── Libraries/                   Vendored: LibStub, CallbackHandler-1.0, AceLocale-3.0, AceDB-3.0,
-│                                    AceGUI-3.0, AceConfig-3.0 (Registry/Cmd/Dialog), AceDBOptions-3.0.
+│   │   └── Play-It-Forward.tga   Icon art.
+│   └── Libraries/                Vendored: LibStub, CallbackHandler-1.0, AceLocale-3.0, AceDB-3.0,
+                                  AceGUI-3.0, AceConfig-3.0 (Registry/Cmd/Dialog), AceDBOptions-3.0.
 ├── Locales/
-│   └── enUS.lua                     Source of truth; the only locale file currently shipped.
+│   └── enUS.lua                  Source of truth, and the only locale file this add-on ships.
 ├── Options/
-│   ├── Options-Utilities.lua        Shared ns.Options* widget constructors, consumable-gap labels.
-│   ├── Options-General.lua          ns.BuildGeneralOptions — root panel; label-beside-control rows.
-│   ├── Options-Profiles.lua         ns.BuildProfilesOptions — stock AceDBOptions-3.0 table, unmodified.
-│   ├── Options-Diagnostics.lua      ns.BuildDiagnosticsOptions — Diagnostic Tools panel.
-│   └── Options.lua                  Panel registration and the /pif slash command.
-├── Tests/                           Headless suite; 26 files, run through Tests/Run.lua.
-└── Suffix.md                        Random-enchantment reference.
+│   ├── Options-Utilities.lua     Shared ns.Options* widget constructors, consumable-gap labels.
+│   ├── Options-General.lua       ns.BuildGeneralOptions, the root panel; label-beside-control rows.
+│   ├── Options-Profiles.lua      ns.BuildProfilesOptions, the stock AceDBOptions-3.0 table, unmodified.
+│   ├── Options-Diagnostics.lua   ns.BuildDiagnosticsOptions, the Diagnostic Tools panel.
+│   └── Options.lua               Panel registration, ns:OptionsPanelRoute, and the /pif slash command.
+└── Tests/                        Headless suite, development only: 25 cases plus Run.lua, Harness.lua
+                                  and Stub-WoW-API.lua.
 ```
 
-There is no minimap button, so `Features/Minimap-Button.lua`, LibDataBroker-1.1 and LibDBIcon-1.0 are all deliberately absent.
+There is no minimap button, so `Features/Minimap-Button.lua`, LibDataBroker-1.1 and LibDBIcon-1.0 are all deliberately absent. Don't reintroduce them.
 
-`Suffix.md` and `Tests/` are development-only but **do ship in the player zip**: `.pkgmeta`'s ignore list covers repo plumbing (`.git`, `.github`, `.pkgmeta`, `LICENSE` and the like) and nothing else, because the factory deliberately declined a rule ignoring dev-only files by path. Don't "fix" that by adding them.
+`Suffix.md` and `Tests/` are development-only: neither is listed in the TOC, and nothing the player runs reads either. `.pkgmeta`'s ignore list is what keeps development-only files out of the player zip.
 
 ## Architecture
 
@@ -77,9 +78,9 @@ There is no minimap button, so `Features/Minimap-Button.lua`, LibDataBroker-1.1 
 | Event | Registered in | Purpose |
 |-------|---------------|---------|
 | `ADDON_LOADED` | `Core.lua` | AceDB creation, fairness-list wipe, options registration. Name-guarded. |
-| `PLAYER_LOGIN` | `Core.lua`, `UI-Mailbox.lua` | Welcome print; installs the `MailFrame` `OnShow` hook. |
+| `PLAYER_LOGIN` | `Core.lua`, `UI-Mailbox.lua` | Welcome print; installs the `MailFrame` `OnShow` and `OnHide` hooks. |
 | `MAIL_SHOW` / `MAIL_CLOSED` | `UI-Mailbox.lua` | Mailbox open/close on every flavor. |
-| `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` / `_HIDE` | `UI-Mailbox.lua` | The same signal off Era, where the interaction manager also reports it. |
+| `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` / `_HIDE` | `UI-Mailbox.lua` | The same signal, registered on every flavor except Era, where the interaction manager also reports it. |
 | `BAG_UPDATE` | `Match-List.lua` | Marks the bag scan stale. |
 | `GET_ITEM_INFO_RECEIVED` | `Match-List.lua` | Same, for an item the client has just resolved. |
 | `WHO_LIST_UPDATE` | `Recipients-Who.lua` | A `/who` answer landed; parse and hand it to the callback. |
@@ -154,7 +155,9 @@ Three verbs, and they are not interchangeable:
 
 The three verbs also differ in how many rules get a say. `prefer` is **first match wins**, so table order is data — only one combination can collide (Agility, Intellect and Spirit together) and the caster rule takes it. `veto` and `demote` accumulate across *every* matching rule, because a demotion names one class and one stat, and two can be true at once.
 
-`applyDemotion` falls back **through the scoring, not past it**: it tries the contenders, then the scoring's own answer, then the admitted list, taking the first that is non-empty. Reaching straight for the admitted list would promote the classes coverage just demoted. That last resort exists for sub-40 mail and plate carrying Intellect, which has nobody in heavy armor behind a warrior — the case that makes the Intellect rule a `demote` rather than a `veto`.
+A rule may also carry `unclaimed = true`, which is a condition rather than a verb: it applies only when *no eligible class had a stat claim on the item at all* — the case `Verdict` calls `offerToEveryone`, where a statless weapon is placed by its level baseline and every admitted class scores identically. It pairs with `prefer` or `demote` and never with `veto`, which is applied before anything is scored and so could not answer the question. One rule uses it: an unclaimed bow, gun or crossbow is the hunter's, because all three of his trees build on the ranged slot and a warrior or a rogue carries one to pull with. A *stat-bearing* ranged weapon is still decided by the stats — an Agility bow is a rogue's as much as a hunter's — which is exactly why the condition is written on "unclaimed" and not on "ranged".
+
+`applyDemotion` falls back **through the scoring, not past it**: it tries the contenders, then the scoring's own answer, then the admitted list, taking the first that is non-empty. Reaching straight for the admitted list would promote the classes coverage just demoted. That last resort exists for heavy armor carrying Intellect too far below its material's training level for `PROFICIENCY_REACH` to reach the hunter or shaman it was written for, which leaves nobody behind a warrior — the case that makes the Intellect rule a `demote` rather than a `veto`.
 
 **`exclusive` measures against ranked stats only.** Armor and resistances sit on half the items in the game and are deliberately unweighted, so counting them would mean a bare Stamina ring qualified for the Stamina-alone rule where a bare Stamina chest did not.
 
@@ -168,7 +171,19 @@ fit bucket -> level proximity -> armor/weapon group -> class fit -> guild -> ran
 
 Bucket leads, so a class that genuinely wants the item beats one that barely does however close to equipping it they are. Level comes next, ahead of group, so a druid one level off beats a mage two off for cloth. The guild flag sits last before the coin flip: everything above it measures how well the item suits the person, so a guildmate never takes something from somebody it suits better — but it still decides often, since tier and fit are per-class and two candidates of one class at one level reach that line with nothing between them.
 
-**Proximity is measured against opposite ends of the band for gear and consumables.** Gear anchors to the *top* — `[reqLevel - LEVEL_GAP_WIDEST, reqLevel - LEVEL_GAP_CLOSEST]`, so a level 19 sword goes to an 18 over a 17 and never reaches a 19, arriving just before it becomes useful. A consumable anchors to the *bottom*, its own use level, because its band runs upward from there; measuring it to the top would rank whoever has most outgrown a potion first, which is backwards.
+**Proximity is measured against opposite ends of the band for gear and consumables.** Gear anchors to the *top* — `[equipLevel - LEVEL_GAP_WIDEST, equipLevel - LEVEL_GAP_CLOSEST]`, so a level 19 sword goes to an 18 over a 17 and never reaches a 19, arriving just before it becomes useful. A consumable anchors to the *bottom*, its own use level, because its band runs upward from there; measuring it to the top would rank whoever has most outgrown a potion first, which is backwards.
+
+**The band is per class, not per item.** `Matcher:LevelBand(item, class)` measures back from the level *that class* could first equip the item, which is the item's own requirement for nearly everything and later where the class has to train the armor material first — see *Armor Proficiency Reach* below. `RankCandidates` therefore filters each class's pool against its own band and never against a single pair of numbers stashed on the item; `item.bandLo`/`item.bandHi` are the union across everybody admitted, and exist for the tooltip and the reports only.
+
+### Armor Proficiency Reach
+
+`ns.Data.NativeArmor` says what each class wears at a given level, and its level gates were doing two jobs at once: "cannot wear this yet" and "is not who this is for". Only the first is true. A hunter trains mail at 40, so on a level 36 mail belt rolling nothing but Agility he was not eligible at all — and the belt went to a paladin, whose point weight on Agility is 2 against the hunter's 6. Blizzard itemizes the 35-to-39 mail and plate *for* the classes that train them at 40.
+
+So a later training level moves the recipient band instead of closing the door. `ns.Data.ArmorEquipLevel` answers the item's own requirement, or the level the class trains the material, whichever is later; the priority group is computed at that level, so the hunter is group 1 for a level 36 mail belt exactly as he is for a level 40 one. The belt is then searched for at 38–39 for the hunter and 34–35 for the paladin beside him — `Matcher:BandGroups` splits the classes into one group per band, and `Who:Plan` takes them as separate attempts.
+
+`ns.Data.PROFICIENCY_REACH` (5) is what keeps that honest: an item further below the training level than this reverts to being ineligible outright, because a level 20 mail belt is no gift to somebody who first equips it at 40. The training levels themselves are **probed off `NativeArmor`**, never listed a second time, so the 40s stay in one table.
+
+This is armor only. `ns.Data.WeaponMinLevel` looks like the same gate and is not: druids never train polearms in Era or TBC, and that is written as a level 60 they cannot reach, so reaching for it would invent candidates for a proficiency that never arrives.
 
 The random tail is a `shuffle` key rolled **once per player as they enter the pool**, never inside the comparator — `table.sort` throws on a comparator that changes mid-sort. Without it every spare green goes to whoever is early in the alphabet.
 
@@ -184,11 +199,11 @@ When the pass leaves no gift still searching, `ns.Who:Clear()` drops the search 
 
 **A fallback pairing arrives unticked.** `Assign` sets `send` only for a recipient whose class is in the verdict's contenders; a fallback shows on the row as a suggestion, and only the player's own tick (which pins the row) arms it for Distribute. Two paladins holding a pair of warrior swords is information; mailing them the swords is a decision.
 
-### Giving Tally
+## The Giving Tally
 
 `Features/Generosity.lua` keeps an account-wide record of what this account has given away, in `ns.db.global.stats`: four integer counters — `gifts` (one per mailing), `items` (total quantity, so a stack of 20 counts as 20), `itemLevels` (summed for equippable gear only, consumables adding nothing), and `value` (vendor sell price times quantity, in copper). `ns.Generosity:RecordSend(link, quantity)` is the only writer, called from `Features/Mail-Sender.lua` beside `Fairness:Record` on each successful delivery — both the normal path and the in-flight-after-stop path. The stack size is captured in `Distributor:_next` *before* the attach and carried on the job as `_count`, because by `MAIL_SUCCESS` the bag slot is stale and would read as one. The General panel shows the four numbers read-only through `ns.Generosity:Get`; the share toggle and broadcast are the sharing feature below.
 
-### Sharing the Tally (Proximity Broadcast)
+## Sharing the Tally (Proximity Broadcast)
 
 `Features/Generosity-Broadcast.lua` shares the tally with nearby players and caches what theirs report; `Features/Generosity-Tooltip.lua` renders a peer's totals at the bottom of their unit tooltip. Blizzard removed custom addon channels in 1.13.3 and does not deliver addon whispers to non-social strangers, so `SAY`/`YELL` addon messages are the only sanctioned reach to nearby strangers. **This is why the feature is proximity-scoped: a peer sees your totals only when you are near them. A distant friend never appears — the honest limit, not a bug.** These are `C_ChatInfo.SendAddonMessage` calls, never `SendChatMessage`, so nothing here is player-visible chat and there is no target marker to add; Play It Forward stays player-only for actual chat.
 
@@ -225,7 +240,7 @@ Three throttles keep a crowd from becoming a storm, all against `GetTime()`:
 
 Multiple `z-` filters are kept as a best effort: if the client honors only the first, the query still answers correctly from its first zone, and the per-class widening behind it is what the search actually relies on.
 
-The plan widens in three stages per band — zones, then one query per wanted class, then bare levels — each giving up one constraint in the order that costs least. Bands are interleaved rather than run to exhaustion, so a bag holding a level 15 cloak and a level 45 sword makes progress on both. The filter string has a hard length budget (`FILTER_MAX`, 240): over it the server does not answer at all rather than truncating, so zone lists are chunked to fit.
+The plan widens in three stages per band — zones, then one query per wanted class, then bare levels — each giving up one constraint in the order that costs least. Bands are interleaved rather than run to exhaustion, so a bag holding a level 15 cloak and a level 45 sword makes progress on both. One item can contribute more than one band: `Matcher:BandGroups` splits its classes by the level each of them equips it at, so a level 36 mail belt plans a 38–39 attempt for the hunter and a 34–35 one for the paladin (see *Armor Proficiency Reach*). The filter string has a hard length budget (`FILTER_MAX`, 240): over it the server does not answer at all rather than truncating, so zone lists are chunked to fit.
 
 **Zone order decides how many presses a search takes**, and `ns.Data.ZonesFor` sorts on three keys: overlap with the band, then *centrality* — how close the band sits to the middle of the zone's own range — then the narrower zone among equals. Centrality is the non-obvious one and it is the point: the edge of a zone's range is where people pass through, the middle is where they sit and quest, which is what puts a Horde 21-22 search in the Barrens first. Popularity is deliberately not a key, because there is no honest way to rank it from that table. An unresolved faction admits every zone rather than none — over-including costs one empty query, excluding on a nil answer silently drops half the list.
 
@@ -243,7 +258,7 @@ Two more pieces of cleanup ride on the answer rather than the request: `SetWhoTo
 
 ## The Guild Roster
 
-A second recipient source, and on most realms the larger one. It costs no button press and no throttle, and answers for the whole guild at once — where `/who` is hardware-gated and returns at most ~49 names per press. `Features/Recipients-Guild.lua` feeds `MatchList:AddResults` in the same shape `/who` results arrive in, so nothing downstream knows where a candidate came from except the one `guild` flag that earns guildmates their tiebreak in `Matcher:RankCandidates`.
+A second recipient source, and on most realms the larger one. It costs no button press and no throttle, and answers for the whole guild at once — where `/who` is hardware-gated and returns at most `WHO_RESULT_CAP` (50) names per press. `Features/Recipients-Guild.lua` feeds `MatchList:AddResults` in the same shape `/who` results arrive in, so nothing downstream knows where a candidate came from except the one `guild` flag that earns guildmates their tiebreak in `Matcher:RankCandidates`.
 
 `Guild:Request` is gated on a callback rather than reading on every event: `GUILD_ROSTER_UPDATE` fires constantly in a large guild — every login, logout, note edit and rank change — and walking hundreds of rows with a `GetGuildRosterLastOnline` call apiece on each one is work nobody asked for. With no request outstanding the event is ignored.
 
@@ -276,6 +291,8 @@ Three ordering constraints, all load-bearing:
 
 An attach can still fail with the panel up, and `SendMail` does not care — it posts an empty letter and reports success — so `GetSendMailItem(1)` is checked before every send.
 
+**A send with no answer pauses rather than fails.** Every send arms a `RESULT_TIMEOUT` (30s) timer, because the confirmation popup can sit unanswered indefinitely. When it fires, the job moves to `_awaiting`, `busy` clears, and the player is told to click Accept and press Distribute again. `SendMail` has already gone out by that point, so a late Accept still delivers — which is why the job is held rather than dropped, and why `Distributor:_result` still records a delivery on a run that is no longer running. `Distributor:Stop` holds an in-flight job the same way. Nothing else clears `busy` inside that window, which is why `Features/UI-Mailbox.lua` stops the run outright when the mailbox closes.
+
 `UI_ERROR_MESSAGE` is also watched: the server can refuse a send without firing either result event, and the refusal arrives as a UI error instead. The matching set is gathered from the client's own `ERR_MAIL*` globals rather than hardcoded English, so it works on any locale; strings carrying a format specifier are skipped, since they arrive with the placeholder already filled in and an exact comparison would never match. A name refused this way goes on `Fairness:MarkUnreachable` for the session.
 
 The subject and body are fixed text from `Locales/enUS.lua` (`MAIL_SUBJECT`, `MAIL_BODY`), never saved settings — what a stranger receives cannot drift per profile or be rewritten into something the add-on would not have sent. `Distributor:WarnIfOversized` checks them against the client's limits (`SUBJECT_MAX` 31, `BODY_MAX` 500) at the start of every run.
@@ -284,11 +301,27 @@ The subject and body are fixed text from `Locales/enUS.lua` (`MAIL_SUBJECT`, `MA
 
 The window opens on the mailbox when the scan found anything worth acting on, and never auto-closes. `Features/Match-List.lua` holds items, roster and pairings at file scope, so matches survive walking away: come back and press Distribute.
 
-Rows are sorted into four sections — matched, pending match, unreadable, kept — because the list runs longer than the window and the rows worth acting on would otherwise fall below the fold. Every row's dropdown lists *everybody* in range, because a name that silently vanishes reads as the add-on having lost them — and every one can be picked. The notes beside a name ("has one", "refused", "recent") are information, never gates: **the player's pick is never refused** (maintainer ruling, 2026-07-23). Picking a name that holds another row takes it from that row, which drops back to auto-assignment unpinned, so its search reopens. The list ends with a divider and **Find Recipients for This Item** — one targeted `/who` press over that item's band alone (admitted classes, not just contenders, since the point is more names to choose from by hand). It retasks the shared plan; the next fresh press of Find Recipients rebuilds the full plan for every item.
+Rows are sorted into four sections — matched, pending match, unreadable, kept — because the list runs longer than the window and the rows worth acting on would otherwise fall below the fold. Every row's dropdown lists *everybody* in range, because a name that silently vanishes reads as the add-on having lost them — and every one can be picked. The notes beside a name ("has one", "refused", "recent") are information, never gates: **the player's pick is never refused** (maintainer ruling, 2026-07-23). Picking a name that holds another row takes it from that row, which drops back to auto-assignment unpinned, so its search reopens. The list ends with a divider and **Find Recipients for This Item** — a targeted `/who` for that item alone. `Matcher:TargetedBands` puts the classes the verdict says the item is *for* at the front of the plan, so a lone contender becomes a query naming them: `38-39 z-"..." c-"Hunter"`, over that class's own band and the zones it passes through (maintainer ruling, 2026-08-09, replacing "admitted, since the point is more names"). Two or more contenders share their group with the fallbacks instead, because a query carrying two class filters is a query carrying none — splitting them would spend a press on a duplicate. The fallbacks keep their own group behind the leaders and are still asked for, a press later. It retasks the shared plan; the next fresh press of Find Recipients rebuilds the full plan for every item.
+
+**Escape closes the window**, through `UISpecialFrames`. That only calls `Hide`, so everything that has to stop on a close — the picker, a running distribution, the query plan — hangs off the frame's `OnHide` rather than off the X button, and `UI:Close` calls the same `UI:_onClosed` for the window that was closed without ever being shown. Every line of it is idempotent, since pressing the X runs both routes.
 
 **Never hook `MailFrame`'s `OnHide` to close the window.** It breaks twice over: mail-replacement add-ons hide `MailFrame` and show their own, killing the window the instant it opens, and `SendWho` raises the Who panel, which the UIPanel system swaps in over `MailFrame`, so pressing Find Recipients would close the window mid-query. Track the mailbox itself through `ns.AtMailbox()` instead.
 
-## The Options Panel Layout
+## The Options Panel
+
+### Opening the Panel
+
+`ns:OpenOptionsPanel` in `Options/Options.lua` is the one entry point, and `/pif` does nothing but call it. Play It Forward is the Style Guide's reference for the combat guard on that opener, so the shape matters here.
+
+**The combat gate is the first thing the function does**, in front of the whole routing chain rather than inside any one route. It prints `L["CHAT_OPTIONS_IN_COMBAT"]` and returns; it never queues, never registers `PLAYER_REGEN_ENABLED` to finish later, and prints every time the player asks, because a silent refusal reads as a broken command. Blizzard's Settings panel is protected in combat, so without the gate the player gets an `ADDON_ACTION_BLOCKED` error naming the add-on.
+
+**The route is decided in exactly one place.** `ns:OptionsPanelRoute` returns `(route, insideOptions, description)` and the opener branches on that; the Diagnostics API row "Options panel opens inside the Blizzard interface" calls the same function rather than re-testing the same conditions, where a second copy of the branch would be free to drift and describe a route the add-on does not take. The order is modern, legacy, standalone.
+
+**Never look the category up by name.** `AddToBlizOptions` returns `(frame, categoryID)` and both are captured at registration as `ns.GeneralPanel` and `ns.GeneralCategoryID`. AceConfigDialog overrides the category ID to the display name only on clients lacking `C_SettingsUtil.OpenSettingsPanel` — Era lacks it, TBC Anniversary has it — so a name lookup found nothing on exactly one flavor and the panel opened as a standalone floating window instead of docking. The legacy call is made twice: the first invocation selects the category, the second scrolls to it.
+
+Registration itself is deferred. `ns:RegisterOptionsPanels` is called from the SavedVariables init point in `Features/Core.lua`, because the Profiles builder reads `ns.db` and registering at file scope would crash on load.
+
+### Layout
 
 AceConfig's flow layout is the source of every layout bug this panel has had, and two rules explain all of them.
 
@@ -316,9 +349,21 @@ The framework — event log, event registration, API endpoints, display context,
 
 The panel writes nothing but the `taintLog` CVar, which keeps it to its read-only contract.
 
-`ns.DIAGNOSTIC_EVENT_EXCLUDE` holds `BAG_UPDATE`, `GET_ITEM_INFO_RECEIVED` and `CHAT_MSG_ADDON`. All three are registered and all three are firehoses — `CHAT_MSG_ADDON` especially, in cities and raids full of add-on chatter — and any of them would bury the mailbox and `/who` events past the 500-entry cap.
+`ns.DIAGNOSTIC_EVENT_EXCLUDE` holds `BAG_UPDATE` and `GET_ITEM_INFO_RECEIVED`. Both are registered, both are firehoses that would bury the mailbox and `/who` events past the 500-entry cap, and — the part that earns an exclusion rather than a filter — **no instance of either is ever signal**: the Bag Scan export already prints the scan they triggered.
+
+**A firehose that is *sometimes* signal gets the per-id filter instead.** `UI_ERROR_MESSAGE` and `CHAT_MSG_ADDON` are both registered and both mostly noise — every red combat error the client prints, and every other add-on's chatter in a city — but each also carries the one firing the add-on acts on: a mail refusal arriving as a UI error, and a peer's Generosity broadcast. Excluding them would hide exactly the entry a "the send failed" or "sharing doesn't work" report needs.
+
+`ns.MESSAGE_ID_FILTERED_EVENTS` names those two and which argument position their id arrives in (1 for both: the message type, and the prefix). `ns:SuppressUncorrelatedMessage` runs inside `ns:LogEvent`, **at capture rather than at render** — filtering at display time still lets spam push real entries out of a bounded buffer. Three rules govern it:
+
+- **Filter by what the add-on acts on, never by a denylist of noise.** Noise is unbounded, varies by class and activity, and renumbers across patches. Each rule's `correlated` predicate *calls the live handler's own test* rather than restating it — `ns.Distributor:IsMailError` for `UI_ERROR_MESSAGE`, a comparison against `ns.ADDON_MESSAGE_PREFIX` for `CHAT_MSG_ADDON` — so a drifted filter cannot make the log lie about what fired. `IsMailError` sits on the Distributor rather than file-local in `Features/Mail-Sender.lua` for that reason alone.
+- **Count, don't delete.** Suppressed traffic aggregates per id as first-seen text plus a count and renders as one block at the end of the report, biggest offender first: `UI_ERROR_MESSAGE(56, Ability is not ready yet.) x469`. That block is also how a tester discovers an id the add-on *should* be correlating.
+- **Unclassifiable is signal.** A firing with nothing at the id position is logged verbatim, and so is one with nowhere to count it — the filter never drops an entry it did not record. The counters live beside the buffer in `ns.diagnostics.suppressed` and are released with it in `ns:StopEventLog`.
+
+`Tests/Event-Log-Noise.lua` pins all of it.
 
 `ns.DIAGNOSTIC_API_CHECKS` carries a row per API reached through a compatibility guard plus the load-bearing calls — including `C_ChatInfo.SendAddonMessage`, `C_ChatInfo.RegisterAddonMessagePrefix` and `IsResting`, the three the broadcast needs; all target flavors ship them, so a FAIL there means sharing cannot register, send, or ever open its town gate. It also carries three rows that feed literal strings to `Tooltip:StatsFromLines`. Those three are regression guards rather than probes: a random-suffix roll arrives color-wrapped rather than bare, and when that form stops parsing every rolled green reads as statless and lands in the vendor pile while fixed-stat items carry on working — a failure that otherwise hides in plain sight.
+
+A row marked `optional = true` reports ABSENT rather than FAIL when it answers false, so FAIL stays reserved for a client that is genuinely missing something the add-on needs. The `C_TooltipInfo` rows are the worked example: neither shipped flavor has them, and a row that always fails teaches the reader to skim.
 
 ## Saved Variables
 
@@ -354,9 +399,9 @@ The rarity floor is **not** a setting. `ns.Data.MIN_RARITY` is a constant in `Da
 
 There is no migration chain and no `MIGRATION` tag anywhere in the add-on.
 
-**The defaults model.** Defaults come from `ns.DATABASE_DEFAULTS`, and AceDB-3.0 applies them the first time a scope is accessed. Explicit user values are never overridden, including `false` — `copyDefaults` writes a key only where the saved table has none.
+**The defaults model.** Defaults come from `ns.DATABASE_DEFAULTS` and are applied by AceDB-3.0 when a scope is first accessed — explicit user values, including `false`, are never overridden. Note that scalar and table defaults are physically copied into the saved table (`copyDefaults` via `rawset`); only `*`/`**` wildcard defaults resolve through metatables.
 
-It is worth being exact about the mechanism, because the common shorthand for AceDB — "defaults are applied lazily via metatables, nothing is copied into the saved table" — is only true of its `*` and `**` wildcard defaults. An ordinary scalar or table default is **physically `rawset` into the saved table**. `ns.DATABASE_DEFAULTS` uses no wildcards at all, so in this add-on every default takes the copying path. On the way out, `removeDefaults` strips back any key whose value still equals its default, so an untouched profile still saves as empty — which is what makes the shorthand look true from the outside.
+That distinction is worth being exact about, because the common shorthand for AceDB — "defaults are applied lazily via metatables, nothing is copied into the saved table" — is only true of the wildcards. `ns.DATABASE_DEFAULTS` uses none at all, so in this add-on every default takes the copying path. On the way out, `removeDefaults` strips back any key whose value still equals its default, so an untouched profile still saves as empty — which is what makes the shorthand look true from the outside.
 
 Retiring a setting therefore needs one line. That cleanup only visits keys still present in the defaults, so a key removed from `ns.DATABASE_DEFAULTS` persists in every existing player's saved variables forever unless it is cleared explicitly at the init point in `Core.lua`. The live example is there now:
 
@@ -373,13 +418,13 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 
 1. Call `ns.on("YOUR_EVENT", handler)` from the feature file that needs it. Never create a frame — one would escape the diagnostics event-log tap.
 2. That is the whole step. `ns.EVENT_NAMES` records it automatically, so the Diagnostics event probe picks it up with no second edit.
-3. If the event is a firehose (many times per second, or once per item on a cold cache), add it to `ns.DIAGNOSTIC_EVENT_EXCLUDE` in `Features/Diagnostics.lua`, or it buries the 500-entry event log.
+3. If the event is a firehose (many times per second, or once per item on a cold cache), it will bury the 500-entry event log, and which fix it gets turns on one question. If **no** instance of it is ever signal, add it to `ns.DIAGNOSTIC_EVENT_EXCLUDE` in `Features/Diagnostics.lua`. If it is *sometimes* signal — most of its traffic is noise but the add-on acts on particular firings — add it to `ns.MESSAGE_ID_FILTERED_EVENTS` instead, with the argument position its id arrives in and a `correlated` predicate that **calls the handler's own test** rather than restating it. Excluding a sometimes-signal event hides the one entry the report needed.
 
 ## Adding a New Giftable Consumable
 
 1. Add a row to `ns.Data.FoodAndWater` in `Data/Scan-Food.lua` or `ns.Data.Potions` in `Data/Scan-Potions.lua`, in the existing `{ id, quality, useLevel, restores }` shape, with a trailing `-- Item Name` comment.
 2. `restores` must be `"HEALTH"`, `"MANA"`, or `"BOTH"`. Eligibility derives from it via `ns.Data.ConsumableClasses` — there is no per-item class list.
-3. **A `useLevel` of 0 is rejected, not offered** (`NO_USE_LEVEL`). The column is the database's `RequiredLevel`, which is 0 for a good deal of food that is in practice endgame — banding on it leaves exactly one reachable recipient level. If the item matters, source a real usefulness level rather than shipping the zero.
+3. **A `useLevel` of 0 is rejected, not offered** (`NO_USE_LEVEL`). The column is the database's `RequiredLevel`, which is 0 for a good deal of food that is in practice endgame. `Matcher:LevelBand` would band it at levels 1 to `CONSUMABLE_RECIPIENT_GAP` + 1, so 1–3 — entirely below `ns.Data.MIN_RECIPIENT_LEVEL` (5), which means no pooled player can ever fall inside it. If the item matters, source a real usefulness level rather than shipping the zero.
 4. If the row came from a database query, update the SQL comment above the array so the table stays regenerable. Don't reconstruct a query you don't have; leave the `-- TODO: Add SQL Query` marker instead. Both consumable files are SQL-sourced, so prefer re-running the query over hand-editing — and if you hand-edit, note it, or the next re-run silently undoes you.
 5. `Features/Scan-Bags.lua` stamps the source table's `form` (`FOOD` or `POTION`) onto the record. Rules in `Data/Match-Rules.lua` key on that form, which is what keeps a bottle of water from being treated as a mana potion.
 
@@ -394,7 +439,7 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 ## Adding a New Item Rule
 
 1. Add a table to `ns.Data.ItemRules` in `Data/Match-Rules.lua` with a `name` (developer-facing, never localized) and exactly one matcher: `weapon` for a list of weapon keys, `form` plus `restores` for a consumable, or `requires` for a stat list (optionally with `exclusive = true`). Give a rule two and only one applies — `matches` tests weapon first, then consumable, then stats, and returns on the first it finds rather than requiring all of them.
-2. Pick the verb deliberately. `prefer` for "this is who it is for", `demote` for "not this class, but keep them as a fallback", `veto` only for "this class must never receive it". See *Item Rules* — the difference between `demote` and `veto` is whether the item still moves when nobody better is in range.
+2. Pick the verb deliberately. `prefer` for "this is who it is for", `demote` for "not this class, but keep them as a fallback", `veto` only for "this class must never receive it". See *Item Rules* — the difference between `demote` and `veto` is whether the item still moves when nobody better is in range. Add `unclaimed = true` when the rule should only break a tie nothing else can break, i.e. when no class had a stat claim at all; it pairs with `prefer` or `demote` and never with `veto`.
 3. **Position matters for `prefer` and only for `prefer`.** It is first-match-wins, so a new stat rule placed above an existing one silently takes items from it. `veto` and `demote` accumulate across every match, so their position is free.
 4. A rule can only name classes scoring already admitted, so no rule needs an "unless it has caster stats" clause. A `prefer` naming nobody admitted strands nothing — it simply does not apply.
 5. Add a case to `Tests/Item-Rules.lua` (or `Tests/Weapon-Rules.lua` / `Tests/Consumable-Rules.lua` by matcher type) and run `lua Tests/Run.lua`. Rule interactions are the part that does not survive being reasoned about — the veto-before-scoring and demote-after-prefer ordering both have tests pinning them.
@@ -402,7 +447,7 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 ## Adding a New Options Control
 
 1. Add its key and default to `ns.DATABASE_DEFAULTS.profile` in `Data/Default-Settings.lua`.
-2. Add the widget to `ns.BuildGeneralOptions` in `Options/Options-General.lua`, using the `ns.OptionsHeader` / `Desc` / `Spacer` / `RowLabel` constructors from `Options/Options-Utilities.lua`. A control needing a caption becomes a label-beside-control row — see *The Options Panel Layout* for the widths and the spacer rule, both of which are load-bearing.
+2. Add the widget to `ns.BuildGeneralOptions` in `Options/Options-General.lua`, using the `ns.OptionsHeader` / `Desc` / `Spacer` / `RowLabel` constructors from `Options/Options-Utilities.lua`. A control needing a caption becomes a label-beside-control row — see *The Options Panel → Layout* for the widths and the spacer rule, both of which are load-bearing.
 3. Add its strings to `Locales/enUS.lua`. Every user-facing string goes through `L["KEY"]`.
 4. If the control changes what counts as giftable, call `refreshWindow()` from its setter. That routes to `UI:Rescan`, which re-reads the bags *and* re-plans the search.
 
@@ -414,7 +459,7 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 
 **Identity.** `Locales/enUS.lua` registers under the literal `"Play-It-Forward"` and `Data/Data.lua` reads `GetLocale(ADDON_NAME)`, where `ADDON_NAME` is the packaged folder name from `.pkgmeta`'s `package-as`. Those two must resolve to the same string. If they ever diverge, every localized string is `nil` with no load error — which looks like a blank UI, not a crash.
 
-**Keeping locales in sync.** Every non-English file carries a translation of the same key set, and AceLocale falls back to English via `__index` for anything missing at runtime. Don't hand-edit other locales during ordinary work; a renamed key leaves harmless orphans in them until the Localization pass runs.
+**Keeping locales in sync.** Every non-English file carries a translation of the same key set, and AceLocale falls back to English via `__index` for anything missing at runtime. Translating each `enUS.lua` key and keeping the files aligned is the Localization pass's job; don't hand-edit other locales during ordinary work, and a renamed key leaves harmless orphans in them until that pass runs.
 
 **Placeholders.** `%s`/`%d` count, type, and order must match `enUS` per key in every locale, or the string crashes at runtime. This is the highest-value invariant when editing strings.
 
@@ -422,9 +467,11 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 
 **Diagnostics strings are not localized.** They live in `ns.DiagnosticsStrings` in `Features/Diagnostics.lua` as plain English. That includes the `WHO_LABEL_*` query labels and `WINDOW_FORCED`, both of which are composed in feature files but read at call time from the namespace, because `Features/Diagnostics.lua` loads after them. The rule is decided by who reads the string, not where it is built.
 
-**Locale overflow.** German is the usual canary. The mail body has a hard 500-character ceiling — the shipped English sits well under it, but a translation of the same four paragraphs can run longer, which is why `Distributor:WarnIfOversized` stays even though `Tests/Mail-Contents.lua` already pins the English. This add-on writes no macros, so the 255-character macro limit does not apply.
+**Locale overflow.** The mail subject and body have hard ceilings — `SUBJECT_MAX` (31) and `BODY_MAX` (500) — and both are measured with `#subject` / `#body`, so the unit is bytes. The shipped English sits well under each and `Tests/Mail-Contents.lua` pins it, but `Distributor:WarnIfOversized` stays because a test only measures the locale it was written for. Because the ceiling is in bytes, the canary for an overflow is whichever supported locale encodes widest — usually a Cyrillic locale such as ruRU, not automatically German. That is moot while enUS is the whole locale set, and is the first thing to measure if that ever changes. This add-on writes no macros and never calls `SendChatMessage`, so neither the 255-byte macro limit nor the 255-byte chat limit applies.
 
 **Zone names are not localized, and must not be.** `Data/Recipients-Zones.lua` holds the strings the client's own `/who` parser matches. Running them through AceLocale would break the search. This is a known limitation on non-English clients — the search still terminates on the bare-level fallback, it just loses the zone filtering that makes it quick. See the note in that file for the uiMapID fix if it is ever taken on.
+
+**Equip-effect parsing is English-only too.** `EQUIP_PATTERNS` in `Features/Scan-Tooltip.lua` matches the client's rendered "Equip: ..." wording, which vanilla builds from spell text rather than the `ITEM_MOD_*` globals. `Tooltip.equipPatternsUsable` gates it on `GetLocale()`, an API row reports the gate, and the Item Verdict report says so outright on a non-English client. A plain `+9 Intellect` line still parses anywhere, so an item misses a stat rather than scoring wrongly.
 
 ## Common Pitfalls
 
@@ -432,6 +479,7 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 - **Using `UseContainerItem` with the Send Mail panel closed**: attaches nothing and *uses* the item instead. Check `SendMailFrame:IsShown()` before touching the item, never after.
 - **Setting the mail subject before attaching**: the client overwrites an empty subject box with the item's name. Fill the panel after the attach.
 - **Re-reading a bag slot on `MAIL_SUCCESS` to confirm delivery**: the slot still holds the old link at that instant. Every delivery reads as a skip, and no recipient goes on cooldown.
+- **Dropping a job when the result timer fires**: `SendMail` has already gone out, so a late Accept still delivers. The job moves to `_awaiting` and `_result` credits it after the run has stopped.
 - **Gating on `MailFrame:IsShown()`**: TSM replaces the mail UI and the Who panel swaps `MailFrame` out, so it reports "closed" while the player stands at a mailbox. Use `ns.AtMailbox()`.
 - **Hooking `MailFrame`'s `OnHide` to close the window**: breaks twice over — mail-replacement add-ons hide it on open, and `SendWho` raises the Who panel over it mid-query.
 - **Dropping an in-flight `/who` instead of cancelling it**: `endQuery` is the only thing that restores `SetWhoToUi` and closes the Who panel, so a forgotten query leaves Blizzard's Who window appearing by itself seconds after the player closed ours.
@@ -443,10 +491,11 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 - **Reading `ns.db.profileKeys`**: always `nil`. AceDB keeps that table on `ns.db.sv`, and its metatable resolves only scope names, so the read fails silently rather than erroring — an own-alt check written against it passes everybody through.
 - **Pairing two `description` widgets on one AceConfig row**: they do not lay out. The flow packs cells until a row fills, so four label/value pairs written without a full-width spacer behind each one interleave into a jumble. Every label-beside-value row needs its spacer; a label beside an input or a select is the only pair that can stand without one.
 - **Hiding an options control instead of disabling it**: the widget after it flows up into the gap. Hiding the rarity select pairs "Include Gear" and "Include Consumables" onto one row.
+- **Opening the options panel by category name**: `AddToBlizOptions` hands back a generated category ID on any client with `C_SettingsUtil.OpenSettingsPanel`, so a name lookup returns nil and the panel floats free instead of docking. TBC Anniversary has that API and Era does not, so the bug survives testing on one flavor. Route by the captured `ns.GeneralCategoryID`.
 - **Coloring the Generosity values anything but white**: `GetCoinTextureString` ignores a color prefix, so the Gold Value row renders white regardless and any other color leaves it out of step with the three above it.
 - **Comparing a roster or `/who` name as a raw string**: one player has two spellings. Both sources give a bare name for somebody on your own realm and a suffixed one for a character elsewhere in the cluster, so a raw comparison pools one person twice and lets your own alts past the own-character check. Compare `ns.QualifyPlayerName`; store and mail the name the client gave.
 - **Treating a `consumableLevelGap` of 0 as an ordinary gap**: it is the "All Consumables" sentinel. Compared as a gap it still requires the player to be at or above the item's own level, so the one option meant to offer everything quietly withholds every consumable the player has not reached yet.
-- **Treating a consumable's `useLevel` of 0 as level 1**: it is the database's `RequiredLevel`, not the level the item is worth having. Banding on it gives 1 to `CONSUMABLE_RECIPIENT_GAP` against a recipient floor of 3, so the item can only ever reach a level-3 player. The scanner rejects those rows as `NO_USE_LEVEL` rather than offering them to nobody.
+- **Treating a consumable's `useLevel` of 0 as level 1**: it is the database's `RequiredLevel`, not the level the item is worth having. Banding on it gives levels 1–3, which sits entirely below the level-5 recipient floor, so the item can never reach anybody at all. The scanner rejects those rows as `NO_USE_LEVEL` rather than offering them to nobody.
 - **Rolling a random tiebreak inside a sort comparator**: `table.sort` throws when the comparator is inconsistent. The shuffle key is rolled once per player as they enter the pool.
 - **Mutating the list `MatchList:Candidates` returns**: it is a cached table handed out by reference. Sorting or removing in place poisons it for every later caller until the pools generation changes.
 - **Caching `MatchList:Items()` in a local**: `rescanBags` reassigns the table. Call the accessor each time.
@@ -461,7 +510,7 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 
 **Issues** — [github.com/Gogo1951/Play-It-Forward/issues](https://github.com/Gogo1951/Play-It-Forward/issues).
 
-**Bug reports** should include game version (Classic Era 1.15.x or TBC Anniversary 2.5.x) and locale, your class and level, repro steps, and the relevant output from the **Diagnostic Tools** panel (Options > Play It Forward > Diagnostic Tools). The Bag Scan and Item Verdict reports answer most "why isn't this item showing up" questions on their own.
+**Bug reports** should include game version (Classic Era 1.15.x or TBC Anniversary 2.5.x) and locale, your class and level, repro steps, and the relevant output from the **Diagnostic Tools** panel (Options > AddOns > Play It Forward > Diagnostic Tools). The Bag Scan and Item Verdict reports answer most "why isn't this item showing up" questions on their own.
 
 **Discord** — [discord.gg/eh8hKq992Q](https://discord.gg/eh8hKq992Q).
 
@@ -470,8 +519,9 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 - Keep the scope tight. One concern per PR.
 - Match the house style: tab indentation, StyLua defaults (no `.stylua.toml`), no abbreviations in names, all user-facing strings through `L["KEY"]`, diagnostics strings through `ns.DiagnosticsStrings`.
 - Run `stylua`, `luac -p`, and `lua Tests/Run.lua` before pushing. The suite runs headless against a stubbed client and must stay green.
-- New saved-variable fields seed defaults through `ns.DATABASE_DEFAULTS` and rely on AceDB's metatable application; never hand-merge or overwrite user values.
+- New saved-variable fields seed defaults through `ns.DATABASE_DEFAULTS` and are applied by AceDB; never hand-merge or overwrite user values.
 - Any change to saved-variable shape needs a dated `MIGRATION (remove after YYYY-MM-DD)` tag, and migration code is deleted when the window closes. Retiring a key is the exception: it is a one-line `nil` at the init point in `Core.lua`, not a migration, and carries no tag.
+- Anything that changes the mail subject or body needs its byte length re-checked against `SUBJECT_MAX` and `BODY_MAX` — see *Localization → Locale overflow*.
 - Data-table edits keep the column-header comment and the SQL comment above the array; don't reformat existing rows.
 - Update this document if the architecture or file map changes.
 

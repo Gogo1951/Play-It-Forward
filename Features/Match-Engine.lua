@@ -290,8 +290,8 @@ Matcher.GIFT, Matcher.LEFTOVER, Matcher.UNREADABLE = "gift", "leftover", "unread
 	untouched -- an owl staff still reaches a hunter when nobody else is there, which is what
 	makes it soft.
 ]]
-local function applyPreference(verdict, item)
-	local preferred = ns.Data.PreferredClasses(item)
+local function applyPreference(verdict, item, context)
+	local preferred = ns.Data.PreferredClasses(item, context)
 	if not preferred then
 		return
 	end
@@ -315,11 +315,12 @@ end
 	dagger rule and names the rogue, who is exactly who should not lead on Intellect.
 
 	IT FALLS BACK THROUGH THE SCORING, NOT PAST IT. Reaching straight for the admitted list would
-	promote the classes coverage just demoted. The last resort exists for sub-40 mail and plate
-	carrying Intellect, which has nobody in heavy armor behind a warrior.
+	promote the classes coverage just demoted. The last resort exists for heavy armor carrying
+	Intellect too far below its training level for PROFICIENCY_REACH to reach the hunter or the
+	shaman it was written for, which leaves nobody behind a warrior.
 ]]
-local function applyDemotion(verdict, item, scored)
-	local demoted = ns.Data.DemotedClasses(item)
+local function applyDemotion(verdict, item, scored, context)
+	local demoted = ns.Data.DemotedClasses(item, context)
 	if not demoted then
 		return
 	end
@@ -384,10 +385,13 @@ function Matcher:Verdict(item)
 	if item.kind == "consumable" then
 		verdict.admitted, verdict.contenders = eligible, eligible
 		verdict.state = Matcher.GIFT
-		-- This path returns before the scoring below, so the preference is applied here too.
+		--[[
+			This path returns before the scoring below, so the preference is applied here too. No
+			context: an unclaimed rule is about a stat claim, and a consumable is never stat-scored.
+		]]
 		local scored = verdict.contenders
-		applyPreference(verdict, item)
-		applyDemotion(verdict, item, scored)
+		applyPreference(verdict, item, nil)
+		applyDemotion(verdict, item, scored, nil)
 		verdict.best, verdict.score = verdict.contenders[1] or eligible[1], 1
 		return verdict
 	end
@@ -463,10 +467,15 @@ function Matcher:Verdict(item)
 		verdict.contenders = wanted
 	end
 
-	-- The scoring's own answer, kept so applyDemotion can fall back through it.
+	--[[
+		The scoring's own answer, kept so applyDemotion can fall back through it. The context is
+		what lets a rule ask "and nobody had a claim on it": a statless gun admits a warrior, a
+		hunter and a rogue on the baseline alone, and only that fact says the hunter should lead.
+	]]
 	local scored = verdict.contenders
-	applyPreference(verdict, item)
-	applyDemotion(verdict, item, scored)
+	local context = { unclaimed = offerToEveryone }
+	applyPreference(verdict, item, context)
+	applyDemotion(verdict, item, scored, context)
 
 	--[[
 		Best of the contenders, never of the admitted: the headline must come from the same set
@@ -513,7 +522,6 @@ end
 	the alphabet.
 ]]
 function Matcher:RankCandidates(item, pools)
-	local lo, hi = item.bandLo or 1, item.bandHi or 999
 	local out, meta = {}, {}
 
 	--[[
@@ -533,15 +541,22 @@ function Matcher:RankCandidates(item, pools)
 	end
 
 	--[[
-		The level this item is worth most at, and what proximity is measured against. Gear anchors
-		to the TOP of its band, arriving just before it can be equipped; a consumable anchors to
-		the BOTTOM, its own use level, because its band runs upward from there. Measuring a potion
-		to the top of its band ranks whoever has most outgrown it first, which is backwards.
+		PER CLASS, NEVER item.bandLo: a class that trains the armor material later searches higher
+		up, and reading one band off the item would either hand a hunter mail he cannot wear for
+		six levels or never look for him at all. Matcher:LevelBand answers the item's own band for
+		everything else, so this is the same numbers for nearly every item.
 	]]
-	local anchor = (item.kind == "consumable") and lo or hi
-
 	for _, cls in ipairs(verdict.admitted) do
 		local fit, tier = verdict.fits[cls] or 0, self:Priority(item, cls)
+		local lo, hi = self:LevelBand(item, cls)
+		--[[
+			The level this item is worth most at, and what proximity is measured against. Gear
+			anchors to the TOP of its band, arriving just before it can be equipped; a consumable
+			anchors to the BOTTOM, its own use level, because its band runs upward from there.
+			Measuring a potion to the top of its band ranks whoever has most outgrown it first,
+			which is backwards.
+		]]
+		local anchor = (item.kind == "consumable") and lo or hi
 		--[[
 			Bucket rather than cut. A marginal class still appears in the dropdown and still
 			receives the item when nobody better is in range.
@@ -550,7 +565,7 @@ function Matcher:RankCandidates(item, pools)
 		for _, person in ipairs(pools[cls] or {}) do
 			if person.level >= lo and person.level <= hi then
 				table.insert(out, person)
-				meta[person] = { tier = tier, fit = fit, bucket = bucket }
+				meta[person] = { tier = tier, fit = fit, bucket = bucket, anchor = anchor }
 			end
 		end
 	end
@@ -560,8 +575,9 @@ function Matcher:RankCandidates(item, pools)
 		if ma.bucket ~= mb.bucket then
 			return ma.bucket < mb.bucket
 		end
-		local aDist = math.abs((a.level or 0) - anchor)
-		local bDist = math.abs((b.level or 0) - anchor)
+		-- Each against its own class's anchor, which is the level that class equips the item at.
+		local aDist = math.abs((a.level or 0) - ma.anchor)
+		local bDist = math.abs((b.level or 0) - mb.anchor)
 		if aDist ~= bDist then
 			return aDist < bDist
 		end
@@ -595,20 +611,122 @@ function Matcher:RankCandidates(item, pools)
 	return out
 end
 
--- Recipient level band. Gear spans [reqLevel - WIDEST, reqLevel - CLOSEST].
-function Matcher:LevelBand(item)
+--[[
+	Recipient level band. Gear spans [equip level - WIDEST, equip level - CLOSEST].
+
+	WITH A CLASS IT IS THAT CLASS'S BAND, and for nearly every item the two are the same answer:
+	the equip level is the item's own requirement. It moves only where the class has to train the
+	armor material first -- a level 36 mail belt is equipped at 40 by a hunter and at 36 by a
+	paladin, so the two search 38-39 and 34-35 and one band cannot state both. Called without a
+	class it answers for the item alone, which is what the reports and the tooltip want.
+]]
+function Matcher:LevelBand(item, classToken)
 	--[[
 		A consumable runs from its use level up by CONSUMABLE_RECIPIENT_GAP, short on purpose: a
 		potion is worth having to somebody who can drink it now. Not profile.consumableLevelGap,
 		which is the sender's outgrown-it threshold and a much longer span -- the note on the
-		constant has why the two are not the same number.
+		constant has why the two are not the same number. No class shift: nothing is trained to
+		drink one.
 	]]
 	if item.kind == "consumable" then
 		local lo = math.max(1, item.def.useLevel)
 		return lo, lo + ns.Data.CONSUMABLE_RECIPIENT_GAP
 	end
-	local req = item.reqLevel or 1
+	local req = classToken and ns.Data.EquipLevelFor(item, classToken) or (item.reqLevel or 1)
 	local lo = math.max(1, req - ns.Data.LEVEL_GAP_WIDEST)
 	local hi = math.max(lo, req - ns.Data.LEVEL_GAP_CLOSEST)
 	return lo, hi
+end
+
+--[[
+	The classes grouped by the band each of them searches -- one group for nearly every item, two
+	for the sub-40 mail and plate half the field cannot wear until it trains the material. Shaped
+	the way Features/Recipients-Who.lua wants a plan, so the query looking for the hunter can ask
+	38-39 while the one beside it asks the paladin's 34-35.
+
+	Group order follows the class list it was given, which is what lets a caller put the classes
+	the item is FOR at the front of the plan.
+]]
+function Matcher:BandGroups(item, classes)
+	local order, byBand = {}, {}
+	for _, class in ipairs(classes or {}) do
+		local lo, hi = self:LevelBand(item, class)
+		local key = ("%d:%d"):format(lo, hi)
+		local group = byBand[key]
+		if not group then
+			group = { lo = lo, hi = hi, classes = {} }
+			byBand[key] = group
+			order[#order + 1] = group
+		end
+		group.classes[#group.classes + 1] = class
+	end
+	return order
+end
+
+--[[
+	Every band the item searches, as one span. For the tooltip and the reports, which have room
+	for one pair of numbers; the search itself uses the groups above and never this. Falls back to
+	the item's own band when no class was passed, so an item nobody is admitted for still reads.
+]]
+function Matcher:SearchBand(item, classes)
+	local lo, hi
+	for _, group in ipairs(self:BandGroups(item, classes)) do
+		lo = math.min(lo or group.lo, group.lo)
+		hi = math.max(hi or group.hi, group.hi)
+	end
+	if not lo then
+		return self:LevelBand(item)
+	end
+	return lo, hi
+end
+
+--[[
+	The bands one targeted search should ask for, best first: the classes the verdict says the item
+	is FOR, then everybody admitted behind them.
+
+	CONTENDERS LEAD, replacing the earlier "admitted, the point is more names to choose from"
+	(maintainer ruling, 2026-08-09). A lone contender is the only shape /who can be filtered on --
+	the client honors one c-"..." and drops the rest -- so leading with it is what turns this into
+	a query for hunters instead of the unfiltered one the main button already sent. The fallbacks
+	keep their own group behind it and are still asked for, one press later.
+]]
+function Matcher:TargetedBands(item)
+	local verdict = self:VerdictFor(item)
+	local admitted = (#verdict.admitted > 0) and verdict.admitted or verdict.eligible
+	local contenders = (#(verdict.contenders or {}) > 0) and verdict.contenders or admitted
+
+	local leads = {}
+	for _, class in ipairs(contenders) do
+		leads[class] = true
+	end
+	local behind = {}
+	for _, class in ipairs(admitted) do
+		if not leads[class] then
+			behind[#behind + 1] = class
+		end
+	end
+
+	local groups = self:BandGroups(item, contenders)
+	for _, group in ipairs(self:BandGroups(item, behind)) do
+		--[[
+			Folded back into the leaders' group when they share a band and there is more than one
+			of them: two classes carry no class filter either way, so a separate group would spend
+			a whole press on a query identical to the one in front of it.
+		]]
+		local merged
+		for _, lead in ipairs(groups) do
+			if lead.lo == group.lo and lead.hi == group.hi and #lead.classes > 1 then
+				merged = lead
+				break
+			end
+		end
+		if merged then
+			for _, class in ipairs(group.classes) do
+				merged.classes[#merged.classes + 1] = class
+			end
+		else
+			groups[#groups + 1] = group
+		end
+	end
+	return groups
 end
