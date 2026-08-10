@@ -2,8 +2,6 @@
 
 Send the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
 
-<img width="500" src="https://github.com/user-attachments/assets/1bb7b389-05bb-4e06-ad2f-b3b828078e85" />
-
 ## Features
 
 🎁 **Makes Someone's Day** // Azeroth can be a harsh place. An unexpected parcel from a stranger costs you next to nothing and is the kind of small kindness that keeps a server worth playing on.
@@ -41,6 +39,8 @@ Everything below them is sorted into four groups, so the rows worth acting on si
 | **Kept** | Staying in your bags, either because you said so or because no class wanted it. |
 
 Click any recipient to swap in somebody else, run a search aimed at that one item, or choose **Keep Item**.
+
+<img width="500" src="https://github.com/user-attachments/assets/1bb7b389-05bb-4e06-ad2f-b3b828078e85" />
 
 ### Finding Recipients
 
