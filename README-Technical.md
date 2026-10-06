@@ -8,8 +8,10 @@ This document combines architecture notes and contribution guidance for develope
 Play-It-Forward/
 ├── .github/
 │   └── workflows/
-│       └── package.yml           CurseForge release + library vendoring.
+│       ├── ci.yml                Calls Common-Core: Lua 5.1 syntax, luacheck, StyLua and tests on every PR
+│       └── package.yml           Calls Common-Core: CurseForge release + library vendoring.
 ├── .gitattributes                LF normalization; identical in every add-on.
+├── .luacheckrc                   Lint config: the WoW globals the add-on reads.
 ├── .pkgmeta                      Externals and ignore list.
 ├── LICENSE                       MIT.
 ├── Play-It-Forward.toc           Single TOC; dual interface (Classic Era, TBC Anniversary).
@@ -442,7 +444,7 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 2. Pick the verb deliberately. `prefer` for "this is who it is for", `demote` for "not this class, but keep them as a fallback", `veto` only for "this class must never receive it". See *Item Rules* — the difference between `demote` and `veto` is whether the item still moves when nobody better is in range. Add `unclaimed = true` when the rule should only break a tie nothing else can break, i.e. when no class had a stat claim at all; it pairs with `prefer` or `demote` and never with `veto`.
 3. **Position matters for `prefer` and only for `prefer`.** It is first-match-wins, so a new stat rule placed above an existing one silently takes items from it. `veto` and `demote` accumulate across every match, so their position is free.
 4. A rule can only name classes scoring already admitted, so no rule needs an "unless it has caster stats" clause. A `prefer` naming nobody admitted strands nothing — it simply does not apply.
-5. Add a case to `Tests/Item-Rules.lua` (or `Tests/Weapon-Rules.lua` / `Tests/Consumable-Rules.lua` by matcher type) and run `lua Tests/Run.lua`. Rule interactions are the part that does not survive being reasoned about — the veto-before-scoring and demote-after-prefer ordering both have tests pinning them.
+5. Add a case to `Tests/Item-Rules.lua` (or `Tests/Weapon-Rules.lua` / `Tests/Consumable-Rules.lua` by matcher type) and run `lua5.1 Tests/Run.lua`. Rule interactions are the part that does not survive being reasoned about — the veto-before-scoring and demote-after-prefer ordering both have tests pinning them.
 
 ## Adding a New Options Control
 
@@ -518,7 +520,7 @@ There are no default item or spell lists, so no refill-on-empty logic. The gifta
 
 - Keep the scope tight. One concern per PR.
 - Match the house style: tab indentation, StyLua defaults (no `.stylua.toml`), no abbreviations in names, all user-facing strings through `L["KEY"]`, diagnostics strings through `ns.DiagnosticsStrings`.
-- Run `stylua`, `luac -p`, and `lua Tests/Run.lua` before pushing. The suite runs headless against a stubbed client and must stay green.
+- Run `stylua`, `luac -p`, a clean `luacheck .`, and `lua5.1 Tests/Run.lua` (Lua 5.1, the version WoW embeds) before pushing; CI runs the same on every PR. The suite runs headless against a stubbed client and must stay green.
 - New saved-variable fields seed defaults through `ns.DATABASE_DEFAULTS` and are applied by AceDB; never hand-merge or overwrite user values.
 - Any change to saved-variable shape needs a dated `MIGRATION (remove after YYYY-MM-DD)` tag, and migration code is deleted when the window closes. Retiring a key is the exception: it is a one-line `nil` at the init point in `Core.lua`, not a migration, and carries no tag.
 - Anything that changes the mail subject or body needs its byte length re-checked against `SUBJECT_MAX` and `BODY_MAX` — see *Localization → Locale overflow*.

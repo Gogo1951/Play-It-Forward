@@ -24,6 +24,9 @@ ignore:
   - .github
   - .gitignore
   - .idea
+  - .luacheckrc
   - .pkgmeta
   - .vscode
   - LICENSE
+  - Suffix.md
+  - Tests

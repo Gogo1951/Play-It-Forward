@@ -105,6 +105,13 @@ local function injectModules(ns, events)
 	end
 
 	ns.diagnostics = { enabled = false, logging = false }
+
+	--[[
+		Core.lua sets this at load and is not loaded here. "Dev" is what it answers for an
+		unpackaged copy. Left nil, the diagnostics header's string.format raises on Lua 5.1,
+		the version WoW embeds, where 5.4 would quietly print "nil".
+	]]
+	ns.Version = "Dev"
 end
 
 --[[
