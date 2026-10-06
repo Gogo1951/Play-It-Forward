@@ -54,7 +54,7 @@ test("a hovered peer with cached totals gets a Generosity block", function()
 end)
 
 test("a player we have not heard from adds nothing and fires one ping", function()
-	local ns = load()
+	load()
 	Stub.addonMessages = {}
 
 	local handler, rows = rig("mouseover", "Stranger", "Grobbulus")
@@ -66,7 +66,7 @@ test("a player we have not heard from adds nothing and fires one ping", function
 end)
 
 test("the hover ping is throttled within its interval", function()
-	local ns = load()
+	load()
 	Stub.addonMessages = {}
 
 	local handler = rig("mouseover", "Stranger", "Grobbulus")
@@ -77,7 +77,7 @@ test("the hover ping is throttled within its interval", function()
 end)
 
 test("your own tooltip shows your live tally, block always present", function()
-	local ns = load()
+	load()
 
 	local handler, rows = rig("player", "Tester", "Test")
 	handler(GameTooltip)
@@ -104,7 +104,7 @@ test("out of a rest area a cached peer renders nothing and does not ping", funct
 end)
 
 test("out of a rest area your own tooltip stays clean too", function()
-	local ns = load()
+	load()
 	Stub.resting = false
 
 	local handler, rows = rig("player", "Tester", "Test")
@@ -115,7 +115,7 @@ end)
 
 -- A non-player unit (an NPC) gets nothing: the block is for players.
 test("a non-player unit is left alone", function()
-	local ns = load()
+	load()
 	local rows
 	do
 		local h

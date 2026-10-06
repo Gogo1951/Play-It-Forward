@@ -162,7 +162,7 @@ end)
 ]]
 test("the notes beside a name stay short enough to fit", function()
 	local ns = load()
-	local first, second = twoMatched(ns)
+	local first = twoMatched(ns)
 	ns.Fairness:MarkUnreachable(ns.UI:Items()[2].recipient.name)
 
 	for _, key in ipairs({ "PICKER_NOTE_HAS_ONE", "PICKER_NOTE_REFUSED", "PICKER_NOTE_RECENT" }) do

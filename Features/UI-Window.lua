@@ -85,9 +85,9 @@ function UI:_buildFrame()
 	f:EnableMouse(true)
 	f:RegisterForDrag("LeftButton")
 	f:SetScript("OnDragStart", f.StartMoving)
-	f:SetScript("OnDragStop", function(self)
-		self:StopMovingOrSizing()
-		local point, _, relativePoint, x, y = self:GetPoint()
+	f:SetScript("OnDragStop", function(frame)
+		frame:StopMovingOrSizing()
+		local point, _, relativePoint, x, y = frame:GetPoint()
 		ns.db.profile.windowPos = { point = point, relativePoint = relativePoint, x = x, y = y }
 	end)
 
@@ -140,15 +140,15 @@ function UI:_buildFrame()
 	]]
 	local rarity = buildDropdown(f, RARITY_WIDTH, L["WINDOW_GEAR_LABEL"])
 	rarity.label:SetPoint("TOPLEFT", 12, -30)
-	rarity:SetScript("OnClick", function(self)
-		UI:_openRarityPicker(self)
+	rarity:SetScript("OnClick", function(button)
+		UI:_openRarityPicker(button)
 	end)
 	f.rarityButton = rarity
 
 	local gap = buildDropdown(f, GAP_WIDTH, L["WINDOW_CONSUMABLES_LABEL"])
 	gap.label:SetPoint("LEFT", rarity, "RIGHT", 16, 0)
-	gap:SetScript("OnClick", function(self)
-		UI:_openGapPicker(self)
+	gap:SetScript("OnClick", function(button)
+		UI:_openGapPicker(button)
 	end)
 	f.gapButton = gap
 
