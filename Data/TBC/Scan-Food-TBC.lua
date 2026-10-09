@@ -1,62 +1,11 @@
 local _, ns = ...
 
---[[
-	Food and drink a player can be given. What a row restores decides who is eligible, per
-	ns.Data.ConsumableClasses in Data/Data.lua, so there is no per-item class list.
-]]
-
---[[
-    SELECT CONCAT('\t{ ', entry, ', ', Quality, ', ', UseLevel, ', "', Restores, '" }, -- ', name) AS LuaRow
-    FROM (
-        SELECT
-            it.entry,
-            it.name,
-            it.Quality,
-            it.RequiredLevel AS UseLevel,
-            CASE
-                WHEN 11 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
-                 AND 59 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
-                    THEN 'BOTH'
-                WHEN 11 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
-                    THEN 'HEALTH'
-                WHEN 59 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
-                    THEN 'MANA'
-                ELSE 'Other'
-            END AS Restores
-        FROM item_template it
-        WHERE it.class    = 0        -- Consumable
-          AND it.subclass = 5        -- Food & Drink
-          AND it.bonding  = 0        -- non-soulbound
-          AND it.RequiredLevel > 4   -- must clear ns.Data.MIN_RECIPIENT_LEVEL: a consumable's band
-                                     -- is [useLevel, useLevel + CONSUMABLE_RECIPIENT_GAP], so
-                                     -- anything lower tops out under the floor and reaches nobody
-          AND (it.Flags & 0x2) = 0   -- NOT conjured
-          AND it.name NOT LIKE 'Conjured %'
-          AND it.spelltrigger_1 IN (0,5)
-          AND (it.spellid_2 = 0 OR it.spellid_2 IS NULL)
-          AND it.name NOT LIKE '[PH]%'        -- placeholder
-          AND it.name NOT LIKE 'Test %'       -- debug
-          AND it.name NOT LIKE 'Deprecated %' -- retired
-          AND it.name NOT LIKE 'DEPCREATED %' -- retired, misspelled upstream
-          AND it.spellid_1 NOT IN (      -- weed out alcohol / inebriate spells
-                11007, 11008, 11009,     -- core booze tiers
-                11629,                   -- Nethergarde Bitter, Darkmoon Special Reserve
-                5909,                    -- Watered-down Beer
-                25037, 25722, 25804,     -- Rumsey Rum (Light/Dark/Black Label)
-                50986,                   -- Sulfuron Slammer
-                55296                    -- [PH] placeholder wine
-              )
-    ) c
-    WHERE Restores <> 'Other'      -- keep only food / water / hybrid (restores HP or mana)
-    ORDER BY FIELD(Restores, 'HEALTH', 'MANA', 'BOTH'), UseLevel, name;
-]]
-
 -- { id, quality, useLevel, restores }
-ns.Data.FoodAndWater = {
+ns.Data.FOOD_AND_WATER = {
 	{ 27636, 1, 5, "HEALTH" }, -- Bat Bites
 	{ 3220, 1, 5, "HEALTH" }, -- Blood Sausage
 	{ 5525, 1, 5, "HEALTH" }, -- Boiled Clams
-	{ 2682, 1, 5, "HEALTH" }, -- Cooked Crab Claw
+	{ 2682, 1, 5, "BOTH" }, -- Cooked Crab Claw
 	{ 2684, 1, 5, "HEALTH" }, -- Coyote Steak
 	{ 2683, 1, 5, "HEALTH" }, -- Crab Cake
 	{ 3662, 1, 5, "HEALTH" }, -- Crocolisk Steak
@@ -82,10 +31,11 @@ ns.Data.FoodAndWater = {
 	{ 4537, 1, 5, "HEALTH" }, -- Tel'Abim Banana
 	{ 16167, 1, 5, "HEALTH" }, -- Versicolor Treat
 	{ 733, 1, 5, "HEALTH" }, -- Westfall Stew
+	{ 12238, 1, 5, "HEALTH" }, -- Darkshore Grouper
 	{ 5526, 1, 10, "HEALTH" }, -- Clam Chowder
 	{ 5478, 1, 10, "HEALTH" }, -- Dig Rat Stew
 	{ 1082, 1, 10, "HEALTH" }, -- Redridge Goulash
-	{ 21072, 1, 10, "HEALTH" }, -- Smoked Sagefish
+	{ 21072, 1, 10, "BOTH" }, -- Smoked Sagefish
 	{ 2685, 1, 10, "HEALTH" }, -- Succulent Pork Ribs
 	{ 5479, 1, 12, "HEALTH" }, -- Crispy Lizard Tail
 	{ 3726, 1, 15, "HEALTH" }, -- Big Bear Steak
@@ -106,7 +56,7 @@ ns.Data.FoodAndWater = {
 	{ 4538, 1, 15, "HEALTH" }, -- Snapvine Watermelon
 	{ 4606, 1, 15, "HEALTH" }, -- Spongy Morel
 	{ 16170, 1, 15, "HEALTH" }, -- Steamed Mandu
-	{ 7228, 1, 15, "HEALTH" }, -- Tigule and Foror's Strawberry Ice Cream
+	{ 7228, 1, 15, "HEALTH" }, -- Tigule's Strawberry Ice Cream
 	{ 20074, 1, 20, "HEALTH" }, -- Heavy Crocolisk Stew
 	{ 3728, 1, 20, "HEALTH" }, -- Tasty Lion Steak
 	{ 4457, 1, 25, "HEALTH" }, -- Barbecued Buzzard Wing
@@ -131,7 +81,7 @@ ns.Data.FoodAndWater = {
 	{ 8543, 1, 25, "HEALTH" }, -- Underwater Mushroom Cap
 	{ 3771, 1, 25, "HEALTH" }, -- Wild Hog Shank
 	{ 16169, 1, 25, "HEALTH" }, -- Wild Ricecake
-	{ 21217, 1, 30, "HEALTH" }, -- Sagefish Delight
+	{ 21217, 1, 30, "BOTH" }, -- Sagefish Delight
 	{ 18635, 1, 35, "HEALTH" }, -- Bellara's Nutterbar
 	{ 13927, 1, 35, "HEALTH" }, -- Cooked Glossy Mightfish
 	{ 19306, 1, 35, "HEALTH" }, -- Crunchy Frog
@@ -160,6 +110,7 @@ ns.Data.FoodAndWater = {
 	{ 12218, 1, 40, "HEALTH" }, -- Monster Omelet
 	{ 12216, 1, 40, "HEALTH" }, -- Spiced Chili Crab
 	{ 18045, 1, 40, "HEALTH" }, -- Tender Wolf Steak
+	{ 33004, 1, 40, "HEALTH" }, -- Clamlette Surprise
 	{ 8932, 1, 45, "HEALTH" }, -- Alterac Swiss
 	{ 13935, 1, 45, "HEALTH" }, -- Baked Salmon
 	{ 21031, 1, 45, "HEALTH" }, -- Cabbage Kimchi
@@ -167,7 +118,7 @@ ns.Data.FoodAndWater = {
 	{ 19225, 1, 45, "HEALTH" }, -- Deep Fried Candybar
 	{ 8953, 1, 45, "HEALTH" }, -- Deep Fried Plantains
 	{ 8948, 1, 45, "HEALTH" }, -- Dried King Bolete
-	{ 13724, 1, 45, "HEALTH" }, -- Enriched Manna Biscuit
+	{ 13724, 1, 45, "BOTH" }, -- Enriched Manna Biscuit
 	{ 11444, 1, 45, "HEALTH" }, -- Grim Guzzler Boar
 	{ 8950, 1, 45, "HEALTH" }, -- Homemade Cherry Pie
 	{ 35565, 1, 45, "HEALTH" }, -- Juicy Bear Burger
@@ -184,7 +135,6 @@ ns.Data.FoodAndWater = {
 	{ 8957, 1, 45, "HEALTH" }, -- Spinefin Halibut
 	{ 12763, 1, 45, "HEALTH" }, -- Un'Goro Etherfruit
 	{ 22324, 1, 45, "HEALTH" }, -- Winter Kimchi
-	{ 41751, 1, 55, "HEALTH" }, -- Black Mushroom
 	{ 27657, 1, 55, "HEALTH" }, -- Blackened Basilisk
 	{ 27663, 1, 55, "HEALTH" }, -- Blackened Sporefish
 	{ 27661, 1, 55, "HEALTH" }, -- Blackened Trout
@@ -202,7 +152,7 @@ ns.Data.FoodAndWater = {
 	{ 29292, 1, 55, "HEALTH" }, -- Helboar Bacon
 	{ 24338, 1, 55, "HEALTH" }, -- Hellfire Spineleaf
 	{ 29412, 1, 55, "HEALTH" }, -- Jessen's Special Slop
-	{ 33874, 1, 55, "HEALTH" }, -- Kibler's Bits
+	{ 33874, 1, 55, "PET" }, -- Kibler's Bits
 	{ 27855, 1, 55, "HEALTH" }, -- Mag'har Grainbread
 	{ 24539, 1, 55, "HEALTH" }, -- Marsh Lichen
 	{ 31672, 1, 55, "HEALTH" }, -- Mok'Nathal Shortribs
@@ -216,7 +166,7 @@ ns.Data.FoodAndWater = {
 	{ 30610, 1, 55, "HEALTH" }, -- Smoked Black Bear Meat
 	{ 27854, 1, 55, "HEALTH" }, -- Smoked Talbuk Venison
 	{ 27667, 1, 55, "HEALTH" }, -- Spicy Crawdad
-	{ 27656, 1, 55, "HEALTH" }, -- Sporeling Snack
+	{ 27656, 1, 55, "PET" }, -- Sporeling Snack
 	{ 33866, 1, 55, "HEALTH" }, -- Stormchops
 	{ 30458, 1, 55, "HEALTH" }, -- Stromgarde Muenster
 	{ 27858, 1, 55, "HEALTH" }, -- Sunspring Carp
@@ -225,104 +175,22 @@ ns.Data.FoodAndWater = {
 	{ 27859, 1, 55, "HEALTH" }, -- Zangar Caps
 	{ 29449, 1, 65, "HEALTH" }, -- Bladespire Bagel
 	{ 29451, 1, 65, "HEALTH" }, -- Clefthoof Ribs
-	{ 33449, 1, 65, "HEALTH" }, -- Crusty Flatbread
-	{ 44608, 1, 65, "HEALTH" }, -- Dalaran Swiss
 	{ 35710, 1, 65, "HEALTH" }, -- Delicious Baked Ham
-	{ 32722, 1, 65, "HEALTH" }, -- Enriched Terocone Juice
-	{ 37452, 1, 65, "HEALTH" }, -- Fatty Bluefin
-	{ 33451, 1, 65, "HEALTH" }, -- Fillet of Icefin
+	{ 32722, 1, 65, "BOTH" }, -- Enriched Terocone Juice
 	{ 33052, 1, 65, "HEALTH" }, -- Fisherman's Feast
-	{ 44609, 1, 65, "HEALTH" }, -- Fresh Dalaran Bread Slice
-	{ 40359, 1, 65, "HEALTH" }, -- Fresh Eagle Meat
-	{ 37252, 1, 65, "HEALTH" }, -- Frostberries
 	{ 30355, 1, 65, "HEALTH" }, -- Grilled Shadowmoon Tuber
-	{ 40356, 1, 65, "HEALTH" }, -- Grizzleberries
-	{ 33452, 1, 65, "HEALTH" }, -- Honey-Spiced Lichen
-	{ 33053, 1, 65, "HEALTH" }, -- Hot Buttered Trout
+	{ 33053, 1, 65, "BOTH" }, -- Hot Buttered Trout
 	{ 29394, 1, 65, "HEALTH" }, -- Lyribread
 	{ 29448, 1, 65, "HEALTH" }, -- Mag'har Mild Cheese
 	{ 32686, 1, 65, "HEALTH" }, -- Mingo's Fortune Giblets
 	{ 32685, 1, 65, "HEALTH" }, -- Ogri'la Chicken Fingers
-	{ 40358, 1, 65, "HEALTH" }, -- Raw Tallhorn Chunk
 	{ 38428, 1, 65, "HEALTH" }, -- Rock-Salted Pretzel
-	{ 33454, 1, 65, "HEALTH" }, -- Salted Venison
-	{ 44749, 1, 65, "HEALTH" }, -- Salted Yeti Cheese
-	{ 33825, 1, 65, "HEALTH" }, -- Skullfish Soup
-	{ 33443, 1, 65, "HEALTH" }, -- Sour Goat Cheese
+	{ 33825, 1, 65, "MANA" }, -- Skullfish Soup
 	{ 33872, 1, 65, "HEALTH" }, -- Spicy Hot Talbuk
 	{ 29453, 1, 65, "HEALTH" }, -- Sporeggar Mushroom
 	{ 33048, 1, 65, "HEALTH" }, -- Stewed Trout
-	{ 36831, 1, 65, "HEALTH" }, -- Stolen Ribs
 	{ 29450, 1, 65, "HEALTH" }, -- Telaari Grapes
-	{ 35949, 1, 65, "HEALTH" }, -- Tundra Berries
 	{ 29452, 1, 65, "HEALTH" }, -- Zangar Trout
-	{ 42942, 1, 70, "HEALTH" }, -- Baked Manta Ray
-	{ 42432, 1, 70, "HEALTH" }, -- Berry Pie Slice
-	{ 42999, 1, 70, "HEALTH" }, -- Blackened Dragonfin
-	{ 42997, 1, 70, "HEALTH" }, -- Blackened Worg Steak
-	{ 42428, 1, 70, "HEALTH" }, -- Carrot Cupcake
-	{ 42433, 1, 70, "HEALTH" }, -- Chocolate Cake Slice
-	{ 34770, 1, 70, "HEALTH" }, -- Cooked Northrend Fish 12
-	{ 43004, 1, 70, "HEALTH" }, -- Critter Bites
-	{ 42998, 1, 70, "HEALTH" }, -- Cuttlesteak
-	{ 43268, 1, 70, "HEALTH" }, -- Dalaran Clam Chowder
-	{ 42430, 1, 70, "HEALTH" }, -- Dalaran Doughnut
-	{ 43000, 1, 70, "HEALTH" }, -- Dragonfin Filet
-	{ 34767, 1, 70, "HEALTH" }, -- Firecracker Salmon
-	{ 43015, 1, 70, "HEALTH" }, -- Fish Feast
-	{ 43478, 1, 70, "HEALTH" }, -- Gigantic Feast
-	{ 34753, 1, 70, "HEALTH" }, -- Great Feast
-	{ 34760, 1, 70, "HEALTH" }, -- Grilled Bonescale
-	{ 34762, 1, 70, "HEALTH" }, -- Grilled Sculpin
-	{ 42995, 1, 70, "HEALTH" }, -- Hearty Rhino
-	{ 45901, 1, 70, "HEALTH" }, -- Homemade Fish Fry
-	{ 34769, 1, 70, "HEALTH" }, -- Imperial Manta Steak
-	{ 34748, 1, 70, "HEALTH" }, -- Mammoth Meal
-	{ 34754, 1, 70, "HEALTH" }, -- Mega Mammoth Meal
-	{ 34758, 1, 70, "HEALTH" }, -- Mighty Rhino Dogs
-	{ 34747, 1, 70, "HEALTH" }, -- Northern Stew
-	{ 34765, 1, 70, "HEALTH" }, -- Pickled Fangtooth
-	{ 34764, 1, 70, "HEALTH" }, -- Poached Nettlefish
-	{ 34766, 1, 70, "HEALTH" }, -- Poached Northern Sculpin
-	{ 34752, 1, 70, "HEALTH" }, -- Rhino Dogs
-	{ 42994, 1, 70, "HEALTH" }, -- Rhinolicious Wormsteak
-	{ 34751, 1, 70, "HEALTH" }, -- Roasted Worg
-	{ 34761, 1, 70, "HEALTH" }, -- Sauteed Goby
-	{ 34125, 1, 70, "HEALTH" }, -- Shoveltusk Soup
-	{ 34749, 1, 70, "HEALTH" }, -- Shoveltusk Steak
-	{ 43480, 1, 70, "HEALTH" }, -- Small Feast
-	{ 34759, 1, 70, "HEALTH" }, -- Smoked Rockfin
-	{ 34763, 1, 70, "HEALTH" }, -- Smoked Salmon
-	{ 42996, 1, 70, "HEALTH" }, -- Snapper Extreme
-	{ 43005, 1, 70, "HEALTH" }, -- Spiced Mammoth Treats
-	{ 34756, 1, 70, "HEALTH" }, -- Spiced Worm Burger
-	{ 34768, 1, 70, "HEALTH" }, -- Spicy Blue Nettlefish
-	{ 42993, 1, 70, "HEALTH" }, -- Spicy Fried Herring
-	{ 39691, 1, 70, "HEALTH" }, -- Succulent Orca Stew
-	{ 34755, 1, 70, "HEALTH" }, -- Tender Shoveltusk Steak
-	{ 43001, 1, 70, "HEALTH" }, -- Tracker Snacks
-	{ 34757, 1, 70, "HEALTH" }, -- Very Burnt Worg
-	{ 44953, 1, 70, "HEALTH" }, -- Worg Tartare
-	{ 34750, 1, 70, "HEALTH" }, -- Worm Delight
-	{ 44607, 1, 75, "HEALTH" }, -- Aged Dalaran Sharp
-	{ 44722, 1, 75, "HEALTH" }, -- Aged Yolk
-	{ 45932, 1, 75, "HEALTH" }, -- Black Jelly
-	{ 38706, 1, 75, "HEALTH" }, -- Bowels 'n' Brains
-	{ 35952, 1, 75, "HEALTH" }, -- Briny Hardcheese
-	{ 44940, 1, 75, "HEALTH" }, -- Corn-Breaded Sausage
-	{ 43087, 1, 75, "HEALTH" }, -- Crisp Dalaran Apple
-	{ 42778, 1, 75, "HEALTH" }, -- Crusader's Rations
-	{ 42431, 1, 75, "HEALTH" }, -- Dalaran Brownie
-	{ 42434, 1, 75, "HEALTH" }, -- Lovely Cake Slice
-	{ 35953, 1, 75, "HEALTH" }, -- Mead Basted Caribou
-	{ 35951, 1, 75, "HEALTH" }, -- Poached Emperor Salmon
-	{ 42429, 1, 75, "HEALTH" }, -- Red Velvet Cupcake
-	{ 35948, 1, 75, "HEALTH" }, -- Savory Snowplum
-	{ 40202, 1, 75, "HEALTH" }, -- Sizzling Grizzly Flank
-	{ 35947, 1, 75, "HEALTH" }, -- Sparkling Frostcap
-	{ 42779, 1, 75, "HEALTH" }, -- Steaming Chicken Soup
-	{ 41729, 1, 75, "HEALTH" }, -- Stewed Drakeflesh
-	{ 35950, 1, 75, "HEALTH" }, -- Sweet Potato Bread
 	{ 17404, 1, 5, "MANA" }, -- Blended Bean Brew
 	{ 1179, 1, 5, "MANA" }, -- Ice Cold Milk
 	{ 9451, 1, 15, "MANA" }, -- Bubbling Water
@@ -344,22 +212,92 @@ ns.Data.FoodAndWater = {
 	{ 38431, 1, 65, "MANA" }, -- Blackrock Fortified Water
 	{ 32668, 1, 65, "MANA" }, -- Dos Ogris
 	{ 29395, 1, 65, "MANA" }, -- Ethermead
-	{ 37253, 1, 65, "MANA" }, -- Frostberry Juice
 	{ 30457, 1, 65, "MANA" }, -- Gilneas Sparkling Water
-	{ 40357, 1, 65, "MANA" }, -- Grizzleberry Juice
 	{ 34411, 1, 65, "MANA" }, -- Hot Apple Cider
-	{ 44750, 1, 65, "MANA" }, -- Mountain Water
 	{ 27860, 1, 65, "MANA" }, -- Purified Draenic Water
 	{ 29401, 1, 65, "MANA" }, -- Sparkling Southshore Cider
 	{ 32453, 1, 65, "MANA" }, -- Star's Tears
-	{ 35954, 1, 65, "MANA" }, -- Sweetened Goat's Milk
-	{ 38698, 1, 70, "MANA" }, -- Bitter Plasma
-	{ 43086, 1, 70, "MANA" }, -- Fresh Apple Juice
-	{ 44941, 1, 70, "MANA" }, -- Fresh-Squeezed Limeade
-	{ 33444, 1, 70, "MANA" }, -- Pungent Seal Whey
-	{ 42777, 1, 75, "MANA" }, -- Crusader's Waterskin
-	{ 33445, 1, 75, "MANA" }, -- Honeymint Tea
-	{ 39520, 1, 75, "MANA" }, -- Kungaloosh
-	{ 43236, 1, 75, "MANA" }, -- Star's Sorrow
-	{ 41731, 1, 75, "MANA" }, -- Yeti Milk
 }
+
+--[[
+How We Got the Data
+
+Last Validated
+	2026-10-09, TBC Anniversary 2.5.6.69795
+
+Notes
+	- Food and drink a player can give away: Food & Drink consumables that restore health, mana
+	  or both while the player sits, can be traded, aren't conjured, and need level 5 or more.
+	- Level 5 is the floor because a consumable's recipients run from its use level up by
+	  ns.Data.CONSUMABLE_RECIPIENT_GAP, and nobody under ns.Data.MIN_RECIPIENT_LEVEL (5)
+	  receives anything (both in Data/Data.lua). Food needing less would reach nobody.
+	- Alcohol and drinks that only buff are out; the query drops the drunk-making spells by ID.
+	- useLevel is the level the item requires and quality its quality. restores is HEALTH, MANA
+	  or BOTH, from what the item's use text says it restores, never from a well-fed buff after
+	  it. It decides who can receive the food through ns.Data.CONSUMABLE_CLASSES in
+	  Data/Data.lua, so there is no per-item class list. Features/Scan-Bags.lua reads every
+	  field.
+	- 12217 Dragonbreath Chili restores nothing: its use is a melee fire buff. It is filed as
+	  HEALTH, which every class receives.
+	- 27656 Sporeling Snack and 33874 Kibler's Bits feed a hunter's pet, so they are filed as
+	  PET and reach only hunters. 33866 Stormchops is a lightning buff that restores nothing,
+	  and is filed as HEALTH.
+	- Every row is Food & Drink (class 0, subclass 5) on this client. The Brewfest and holiday
+	  sausages, ales and brews in the wago.tools tables are filed as plain Consumable
+	  (subclass 0), so they stay out, as does 29402 Jessen's Special Slop OLD, a retired copy.
+
+SQL (CMaNGOS)
+	Database not recorded. It returned Wrath items, so it ran against a Wrath-era database,
+	and each client's Validate Data run prunes what that client lacks.
+
+    SELECT CONCAT('\t{ ', entry, ', ', Quality, ', ', UseLevel, ', "', Restores, '" }, -- ', name) AS LuaRow
+    FROM (
+        SELECT
+            it.entry,
+            it.name,
+            it.Quality,
+            it.RequiredLevel AS UseLevel,
+            CASE
+                WHEN 11 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
+                 AND 59 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
+                    THEN 'BOTH'
+                WHEN 11 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
+                    THEN 'HEALTH'
+                WHEN 59 IN (it.spellcategory_1,it.spellcategory_2,it.spellcategory_3,it.spellcategory_4,it.spellcategory_5)
+                    THEN 'MANA'
+                ELSE 'Other'
+            END AS Restores
+        FROM item_template it
+        WHERE it.class    = 0        -- Consumable
+          AND it.subclass = 5        -- Food & Drink
+          AND it.bonding  = 0        -- non-soulbound
+          AND it.RequiredLevel > 4   -- must clear ns.Data.MIN_RECIPIENT_LEVEL
+          AND (it.Flags & 0x2) = 0   -- NOT conjured
+          AND it.name NOT LIKE 'Conjured %'
+          AND it.spelltrigger_1 IN (0,5)
+          AND (it.spellid_2 = 0 OR it.spellid_2 IS NULL)
+          AND it.name NOT LIKE '[PH]%'        -- placeholder
+          AND it.name NOT LIKE 'Test %'       -- debug
+          AND it.name NOT LIKE 'Deprecated %' -- retired
+          AND it.name NOT LIKE 'DEPCREATED %' -- retired, misspelled upstream
+          AND it.spellid_1 NOT IN (      -- weed out alcohol / inebriate spells
+                11007, 11008, 11009,     -- core booze tiers
+                11629,                   -- Nethergarde Bitter, Darkmoon Special Reserve
+                5909,                    -- Watered-down Beer
+                25037, 25722, 25804,     -- Rumsey Rum (Light/Dark/Black Label)
+                50986,                   -- Sulfuron Slammer
+                55296                    -- [PH] placeholder wine
+              )
+    ) c
+    WHERE Restores <> 'Other'      -- keep only food / water / hybrid (restores HP or mana)
+    ORDER BY FIELD(Restores, 'HEALTH', 'MANA', 'BOTH'), UseLevel, name;
+
+Wowhead
+	None.
+
+wago.tools
+	https://wago.tools/db2/Item?build=2.5.6.69795
+	https://wago.tools/db2/ItemSparse?build=2.5.6.69795
+	https://wago.tools/db2/ItemEffect?build=2.5.6.69795
+	https://wago.tools/db2/Spell?build=2.5.6.69795
+]]

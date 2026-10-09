@@ -178,9 +178,29 @@ test("an agility polearm is still a hunter's", function()
 	equal(sorted(verdict.contenders), "HUNTER", "and more so with agility on it")
 end)
 
+-- Druids train polearms in patch 3.0.8, past every shipped flavor, so no level admits one.
+test("a level 60 polearm never reaches a druid", function()
+	local ns = load()
+	local def = Stub.Item({
+		name = "Test Polearm",
+		quality = 2,
+		reqLevel = 60,
+		itemLevel = 65,
+		equipLoc = TWO_HAND,
+		classID = 2,
+		subclassID = POLEARM,
+		bindType = 2,
+		stats = { ITEM_MOD_AGILITY_SHORT = 8 },
+	})
+	local verdict = ns.Matcher:Verdict(ns.Scanner:Describe(def.link))
+
+	check(not contains(verdict.eligible, "DRUID"), "the druid is not eligible")
+	check(contains(verdict.eligible, "HUNTER"), "the hunter still is")
+end)
+
 test("the two-hand rule no longer claims polearms", function()
 	local ns = load()
-	for _, rule in ipairs(ns.Data.ItemRules) do
+	for _, rule in ipairs(ns.Data.ITEM_RULES) do
 		if rule.name == "Two-hand weapons" then
 			for _, key in ipairs(rule.weapon) do
 				check(key ~= "POLEARM", "POLEARM is not in the two-hand list")
@@ -279,7 +299,7 @@ end)
 ]]
 test("the unclaimed rule never carries a veto", function()
 	local ns = load()
-	for _, rule in ipairs(ns.Data.ItemRules) do
+	for _, rule in ipairs(ns.Data.ITEM_RULES) do
 		if rule.unclaimed then
 			check(rule.veto == nil, rule.name .. " does not veto")
 		end
@@ -344,4 +364,93 @@ test("a stat rule still beats a weapon rule", function()
 	equal(sorted(verdict.contenders), "DRUID", "the caster rule took it")
 	check(contains(verdict.admitted, "PALADIN"), "the paladin is admitted")
 	check(not contains(verdict.contenders, "PALADIN"), "but the two-hand rule never got to name him")
+end)
+
+--[[
+	Each flavor folder carries the weapon matrix its own client trains, with no patch table
+	applied on top: Wrath's folder already gives rogues one-hand axes and druids polearms,
+	and Classic's gives neither.
+]]
+local function loadFlavor(flavor)
+	Stub.flavor = flavor
+	local ok, ns = pcall(Harness.LoadAddon, ADDON_ROOT)
+	Stub.flavor = "Vanilla"
+	assert(ok, ns)
+	return ns
+end
+
+local function specsFor(ns, weaponKey, class)
+	for column, token in ipairs(ns.Data.WEAPON_CLASS_ORDER) do
+		if token == class then
+			return ns.Data.WEAPON_SPECS[weaponKey][column]
+		end
+	end
+end
+
+test("each flavor folder carries its own weapon matrix", function()
+	local wrath = loadFlavor("Wrath")
+	equal(specsFor(wrath, "1H_AXE", "ROGUE"), 1, "Wrath rogues train one-hand axes")
+	equal(specsFor(wrath, "POLEARM", "DRUID"), 1, "Wrath druids train polearms")
+
+	local vanilla = loadFlavor("Vanilla")
+	equal(specsFor(vanilla, "POLEARM", "DRUID"), 0, "Classic druids never carry a polearm")
+end)
+
+test("Classic's faction table leaves shamans off the Alliance side", function()
+	local ns = loadFlavor("Vanilla")
+	local alliance = {}
+	for _, class in ipairs(ns.Data.FACTION_CLASSES.Alliance) do
+		alliance[class] = true
+	end
+	check(not alliance.SHAMAN, "no Alliance shamans on Classic")
+	check(alliance.PALADIN, "Alliance paladins are there")
+	local reachable = {}
+	for _, class in ipairs(ns.Matcher:Classes()) do
+		reachable[class] = true
+	end
+	check(not reachable.SHAMAN and not reachable.DEATHKNIGHT, "and the matcher's class list agrees")
+end)
+
+--[[
+	Relics are armor with no material, so the armor path once offered them to whoever their stats
+	suited: a Stamina idol went to a warlock. Each routes through the weapon matrix to the one class
+	that can equip it, and a statless one still finds that class on the baseline.
+]]
+local function relic(ns, subclassID, stats)
+	local def = Stub.Item({
+		name = "Test Relic",
+		quality = 3,
+		reqLevel = 57,
+		itemLevel = 63,
+		equipLoc = "INVTYPE_RELIC",
+		classID = 4,
+		subclassID = subclassID,
+		bindType = 2,
+		stats = stats,
+	})
+	return ns.Scanner:Describe(def.link)
+end
+
+test("each relic reaches only the class that can equip it", function()
+	for _, flavor in ipairs({ "Vanilla", "TBC", "Camelot" }) do
+		local ns = loadFlavor(flavor)
+		local cases = {
+			{ 7, "PALADIN", { ITEM_MOD_SPELL_HEALING_DONE_SHORT = 20 } },
+			{ 8, "DRUID", { ITEM_MOD_STAMINA_SHORT = 10 } },
+			{ 9, "SHAMAN", { ITEM_MOD_SPELL_POWER_SHORT = 12 } },
+			{ 7, "PALADIN", nil },
+		}
+		for _, case in ipairs(cases) do
+			local subclassID, owner, stats = case[1], case[2], case[3]
+			local label = flavor .. " subclass " .. subclassID .. (stats and "" or ", statless")
+			local verdict = ns.Matcher:Verdict(relic(ns, subclassID, stats))
+			-- Classic Era's Alliance has no shamans, so a totem there has nobody to go to.
+			if contains(ns.Matcher:Classes(), owner) then
+				equal(sorted(verdict.admitted), owner, label .. " admits only its class")
+				equal(verdict.state, ns.Matcher.GIFT, label .. " is a gift")
+			else
+				equal(sorted(verdict.admitted), "", label .. " admits nobody on this side")
+			end
+		end
+	end
 end)

@@ -6,10 +6,11 @@
 	player watched, and it kept counting down after every item already had a recipient:
 	"Not done: press again for levels 21-22 (0 item(s) unmatched)".
 
-	Two things fix it and both are pinned here. Queries carry a zone, so what comes back
-	is people out levelling rather than the capital-city population that fills a bare
-	level query. And the plan is abandoned the moment no gift is left unmatched, because
-	one level 21 mage can receive the cloak as well as forty of them can.
+	The plan never grows: a capped answer is chased only by the class and zone queries
+	already on it. It shrinks instead -- an answer under the cap is everybody online at
+	those levels, so nothing narrower inside them is asked again. And the plan is
+	abandoned the moment no gift is left unmatched, because one level 21 mage can receive
+	the cloak as well as forty of them can.
 ]]
 
 local Harness = require("Harness")
@@ -74,6 +75,41 @@ test("zones from a later expansion are not searched on Era", function()
 	check(not contains(found, "Hellfire Peninsula"), "nor that one")
 end)
 
+-- The search sends the client's own name for each area, so an area with no name is never asked.
+test("an area the client has no name for is skipped", function()
+	local ns = load()
+	local original = C_Map.GetAreaInfo
+	C_Map.GetAreaInfo = function(areaID)
+		if areaID == 40 then -- Westfall
+			return ""
+		end
+		return original(areaID)
+	end
+	local found = names(ns.Data.ZonesFor(10, 12))
+	C_Map.GetAreaInfo = original
+
+	check(not contains(found, "Westfall"), "no empty zone filter")
+	check(not contains(found, ""), "nor a blank name")
+	check(contains(found, "Loch Modan"), "the named zones beside it still come back")
+end)
+
+--[[
+	WoW Forever's client reports itself as Retail, so a flavor guessed from the client read it as
+	Wrath: Northrend zones and death knights. The TOC names it Camelot, Classic Era data.
+]]
+test("WoW Forever searches and matches as Classic Era", function()
+	Stub.flavor = "Camelot"
+	local ok, ns = pcall(load)
+	Stub.flavor = "Vanilla"
+	assert(ok, ns)
+
+	local found = names(ns.Data.ZonesFor(70, 72))
+	check(not contains(found, "Howling Fjord"), "no Northrend zone on Forever")
+	check(not contains(found, "Hellfire Peninsula"), "nor an Outland one")
+	check(not contains(ns.Matcher:Classes(), "DEATHKNIGHT"), "no death knights on Forever")
+	check(contains(ns.Matcher:Classes(), "SHAMAN"), "but Forever's dwarf shamans are Alliance")
+end)
+
 --[[
 	Ordering is what decides how many presses this takes, since each press is one zone.
 	A band sitting in the middle of a zone's range should beat one clinging to its edge.
@@ -119,22 +155,19 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	Which zones lead is Data/Recipients-Zones.lua's job and is checked above. This is about the
-	shape of the plan: zones first, nothing last. They arrive lumped into one query now,
-	so the first label names a count rather than a place -- see Tests/Query-Building.lua.
+	Which zones lead is the zone table's job and is checked above. This is about the
+	shape of the plan: bare levels first, the zones behind them. Zones arrive lumped into
+	one query, so their label names a count rather than a place -- see
+	Tests/Query-Building.lua.
 ]]
-test("the first query carries zones, and the last one does not", function()
+test("the first query asks bare levels, and the zones come after", function()
 	local ns = load()
 	local steps = ns.Who:Plan({ { lo = 21, hi = 22 } })
 
 	check(steps > 1, "more than one place to look")
-	check(ns.Who:Peek():find("zone"), "starts in the zones: " .. ns.Who:Peek())
+	equal(ns.Who:Peek(), ns.DiagnosticsStrings.WHO_LABEL_ANYWHERE:format("21-22"), "starts with bare levels")
 
-	--[[
-		The bare level query is the one this whole approach moved away from, so it is
-		last. It is still there: without it a band whose zones are all empty at 3am would
-		cycle forever with no way to say it had run out of ideas.
-	]]
+	Stub.whoTotal = 999 -- capped every time, or the first answer ends the search
 	local last
 	while ns.Who:Remaining() > 0 do
 		last = ns.Who:Peek()
@@ -142,7 +175,75 @@ test("the first query carries zones, and the last one does not", function()
 		Stub.now = Stub.now + 60
 		ns.fire("WHO_LIST_UPDATE")
 	end
-	equal(last, ns.DiagnosticsStrings.WHO_LABEL_ANYWHERE:format("21-22"), "the last resort is a bare level query")
+	check(last:find("zone"), "the zones are still asked, last: " .. last)
+end)
+
+--[[
+	The live report: gear for 52, 53 and 56 took five presses, where `/who 52-56` would
+	have answered for most of it at once. Bands that close share one query.
+]]
+test("neighbouring bands share one query", function()
+	local ns = load()
+	ns.Who:Plan({ { lo = 50, hi = 51 }, { lo = 52, hi = 53 }, { lo = 54, hi = 55 } })
+	equal(ns.Who:Peek(), ns.DiagnosticsStrings.WHO_LABEL_ANYWHERE:format("50-55"), "one span for all three")
+
+	ns.Who:Step(function() end)
+	ns.fire("WHO_LIST_UPDATE") -- under the cap: everybody at 50-55 has answered
+	equal(ns.Who:Remaining(), 0, "and one answer under the cap finishes it")
+end)
+
+test("bands far apart are not folded together", function()
+	local ns = load()
+	ns.Who:Plan({ { lo = 21, hi = 22 }, { lo = 45, hi = 47 } })
+	equal(ns.Who:Peek(), ns.DiagnosticsStrings.WHO_LABEL_ANYWHERE:format("21-22"), "the low band on its own")
+end)
+
+--[[
+	A capped answer says the server had more; one under the cap says it had no more. Only
+	the second can end a band, and only for questions inside the one it answered.
+]]
+test("an answer under the cap drops what it already answered, and nothing else", function()
+	local ns = load()
+	ns.Who:Plan({ { lo = 21, hi = 22, classes = { "MAGE", "PRIEST" } }, { lo = 45, hi = 47 } })
+
+	ns.Who:Step(function() end) -- bare 21-22
+	Stub.whoResults = { { name = "Agathe", level = 21, class = "MAGE" } }
+	ns.fire("WHO_LIST_UPDATE")
+
+	for index = 1, ns.Who:Remaining() do
+		Stub.now = Stub.now + 60
+		ns.Who:Step(function() end)
+		Stub.whoTotal = 999
+		ns.fire("WHO_LIST_UPDATE")
+		local query = Stub.whoQueries[#Stub.whoQueries]
+		check(not query:find("21%-22"), "nothing more asked at 21-22: " .. query .. " (press " .. index .. ")")
+	end
+	check(ns.Who:ResultStats().exhausted > 0, "and the skips were counted")
+end)
+
+test("the server's total marks an answer as capped even under fifty", function()
+	local ns = load()
+	ns.Who:Plan({ { lo = 21, hi = 22, classes = { "MAGE", "PRIEST" } } })
+	local before = ns.Who:Remaining()
+
+	ns.Who:Step(function() end)
+	Stub.whoResults = { { name = "Agathe", level = 21, class = "MAGE" } }
+	Stub.whoTotal = 120
+	ns.fire("WHO_LIST_UPDATE")
+
+	equal(ns.Who:Remaining(), before - 1, "the rest of the plan stands")
+	equal(ns.Who:ResultStats().capped, 1, "counted as capped")
+end)
+
+--[[
+	Find Recipients for This Item exists to ask for the class it names; leading with the
+	bare query would only repeat what the main button already sent.
+]]
+test("a targeted plan still leads with its zones and its class", function()
+	local ns = load()
+	ns.Who:Plan({ { lo = 21, hi = 22, classes = { "HUNTER" } } }, true)
+	local label = ns.Who:Peek()
+	check(label:find("zone") and label:find("Hunter"), "zones and the hunter first: " .. label)
 end)
 
 test("bands take turns rather than one running to exhaustion", function()
@@ -247,7 +348,7 @@ test("the button comes back when the throttle is up", function()
 	Stub.FireTimers()
 
 	equal(ns.UI.frame.findButton:IsEnabled(), true, "clickable again")
-	equal(ns.UI.frame.findButton.shownText, ns.L["BUTTON_SCAN_AGAIN"], "and offering another look")
+	equal(ns.UI.frame.findButton.shownText, ns.L["BUTTON_FIND_RECIPIENTS"], "and offering another look")
 end)
 
 --[[
@@ -275,7 +376,7 @@ test("finding a recipient ends the search", function()
 
 	ns.UI:FindRecipients()
 	check(#Stub.whoQueries == 1, "one query went out")
-	check(Stub.whoQueries[1]:find('z%-"'), "with a zone on it: " .. Stub.whoQueries[1])
+	equal(Stub.whoQueries[1], "18-19", "asking bare levels")
 
 	Stub.whoResults = { { name = "Agathe", level = 18, class = "MAGE" } }
 	ns.fire("WHO_LIST_UPDATE")
@@ -288,7 +389,7 @@ test("finding a recipient ends the search", function()
 		until the answer lands. Its final label is what the timer restores.
 	]]
 	Stub.FireTimers()
-	equal(ns.UI.frame.findButton.shownText, ns.L["BUTTON_FIND_RECIPIENTS"], "the button is not offering Scan Again")
+	equal(ns.UI.frame.findButton.shownText, ns.L["BUTTON_FIND_RECIPIENTS"], "the button keeps its one name")
 end)
 
 --[[
@@ -441,7 +542,28 @@ test("Escape stops the search the same way the X does", function()
 	equal(ns.UI:Items()[1].recipient, nil, "and no recipient was assigned behind it")
 end)
 
-test("an empty answer keeps the search going", function()
+test("a capped answer with nobody suitable keeps the search going", function()
+	local ns = load()
+	bagWithOneCloak(ns)
+
+	ns.UI:FindRecipients()
+	Stub.whoResults = {}
+	Stub.whoTotal = 999
+	ns.fire("WHO_LIST_UPDATE")
+
+	equal(ns.UI:Items()[1].recipient, nil, "nobody found")
+	check(ns.Who:Remaining() > 0, "somewhere else left to look")
+
+	Stub.FireTimers() -- the throttle lock, which outlasts the answer
+	equal(ns.UI.frame.findButton.shownText, ns.L["BUTTON_FIND_RECIPIENTS"], "the button keeps its one name")
+	equal(ns.UI.frame.findButton:IsEnabled(), true, "and can be pressed for the next look")
+end)
+
+--[[
+	Nobody at all online at those levels, and the server said so. Every narrower query
+	would answer the same silence, so the next press starts fresh instead.
+]]
+test("an empty answer under the cap ends the search", function()
 	local ns = load()
 	bagWithOneCloak(ns)
 
@@ -449,9 +571,111 @@ test("an empty answer keeps the search going", function()
 	Stub.whoResults = {}
 	ns.fire("WHO_LIST_UPDATE")
 
-	equal(ns.UI:Items()[1].recipient, nil, "nobody found")
-	check(ns.Who:Remaining() > 0, "somewhere else left to look")
+	equal(ns.Who:Remaining(), 0, "nothing left that could answer differently")
+	Stub.FireTimers()
+	equal(ns.UI.frame.findButton.shownText, ns.L["BUTTON_FIND_RECIPIENTS"], "and the button offers a fresh search")
+end)
 
-	Stub.FireTimers() -- the throttle lock, which outlasts the answer
-	equal(ns.UI.frame.findButton.shownText, ns.L["BUTTON_SCAN_AGAIN"], "and the button says so")
+--------------------------------------------------------------------------------
+-- Faction
+--------------------------------------------------------------------------------
+
+--[[
+	Observed on Forever 1.60.1: /who answers with both factions, the add-on paired a Horde
+	sender with an Alliance stranger, and the send came back "Target is unfriendly."
+	Mail does not cross factions, so the other side never reaches a pool.
+]]
+local function answer(ns, results)
+	local found
+	ns.Who:Plan({ { lo = 16, hi = 19, classes = { "MAGE" } } })
+	ns.Who:Step(function(list)
+		found = list
+	end)
+	Stub.whoResults = results
+	ns.fire("WHO_LIST_UPDATE")
+	return found or {}
+end
+
+local function namesOf(list)
+	local out = {}
+	for _, person in ipairs(list) do
+		out[#out + 1] = person.name
+	end
+	return out
+end
+
+test("a /who result from the other faction is dropped", function()
+	local ns = load() -- the stub player is Alliance
+	local found = namesOf(answer(ns, {
+		{ name = "Ally", level = 18, class = "MAGE", race = "Human" },
+		{ name = "Hordie", level = 18, class = "MAGE", race = "Orc" },
+	}))
+
+	check(contains(found, "Ally"), "own faction kept")
+	check(not contains(found, "Hordie"), "other faction dropped")
+	equal(ns.Who:ResultStats().otherFaction, 1, "and counted for the roster report")
+end)
+
+--[[
+	A wrong drop loses a recipient for good; a wrong keep costs one refused send, which the
+	mailer now moves past. So anything the race table cannot place stays.
+]]
+test("a race that cannot be placed is kept", function()
+	local ns = load()
+	local found = namesOf(answer(ns, {
+		{ name = "Nobody", level = 18, class = "MAGE" },
+		{ name = "Stranger", level = 18, class = "MAGE", race = "Vulpera" },
+		{ name = "Panda", level = 18, class = "MAGE", race = "Pandaren" },
+	}))
+
+	check(contains(found, "Nobody"), "no race at all is kept")
+	check(contains(found, "Stranger"), "a race the table does not know is kept")
+	check(contains(found, "Panda"), "a race both factions share is kept")
+end)
+
+--[[
+	A zone ID the client cannot name is skipped by the search without a word, so the Data tab
+	checks every one: the name each ID resolves to, and NO NAME for any that comes back blank.
+]]
+local function validateZones(ns)
+	local fileIndex
+	for index, entry in ipairs(ns.DIAGNOSTIC_DATA_SOURCES) do
+		if entry.label == "Recipients-Zones" then
+			fileIndex = index
+		end
+	end
+	assert(fileIndex, "the Data tab has a Recipients-Zones report")
+	local report, counts, problem
+	ns:StartDataValidation(fileIndex, function(text, tallies, failure)
+		report, counts, problem = text, tallies, failure
+	end)
+	Stub.FireTimers()
+	assert(not problem, problem)
+	assert(report, "the run finished")
+	return report, counts
+end
+
+test("the Data tab names every Forever zone ID", function()
+	Stub.flavor = "Camelot"
+	local ok, ns = pcall(load)
+	Stub.flavor = "Vanilla"
+	assert(ok, ns)
+
+	local report, counts = validateZones(ns)
+	equal(counts.OK, #ns.Data.ZONES, "every zone resolves")
+	check(
+		report:find("OK\tZONES\t16591\tRiverglades\t33\t54\tBoth", 1, true),
+		"a row carries its name, levels and faction"
+	)
+	check(report:find("\tElwynn Forest\t1\t10\tAlliance", 1, true), "a one-faction zone names its faction")
+end)
+
+test("a zone ID the client cannot name is flagged", function()
+	local ns = load()
+	table.insert(ns.Data.ZONES, { 999999, 20, 30 })
+
+	local report, counts = validateZones(ns)
+	equal(counts["NO NAME"], 1, "the unnamed zone is flagged")
+	equal(counts.OK, #ns.Data.ZONES - 1, "the rest still resolve")
+	check(report:find("NO NAME\tZONES\t999999\t\t20\t30\tBoth", 1, true), "and still prints its row")
 end)

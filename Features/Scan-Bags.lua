@@ -15,6 +15,7 @@ local REJECT = {
 	EMPTY_SLOT = "EMPTY_SLOT",
 	NOT_CACHED = "NOT_CACHED",
 	CONSUMABLES_DISABLED = "CONSUMABLES_DISABLED",
+	KIND_DISABLED = "KIND_DISABLED",
 	CONSUMABLE_NOT_LISTED = "CONSUMABLE_NOT_LISTED",
 	NO_USE_LEVEL = "NO_USE_LEVEL",
 	LEVEL_GAP = "LEVEL_GAP",
@@ -45,10 +46,42 @@ local BIND_REJECT = {
 	positional rows into named fields. Form travels with each row because what a consumable
 	restores is not enough to say what it is: forty-odd Scan-Food rows restore mana and every
 	one is water, so "restores mana" alone would put mages behind priests for a bottle of water.
+	A scroll's fourth field is the stat it buffs rather than anything it restores, so each table
+	names the field its fourth column fills.
+
+	KINDS ARE NOT FORM. Form is the table a row came from, and Features/Match-Derivations.lua
+	matches its rules on it. Kinds are the player's switches in ns.CONSUMABLE_KIND_ORDER, and
+	the food table splits across two of them: what restores mana is drink, and what restores both
+	is food and drink at once, offered while either switch is on.
 ]]
+local FOOD_KINDS = { MANA = { "DRINK" }, BOTH = { "FOOD", "DRINK" } }
+local ONLY_FOOD, ONLY_POTION, ONLY_SCROLL = { "FOOD" }, { "POTION" }, { "SCROLL" }
+
 local CONSUMABLE_TABLES = {
-	{ table = "FoodAndWater", form = "FOOD" },
-	{ table = "Potions", form = "POTION" },
+	{
+		table = "FOOD_AND_WATER",
+		form = "FOOD",
+		effect = "restores",
+		kinds = function(restores)
+			return FOOD_KINDS[restores] or ONLY_FOOD
+		end,
+	},
+	{
+		table = "POTIONS",
+		form = "POTION",
+		effect = "restores",
+		kinds = function()
+			return ONLY_POTION
+		end,
+	},
+	{
+		table = "SCROLLS",
+		form = "SCROLL",
+		effect = "buffs",
+		kinds = function()
+			return ONLY_SCROLL
+		end,
+	},
 }
 
 local consumableByID
@@ -63,12 +96,24 @@ local function consumableIndex()
 				id = row[1],
 				quality = row[2],
 				useLevel = row[3],
-				restores = row[4],
+				[source.effect] = row[4],
 				form = source.form,
+				kinds = source.kinds(row[4]),
 			}
 		end
 	end
 	return consumableByID
+end
+
+-- Any one switch on is enough: a food that restores mana too is listed under Food or Drink.
+local function anyKindOn(kinds)
+	local switches = ns.db.profile.consumableKinds
+	for _, kind in ipairs(kinds) do
+		if switches[kind] then
+			return true
+		end
+	end
+	return false
 end
 
 --[[
@@ -79,22 +124,22 @@ end
 ]]
 local function normalizedStats(link)
 	local api = {}
-	for key, val in pairs(GetItemStats(link) or {}) do
-		local token = ns.Data.StatMap[key]
+	for key, value in pairs(ns.GetItemStats(link) or {}) do
+		local token = ns.Data.STAT_MAP[key]
 		if token then
-			api[token] = (api[token] or 0) + val
+			api[token] = (api[token] or 0) + value
 		end
 	end
 
 	local tooltip, source, lines, unread = ns.Tooltip:Stats(link)
 
 	local out = {}
-	for token, val in pairs(api) do
-		out[token] = val
+	for token, value in pairs(api) do
+		out[token] = value
 	end
-	for token, val in pairs(tooltip) do
-		if val > (out[token] or 0) then
-			out[token] = val
+	for token, value in pairs(tooltip) do
+		if value > (out[token] or 0) then
+			out[token] = value
 		end
 	end
 
@@ -128,30 +173,27 @@ local function filterSlot(bag, slot)
 		return nil, REJECT.EMPTY_SLOT
 	end
 
-	--[[
-		One call, two shapes: C_Container returns a table, the legacy globals a positional list
-		whose 2nd and 11th values are the count and bound flag. Both are read because the API is
-		picked by availability.
-	]]
-	local first, count, _, _, _, _, _, _, _, _, isBound = ns.GetItemInfoC(bag, slot)
-	if type(first) == "table" then
-		count, isBound = first.stackCount, first.isBound
-	end
+	local slotInfo = ns.GetItemInfoC(bag, slot)
+	local count = slotInfo and slotInfo.stackCount
+	local isBound = slotInfo and slotInfo.isBound
 
 	local name, _, quality, itemLevel, reqLevel, _, _, _, equipLoc, _, _, classID, subclassID, bindType =
-		GetItemInfo(link)
+		C_Item.GetItemInfo(link)
 	if not name then
-		-- Not in the client's item cache yet. Re-opening the bags resolves it.
+		-- Not in the client's item cache yet; GET_ITEM_INFO_RECEIVED rescans while the window is open (Features/Match-List.lua).
 		return nil, REJECT.NOT_CACHED
 	end
 
-	local iid = ns.GetInfoInstant(link)
+	local itemID = ns.GetInfoInstant(link)
 
 	-- Only once the player has outgrown it: a level-35 water stack is spare at 45, not at 40.
-	local cdef = consumableIndex()[iid]
-	if cdef then
+	local consumable = consumableIndex()[itemID]
+	if consumable then
 		if not ns.db.profile.includeConsumables then
 			return nil, REJECT.CONSUMABLES_DISABLED
+		end
+		if not anyKindOn(consumable.kinds) then
+			return nil, REJECT.KIND_DISABLED
 		end
 		--[[
 			A useLevel of 0 is the database's RequiredLevel, not the level the consumable is
@@ -161,7 +203,7 @@ local function filterSlot(bag, slot)
 			sits on the list forever. Held back until a real level is sourced for those rows,
 			rather than offered to nobody.
 		]]
-		if (cdef.useLevel or 0) <= 0 then
+		if (consumable.useLevel or 0) <= 0 then
 			return nil, REJECT.NO_USE_LEVEL
 		end
 		--[[
@@ -172,7 +214,7 @@ local function filterSlot(bag, slot)
 			past it", which is what the >= comparison below says.
 		]]
 		local gap = ns.db.profile.consumableLevelGap
-		if gap > 0 and (UnitLevel("player") or 1) - cdef.useLevel < gap then
+		if gap > 0 and (UnitLevel("player") or 1) - consumable.useLevel < gap then
 			return nil, REJECT.LEVEL_GAP
 		end
 		return {
@@ -181,10 +223,10 @@ local function filterSlot(bag, slot)
 			bag = bag,
 			slot = slot,
 			uid = itemUID(bag, slot, link),
-			itemID = iid,
+			itemID = itemID,
 			name = name,
 			count = count or 1,
-			def = cdef,
+			def = consumable,
 		}
 	end
 
@@ -226,7 +268,7 @@ local function filterSlot(bag, slot)
 		bag = bag,
 		slot = slot,
 		uid = itemUID(bag, slot, link),
-		itemID = iid,
+		itemID = itemID,
 		name = name,
 		count = 1,
 		quality = quality,
@@ -257,7 +299,7 @@ end
 
 -- A gear record straight from a link, with no bag slot behind it. Used by the Item Verdict report.
 function Scanner:Describe(link)
-	local name, _, quality, itemLevel, reqLevel, _, _, _, equipLoc, _, _, classID, subclassID = GetItemInfo(link)
+	local name, _, quality, itemLevel, reqLevel, _, _, _, equipLoc, _, _, classID, subclassID = C_Item.GetItemInfo(link)
 	if not name then
 		return nil
 	end
@@ -278,16 +320,14 @@ function Scanner:Describe(link)
 	}
 end
 
--- No Scanner:HasAny: a slot holding an unbound green says nothing about who can use it.
-
 function Scanner:Scan()
 	local items = {}
 	for bag = 0, NUM_BAGS do
-		local slots = ns.GetNumSlots(bag) or 0
+		local slots = C_Container.GetContainerNumSlots(bag) or 0
 		for slot = 1, slots do
-			local rec = self:Classify(bag, slot)
-			if rec then
-				table.insert(items, rec)
+			local record = self:Classify(bag, slot)
+			if record then
+				table.insert(items, record)
 			end
 		end
 	end
@@ -301,7 +341,7 @@ end
 function Scanner:ScanAll()
 	local rows = {}
 	for bag = 0, NUM_BAGS do
-		local slots = ns.GetNumSlots(bag) or 0
+		local slots = C_Container.GetContainerNumSlots(bag) or 0
 		for slot = 1, slots do
 			local record, reason = self:Classify(bag, slot)
 			if record or reason ~= REJECT.EMPTY_SLOT then

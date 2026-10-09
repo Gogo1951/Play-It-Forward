@@ -4,8 +4,8 @@
 	This is deliberately not a mock framework. It is the smallest set of globals that
 	lets the real files run unmodified, because a test that exercises a paraphrase of
 	the code proves nothing about the code. Every stub here answers in the shape the
-	real API answers in: GetItemInfo returns its 14 positional values in the client's
-	order, GetContainerItemInfo returns the C_Container table, and an item link carries
+	real API answers in: C_Item.GetItemInfo returns its 14 positional values in the client's
+	order, C_Container.GetContainerItemInfo returns a table, and an item link carries
 	a real suffix field so ns.ItemSuffixID has something to parse.
 
 	Run with: lua Tests/Run.lua
@@ -173,7 +173,7 @@ Stub.bags = {}
 
 	An id is not just a number to a fixture: Features/Scan-Bags.lua looks every scanned
 	item up in the consumable index, so a generated id that collides with a real row in
-	Data/Scan-Potions.lua or Data/Scan-Food.lua turns a green chest into a bottle of
+	a flavor folder's Scan-Food, Scan-Potions or Scan-Scrolls file turns a green chest into a bottle of
 	water. That happened. Ids began at 20000, 20074 is a real consumable, and the counter
 	ran on across the whole suite -- so a case that passed alone failed once enough
 	earlier cases had been added to push the counter past it. A test whose result depends
@@ -214,7 +214,7 @@ function Stub.Item(fields)
 		bindType = fields.bindType or 2, -- Bind on Equip
 		isBound = fields.isBound or false,
 		count = fields.count or 1,
-		sellPrice = fields.sellPrice or 0, -- copper; GetItemInfo's 11th value
+		sellPrice = fields.sellPrice or 0, -- copper; C_Item.GetItemInfo's 11th value
 		stats = fields.stats or {},
 		tooltipLines = fields.tooltipLines,
 		suffix = fields.suffix,
@@ -262,9 +262,50 @@ function Stub.Install()
 	]]
 	Stub.bags = {}
 
-	WOW_PROJECT_CLASSIC = 2
-	WOW_PROJECT_BURNING_CRUSADE_CLASSIC = 5
-	WOW_PROJECT_ID = WOW_PROJECT_CLASSIC
+	--[[
+		The TOC's own fields, which is where Data/Flavor.lua reads the flavor. Classic Era by
+		default; a case wanting another client sets Stub.flavor before it loads. No Version
+		field, so the add-on reads itself as a dev copy.
+	]]
+	Stub.flavor = Stub.flavor or "Vanilla"
+	C_AddOns = {
+		GetAddOnMetadata = function(_, field)
+			if field == "X-Flavor" then
+				return Stub.flavor
+			end
+			return nil
+		end,
+	}
+	Enum = { SeasonID = { SeasonOfDiscovery = 2 }, TooltipDataType = { Unit = 2 } }
+
+	--[[
+		The unit tooltip has two hooks. With no processor the add-on hooks OnTooltipSetUnit, the
+		older shape; a case wanting the processor sets Stub.useTooltipProcessor before it loads and
+		reads the registered post-call back from Stub.tooltipPostCalls.
+	]]
+	Stub.tooltipPostCalls = {}
+	if Stub.useTooltipProcessor then
+		TooltipDataProcessor = {
+			AddTooltipPostCall = function(dataType, fn)
+				Stub.tooltipPostCalls[dataType] = fn
+			end,
+		}
+	else
+		TooltipDataProcessor = nil
+	end
+
+	-- Unit identity reads as secret on WoW Forever in combat; a case wanting that sets the flag.
+	Stub.identitySecret = false
+	C_Secrets = {
+		ShouldUnitIdentityBeSecret = function()
+			return Stub.identitySecret
+		end,
+	}
+	C_Seasons = {
+		GetActiveSeason = function()
+			return 0
+		end,
+	}
 
 	UISpecialFrames = {}
 	tinsert = table.insert
@@ -305,8 +346,8 @@ function Stub.Install()
 	LOCALIZED_CLASS_NAMES_FEMALE = LOCALIZED_CLASS_NAMES_MALE
 
 	--[[
-		Alliance, so Matcher's absent-class filter has something to do: on Era it drops
-		shamans for this faction and death knights for the whole client. A stub that
+		Alliance, so Matcher's absent-class filter has something to do: on Classic Era data it
+		drops shamans for this faction and death knights for the whole client. A stub that
 		reported no faction would memoize nothing and quietly test the unfiltered list.
 	]]
 	UnitFactionGroup = function()
@@ -391,6 +432,11 @@ function Stub.Install()
 		so a stub that defined only a few would test a name table narrower than the real
 		one. Every key Data/Scan-Stats.lua uses is here.
 	]]
+	-- The game's quality names, which the gear cap's dropdown reads.
+	ITEM_QUALITY2_DESC = "Uncommon"
+	ITEM_QUALITY3_DESC = "Rare"
+	ITEM_QUALITY4_DESC = "Epic"
+
 	ITEM_MOD_STRENGTH_SHORT = "Strength"
 	ITEM_MOD_AGILITY_SHORT = "Agility"
 	ITEM_MOD_INTELLECT_SHORT = "Intellect"
@@ -420,13 +466,40 @@ function Stub.Install()
 	ERR_MAIL_TARGET_NOT_FOUND = "Player not found."
 	ERR_MAIL_TO_SELF = "You cannot send mail to yourself."
 	ERR_MAIL_RECEPIENT_CANT_RECEIVE_MAIL = "Recipient cannot receive mail."
+	-- No ERR_MAIL prefix, but a mail refusal all the same: observed on Forever 1.60.1.
+	ERR_PLAYER_WRONG_FACTION = "Target is unfriendly."
+
+	--[[
+		The race table, enough of it for the faction filter on /who results: the client's own IDs,
+		names and faction tags. Pandaren is listed under both factions, as the client lists it.
+	]]
+	local RACES = {
+		[1] = { "Human", "Alliance" },
+		[2] = { "Orc", "Horde" },
+		[3] = { "Dwarf", "Alliance" },
+		[4] = { "Night Elf", "Alliance" },
+		[5] = { "Undead", "Horde" },
+		[6] = { "Tauren", "Horde" },
+		[25] = { "Pandaren", "Alliance" },
+		[26] = { "Pandaren", "Horde" },
+	}
+	C_CreatureInfo = {
+		GetRaceInfo = function(raceID)
+			local race = RACES[raceID]
+			return race and { raceName = race[1], raceID = raceID } or nil
+		end,
+		GetFactionInfo = function(raceID)
+			local race = RACES[raceID]
+			return race and { name = race[2], groupTag = race[2] } or nil
+		end,
+	}
 
 	--[[
 		A cold item cache answers nil, exactly as the client does for an item it has not
 		resolved yet. Setting cached = false on a fixture is how a test reaches the
 		scanner's NOT_CACHED branch, which is otherwise unreachable outside the game.
 	]]
-	GetItemInfo = function(link)
+	local function getItemInfo(link)
 		local def = Stub.itemsByLink[link]
 		if not def or def.cached == false then
 			return nil
@@ -452,17 +525,24 @@ function Stub.Install()
 		leans on this to count item level for gear only, so a consumable (equipLoc "") must come
 		back false rather than being told apart some other way.
 	]]
-	IsEquippableItem = function(link)
+	local function isEquippableItem(link)
 		local def = Stub.itemsByLink[link]
 		return def ~= nil and def.equipLoc ~= nil and def.equipLoc ~= ""
 	end
 
+	-- The Classic Era shape: the stats reader is a bare global, and C_Item has no GetItemStats.
 	GetItemStats = function(link)
 		local def = Stub.itemsByLink[link]
 		return def and def.stats or {}
 	end
 
+	-- The Diagnostics validator resolves its spell and quest readers at load; absent ones leave blank cells.
+	C_Spell = {}
+	C_QuestLog = {}
+
 	C_Item = {
+		GetItemInfo = getItemInfo,
+		IsEquippableItem = isEquippableItem,
 		GetItemInfoInstant = function(link)
 			local def = Stub.itemsByLink[link]
 			return def and def.id
@@ -605,10 +685,13 @@ function Stub.Install()
 		shape of the real thing and the add-on's stepper is built around the gap.
 
 		Stub.whoResults is what the *next* answer will contain, whatever was asked. A
-		case that cares which zone was queried reads Stub.whoQueries.
+		case that cares which zone was queried reads Stub.whoQueries. Stub.whoTotal is
+		how many the server says matched, nil for "exactly what was sent": set it above
+		the count to answer as a capped query, which leaves the rest of the plan standing.
 	]]
 	Stub.whoQueries = {}
 	Stub.whoResults = {}
+	Stub.whoTotal = nil
 	FriendsFrame = newFrame()
 	-- FrameXML's FriendsFrame_OnLoad registers this; opening on an answer is what the add-on suppresses.
 	FriendsFrame:RegisterEvent("WHO_LIST_UPDATE")
@@ -659,13 +742,86 @@ function Stub.Install()
 		return person ~= nil and person.isPlayer ~= false
 	end
 
+	--[[
+		Area names as an enUS client answers them, for every area the zone tables name. The search
+		asks the client for each one, so a case reads zones by their English names.
+	]]
+	local AREA_NAMES = {
+		[1] = "Dun Morogh",
+		[3] = "Badlands",
+		[4] = "Blasted Lands",
+		[8] = "Swamp of Sorrows",
+		[10] = "Duskwood",
+		[11] = "Wetlands",
+		[12] = "Elwynn Forest",
+		[14] = "Durotar",
+		[15] = "Dustwallow Marsh",
+		[16] = "Azshara",
+		[17] = "The Barrens",
+		[28] = "Western Plaguelands",
+		[33] = "Stranglethorn Vale",
+		[36] = "Alterac Mountains",
+		[38] = "Loch Modan",
+		[40] = "Westfall",
+		[41] = "Deadwind Pass",
+		[44] = "Redridge Mountains",
+		[45] = "Arathi Highlands",
+		[46] = "Burning Steppes",
+		[47] = "The Hinterlands",
+		[51] = "Searing Gorge",
+		[65] = "Dragonblight",
+		[66] = "Zul'Drak",
+		[67] = "The Storm Peaks",
+		[85] = "Tirisfal Glades",
+		[130] = "Silverpine Forest",
+		[139] = "Eastern Plaguelands",
+		[141] = "Teldrassil",
+		[148] = "Darkshore",
+		[210] = "Icecrown",
+		[215] = "Mulgore",
+		[267] = "Hillsbrad Foothills",
+		[331] = "Ashenvale",
+		[357] = "Feralas",
+		[361] = "Felwood",
+		[394] = "Grizzly Hills",
+		[400] = "Thousand Needles",
+		[405] = "Desolace",
+		[406] = "Stonetalon Mountains",
+		[440] = "Tanaris",
+		[490] = "Un'Goro Crater",
+		[495] = "Howling Fjord",
+		[618] = "Winterspring",
+		[1377] = "Silithus",
+		[3430] = "Eversong Woods",
+		[3433] = "Ghostlands",
+		[3483] = "Hellfire Peninsula",
+		[3518] = "Nagrand",
+		[3519] = "Terokkar Forest",
+		[3520] = "Shadowmoon Valley",
+		[3521] = "Zangarmarsh",
+		[3522] = "Blade's Edge Mountains",
+		[3523] = "Netherstorm",
+		[3524] = "Azuremyst Isle",
+		[3525] = "Bloodmyst Isle",
+		[3537] = "Borean Tundra",
+		[3711] = "Sholazar Basin",
+		[16004] = "Mount Hyjal",
+		[16591] = "Riverglades",
+		[16593] = "Zephras Isle",
+	}
+	C_Map = {
+		GetAreaInfo = function(areaID)
+			return AREA_NAMES[areaID]
+		end,
+	}
+
 	C_FriendList = {
 		SendWho = function(filter)
 			table.insert(Stub.whoQueries, filter)
 		end,
 		SetWhoToUi = function() end,
 		GetNumWhoResults = function()
-			return #Stub.whoResults
+			return #Stub.whoResults, Stub.whoTotal or #Stub.whoResults
 		end,
 		GetWhoInfo = function(index)
 			local person = Stub.whoResults[index]
@@ -677,6 +833,7 @@ function Stub.Install()
 				level = person.level,
 				filename = person.class,
 				classStr = person.class,
+				raceStr = person.race,
 				area = person.area or "Somewhere",
 			}
 		end,
@@ -781,7 +938,7 @@ function Stub.Install()
 			panels is Ace's business and no case asserts on it. Options/Options.lua only
 			needs its file-scope LibStub calls to land somewhere.
 		]]
-		if name == "AceConfig-3.0" or name == "AceConfigDialog-3.0" then
+		if name == "AceConfig-3.0" or name == "AceConfigDialog-3.0" or name == "AceConfigRegistry-3.0" then
 			return newFrame()
 		end
 		error("no stub for LibStub library " .. tostring(name), 2)

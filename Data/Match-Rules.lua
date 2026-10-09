@@ -8,14 +8,16 @@ local _, ns = ...
 	SOFT BY DESIGN. A rule decides who is in contention, not who is admitted -- everybody the
 	weights allowed stays behind it as a fallback. A veto is the exception and is absolute.
 
-	FIRST MATCH WINS, so the order below is data. Only one combination can collide -- Agility,
-	Intellect and Spirit together -- and the caster rule takes it.
+	FIRST MATCH WINS, so the order below is data. Two combinations can collide: cloth healing
+	gear carrying Intellect and Spirit, which the priest rule takes, and Agility, Intellect and
+	Spirit together, which the caster rule takes.
 ]]
 
 --[[
 	requires   every one of these stats must be on the item
 	exclusive  and nothing else any class ranks may be
-	form       "POTION" or "FOOD", for a consumable rule
+	armor      the item is body armor of one of these materials; never a cloak, ring or neck
+	form       "POTION", "FOOD" or "SCROLL", for a consumable rule
 	restores   any one of these, for a consumable rule
 	weapon     any one of these weapon keys, for a weapon rule
 	unclaimed  only when no eligible class had a stat claim on the item. Pairs with prefer or
@@ -24,7 +26,19 @@ local _, ns = ...
 	demote     these classes drop out of contention, but stay as fallbacks
 	veto       these classes are removed outright, before anything is scored
 ]]
-ns.Data.ItemRules = {
+ns.Data.ITEM_RULES = {
+	--[[
+		Priests have two healing trees to everybody else's one, and cloth is theirs to begin with:
+		a druid one level closer must not take a healing robe off them. First, so the
+		Intellect-and-Spirit rule below cannot hand the same robe to a mage. Cloaks are cloth too
+		and stay out: any healer wears one.
+	]]
+	{
+		name = "Cloth healing",
+		requires = { "HEALING" },
+		armor = { "CLOTH" },
+		prefer = { "PRIEST" },
+	},
 	{
 		name = "Intellect and Spirit",
 		requires = { "INTELLECT", "SPIRIT" },
@@ -101,7 +115,7 @@ ns.Data.ItemRules = {
 		warlock has nothing else -- so putting staves under the two-hand rule would hand each
 		one to a druid ahead of the three classes it was made for. Wands, bows, guns, crossbows
 		and thrown are out from the other direction: none is melee and the matrix already
-		decides them. Shields and held off-hands never reach here.
+		decides them. Shields, held off-hands and relics never reach here.
 
 		No rule needs an "unless it has caster stats" clause: a rule can only name classes that
 		scoring already admitted.
@@ -118,7 +132,8 @@ ns.Data.ItemRules = {
 	},
 	--[[
 		The two classes that fight one-handed, and the matrix decides which kinds each may hold:
-		a rogue reaches swords, maces and fists, never axes, so naming him costs nothing there.
+		a rogue reaches swords, maces and fists, and axes only from Wrath, so naming him costs
+		nothing there.
 	]]
 	-- FIST is 1H melee like the rest; move it to the dagger rule above if rogues turn out to want it more.
 	{
@@ -154,9 +169,9 @@ ns.Data.ItemRules = {
 
 		UNCLAIMED, NOT EVERY BOW. A ranged weapon carrying stats is decided by them: an Agility
 		bow is a rogue's as much as a hunter's and a Strength one is the warrior's, and hunters
-		have no special claim on either. Thrown is left out from the other side -- the matrix
-		gives a hunter no proficiency for it, so naming him there would be a line that can never
-		apply.
+		have no special claim on either. Thrown is left out from the other side -- a hunter can
+		train it but never carries one, since a thrown weapon does not fire Auto Shot, so the
+		matrix gives him a 0 and naming him there would be a line that can never apply.
 	]]
 	{
 		name = "Unclaimed ranged weapons",

@@ -17,12 +17,8 @@ local _, ns = ...
 
 local Generosity = ns.Generosity
 
---[[
-	Picked by availability, never by truthy result: the bare globals are the pre-9.x fallback and
-	C_ChatInfo is what both shipped flavors carry.
-]]
-local RegisterPrefix = (C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix) or RegisterAddonMessagePrefix
-local SendAddonMessage = (C_ChatInfo and C_ChatInfo.SendAddonMessage) or SendAddonMessage
+local RegisterPrefix = C_ChatInfo.RegisterAddonMessagePrefix
+local SendAddonMessage = C_ChatInfo.SendAddonMessage
 
 local PREFIX = ns.ADDON_MESSAGE_PREFIX
 local PAYLOAD_VERSION = "1"
@@ -44,6 +40,11 @@ local PING_ANSWER_INTERVAL = 30
 	peer standing beside you flickers out between hovers with no way back until you are both in town.
 ]]
 local PEER_MAX_AGE = 1800
+
+-- Exposed so the diagnostics sharing report measures against the same numbers this file does.
+Generosity.BROADCAST_MIN_INTERVAL = BROADCAST_MIN_INTERVAL
+Generosity.PING_ANSWER_INTERVAL = PING_ANSWER_INTERVAL
+Generosity.PEER_MAX_AGE = PEER_MAX_AGE
 
 --[[
 	Registered so CHAT_MSG_ADDON delivers messages carrying this prefix. Guarded and remembered:
@@ -78,12 +79,22 @@ function Generosity:Peer(nameRealm)
 	return peer
 end
 
--- The raw peers cache, for the diagnostics report only. Not for the tooltip, which asks by name.
+--[[
+	The raw peers cache, for the diagnostics report only. Not for the tooltip, which asks by name.
+	Expired entries are still in it until the next message sweeps them; the report marks them
+	against PEER_MAX_AGE.
+]]
 function Generosity:AllPeers()
 	return peers
 end
 
 local lastBroadcast = 0
+local lastPingAnswer = 0
+
+-- When our totals last went out and when we last answered a ping, GetTime() or 0 for never. For the diagnostics report.
+function Generosity:LastSends()
+	return lastBroadcast, lastPingAnswer
+end
 
 --[[
 	Send our totals, if sharing is on. Versioned payload "1|S|gifts|items|itemLevels|value" from
@@ -129,8 +140,6 @@ function Generosity:Ping()
 	end
 end
 
-local lastPingAnswer = 0
-
 --[[
 	An answer that cannot go out must not spend the window, so the town gate is read before the
 	clock is stamped -- the same ordering Broadcast uses. Receiving is ungated, so this runs out in
@@ -166,7 +175,7 @@ end
 	Handler args are prefix, message, channel, sender. Ignore other add-ons' prefixes and unknown
 	payload versions; on "S" cache the sender's four totals, on "?" answer with our own (throttled).
 ]]
-ns.on("CHAT_MSG_ADDON", function(prefix, message, _, sender)
+local function OnChatMsgAddon(prefix, message, _, sender)
 	if prefix ~= PREFIX or not message then
 		return
 	end
@@ -200,18 +209,21 @@ ns.on("CHAT_MSG_ADDON", function(prefix, message, _, sender)
 	elseif kind == "?" then
 		answerPing()
 	end
-end)
+end
+ns.on("CHAT_MSG_ADDON", OnChatMsgAddon)
 
 -- Presence on entering the world; the throttle in Broadcast absorbs the refire on every load screen.
-ns.on("PLAYER_ENTERING_WORLD", function()
+local function OnPlayerEnteringWorld()
 	Generosity:Broadcast()
-end)
+end
+ns.on("PLAYER_ENTERING_WORLD", OnPlayerEnteringWorld)
 
 --[[
 	The moment the town gate opens. Walking from a field into a city fires no loading screen, so
 	PLAYER_ENTERING_WORLD alone would leave a player silent until something else happened to send.
 	This fires on leaving a rest area too, where Broadcast simply returns on the gate.
 ]]
-ns.on("PLAYER_UPDATE_RESTING", function()
+local function OnPlayerUpdateResting()
 	Generosity:Broadcast()
-end)
+end
+ns.on("PLAYER_UPDATE_RESTING", OnPlayerUpdateResting)

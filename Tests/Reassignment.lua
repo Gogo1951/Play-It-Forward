@@ -144,11 +144,38 @@ test("a tick taken off by hand stays off", function()
 	search(ns, { HUNTER })
 
 	local staff = ns.UI:Items()[1]
-	ns.UI:_setSend(staff, false)
+	ns.UI:_toggleRow(staff, false)
 	equal(staff.send, false, "unticked")
 
 	search(ns, { PRIEST })
 	equal(ns.UI:Items()[1].send, false, "and a later search leaves it unticked")
+end)
+
+--[[
+	Every row starts ticked, so a search needs nothing from the player. The untick is the
+	one thing that holds a row back, and nothing but the player's own tick undoes it: not
+	three presses of Find Recipients, and not a bag rescan that rebuilds every record.
+]]
+test("a row unticked before any search stays out of matching until it is ticked again", function()
+	local ns = load()
+	owlStaff(ns)
+
+	local staff = ns.UI:Items()[1]
+	equal(staff.send, true, "every row starts ticked")
+	ns.UI:_toggleRow(staff, false)
+
+	for _ = 1, 3 do
+		search(ns, { PRIEST, HUNTER })
+	end
+	ns.UI:Rescan()
+
+	staff = ns.UI:Items()[1]
+	equal(staff.send, false, "still unticked after three searches and a rescan")
+	equal(staff.recipient, nil, "and nobody was handed it")
+
+	ns.UI:_toggleRow(staff, true)
+	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), "Pri", "ticked again, it is matched from the pool")
+	equal(staff.send, true, "and ticked to send")
 end)
 
 --[[
@@ -168,4 +195,28 @@ test("a hand-set row survives a bag rescan", function()
 	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), nil, "still cleared after the rescan")
 	search(ns, { PRIEST })
 	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), nil, "and still cleared after another search")
+end)
+
+--[[
+	A gift puts its recipient on cooldown until they are next seen at a higher level, so a
+	later sighting has to carry its level into the pool. A pool entry frozen at the level it
+	was first found at would keep the cooldown for the whole session.
+]]
+test("a recipient seen at a higher level is fresh again", function()
+	local ns = load()
+	local found = { name = "Levelling", level = 20, class = "MAGE" }
+	ns.MatchList:AddResults({ found })
+	ns.Fairness:Record("Levelling", 20)
+	check(not ns.Fairness:IsFresh("Levelling", found.level), "on cooldown right after the gift")
+
+	equal(
+		ns.MatchList:AddResults({ { name = "Levelling", level = 20, class = "MAGE" } }),
+		0,
+		"a re-sighting at the same level changes nothing"
+	)
+
+	local changed = ns.MatchList:AddResults({ { name = "Levelling", level = 21, class = "MAGE" } })
+	equal(changed, 1, "a re-sighting a level higher counts as a change")
+	equal(ns.MatchList:Pools().MAGE[1].level, 21, "the pool entry reads the new level")
+	check(ns.Fairness:IsFresh("Levelling", ns.MatchList:Pools().MAGE[1].level), "and the cooldown is over")
 end)

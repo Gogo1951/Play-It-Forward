@@ -14,8 +14,8 @@ local Generosity = ns.Generosity
 	One successful mailing. quantity is the stack size, captured at send time in the mailer because
 	the bag slot is already stale by MAIL_SUCCESS -- a stack of 20 waters must count as 20, not 1.
 	Item level counts for equippable gear only; a consumable adds nothing to it. Value is the vendor
-	sell price times the stack. GetItemInfo is warm here (the item was just scanned and mailed), but
-	every read off it is guarded for nil rather than assumed.
+	sell price times the stack. C_Item.GetItemInfo is warm here (the item was just scanned and
+	mailed), but every read off it is guarded for nil rather than assumed.
 ]]
 function Generosity:RecordSend(link, quantity)
 	if not ns.db then
@@ -27,14 +27,14 @@ function Generosity:RecordSend(link, quantity)
 	stats.gifts = stats.gifts + 1
 	stats.items = stats.items + count
 
-	if IsEquippableItem(link) then
-		local itemLevel = select(4, GetItemInfo(link))
+	if C_Item.IsEquippableItem(link) then
+		local itemLevel = select(4, C_Item.GetItemInfo(link))
 		if itemLevel then
 			stats.itemLevels = stats.itemLevels + itemLevel
 		end
 	end
 
-	stats.value = stats.value + (select(11, GetItemInfo(link)) or 0) * count
+	stats.value = stats.value + (select(11, C_Item.GetItemInfo(link)) or 0) * count
 end
 
 -- The four counters, for the General panel's Given Away display and Features/Generosity-Broadcast.lua.

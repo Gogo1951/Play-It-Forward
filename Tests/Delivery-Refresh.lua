@@ -330,7 +330,7 @@ test("Distribute is dead when every row is unticked", function()
 	local ns = readyToDistribute({ cloak() }, { KEEFE })
 	equal(ns.UI.frame.distributeButton:IsEnabled(), true, "ticked and matched")
 
-	ns.UI:_setSend(ns.UI:Items()[1], false)
+	ns.UI:_toggleRow(ns.UI:Items()[1], false)
 	ns.UI:Refresh()
 	equal(ns.UI.frame.distributeButton:IsEnabled(), false, "unticked leaves nothing to send")
 end)

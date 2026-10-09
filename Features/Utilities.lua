@@ -3,16 +3,78 @@ local _, ns = ...
 -- Stateless helpers used by more than one file. Anything used by exactly one file lives there.
 
 --------------------------------------------------------------------------------
--- Container API Shims
+-- Item and Container APIs
 --------------------------------------------------------------------------------
 
--- Picked by availability, never by truthy result. The bare globals are the pre-10.x fallback.
-local C = C_Container
-ns.GetNumSlots = (C and C.GetContainerNumSlots) or GetContainerNumSlots
-ns.GetItemLink = (C and C.GetContainerItemLink) or GetContainerItemLink
-ns.GetItemInfoC = (C and C.GetContainerItemInfo) or GetContainerItemInfo
-ns.UseItem = (C and C.UseContainerItem) or UseContainerItem
-ns.GetInfoInstant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+ns.GetItemLink = C_Container.GetContainerItemLink
+-- A table, or nil for an empty slot.
+ns.GetItemInfoC = C_Container.GetContainerItemInfo
+ns.GetInfoInstant = C_Item.GetItemInfoInstant
+
+-- Only WoW Forever ships C_Item.GetItemStats; Classic Era and TBC Anniversary keep the global.
+ns.GetItemStats = C_Item.GetItemStats or GetItemStats
+
+--------------------------------------------------------------------------------
+-- Tooltip Text
+--------------------------------------------------------------------------------
+
+--[[
+	An item's or spell's tooltip as plain lines, a right-hand column kept after " >> ", for the
+	Validate Data report. kind is "item" or "spell". C_TooltipInfo hands the lines over as data
+	where the client ships its GetItemByID and GetSpellByID getters (WoW Forever); elsewhere they
+	are read off a hidden tooltip that is never shown. Color escapes are stripped so each line
+	reads as its words. Resolved once at load. A read can throw on an odd id, so callers protect it.
+]]
+local DATA_TOOLTIP_NAME = "PlayItForwardDataTooltip"
+local TOOLTIP_DATA_GETTERS = C_TooltipInfo
+	and C_TooltipInfo.GetItemByID
+	and C_TooltipInfo.GetSpellByID
+	and { item = C_TooltipInfo.GetItemByID, spell = C_TooltipInfo.GetSpellByID }
+local dataTooltip
+
+local function PlainText(text)
+	if type(text) ~= "string" then
+		return nil
+	end
+	return (text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|cn[^:]*:", ""):gsub("|r", ""))
+end
+
+local function JoinTooltipLine(left, right)
+	left = PlainText(left) or ""
+	right = PlainText(right)
+	if right and right ~= "" then
+		return left .. " >> " .. right
+	end
+	return left
+end
+
+local function ReadTooltipData(kind, id)
+	local lines = {}
+	local data = TOOLTIP_DATA_GETTERS[kind](id)
+	for _, line in ipairs(data and data.lines or {}) do
+		lines[#lines + 1] = JoinTooltipLine(line.leftText, line.rightText)
+	end
+	return lines
+end
+
+local function ReadHiddenTooltip(kind, id)
+	if not dataTooltip then
+		dataTooltip = CreateFrame("GameTooltip", DATA_TOOLTIP_NAME, nil, "GameTooltipTemplate")
+	end
+	dataTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
+	dataTooltip:ClearLines()
+	dataTooltip:SetHyperlink(kind .. ":" .. id)
+	local lines = {}
+	for index = 1, dataTooltip:NumLines() do
+		local left = _G[DATA_TOOLTIP_NAME .. "TextLeft" .. index]
+		local right = _G[DATA_TOOLTIP_NAME .. "TextRight" .. index]
+		lines[#lines + 1] = JoinTooltipLine(left and left:GetText(), right and right:IsShown() and right:GetText())
+	end
+	dataTooltip:Hide()
+	return lines
+end
+
+ns.GetTooltipLines = TOOLTIP_DATA_GETTERS and ReadTooltipData or ReadHiddenTooltip
 
 --------------------------------------------------------------------------------
 -- Frame Templates
@@ -111,16 +173,59 @@ for quality, key in pairs(QUALITY_KEY) do
 	QUALITY_ESCAPE[quality] = COLOR_PREFIX .. ns.ITEM_QUALITY_COLORS[key]
 end
 
-local QUALITY_NAME_KEY = { [2] = "QUALITY_UNCOMMON", [3] = "QUALITY_RARE", [4] = "QUALITY_EPIC" }
+-- The game's own quality names, so every locale reads them as its item tooltips do.
+local QUALITY_NAME_GLOBAL = { [2] = "ITEM_QUALITY2_DESC", [3] = "ITEM_QUALITY3_DESC", [4] = "ITEM_QUALITY4_DESC" }
 
 function ns.QualityColor(quality)
 	local client = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
 	return (client and client.hex) or QUALITY_ESCAPE[quality] or ns.GetColor("TEXT")
 end
 
+--[[
+	The cap a quality sets: that quality and everything beneath it. Uncommon stands alone because
+	nothing is ever beneath it -- ns.Data.MIN_RARITY floors the gear scan at uncommon.
+]]
 function ns.QualityName(quality)
-	local key = QUALITY_NAME_KEY[quality]
-	return (key and ns.L[key]) or tostring(quality)
+	local global = QUALITY_NAME_GLOBAL[quality]
+	local name = global and _G[global]
+	if not name then
+		return tostring(quality)
+	end
+	if quality > ns.Data.MIN_RARITY then
+		return ns.L["QUALITY_AND_LOWER"]:format(name)
+	end
+	return name
+end
+
+--------------------------------------------------------------------------------
+-- Consumable Level Gap
+--------------------------------------------------------------------------------
+
+--[[
+	The stops are data, in Data/Data.lua; the words are here, shared by the options panel and the
+	mail window. Zero is the "All Consumables" stop and lifts the level rule outright (see
+	Features/Scan-Bags.lua), so it reads as itself rather than as a gap of nothing.
+]]
+ns.CONSUMABLE_GAP_VALUES = {}
+for _, gap in ipairs(ns.CONSUMABLE_GAP_ORDER) do
+	ns.CONSUMABLE_GAP_VALUES[gap] = (gap == 0) and ns.L["OPTIONS_CONSUMABLE_GAP_ALL"]
+		or ns.L["OPTIONS_CONSUMABLE_GAP_VALUE"]:format(gap)
+end
+
+--[[
+	A select whose value is not in its list renders blank, reading as a setting that failed to
+	load. Display only: the stored number keeps driving the scan until the player picks.
+]]
+function ns.NearestConsumableGap(value)
+	local stored = tonumber(value) or 0
+	local best, bestDistance = ns.CONSUMABLE_GAP_ORDER[1], math.huge
+	for _, gap in ipairs(ns.CONSUMABLE_GAP_ORDER) do
+		local distance = math.abs(stored - gap)
+		if distance < bestDistance then
+			best, bestDistance = gap, distance
+		end
+	end
+	return best
 end
 
 --------------------------------------------------------------------------------
@@ -147,7 +252,7 @@ function ns.QualifyPlayerName(name)
 	end
 	--[[
 		PICKED BY AVAILABILITY, then retried on an unresolved answer. The second read is not a
-		legacy fallback: both shipped flavors have GetNormalizedRealmName, and it answers nil
+		legacy fallback: every target has GetNormalizedRealmName, and it answers nil
 		early in login before the realm resolves, which is the one case worth asking twice for.
 	]]
 	local realm
@@ -212,6 +317,11 @@ function ns.CommaNumber(n)
 	return sign .. number
 end
 
+-- The same, under the name the Diagnostics framework copied from Magic Eraser calls.
+function ns:FormatCommaNumber(number)
+	return ns.CommaNumber(number)
+end
+
 --[[
 	Copper as a gold/silver/copper string. GetCoinTextureString is the client's own formatter and
 	renders the coin icons; where it is absent -- the headless tests, an unexpectedly stripped
@@ -254,7 +364,7 @@ end
 	a dungeon or a fight out in the world -- resting is the cheap, reliable proxy for "in town".
 
 	Absent the API this answers false rather than true: staying out of the way is the whole point of
-	the gate, and both shipped flavors have IsResting, so the fallback is unreachable in practice.
+	the gate, and every target has IsResting, so the fallback is unreachable in practice.
 ]]
 function ns.AtRest()
 	if not IsResting then

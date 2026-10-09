@@ -90,15 +90,46 @@ test("another add-on's chatter is counted and ours is kept", function()
 	)
 end)
 
--- The counters are the log's footnote, so they go when it does.
-test("stopping the log releases the counters with it", function()
+--[[
+	Bag traffic away from the window only marks the bags stale, so it is counted. The same event
+	with the window up arms the rescan that changes the list, so the log has to show it.
+]]
+test("bag traffic with the window closed is counted, not logged", function()
+	local ns = load()
+	ns:StartEventLog()
+
+	for _ = 1, 40 do
+		ns:LogEvent("BAG_UPDATE", 0)
+	end
+
+	equal(#ns.diagnostics.log, 0, "nothing reached the buffer")
+	check(ns:BuildEventLogReport():find("BAG_UPDATE%(0, %) x40"), "the burst is one counted row")
+end)
+
+test("a bag update that rescans the open window is logged in full", function()
+	local ns = load()
+	ns.UI:_buildFrame()
+	ns.UI.frame:Show()
+	ns:StartEventLog()
+
+	ns:LogEvent("BAG_UPDATE", 2)
+
+	equal(#ns.diagnostics.log, 1, "the firing that armed a rescan reached the buffer")
+	check(ns.diagnostics.log[1]:find("BAG_UPDATE(2)", 1, true), "verbatim")
+end)
+
+-- Stop keeps what was captured, so it can still be shown; switching the panel off releases it.
+test("stopping keeps the log, and switching diagnostics off releases it", function()
 	local ns = load()
 	ns:StartEventLog()
 	ns:LogEvent("UI_ERROR_MESSAGE", 56, "Ability is not ready yet.")
 	check(next(ns.diagnostics.suppressed) ~= nil, "something was counted")
 
 	ns:StopEventLog()
+	check(ns.diagnostics.log ~= nil, "the buffer survives Stop")
+	check(next(ns.diagnostics.suppressed) ~= nil, "and so do the counters")
 
-	equal(ns.diagnostics.log, nil, "the buffer is gone")
+	ns:SetDiagnosticsEnabled(false)
+	equal(ns.diagnostics.log, nil, "switched off, the buffer is gone")
 	equal(ns.diagnostics.suppressed, nil, "and so are the counters")
 end)

@@ -14,10 +14,9 @@ local function gatedRowLabel(text, order, hidden, width)
 end
 
 --[[
-	One split for every label-beside-value row on this panel, copied from GogoLoot: a one-word
-	label against a wide cell. The label takes 0.6 so the cell beside it lands on exactly 2.0 --
-	the guide's double width for a read-only input -- without the row outgrowing every other row.
-	Shared by the link rows and the Generosity totals, so the numbers start where the URLs do.
+	One split for every label-beside-value row on this panel: a one-word label against a wide
+	cell, the two totalling ns.OPTIONS_ROW_WIDTH like every other row. Shared by the link rows and
+	the Generosity totals, so the numbers start where the URLs do.
 
 	EVERY PAIR NEEDS ITS SPACER. AceConfig's flow packs cells until a row fills, and a full-width
 	spacer is what ends one; pairs written without them run together and the rows interleave.
@@ -25,7 +24,7 @@ end
 local ROW_LABEL_WIDTH = 0.6
 local ROW_VALUE_WIDTH = ns.OPTIONS_ROW_WIDTH - ROW_LABEL_WIDTH
 
--- The input and spacer stay inlined: ns.OptionsDesc and ns.OptionsSpacer take no hidden argument.
+-- The input stays inlined: it carries its own hidden function beside the label's.
 local FEEDBACK_LINKS = {
 	{ id = "Discord", label = L["OPTIONS_DISCORD"], key = "DISCORD" },
 	{ id = "GitHub", label = L["OPTIONS_GITHUB"], key = "GITHUB" },
@@ -38,7 +37,7 @@ local function addFeedbackLinks(args, startOrder)
 	for index, link in ipairs(FEEDBACK_LINKS) do
 		local key = link.key
 		local hidden = function()
-			return not ns.Links[key]
+			return not ns.LINKS[key]
 		end
 		args["label" .. link.id] =
 			gatedRowLabel(GetColor("TITLE") .. link.label .. "|r", order, hidden, ROW_LABEL_WIDTH)
@@ -48,7 +47,7 @@ local function addFeedbackLinks(args, startOrder)
 			width = ROW_VALUE_WIDTH,
 			order = order + 1,
 			get = function()
-				return ns.Links[key]
+				return ns.LINKS[key]
 			end,
 			set = function() end,
 			hidden = hidden,
@@ -57,22 +56,13 @@ local function addFeedbackLinks(args, startOrder)
 
 		-- Between rows only: a trailing one would double the gap before the version line.
 		if index < #FEEDBACK_LINKS then
-			args["spacer" .. link.id] = {
-				type = "description",
-				name = " ",
-				order = order,
-				hidden = hidden,
-			}
+			args["spacer" .. link.id] = ns.OptionsSpacer(order, hidden)
 			order = order + 1
 		end
 	end
 end
 
---[[
-	Each select greys out with the toggle beside it rather than hiding: a hidden select leaves a
-	gap the next toggle flows up into, which pairs two toggles on one row and is exactly the
-	formatting this section was cleaned up to avoid.
-]]
+-- The rarity select hides while Include Gear is off, the gap select with its sub-row; spacerGive2 separates the two.
 local function gearOff()
 	return not (ns.db and ns.db.profile.includeGear)
 end
@@ -81,11 +71,53 @@ local function consumablesOff()
 	return not (ns.db and ns.db.profile.includeConsumables)
 end
 
+--[[
+	Build Reference -> Sub-Option Rows. One unnamed inline group per sub-option, led by a real
+	blank cell: AceConfig pins a checkbox to its own widget's left edge, so only a cell indents
+	it. hidden goes on the group, or the indent is left behind on its own line.
+]]
+local function SubRow(order, hidden, controls)
+	local args = {
+		indent = { type = "description", name = "", width = ns.OPTIONS_SUB_INDENT_WIDTH, order = 0 },
+	}
+	for index, control in ipairs(controls) do
+		control.order = index
+		args["control" .. index] = control
+	end
+	return { type = "group", name = "", inline = true, order = order, hidden = hidden, args = args }
+end
+
+local function SubLabel(text)
+	return GetColor("HELP") .. text .. "|r"
+end
+
 -- Rarity cap changes what the bag scan returns, so the open window is re-read.
 local function refreshWindow()
 	if ns.UI and ns.UI.frame then
 		ns.UI:_syncControls()
 		ns.UI:Rescan()
+	end
+end
+
+-- One sub-row per kind under Include Consumables, hiding with its select.
+local function addConsumableKinds(args, startOrder)
+	for index, kind in ipairs(ns.CONSUMABLE_KIND_ORDER) do
+		local strings = ns.CONSUMABLE_KIND_STRINGS[kind]
+		args["subKind" .. kind] = SubRow(startOrder + index - 1, consumablesOff, {
+			{
+				type = "toggle",
+				name = SubLabel(L[strings.label]),
+				desc = L[strings.description],
+				width = ns.OPTIONS_ROW_WIDTH - ns.OPTIONS_SUB_INDENT_WIDTH,
+				get = function()
+					return ns.db and ns.db.profile.consumableKinds[kind]
+				end,
+				set = function(_, value)
+					ns.db.profile.consumableKinds[kind] = value
+					refreshWindow()
+				end,
+			},
+		})
 	end
 end
 
@@ -145,7 +177,7 @@ local function addGenerosityStats(args, startOrder)
 
 		-- Between rows only, as the link rows do: a trailing one doubles the gap before Feedback.
 		if index < #GENEROSITY_STATS then
-			args["spacer" .. row.id] = { type = "description", name = " ", order = order }
+			args["spacer" .. row.id] = ns.OptionsSpacer(order)
 			order = order + 1
 		end
 	end
@@ -174,22 +206,11 @@ function ns.BuildGeneralOptions()
 			end,
 		},
 
-		spacerCommands0 = ns.OptionsSpacer(10),
-		headerCommands = ns.OptionsHeader(L["OPTIONS_COMMANDS_HEADER"], 11),
-		spacerCommands1 = ns.OptionsSpacer(12),
-		descCommands = ns.OptionsDesc(
-			GetColor("INFO") .. L["OPTIONS_COMMAND"] .. "|r" .. "  " .. L["OPTIONS_COMMAND_DESCRIPTION"],
-			13
-		),
-
-		--------------------------------------------------------------------------
-		-- What to give away
-		--------------------------------------------------------------------------
 		--[[
-			The toggle IS the caption: it sits at label width with its select beside it, so these
-			rows need no separate label cell and each select carries name = "". The select's own
-			values say what they mean ("Rare & Lower", "Outgrown by 20+ Levels"), which is what
-			lets the caption go.
+			Include Gear has exactly one setting, so the toggle IS its caption: it sits at label width
+			with the rarity select beside it, name = "". The select's own values say what they mean
+			("Rare & Lower"), which is what lets the caption go. Include Consumables has five, so it is
+			a full-width toggle with each setting on an indented sub-row beneath it.
 		]]
 		spacerGive0 = ns.OptionsSpacer(20),
 		headerGive = ns.OptionsHeader(L["OPTIONS_GIVE_HEADER"], 21),
@@ -215,7 +236,7 @@ function ns.BuildGeneralOptions()
 			desc = L["OPTIONS_MAX_RARITY_DESCRIPTION"],
 			width = ns.OPTIONS_CONTROL_WIDTH,
 			order = 24,
-			disabled = gearOff,
+			hidden = gearOff,
 			values = function()
 				local out = {}
 				for _, quality in ipairs({ 2, 3, 4 }) do
@@ -238,7 +259,7 @@ function ns.BuildGeneralOptions()
 			type = "toggle",
 			name = L["OPTIONS_INCLUDE_CONSUMABLES"],
 			desc = L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"],
-			width = ns.OPTIONS_LABEL_WIDTH,
+			width = "full",
 			order = 26,
 			get = function()
 				return ns.db and ns.db.profile.includeConsumables
@@ -248,27 +269,31 @@ function ns.BuildGeneralOptions()
 				refreshWindow()
 			end,
 		},
-		selectConsumableLevelGap = {
-			type = "select",
-			name = "",
-			desc = L["OPTIONS_CONSUMABLE_GAP_DESCRIPTION"],
-			width = ns.OPTIONS_CONTROL_WIDTH,
-			order = 27,
-			disabled = consumablesOff,
-			values = ns.CONSUMABLE_GAP_VALUES,
-			sorting = ns.CONSUMABLE_GAP_ORDER,
-			get = function()
-				return ns.NearestConsumableGap(ns.db.profile.consumableLevelGap)
-			end,
-			set = function(_, value)
-				ns.db.profile.consumableLevelGap = value
-				refreshWindow()
-			end,
-		},
+		subConsumableLevelGap = SubRow(27, consumablesOff, {
+			{
+				type = "description",
+				name = SubLabel(L["OPTIONS_CONSUMABLE_GAP"]),
+				fontSize = "medium",
+				width = ns.OPTIONS_LABEL_WIDTH - ns.OPTIONS_SUB_INDENT_WIDTH,
+			},
+			{
+				type = "select",
+				name = "",
+				desc = L["OPTIONS_CONSUMABLE_GAP_DESCRIPTION"],
+				width = ns.OPTIONS_CONTROL_WIDTH,
+				values = ns.CONSUMABLE_GAP_VALUES,
+				sorting = ns.CONSUMABLE_GAP_ORDER,
+				get = function()
+					return ns.NearestConsumableGap(ns.db.profile.consumableLevelGap)
+				end,
+				set = function(_, value)
+					ns.db.profile.consumableLevelGap = value
+					refreshWindow()
+				end,
+			},
+		}),
+		-- The four kind switches are added by addConsumableKinds below, at orders 28 to 31.
 
-		--------------------------------------------------------------------------
-		-- Generosity stats
-		--------------------------------------------------------------------------
 		--[[
 			The toggle leads, then the four totals. It is proximity-scoped sharing: nearby players
 			running the add-on see these totals on your tooltip, and you see theirs on the same
@@ -295,11 +320,15 @@ function ns.BuildGeneralOptions()
 		spacerGiven2 = ns.OptionsSpacer(44),
 		-- The four totals are added by addGenerosityStats below, from order 45.
 
-		-- No Finding Recipients, Matching or The Mail section: Data/Default-Settings.lua records why.
+		-- Directly above Feedback & Support, after every section with settings in it.
+		spacerCommands0 = ns.OptionsSpacer(80),
+		headerCommands = ns.OptionsHeader(L["OPTIONS_COMMANDS_HEADER"], 81),
+		spacerCommands1 = ns.OptionsSpacer(82),
+		descCommands = ns.OptionsDesc(
+			GetColor("INFO") .. L["OPTIONS_COMMAND"] .. "|r" .. "  " .. L["OPTIONS_COMMAND_DESCRIPTION"],
+			83
+		),
 
-		--------------------------------------------------------------------------
-		-- Feedback and version
-		--------------------------------------------------------------------------
 		spacerFeedback0 = ns.OptionsSpacer(90),
 		headerFeedback = ns.OptionsHeader(L["OPTIONS_FEEDBACK_HEADER"], 91),
 		spacerFeedback1 = ns.OptionsSpacer(92),
@@ -318,12 +347,13 @@ function ns.BuildGeneralOptions()
 		},
 	}
 
+	addConsumableKinds(args, 28)
 	addGenerosityStats(args, 45)
 	addFeedbackLinks(args, 93)
 
 	return {
 		type = "group",
-		name = ns.AddonTitle,
+		name = ns.ADDON_TITLE,
 		args = args,
 	}
 end

@@ -1,5 +1,9 @@
 local _, ns = ...
 
+if not ns.IS_DISCOVERY then
+	return
+end
+
 --[[
 	Same shape as Data/Scan-Food.lua. Injectors and engineering-restricted potions are in
 	because the query filters on class, subclass and bonding only; one a recipient cannot use
@@ -40,7 +44,7 @@ local _, ns = ...
 ]]
 
 -- { id, quality, useLevel, restores }
-ns.Data.Potions = {
+ns.Data.POTIONS = {
 	{ 858, 1, 3, "HEALTH" }, -- Lesser Healing Potion
 	{ 4596, 1, 5, "HEALTH" }, -- Discolored Healing Potion
 	{ 929, 1, 12, "HEALTH" }, -- Healing Potion

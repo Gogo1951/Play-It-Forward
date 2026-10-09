@@ -82,8 +82,8 @@ end)
 ]]
 test("a secondary weight is admitted but never in contention against a primary", function()
 	local ns = load()
-	equal(ns.Data.StatWeights.ROGUE.AGILITY, 6, "the rogue's primary")
-	equal(ns.Data.StatWeights.WARRIOR.AGILITY, 2, "the warrior's secondary")
+	equal(ns.Data.STAT_WEIGHTS.ROGUE.AGILITY, 6, "the rogue's primary")
+	equal(ns.Data.STAT_WEIGHTS.WARRIOR.AGILITY, 2, "the warrior's secondary")
 
 	local verdict = ns.Matcher:Verdict(cloth(ns, { ITEM_MOD_AGILITY_SHORT = 8 }))
 
@@ -98,7 +98,7 @@ end)
 
 test("priests rank spirit, and rank it above druids", function()
 	local ns = load()
-	local weights = ns.Data.StatWeights
+	local weights = ns.Data.STAT_WEIGHTS
 
 	equal(weights.PRIEST.SPIRIT, 2, "priest spirit weight")
 	equal(weights.DRUID.SPIRIT, 1, "druid spirit weight")
@@ -106,7 +106,7 @@ end)
 
 test("spirit does not leak to classes that do not want it", function()
 	local ns = load()
-	local weights = ns.Data.StatWeights
+	local weights = ns.Data.STAT_WEIGHTS
 
 	for _, class in ipairs({ "WARRIOR", "ROGUE", "MAGE", "WARLOCK", "HUNTER", "PALADIN", "SHAMAN" }) do
 		equal(weights[class].SPIRIT, nil, class .. " has no spirit weight")
@@ -115,13 +115,13 @@ end)
 
 test("only warlocks rank stamina", function()
 	local ns = load()
-	local weights = ns.Data.StatWeights
+	local weights = ns.Data.STAT_WEIGHTS
 
 	equal(weights.WARLOCK.STAMINA, 2, "warlock stamina weight")
 	for _, class in ipairs({ "WARRIOR", "ROGUE", "MAGE", "PRIEST", "HUNTER", "PALADIN", "SHAMAN", "DRUID" }) do
 		equal(weights[class].STAMINA, nil, class .. " has no stamina weight")
 	end
-	equal(ns.Data.UniversalWeights.STAMINA, nil, "and it is not universal")
+	equal(ns.Data.UNIVERSAL_WEIGHTS.STAMINA, nil, "and it is not universal")
 end)
 
 --[[
@@ -192,13 +192,13 @@ test("of the Eagle prefers a warlock but is still offered to a mage", function()
 end)
 
 --[[
-	Spirit must stay off ns.Data.UniversalWeights. A weight every class carries is
+	Spirit must stay off ns.Data.UNIVERSAL_WEIGHTS. A weight every class carries is
 	excluded from Matcher:SpecScore, so it could never admit anybody -- which is the
 	whole reason for weighting spirit in the first place.
 ]]
 test("spirit is a class weight, not a universal one", function()
 	local ns = load()
-	equal(ns.Data.UniversalWeights.SPIRIT, nil, "not universal")
+	equal(ns.Data.UNIVERSAL_WEIGHTS.SPIRIT, nil, "not universal")
 
 	local item = cloth(ns, { ITEM_MOD_SPIRIT_SHORT = 5 })
 	check(ns.Matcher:SpecScore(item, "PRIEST") > 0, "so a priest has a real claim on spirit")

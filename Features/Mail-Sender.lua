@@ -43,29 +43,37 @@ end
 
 local MAIL_COST = 30 -- copper per mail
 local RESULT_TIMEOUT = 30 -- seconds to wait on a confirm/result before pausing
+-- A refusal can arrive as both UI_ERROR_MESSAGE and MAIL_FAILED; the second must not land on the next send.
+local FAILURE_SETTLE = 1
 local SUBJECT_MAX = 31 -- what the mail window's own edit boxes accept
 local BODY_MAX = 500
 
 --[[
-	Exposed so the Outgoing Mail preview in Features/Diagnostics.lua reports the same numbers
-	WarnIfOversized enforces; a second copy there would disagree silently the day either changes.
+	Exposed so the Outgoing Mail preview and the Mailbox report in Diagnostics/Manifests.lua report
+	the same numbers WarnIfOversized and _next enforce; a second copy there would disagree silently
+	the day either changes.
 ]]
 Distributor.SUBJECT_MAX = SUBJECT_MAX
 Distributor.BODY_MAX = BODY_MAX
+Distributor.MAIL_COST = MAIL_COST
 
 Distributor.busy = false
 Distributor.queue = {}
 Distributor.errors = 0
+-- Bumped by Start and Stop, so a deferred advance from an earlier run never fires into a later one.
+Distributor._run = 0
 Distributor.onProgress = nil -- optional UI callback(done, total, job, ok)
 Distributor.onDone = nil -- optional UI callback(done, total, skipped)
 
-ns.on("MAIL_SUCCESS", function()
+local function OnMailSuccess()
 	Distributor:_result(true)
-end)
-ns.on("MAIL_FAILED", function()
+end
+ns.on("MAIL_SUCCESS", OnMailSuccess)
+local function OnMailFailed()
 	-- The event carries no detail, so the reason slot says so rather than repeating "failed".
 	Distributor:_result(false, L["MAIL_REASON_FAILED"])
-end)
+end
+ns.on("MAIL_FAILED", OnMailFailed)
 
 --[[
 	Every mail refusal the client knows about, collected from its own ERR_MAIL* strings rather than
@@ -77,6 +85,15 @@ end)
 	UI_ERROR_MESSAGE with it: the filter has to ask the same question the live handler asks, or the
 	log suppresses a firing this file acted on and says nothing about it.
 ]]
+
+--[[
+	Refusals a send can earn that do not carry the ERR_MAIL prefix. ERR_PLAYER_WRONG_FACTION
+	("Target is unfriendly.") observed on Forever 1.60.1 (2026-10-06), mailing a /who result of
+	the other faction: missed, it sat out the full timeout and blamed a confirm nobody was shown.
+	Named, not quoted, so it matches in every locale; a name this client lacks adds nothing.
+]]
+local OTHER_MAIL_ERRORS = { "ERR_PLAYER_WRONG_FACTION" }
+
 local mailErrors
 function Distributor:IsMailError(message)
 	if not message or message == "" then
@@ -91,8 +108,14 @@ function Distributor:IsMailError(message)
 				end
 			end
 		end
+		for _, name in ipairs(OTHER_MAIL_ERRORS) do
+			local value = _G[name]
+			if type(value) == "string" and value ~= "" and not value:find("%%") then
+				mailErrors[value] = name
+			end
+		end
 	end
-	return mailErrors[message] ~= nil
+	return mailErrors[message] or false
 end
 
 --[[
@@ -100,18 +123,38 @@ end
 	without either result event, leaving the run to sit out its full timeout over an item that
 	never left the bag. Guarded on a send being in flight and on the message being one of the
 	client's own mail errors, since UI_ERROR_MESSAGE carries everything from standing too far away.
+
+	Inside the settle window after a failure, the same refusal's UI error only marks that send's
+	recipient: the failure was already counted and printed when MAIL_FAILED resolved it.
+
+	A wrong-faction refusal skips that one recipient without counting toward the two-error abort:
+	it says nothing about the run, and a /who the faction filter could not place produces them
+	back to back.
 ]]
-ns.on("UI_ERROR_MESSAGE", function(_, message)
-	if not Distributor.busy or not Distributor._current then
+local RECIPIENT_ONLY_ERRORS = { ERR_PLAYER_WRONG_FACTION = true }
+
+local function OnUiErrorMessage(_, message)
+	local inFlight = Distributor.busy and Distributor._current
+	local settling = not Distributor.busy and Distributor._settling
+	if not (inFlight or settling) then
 		return
 	end
-	if not Distributor:IsMailError(message) then
+	local errorName = Distributor:IsMailError(message)
+	if not errorName then
 		return
 	end
 	-- A name the server will not take now will not start working later in the same session.
-	ns.Fairness:MarkUnreachable(Distributor._current.recipient)
-	Distributor:_result(false, message)
-end)
+	if inFlight then
+		ns.Fairness:MarkUnreachable(inFlight.recipient)
+		Distributor:_result(false, message, RECIPIENT_ONLY_ERRORS[errorName])
+		return
+	end
+	ns.Fairness:MarkUnreachable(settling.recipient)
+	if Distributor.onProgress then
+		Distributor.onProgress(Distributor._done or 0, Distributor._total or 0, settling, false)
+	end
+end
+ns.on("UI_ERROR_MESSAGE", OnUiErrorMessage)
 
 -- job = { bag, slot, link, recipient, level, class, subject, body }
 function Distributor:Start(jobs)
@@ -119,6 +162,8 @@ function Distributor:Start(jobs)
 		ns:PrintMessage(L["MAIL_STILL_SENDING"])
 		return
 	end
+	self._run = self._run + 1
+	self._settling = nil
 	self.queue = jobs or {}
 	self.errors = 0
 	self._total = #self.queue
@@ -143,6 +188,8 @@ function Distributor:Stop()
 		self._awaiting = self._current
 	end
 	self.busy = false
+	self._run = self._run + 1
+	self._settling = nil
 	wipe(self.queue)
 	if self._timer then
 		self._timer:Cancel()
@@ -212,13 +259,10 @@ function Distributor:_next()
 	--[[
 		Stack size captured here, through the same shim Features/Scan-Bags.lua reads: by MAIL_SUCCESS
 		the slot is stale, so a stack of 20 waters would tally as one item. It travels with the job
-		to Generosity:RecordSend. Both API shapes, since GetItemInfoC is picked by availability.
+		to Generosity:RecordSend.
 	]]
-	local first, count = ns.GetItemInfoC(job.bag, job.slot)
-	if type(first) == "table" then
-		count = first.stackCount
-	end
-	job._count = count or 1
+	local slotInfo = ns.GetItemInfoC(job.bag, job.slot)
+	job._count = (slotInfo and slotInfo.stackCount) or 1
 
 	--[[
 		GUARDED LIKE EVERY OTHER CLIENT CALL IN THIS FUNCTION. Between busy going true and the
@@ -226,7 +270,7 @@ function Distributor:_next()
 		it -- a state no event recovers from, so the run is stuck until a reload. A failed attach
 		and a thrown attach are the same outcome to the player, so they share one exit.
 	]]
-	local attached = pcall(ns.UseItem, job.bag, job.slot) -- attaches to first open mail slot
+	local attached = pcall(C_Container.UseContainerItem, job.bag, job.slot) -- attaches to first open mail slot
 
 	-- An attach can fail with the panel up, and SendMail posts an empty letter and reports success.
 	if not attached or not (GetSendMailItem and GetSendMailItem(1)) then
@@ -266,7 +310,7 @@ function Distributor:_next()
 	end)
 end
 
-function Distributor:_result(ok, reason)
+function Distributor:_result(ok, reason, recipientOnly)
 	-- A stopped or timed-out run can still have a send in flight: record it, then stay stopped.
 	if not self.busy then
 		local pending = self._awaiting
@@ -310,9 +354,11 @@ function Distributor:_result(ok, reason)
 		table.remove(self.queue, 1)
 		self.errors = 0
 	else
-		self.errors = self.errors + 1
+		if not recipientOnly then
+			self.errors = self.errors + 1
+		end
 		ns:PrintMessage(L["MAIL_SEND_FAILED"]:format(recipientOf(job), reason or "?"))
-		if self.errors > 1 then
+		if not recipientOnly and self.errors > 1 then
 			ns:PrintMessage(L["MAIL_ABORTED"])
 			return self:_finish()
 		end
@@ -322,7 +368,22 @@ function Distributor:_result(ok, reason)
 	if self.onProgress then
 		self.onProgress(self._done, self._total, job, ok)
 	end
-	self:_next()
+	if ok then
+		return self:_next()
+	end
+
+	-- Not busy while settling, so a second signal for this refusal is absorbed rather than counted.
+	self._settling = job
+	local run = self._run
+	C_Timer.After(FAILURE_SETTLE, function()
+		if self._run ~= run then
+			return
+		end
+		self._settling = nil
+		if not self.busy then
+			self:_next()
+		end
+	end)
 end
 
 function Distributor:_finish()

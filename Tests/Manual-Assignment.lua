@@ -187,9 +187,9 @@ end)
 
 --[[
 	A disabled checkbox is a dead end the player cannot see past: keep an item once and
-	nothing on the row offered a way back. The box is always clickable now -- on a row
-	with a recipient it is the send switch, and on a kept or unmatched row ticking it
-	means "match this again": the pin comes off and the allocator runs.
+	nothing on the row offered a way back. The box is always clickable, and a tick always
+	means "give this away": every row starts ticked, unticking keeps the item and pins it,
+	and ticking a bare row takes the pin off so the allocator runs.
 ]]
 test("an unticked row ticks back on", function()
 	local ns = load()
@@ -215,7 +215,7 @@ test("ticking a kept row asks for a match again", function()
 	equal(first.send, true, "ticked, since they are in contention")
 end)
 
-test("ticking a row with nobody around snaps back", function()
+test("a bare row stays ticked while nobody is around", function()
 	local ns = load()
 	Stub.SetBackpack({
 		Stub.Item({
@@ -233,9 +233,11 @@ test("ticking a row with nobody around snaps back", function()
 	ns.fire("MAIL_SHOW")
 
 	local item = ns.UI:Items()[1]
+	equal(item.send, true, "ticked from the start")
 	ns.UI:_toggleRow(item, true)
 	equal(item.recipient, nil, "an empty pool has nobody to give")
-	equal(item.send, false, "so the box shows unchecked again")
+	equal(item.send, true, "but the box stays ticked, so the next search matches it")
+	check(not item.pinned, "and nothing holds it back")
 end)
 
 --------------------------------------------------------------------------------

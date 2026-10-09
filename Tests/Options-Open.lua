@@ -1,7 +1,7 @@
 --[[
 	/pif, and the gate in front of the Settings panel.
 
-	On both shipped clients the panel is combat-protected: OpenToCategory reaches
+	On every target the panel is combat-protected: OpenToCategory reaches
 	OpenSettingsPanel(), which the client blocks from add-on code in a fight. The
 	stub models the block, so the combat case here fails with the same
 	ADDON_ACTION_BLOCKED a player saw whenever the gate is missing.

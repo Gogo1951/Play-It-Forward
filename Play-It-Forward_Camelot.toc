@@ -1,0 +1,112 @@
+## Title: Play It Forward
+## Notes: Send the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
+## Author: Gogo1951
+
+## IconTexture: Interface/AddOns/Play-It-Forward/Includes/Images/Play-It-Forward.tga
+## X-License: MIT
+
+## Category-enUS: Other
+## Category-deDE: Anderes
+## Category-esES: Otros
+## Category-esMX: Otros
+## Category-frFR: Autre
+## Category-itIT: Altro
+## Category-koKR: 기타
+## Category-ptBR: Outro
+## Category-ruRU: Другое
+## Category-zhCN: 其它
+## Category-zhTW: 其他
+
+## Interface: 16001
+## X-Flavor: Camelot
+## Version: @project-version@
+## X-Curse-Project-ID: 1617425
+## X-Wago-ID: kGryrxKy
+
+## SavedVariables: PlayItForwardDB
+
+# Includes
+Includes/Libraries/LibStub/LibStub.lua
+Includes/Libraries/CallbackHandler-1.0/CallbackHandler-1.0.lua
+Includes/Libraries/AceLocale-3.0/AceLocale-3.0.lua
+Includes/Libraries/AceDB-3.0/AceDB-3.0.lua
+Includes/Libraries/AceGUI-3.0/AceGUI-3.0.xml
+Includes/Libraries/AceConfig-3.0/AceConfigRegistry-3.0/AceConfigRegistry-3.0.lua
+Includes/Libraries/AceConfig-3.0/AceConfigCmd-3.0/AceConfigCmd-3.0.lua
+Includes/Libraries/AceConfig-3.0/AceConfigDialog-3.0/AceConfigDialog-3.0.lua
+Includes/Libraries/AceConfig-3.0/AceConfig-3.0.lua
+Includes/Libraries/AceDBOptions-3.0/AceDBOptions-3.0.lua
+
+# Localization
+Locales/enUS.lua
+Locales/deDE.lua
+Locales/esES.lua
+Locales/esMX.lua
+Locales/frFR.lua
+Locales/itIT.lua
+Locales/koKR.lua
+Locales/ptBR.lua
+Locales/ruRU.lua
+Locales/zhCN.lua
+Locales/zhTW.lua
+
+# Data
+Data/Flavor.lua
+Data/Data.lua
+Data/Camelot/Match-Stat-Budget-Camelot.lua
+Data/Camelot/Scan-Food-Camelot.lua
+Data/Camelot/Scan-Potions-Camelot.lua
+Data/Camelot/Scan-Scrolls-Camelot.lua
+Data/Camelot/Recipients-Zones-Camelot.lua
+Data/Camelot/Match-Weapons-Camelot.lua
+Data/Camelot/Match-Armor-Camelot.lua
+Data/Camelot/Match-Classes-Camelot.lua
+Data/Match-Stats.lua
+Data/Match-Armor.lua
+Data/Match-Rules.lua
+Data/Scan-Stats.lua
+Data/Default-Settings.lua
+
+# Play It Forward
+Features/Core.lua
+Features/Utilities.lua
+Features/Announcements.lua
+Features/Scan-Tooltip.lua
+Features/Scan-Bags.lua
+Features/Match-Derivations.lua
+Features/Match-Engine.lua
+Features/Match-Ranking.lua
+Features/Match-List.lua
+Features/Recipients-Who-Plan.lua
+Features/Recipients-Who.lua
+Features/Recipients-Guild.lua
+Features/Recipients-Fairness.lua
+Features/Mail-Sender.lua
+Features/UI-Picker.lua
+Features/UI-Window.lua
+Features/UI-Assignment.lua
+Features/UI-Mailbox.lua
+Features/Generosity.lua
+Features/Generosity-Broadcast.lua
+Features/Generosity-Tooltip.lua
+
+# Diagnostics
+Diagnostics/Diagnostics-Core.lua
+Diagnostics/Manifests.lua
+Diagnostics/Event-Log.lua
+Diagnostics/Code-Reports.lua
+Diagnostics/Settings-Reports.lua
+Diagnostics/Localization-Reports.lua
+Diagnostics/Validate-Data.lua
+Diagnostics/Report-Runner.lua
+
+# Options
+Options/Options-Utilities.lua
+Options/Options-General.lua
+Options/Options-Profiles.lua
+Diagnostics/Options-Diagnostics.lua
+Options/Options.lua
+
+# Feedback Welcome! (=
+# Play It Forward on GitHub // https://github.com/Gogo1951/Play-It-Forward
+# Play It Forward on Discord // https://discord.gg/eh8hKq992Q

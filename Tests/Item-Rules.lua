@@ -211,10 +211,10 @@ end)
 test("the rules are applied first match first", function()
 	local ns = load()
 	local names = {}
-	for index, rule in ipairs(ns.Data.ItemRules) do
+	for index, rule in ipairs(ns.Data.ITEM_RULES) do
 		names[index] = rule.name
 	end
-	check(#ns.Data.ItemRules >= 4, "all four rules are present: " .. table.concat(names, " | "))
+	check(#ns.Data.ITEM_RULES >= 4, "all four rules are present: " .. table.concat(names, " | "))
 end)
 
 --------------------------------------------------------------------------------
@@ -384,12 +384,12 @@ end)
 --[[
 	Demotion falls back through the scoring, not past it.
 
-	A Strength-and-Intellect one-hand mace: coverage says the paladin is the only class
-	using all of it and everybody else uses half. The one-hand weapon rule then replaces
-	the contenders with the warrior, and removing him has to land back on coverage's
-	answer -- reaching for the admitted list instead handed the lead to a priest and a
-	druid as well, two classes coverage had just demoted, promoted by the step meant to
-	demote somebody else.
+	A Strength-and-Intellect one-hand mace: coverage says the paladin and the druid are
+	the only classes using all of it -- each has a Strength tree and an Intellect one --
+	and everybody else uses half. The one-hand weapon rule then replaces the contenders
+	with the warrior, and removing him has to land back on coverage's answer -- reaching
+	for the admitted list instead handed the lead to a priest as well, a class coverage
+	had just demoted, promoted by the step meant to demote somebody else.
 ]]
 test("demoting a class does not promote the ones scoring already ruled out", function()
 	local ns = load()
@@ -406,15 +406,16 @@ test("demoting a class does not promote the ones scoring already ruled out", fun
 	})
 	local verdict = ns.Matcher:Verdict(ns.Scanner:Describe(def.link))
 
-	equal(sorted(verdict.contenders), "PALADIN", "the one class using all of it")
+	equal(sorted(verdict.contenders), "DRUID PALADIN", "the two classes using all of it")
 	check(contains(verdict.admitted, "PRIEST"), "the priest is still a fallback")
 	check(contains(verdict.admitted, "WARRIOR"), "and so is the warrior")
 end)
 
 --[[
-	Same shape on a dagger, where no paladin can hold one. Coverage abstains -- everybody
-	uses half -- so the fallback is the class-share set, and the hunter is below that
-	line. Reaching for the admitted list put him in the lead.
+	Same shape on a dagger, where no paladin can hold one. The dagger rule names the rogue
+	and the Intellect rule demotes him, so the fallback is the scoring's own answer: the
+	druid, the one class left using both halves. The hunter is below the class-share line
+	and the mage uses half; reaching for the admitted list put either of them in the lead.
 ]]
 test("the fallback keeps the class-share line", function()
 	local ns = load()
@@ -433,5 +434,6 @@ test("the fallback keeps the class-share line", function()
 
 	check(not contains(verdict.contenders, "HUNTER"), "the hunter never cleared the share line")
 	check(contains(verdict.admitted, "HUNTER"), "though he is admitted")
-	check(contains(verdict.contenders, "MAGE"), "the classes that did clear it lead")
+	equal(sorted(verdict.contenders), "DRUID", "the class that uses all of it leads")
+	check(contains(verdict.admitted, "MAGE"), "and the mage is still a fallback")
 end)

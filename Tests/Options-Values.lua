@@ -65,7 +65,7 @@ test("the stored gap is what the scanner actually uses", function()
 	local Stub = Harness.Stub
 
 	-- A level 35 water, and a player at 50: spare at a gap of 10, still in use at 20.
-	local water = ns.Data.FoodAndWater[1]
+	local water = ns.Data.FOOD_AND_WATER[1]
 	check(water ~= nil, "there is a consumable to test with")
 
 	Stub.playerLevel = 50
@@ -89,7 +89,7 @@ test("All Consumables offers a consumable the player is under the level for", fu
 
 	-- Major Healing Potion, useLevel 45, against a character twenty levels short of drinking it.
 	local potion
-	for _, row in ipairs(ns.Data.Potions) do
+	for _, row in ipairs(ns.Data.POTIONS) do
 		if row[3] == 45 then
 			potion = row
 			break
@@ -147,4 +147,12 @@ test("All Consumables has its own label rather than a gap of zero", function()
 	local ns = load()
 	equal(ns.CONSUMABLE_GAP_VALUES[0], ns.L["OPTIONS_CONSUMABLE_GAP_ALL"], "zero reads as All Consumables")
 	check(ns.CONSUMABLE_GAP_VALUES[20]:find("20") ~= nil, "the others still name their number")
+end)
+
+-- The quality names are the game's own, so a German client shows its own words for them.
+test("the gear cap reads the game's quality names", function()
+	local ns = load()
+	equal(ns.QualityName(2), ITEM_QUALITY2_DESC, "uncommon stands alone, nothing is beneath it")
+	equal(ns.QualityName(3), ITEM_QUALITY3_DESC .. " & Lower", "rare names the client's word")
+	equal(ns.QualityName(4), ITEM_QUALITY4_DESC .. " & Lower", "and so does epic")
 end)

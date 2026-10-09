@@ -5,11 +5,8 @@ local _, ns = ...
 	priority groups, weapon keys, and which classes a rule names. Features/Match-Engine.lua owns
 	ns.Matcher and reads these.
 
-	FUNCTIONS OVER THE TABLES, WHICH IS WHY THIS IS NOT IN Data/. Everything there is a table, read
-	at load time and never called. Data/Match-Weapons.lua points at this file for that reason.
-
-	Load order is not load-bearing except for COLUMN below, which reads ns.Data.WeaponClassOrder as
-	it loads and so must come after Data/Match-Weapons.lua.
+	Load order is not load-bearing except for COLUMN below, which reads ns.Data.WEAPON_CLASS_ORDER as
+	it loads and so must come after the flavor folder's Match-Weapons file.
 ]]
 
 --[[
@@ -22,7 +19,7 @@ function ns.Data.ScoreableStats()
 		return scoreable
 	end
 	scoreable = {}
-	for _, weights in pairs(ns.Data.StatWeights) do
+	for _, weights in pairs(ns.Data.STAT_WEIGHTS) do
 		for stat, points in pairs(weights) do
 			if points and points > 0 then
 				scoreable[stat] = true
@@ -33,12 +30,37 @@ function ns.Data.ScoreableStats()
 end
 
 --[[
-	The first level a class wears armor of at least this weight, PROBED OFF ns.Data.NativeArmor
+	A stat's tooltip number in primary-stat points, through the flavor folder's
+	ns.Data.STAT_BUDGET. Every score and every coverage share reads stats through this: "+1% hit"
+	beside "+10 Strength" is a tenth of the item read raw and half of it converted.
+]]
+function ns.Data.StatPoints(stat, value)
+	local budget = ns.Data.STAT_BUDGET
+	return (value or 0) * ((budget and budget[stat]) or 1)
+end
+
+-- The armor a class wears at a level: the last NATIVE_ARMOR step at or below it, nil for an unknown class.
+function ns.Data.NativeArmorAt(class, level)
+	local steps = ns.Data.NATIVE_ARMOR[class]
+	if not steps then
+		return nil
+	end
+	local worn
+	for _, step in ipairs(steps) do
+		if level >= step[1] then
+			worn = step[2]
+		end
+	end
+	return worn
+end
+
+--[[
+	The first level a class wears armor of at least this weight, PROBED OFF ns.Data.NATIVE_ARMOR
 	rather than listed a second time: the 40s that gate mail and plate stay in the one table they
 	are already written in. false when the class never gets there -- a rogue is leather for life.
 
 	The ceiling is past every level cap these flavors have, so a step added above 60 is still
-	found. Answered once per class and weight and cached; NativeArmor is a pure function of level.
+	found. Answered once per class and weight and cached; NATIVE_ARMOR is fixed at load.
 ]]
 local MAX_PROBE = 80
 local trainedCache = {}
@@ -53,10 +75,9 @@ local function trainedAt(class, itemWeight)
 		return byWeight[itemWeight]
 	end
 
-	local nativeFor = ns.Data.NativeArmor[class]
 	local found = false
 	for level = 1, MAX_PROBE do
-		if (ns.Data.ArmorWeight[nativeFor(level) or ""] or 0) >= itemWeight then
+		if (ns.Data.ARMOR_WEIGHT[ns.Data.NativeArmorAt(class, level) or ""] or 0) >= itemWeight then
 			found = level
 			break
 		end
@@ -73,14 +94,13 @@ end
 	later training level is not a disqualification.
 ]]
 function ns.Data.ArmorEquipLevel(armorType, class, reqLevel)
-	local itemWeight = ns.Data.ArmorWeight[armorType]
-	local nativeFor = ns.Data.NativeArmor[class]
-	if not itemWeight or not nativeFor then
+	local itemWeight = ns.Data.ARMOR_WEIGHT[armorType]
+	if not itemWeight or not ns.Data.NATIVE_ARMOR[class] then
 		return nil
 	end
 
 	local level = math.max(1, reqLevel or 1)
-	if (ns.Data.ArmorWeight[nativeFor(level) or ""] or 0) >= itemWeight then
+	if (ns.Data.ARMOR_WEIGHT[ns.Data.NativeArmorAt(class, level) or ""] or 0) >= itemWeight then
 		return level
 	end
 
@@ -100,7 +120,7 @@ end
 local armorCache = {}
 
 function ns.Data.ArmorPriorityFor(armorType, reqLevel)
-	local WEIGHT = ns.Data.ArmorWeight
+	local WEIGHT = ns.Data.ARMOR_WEIGHT
 	local itemWeight = WEIGHT[armorType]
 	if not itemWeight then
 		return nil
@@ -113,10 +133,10 @@ function ns.Data.ArmorPriorityFor(armorType, reqLevel)
 	end
 
 	local out = {}
-	for class, nativeFor in pairs(ns.Data.NativeArmor) do
+	for class in pairs(ns.Data.NATIVE_ARMOR) do
 		local equipAt = ns.Data.ArmorEquipLevel(armorType, class, level)
 		if equipAt then
-			out[class] = WEIGHT[nativeFor(equipAt)] - itemWeight + 1
+			out[class] = WEIGHT[ns.Data.NativeArmorAt(class, equipAt)] - itemWeight + 1
 		end
 	end
 
@@ -126,16 +146,13 @@ end
 
 -- Index the columns once so lookups aren't a linear scan.
 local COLUMN = {}
-for i, class in ipairs(ns.Data.WeaponClassOrder) do
+for i, class in ipairs(ns.Data.WEAPON_CLASS_ORDER) do
 	COLUMN[class] = i
 end
 
---[[
-	Priority group, or nil when the class cannot use the weapon. Eligibility is "did this return a
-	number", so a level rule cannot reach the grouping and miss the eligibility check.
-]]
-function ns.Data.WeaponPriorityFor(weaponKey, classToken, reqLevel)
-	local counts = ns.Data.WeaponSpecs[weaponKey]
+-- Priority group, or nil when the class cannot use the weapon.
+function ns.Data.WeaponPriorityFor(weaponKey, classToken)
+	local counts = ns.Data.WEAPON_SPECS[weaponKey]
 	local column = COLUMN[classToken]
 	if not counts or not column then
 		return nil
@@ -143,12 +160,6 @@ function ns.Data.WeaponPriorityFor(weaponKey, classToken, reqLevel)
 
 	local specs = counts[column] or 0
 	if specs <= 0 then
-		return nil
-	end
-
-	local gates = ns.Data.WeaponMinLevel[classToken]
-	local minLevel = gates and gates[weaponKey]
-	if minLevel and (reqLevel or 1) < minLevel then
 		return nil
 	end
 
@@ -171,7 +182,8 @@ ns.Data.ResolveHandedness = function(key, equipLoc)
 end
 
 --[[
-	Weapons, plus shields and held off-hands, which compete for a slot rather than a material.
+	Weapons, plus shields, held off-hands and relics, which compete for a slot rather than a
+	material.
 
 	Not "does WeaponKey return something": WeaponKey falls through to the weapon subclass table,
 	and armor subclass 1 (cloth) collides with weapon subclass 1 (2H axe), so a cloth chest
@@ -181,7 +193,12 @@ function ns.Data.UsesWeaponMatrix(item)
 	if item.classID == 2 then
 		return true
 	end
-	return item.classID == 4 and (item.subclassID == 6 or item.equipLoc == "INVTYPE_HOLDABLE")
+	return item.classID == 4
+		and (
+			item.subclassID == 6
+			or item.equipLoc == "INVTYPE_HOLDABLE"
+			or ns.Data.RELIC_SUBCLASS[item.subclassID] ~= nil
+		)
 end
 
 -- The weapon key for an item, resolving handedness. Cached on the item.
@@ -198,8 +215,13 @@ function ns.Data.WeaponKey(item)
 			item._weaponKey = "HELD"
 			return "HELD"
 		end
+		local relic = ns.Data.RELIC_SUBCLASS[item.subclassID]
+		if relic then
+			item._weaponKey = relic
+			return relic
+		end
 	end
-	local key = ns.Data.WeaponSubclass[item.subclassID]
+	local key = ns.Data.WEAPON_SUBCLASS[item.subclassID]
 	if not key then
 		return nil
 	end
@@ -213,10 +235,6 @@ end
 	back from. The item's own requirement for nearly everything; later only where the armor matrix
 	says the class has to train the material first, which is what sends a level 36 mail belt
 	looking for hunters at 38 and 39 rather than at 34 and 35.
-
-	The weapon matrix deliberately does not move it: ns.Data.WeaponMinLevel is "never in this
-	flavor" written as a level, and shifting a band onto it would look for druids carrying
-	polearms they cannot train.
 ]]
 function ns.Data.EquipLevelFor(item, classToken)
 	local req = math.max(1, item.reqLevel or 1)
@@ -224,10 +242,10 @@ function ns.Data.EquipLevelFor(item, classToken)
 		return req
 	end
 	-- Rings, necks, trinkets and cloaks have no material to train.
-	if ns.Data.UniversalEquipLoc[item.equipLoc] or item.subclassID == 0 then
+	if ns.Data.UNIVERSAL_EQUIP_LOC[item.equipLoc] or item.subclassID == 0 then
 		return req
 	end
-	local armorType = ns.Data.ArmorSubclass[item.subclassID]
+	local armorType = ns.Data.ARMOR_SUBCLASS[item.subclassID]
 	if not armorType then
 		return req
 	end
@@ -285,6 +303,22 @@ local function matches(rule, item, context)
 		return false
 	end
 
+	if rule.armor then
+		if item.classID ~= 4 or ns.Data.UNIVERSAL_EQUIP_LOC[item.equipLoc] then
+			return false
+		end
+		local material = ns.Data.ARMOR_SUBCLASS[item.subclassID]
+		local wanted = false
+		for _, armorType in ipairs(rule.armor) do
+			if material == armorType then
+				wanted = true
+			end
+		end
+		if not wanted then
+			return false
+		end
+	end
+
 	local stats = item.stats or {}
 	for _, token in ipairs(rule.requires) do
 		if (stats[token] or 0) <= 0 then
@@ -315,7 +349,7 @@ end
 ]]
 function ns.Data.VetoedClasses(item)
 	local out = nil
-	for _, rule in ipairs(ns.Data.ItemRules) do
+	for _, rule in ipairs(ns.Data.ITEM_RULES) do
 		if rule.veto and matches(rule, item) then
 			out = out or {}
 			for _, class in ipairs(rule.veto) do
@@ -332,7 +366,7 @@ end
 ]]
 function ns.Data.DemotedClasses(item, context)
 	local out = nil
-	for _, rule in ipairs(ns.Data.ItemRules) do
+	for _, rule in ipairs(ns.Data.ITEM_RULES) do
 		if rule.demote and matches(rule, item, context) then
 			out = out or {}
 			for _, class in ipairs(rule.demote) do
@@ -345,7 +379,7 @@ end
 
 -- Classes the first matching rule names, or nil to let the point tables decide alone.
 function ns.Data.PreferredClasses(item, context)
-	for _, rule in ipairs(ns.Data.ItemRules) do
+	for _, rule in ipairs(ns.Data.ITEM_RULES) do
 		if rule.prefer and matches(rule, item, context) then
 			return rule.prefer, rule.name
 		end

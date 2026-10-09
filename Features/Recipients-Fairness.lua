@@ -3,26 +3,22 @@ local _, ns = ...
 ns.Fairness = {}
 local Fairness = ns.Fairness
 
--- Spreads gifts out: a recipient is on cooldown until next seen at a higher level.
-
-local function db()
-	return ns.db.profile.recipients
-end
+--[[
+	Spreads gifts out: a recipient is on cooldown until next seen at a higher level. Recipient name
+	-> { level }, this session only, so every login makes everybody eligible again.
+]]
+local given = {}
 
 function Fairness:IsFresh(name, currentLevel)
-	local r = db()[name]
-	if not r then
+	local record = given[name]
+	if not record then
 		return true
 	end
-	return (currentLevel or 0) > (r.level or 0)
+	return (currentLevel or 0) > (record.level or 0)
 end
 
 function Fairness:Record(name, level)
-	db()[name] = { level = level }
-end
-
-function Fairness:Reset()
-	wipe(ns.db.profile.recipients)
+	given[name] = { level = level }
 end
 
 --[[

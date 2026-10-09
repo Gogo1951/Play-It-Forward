@@ -125,3 +125,39 @@ test("a non-player unit is left alone", function()
 	end
 	equal(#rows, 0, "no block on an NPC")
 end)
+
+--[[
+	WoW Forever's client has no OnTooltipSetUnit script, so where TooltipDataProcessor exists the
+	block hangs off its unit post-call instead. That post-call fires for every tooltip showing a
+	unit, the comparison and embedded ones included, and only GameTooltip gets the block.
+]]
+test("with TooltipDataProcessor the block comes from the unit post-call", function()
+	Stub.useTooltipProcessor = true
+	local ok, ns = pcall(load)
+	Stub.useTooltipProcessor = nil
+	assert(ok, ns)
+	ns.fire("CHAT_MSG_ADDON", ns.ADDON_MESSAGE_PREFIX, "1|S|7|120|450|9988", "YELL", "Robin-Grobbulus")
+
+	local _, rows = rig("mouseover", "Robin", "Grobbulus")
+	check(GameTooltip.hooks["OnTooltipSetUnit"] == nil, "the script is not hooked")
+	local postCall = Stub.tooltipPostCalls[Enum.TooltipDataType.Unit]
+	check(postCall ~= nil, "a unit post-call is registered")
+
+	postCall({})
+	equal(#rows, 0, "another tooltip gets nothing")
+	postCall(GameTooltip)
+	equal(#rows, 6, "GameTooltip gets the block")
+end)
+
+-- On Forever a unit's name reads as secret in combat: nothing renders and nothing is sent.
+test("a unit whose identity is secret is left alone", function()
+	load()
+	Stub.addonMessages = {}
+	Stub.identitySecret = true
+
+	local handler, rows = rig("mouseover", "Stranger", "Grobbulus")
+	handler(GameTooltip)
+
+	equal(#rows, 0, "no block while identity is secret")
+	equal(#Stub.addonMessages, 0, "and no ping")
+end)

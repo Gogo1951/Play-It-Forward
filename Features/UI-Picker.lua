@@ -1,6 +1,6 @@
 local _, ns = ...
 
--- The recipient dropdown, reused by the rarity control. The UI files call in through ns.Picker.
+-- The recipient dropdown, reused by the rarity and level-rule controls. The UI files call in through ns.Picker.
 
 local ENTRY_H = 18
 local PICKER_MIN_WIDTH = 190
@@ -83,44 +83,44 @@ function Picker:GetEntry(i)
 	if self.entries[i] then
 		return self.entries[i]
 	end
-	local e = CreateFrame("Button", nil, self.frame.content)
-	e:SetHeight(ENTRY_H)
-	e:SetPoint("TOPLEFT", 0, -((i - 1) * ENTRY_H))
-	e:SetPoint("TOPRIGHT", 0, -((i - 1) * ENTRY_H))
+	local entry = CreateFrame("Button", nil, self.frame.content)
+	entry:SetHeight(ENTRY_H)
+	entry:SetPoint("TOPLEFT", 0, -((i - 1) * ENTRY_H))
+	entry:SetPoint("TOPRIGHT", 0, -((i - 1) * ENTRY_H))
 
 	--[[
 		Anchored on both sides: with only a LEFT anchor a font string draws at whatever width its
 		text wants and runs out of the list. SetWordWrap(false) ellipsizes rather than wrapping into
 		a second line inside an 18-pixel row.
 	]]
-	e.text = e:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	e.text:SetPoint("LEFT", 4, 0)
-	e.text:SetPoint("RIGHT", -4, 0)
-	e.text:SetJustifyH("LEFT")
-	e.text:SetWordWrap(false)
+	entry.text = entry:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	entry.text:SetPoint("LEFT", 4, 0)
+	entry.text:SetPoint("RIGHT", -4, 0)
+	entry.text:SetJustifyH("LEFT")
+	entry.text:SetWordWrap(false)
 
 	-- A divider row draws this instead of text: one hairline across the entry, nothing clickable.
-	e.line = e:CreateTexture(nil, "OVERLAY")
-	e.line:SetPoint("LEFT", 4, 0)
-	e.line:SetPoint("RIGHT", -4, 0)
-	e.line:SetHeight(1)
-	local r, g, b = ns.GetColorRGB("SEPARATOR")
-	e.line:SetColorTexture(r, g, b, 0.6)
-	e.line:Hide()
+	entry.line = entry:CreateTexture(nil, "OVERLAY")
+	entry.line:SetPoint("LEFT", 4, 0)
+	entry.line:SetPoint("RIGHT", -4, 0)
+	entry.line:SetHeight(1)
+	local red, green, blue = ns.GetColorRGB("SEPARATOR")
+	entry.line:SetColorTexture(red, green, blue, 0.6)
+	entry.line:Hide()
 
-	local hl = e:CreateTexture(nil, "HIGHLIGHT")
-	hl:SetAllPoints()
-	hl:SetColorTexture(1, 1, 1, 0.12)
+	local highlight = entry:CreateTexture(nil, "HIGHLIGHT")
+	highlight:SetAllPoints()
+	highlight:SetColorTexture(1, 1, 1, 0.12)
 
-	self.entries[i] = e
-	return e
+	self.entries[i] = entry
+	return entry
 end
 
 -- options = { { text = "...", pick = candidate|nil, clear/disabled/separator/findForItem = bool }, ... }
 function Picker:Open(anchor, options, onSelect)
 	local f = self:Build()
-	for _, e in ipairs(self.entries) do
-		e:Hide()
+	for _, entry in ipairs(self.entries) do
+		entry:Hide()
 	end
 
 	-- Never narrower than the button it drops from, whichever control that is.
@@ -137,23 +137,23 @@ function Picker:Open(anchor, options, onSelect)
 	width = math.min(PICKER_MAX_WIDTH, width)
 
 	for i, opt in ipairs(options) do
-		local e = self:GetEntry(i)
-		e.text:SetText(opt.text or "")
+		local entry = self:GetEntry(i)
+		entry.text:SetText(opt.text or "")
 		if opt.separator then
-			e.line:Show()
+			entry.line:Show()
 		else
-			e.line:Hide()
+			entry.line:Hide()
 		end
 		-- An entry that will not respond to a click has to look like it; a divider is furniture.
-		e:SetAlpha((opt.disabled and not opt.separator) and 0.45 or 1)
-		e:SetScript("OnClick", function()
+		entry:SetAlpha((opt.disabled and not opt.separator) and 0.45 or 1)
+		entry:SetScript("OnClick", function()
 			if opt.disabled then
 				return
 			end
 			Picker:Close()
 			onSelect(opt)
 		end)
-		e:Show()
+		entry:Show()
 	end
 
 	local listH = #options * ENTRY_H

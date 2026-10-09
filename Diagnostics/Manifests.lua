@@ -1,353 +1,6 @@
 local _, ns = ...
 
---------------------------------------------------------------------------------
--- Diagnostic Tools
---------------------------------------------------------------------------------
-
---[[
-	Environment probing and state capture for bug reports, not unit tests. Read-only and
-	side-effect free but for the Taint Log button, which sets a CVar and is the panel's only
-	write. Reports build only on a button press, never on load or panel open.
-]]
-
-local L = ns.L
-
---------------------------------------------------------------------------------
--- Runtime State
---------------------------------------------------------------------------------
-
--- Runtime-only, NOT a SavedVariable: the "initialize on PLAYER_LOGIN" rule does not apply here.
-ns.diagnostics = ns.diagnostics or { enabled = false, logging = false, log = nil }
-
---------------------------------------------------------------------------------
--- Strings
---------------------------------------------------------------------------------
-
--- Intentionally NOT localized: developer-facing text. ADDON_TITLE is the exception, being identity.
-ns.DiagnosticsStrings = {
-	TAB = "Diagnostic Tools",
-	WARNING = "These tools help diagnose problems and are meant for developers. They won't change how the add-on works, but their output includes technical details about your client and installed add-ons. Leave this off unless you're troubleshooting with someone.",
-	ENABLE = "Enable Diagnostic Tools",
-	EVENT_LOG_TITLE = "Event Log",
-	EVENT_LOG_START = "Start Event Log",
-	EVENT_LOG_STOP = "Stop Event Log",
-	EVENT_LOG_SHOW = "Show Captured Events",
-	EVENT_LOG_HINT = "Captures events the add-on registered for, with arguments, in order fired.",
-	EVENTS_TITLE = "Event Registration",
-	EVENTS_BUTTON = "Test Event Registration",
-	API_TITLE = "API Endpoints",
-	API_BUTTON = "Test WoW API Endpoints",
-	DISPLAY_TITLE = "Display Context",
-	DISPLAY_BUTTON = "Read Display Settings",
-	BAGS_TITLE = "Bag Scan",
-	BAGS_BUTTON = "Export Every Bag Slot",
-	BAGS_HINT = "One row per occupied bag slot, giftable or not. Rejected rows carry the reason code that stopped them, which is what answers 'why isn't this item showing up'.",
-	ROSTER_TITLE = "Recipient Roster",
-	ROSTER_BUTTON = "Export Known Players",
-	ROSTER_HINT = "Everyone found by Find Recipients so far, with their fairness state and the items they currently qualify for.",
-	GENEROSITY_TITLE = "Given Away Sharing",
-	GENEROSITY_BUTTON = "Check Sharing and Nearby Players",
-	GENEROSITY_HINT = "Whether you're sharing, whether you're resting, whether the message prefix registered, your own totals, and every nearby player you've heard from with how long ago. Answers 'why don't I see anyone': sharing only happens in cities and inns, and only reaches players near you.",
-	--[[
-		Where the next /who will look, composed by Recipients-Who. The client's filter syntax
-		is `21-22 z-"Redridge Mountains"`; these say the same thing in words.
-	]]
-	WHO_LABEL_IN_ZONE = "%s (%s)",
-	WHO_LABEL_ZONES = "%d zones (%s)",
-	WHO_LABEL_ANYWHERE = "anywhere (%s)",
-	WHO_LABEL_FOR_CLASSES = "%s, for %s",
-	VERDICT_TITLE = "Item Verdict",
-	VERDICT_INPUT = "Item link",
-	VERDICT_INPUT_HINT = "Shift-click an item into the chat box, copy the link, and paste it here.",
-	VERDICT_BUTTON = "Explain This Item",
-	GROUPS_TITLE = "Class Groups",
-	GROUPS_INPUT = "Item required level",
-	GROUPS_ARMOR_BUTTON = "Show Armor Groups",
-	GROUPS_WEAPON_BUTTON = "Show Weapon Groups",
-	MAIL_TITLE = "Outgoing Mail",
-	MAIL_BUTTON = "Preview What Strangers Receive",
-	WINDOW_TITLE = "Mail Window",
-	WINDOW_BUTTON = "Force the Window Open",
-	WINDOW_HINT = "Drops the saved position, re-centers the window and re-reads your bags. The window only opens at a mailbox when something in there is worth mailing, so use this to tell an off-screen window from an empty one.",
-	-- Read at call time by Features/UI-Mailbox.lua, which loads before this file.
-	WINDOW_FORCED = "window: shown=%s size=%dx%d, %d scanned (%d giftable), re-anchored to CENTER. Drag it where you want it.",
-	ADDONS_TITLE = "Other Add-ons",
-	ADDONS_BUTTON = "List Installed Add-ons",
-	SAVED_TITLE = "Saved Variables",
-	SAVED_BUTTON = "Dump Saved Variables",
-	LIBS_TITLE = "Library Versions",
-	LIBS_BUTTON = "List Library Versions",
-	TAINT_TITLE = "Taint Log",
-	TAINT_STATE = "Taint logging is currently set to level %d (0 = off, 2 = verbose).",
-	TAINT_ON = "Turn On Taint Log",
-	TAINT_OFF = "Turn Off Taint Log",
-	TAINT_HINT = "Writes to Logs\\taint.log. The setting persists until turned off; reload your UI to capture taint from login onward.",
-	TOOLS_TITLE = "External Tools",
-	TOOLS_ERRORS = "Lua errors: install BugSack and !BugGrabber, or enable %s to surface them.",
-	TOOLS_ETRACE = "Live event tracing: use %s.",
-}
-
---------------------------------------------------------------------------------
--- Enable Gate
---------------------------------------------------------------------------------
-
-function ns:SetDiagnosticsEnabled(value)
-	ns.diagnostics.enabled = value and true or false
-	if not ns.diagnostics.enabled then
-		ns:StopEventLog()
-	end
-end
-
---------------------------------------------------------------------------------
--- Report Header
---------------------------------------------------------------------------------
-
-local function GetClientHeader()
-	local version, build, _, tocVersion = GetBuildInfo()
-	return string.format(
-		"%s %s // Client %s // Build %s // TOC %s // Locale %s // Project %s",
-		L["ADDON_TITLE"],
-		ns.Version,
-		version,
-		build,
-		tocVersion,
-		GetLocale(),
-		tostring(WOW_PROJECT_ID)
-	)
-end
-
---[[
-	Item links are display escapes: pasted raw they render as a colored swatch, hiding the link
-	data the report exists to show. Doubling the pipes shows them verbatim.
-]]
-local function EscapePipes(text)
-	return (tostring(text or "?"):gsub("|", "||"))
-end
-
---------------------------------------------------------------------------------
--- Event Log
---------------------------------------------------------------------------------
-
-local EVENT_LOG_SIZE = 500
-local EVENT_LOG_MAX_ARGS = 8
-local EVENT_LOG_MAX_ARG_LENGTH = 255
-
---[[
-	Dropped on volume alone, and only because no instance of either is ever signal: BAG_UPDATE fires
-	per bag on every loot, sale and stack merge, and GET_ITEM_INFO_RECEIVED once per item the client
-	resolves. Either buries the mailbox and /who events past the 500-entry cap, and the Bag Scan
-	report already prints the scan they triggered.
-
-	AN EVENT THAT IS SOMETIMES SIGNAL DOES NOT BELONG HERE. It gets the per-id filter below, which
-	keeps the firings the add-on acts on and counts the rest.
-]]
-ns.DIAGNOSTIC_EVENT_EXCLUDE = {
-	BAG_UPDATE = true,
-	GET_ITEM_INFO_RECEIVED = true,
-}
-
---[[
-	The firehoses that are sometimes signal, and where in their arguments the id that says which
-	is which arrives. Both are registered: UI_ERROR_MESSAGE in Features/Mail-Sender.lua, where a
-	mail refusal arrives as a red error, and CHAT_MSG_ADDON in Features/Generosity-Broadcast.lua.
-	Logged raw, the combat errors and the other add-ons' chatter evict the mailbox and /who entries
-	the log exists to carry; dropped outright, the log can never show a refusal or a peer arriving.
-
-	FILTER BY WHAT THE ADD-ON ACTS ON, NEVER BY A DENYLIST OF NOISE. Noise is unbounded, varies by
-	class and activity, and renumbers across patches. Each rule's `correlated` is the live handler's
-	own test, called rather than restated: a filter that classified differently would make the log
-	lie about what fired.
-]]
-ns.MESSAGE_ID_FILTERED_EVENTS = {
-	UI_ERROR_MESSAGE = {
-		id = 1, -- (messageType, message)
-		correlated = function(_, message)
-			return ns.Distributor:IsMailError(message)
-		end,
-	},
-	CHAT_MSG_ADDON = {
-		id = 1, -- (prefix, message, channel, sender)
-		correlated = function(prefix)
-			return prefix == ns.ADDON_MESSAGE_PREFIX
-		end,
-	},
-}
-
-function ns:StartEventLog()
-	ns.diagnostics.log = {}
-	ns.diagnostics.suppressed = {}
-	ns.diagnostics.logging = true
-end
-
-function ns:StopEventLog()
-	ns.diagnostics.logging = false
-	ns.diagnostics.log = nil
-	-- Released with the log: the counters are the log's own footnote, not state that outlives it.
-	ns.diagnostics.suppressed = nil
-end
-
---[[
-	Whether this firing folds into a counter instead of reaching the buffer. Applied AT CAPTURE, in
-	ns:LogEvent below, never at render: filtering at display time still lets spam push real entries
-	out of a bounded buffer.
-
-	UNCLASSIFIABLE IS SIGNAL. A firing with nothing at the id position is logged verbatim rather
-	than counted, because the thing that would have decided is missing. So is one with nowhere to
-	count it: this never deletes an entry it did not record.
-]]
-function ns:SuppressUncorrelatedMessage(event, ...)
-	local rule = ns.MESSAGE_ID_FILTERED_EVENTS[event]
-	if not rule then
-		return false
-	end
-
-	local id = (select(rule.id, ...))
-	if id == nil or id == "" then
-		return false
-	end
-	if rule.correlated(...) then
-		return false
-	end
-
-	local suppressed = ns.diagnostics.suppressed
-	if not suppressed then
-		return false
-	end
-
-	local key = string.format("%s(%s)", event, tostring(id))
-	local entry = suppressed[key]
-	if entry then
-		entry.count = entry.count + 1
-		return true
-	end
-
-	--[[
-		First-seen text only, cut and escaped the way a logged argument is: this is what tells a
-		tester an id the add-on SHOULD be correlating from one it is right to ignore.
-	]]
-	local text = (select(rule.id + 1, ...))
-	text = string.sub(tostring(text == nil and "" or text), 1, EVENT_LOG_MAX_ARG_LENGTH)
-	suppressed[key] = { event = event, id = id, text = (text:gsub("|", "||")), count = 1 }
-	return true
-end
-
---[[
-	Arguments snapshotted to strings immediately, never retained: some events carry frames or
-	tables that would leak or go stale. Pipes are escaped AFTER the length cut, so a truncated
-	argument cannot leave a dangling pipe that eats the following separator.
-]]
-function ns:LogEvent(event, ...)
-	if ns.DIAGNOSTIC_EVENT_EXCLUDE[event] then
-		return
-	end
-	if ns:SuppressUncorrelatedMessage(event, ...) then
-		return
-	end
-	local parts = {}
-	for index = 1, select("#", ...) do
-		if index > EVENT_LOG_MAX_ARGS then
-			break
-		end
-		local raw = string.sub(tostring((select(index, ...))), 1, EVENT_LOG_MAX_ARG_LENGTH)
-		parts[index] = (raw:gsub("|", "||"))
-	end
-	local log = ns.diagnostics.log
-	log[#log + 1] = string.format("%.3f %s(%s)", GetTime(), event, table.concat(parts, ", "))
-	if #log > EVENT_LOG_SIZE then
-		table.remove(log, 1)
-	end
-end
-
---[[
-	The captured entries, then what was folded into a counter instead. The summary is the second
-	half of the report rather than a separate button: an id showing up here in the hundreds is how
-	a tester discovers something the add-on should be correlating and is not.
-]]
-local function AppendSuppressed(lines)
-	local suppressed = ns.diagnostics.suppressed
-	if not suppressed then
-		return
-	end
-	local entries = {}
-	for _, entry in pairs(suppressed) do
-		entries[#entries + 1] = entry
-	end
-	if #entries == 0 then
-		return
-	end
-	-- Biggest offender first; the key breaks ties so the block holds still between renders.
-	table.sort(entries, function(a, b)
-		if a.count ~= b.count then
-			return a.count > b.count
-		end
-		return string.format("%s%s", a.event, tostring(a.id)) < string.format("%s%s", b.event, tostring(b.id))
-	end)
-
-	lines[#lines + 1] = ""
-	lines[#lines + 1] = "Suppressed, counted rather than logged (nothing the add-on acts on):"
-	for _, entry in ipairs(entries) do
-		lines[#lines + 1] = string.format("  %s(%s, %s) x%d", entry.event, tostring(entry.id), entry.text, entry.count)
-	end
-end
-
-function ns:BuildEventLogReport()
-	local lines = { GetClientHeader(), "" }
-	local log = ns.diagnostics.log
-	if not log or #log == 0 then
-		lines[#lines + 1] = "(no events captured)"
-	else
-		for _, entry in ipairs(log) do
-			lines[#lines + 1] = entry
-		end
-	end
-	AppendSuppressed(lines)
-	return table.concat(lines, "\n")
-end
-
---------------------------------------------------------------------------------
--- Event Registration
---------------------------------------------------------------------------------
-
---[[
-	Registers then immediately unregisters each event with no handler attached, so nothing is ever
-	processed. The list is ns.EVENT_NAMES from Core, so it cannot drift from what the add-on uses.
-]]
-
-local probeFrame
-
-local function GetProbeFrame()
-	if not probeFrame then
-		probeFrame = CreateFrame("Frame")
-	end
-	return probeFrame
-end
-
-function ns:RunEventChecks()
-	local lines = { GetClientHeader(), "" }
-	local hasIsEventValid = type(C_EventUtils) == "table" and type(C_EventUtils.IsEventValid) == "function"
-	local probe = GetProbeFrame()
-	local failures = 0
-	for _, event in ipairs(ns.EVENT_NAMES or {}) do
-		local valid = "n/a"
-		if hasIsEventValid then
-			valid = C_EventUtils.IsEventValid(event) and "valid" or "INVALID"
-		end
-		local ok = pcall(probe.RegisterEvent, probe, event)
-		if ok then
-			probe:UnregisterEvent(event)
-		else
-			failures = failures + 1
-		end
-		lines[#lines + 1] = string.format("[%s] %s (IsEventValid: %s)", ok and "PASS" or "FAIL", event, valid)
-	end
-	lines[#lines + 1] = ""
-	if failures == 0 then
-		lines[#lines + 1] = "All events register on this client."
-	else
-		lines[#lines + 1] = string.format("%d event(s) failed to register.", failures)
-	end
-	return table.concat(lines, "\n")
-end
+local GetClientHeader = ns.GetDiagnosticClientHeader
 
 --------------------------------------------------------------------------------
 -- API Endpoints
@@ -355,8 +8,9 @@ end
 
 --[[
 	Existence and shape checks only: read-only, no side effects, no protected calls. One row per
-	API reached through a compatibility guard in Features/Utilities.lua, plus the load-bearing
-	calls the scan, search and mail loops depend on. Modern and legacy fallbacks get their own rows.
+	API reached through a compatibility guard, plus the load-bearing calls the scan, search and
+	mail loops depend on. Where the add-on picks between two, both halves are rows, and a FAIL on
+	one half is the report saying which branch that client took.
 ]]
 ns.DIAGNOSTIC_API_CHECKS = {
 	-- { label, testFunction }
@@ -391,13 +45,9 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-		No rows for the bare GetContainerNumSlots/GetContainerItemInfo globals: both target flavors
-		ship C_Container, so a FAIL on a path the add-on cannot take reads as a defect.
-
-		The C_TooltipInfo rows below are the opposite case, branched on at runtime by
-		Features/Scan-Tooltip.lua. They carry optional = true so absence reports ABSENT, not
-		FAIL: neither shipped flavor has them, and a row that always fails teaches the reader to
-		skim. Marked this way they still report PASS if a future build adds the API.
+		No rows for the bare GetContainerNumSlots/GetContainerItemInfo globals: every target ships
+		C_Container. The C_TooltipInfo rows are Features/Scan-Tooltip.lua's runtime branch, and
+		Classic Era lacks them, so a FAIL there is the report saying which path that client takes.
 	]]
 	{
 		"C_Item.GetItemInfoInstant",
@@ -406,19 +56,26 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	{
-		"GetItemInfoInstant [legacy]",
+		"C_Item.GetItemInfo",
 		function()
-			return type(GetItemInfoInstant) == "function"
+			return type(C_Item) == "table" and type(C_Item.GetItemInfo) == "function"
 		end,
 	},
 	{
-		"GetItemInfo",
+		"C_Item.IsEquippableItem",
 		function()
-			return type(GetItemInfo) == "function"
+			return type(C_Item) == "table" and type(C_Item.IsEquippableItem) == "function"
+		end,
+	},
+	-- Both halves of ns.GetItemStats: only WoW Forever ships C_Item.GetItemStats.
+	{
+		"C_Item.GetItemStats",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetItemStats) == "function"
 		end,
 	},
 	{
-		"GetItemStats",
+		"GetItemStats (legacy)",
 		function()
 			return type(GetItemStats) == "function"
 		end,
@@ -428,14 +85,12 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		function()
 			return type(C_TooltipInfo) == "table" and type(C_TooltipInfo.GetHyperlink) == "function"
 		end,
-		optional = true,
 	},
 	{
 		"TooltipUtil.SurfaceArgs",
 		function()
 			return type(TooltipUtil) == "table" and type(TooltipUtil.SurfaceArgs) == "function"
 		end,
-		optional = true,
 	},
 	--[[
 		The stat-name globals the locale-safe "+9 Intellect" path reads, probed one at a time:
@@ -596,6 +251,56 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
+		The race-to-faction table Features/Recipients-Who.lua drops other-faction results by. Without
+		either reader it drops nobody, so on Forever, which answers /who with both factions, every
+		send to the other side is refused.
+	]]
+	{
+		"C_CreatureInfo.GetRaceInfo",
+		function()
+			return type(C_CreatureInfo) == "table" and type(C_CreatureInfo.GetRaceInfo) == "function"
+		end,
+	},
+	{
+		"C_CreatureInfo.GetFactionInfo",
+		function()
+			return type(C_CreatureInfo) == "table" and type(C_CreatureInfo.GetFactionInfo) == "function"
+		end,
+	},
+	--[[
+		The class names /who filters on and results are read back by. A missing table drops every
+		result the client sends without a class token as an unreadable class.
+	]]
+	{
+		"LOCALIZED_CLASS_NAMES_MALE",
+		function()
+			return type(LOCALIZED_CLASS_NAMES_MALE) == "table"
+		end,
+	},
+	{
+		"LOCALIZED_CLASS_NAMES_FEMALE",
+		function()
+			return type(LOCALIZED_CLASS_NAMES_FEMALE) == "table"
+		end,
+	},
+	--[[
+		The Blizzard frames Features/Recipients-Who.lua quiets for the life of a query, so the Who
+		panel never opens over the mailbox and closes it.
+	]]
+	{
+		"Who panel frames quieted during a query",
+		function()
+			local found = {}
+			for _, name in ipairs({ "FriendsFrame", "WhoFrame", "HideUIPanel" }) do
+				if _G[name] ~= nil then
+					found[#found + 1] = name
+				end
+			end
+			local detail = #found > 0 and ("present: " .. table.concat(found, ", ")) or "none present"
+			return type(FriendsFrame) == "table" and type(FriendsFrame.IsEventRegistered) == "function", detail
+		end,
+	},
+	--[[
 		GetGuildRosterLastOnline is the one to watch: the activity window in
 		Features/Recipients-Guild.lua is built entirely on it, and without it every offline member
 		reads as too stale to mail, leaving the guild to contribute only whoever is logged in.
@@ -612,11 +317,23 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(GetGuildRosterLastOnline) == "function"
 		end,
 	},
+	-- The only roster request Guild:Request makes; it has no fallback, so neither does this row.
 	{
 		"C_GuildInfo.GuildRoster",
 		function()
-			return (type(C_GuildInfo) == "table" and type(C_GuildInfo.GuildRoster) == "function")
-				or type(GuildRoster) == "function"
+			return type(C_GuildInfo) == "table" and type(C_GuildInfo.GuildRoster) == "function"
+		end,
+	},
+	{
+		"IsInGuild",
+		function()
+			return type(IsInGuild) == "function"
+		end,
+	},
+	{
+		"GetNumGuildMembers",
+		function()
+			return type(GetNumGuildMembers) == "function"
 		end,
 	},
 	{
@@ -647,11 +364,52 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
+		The Blizzard mail frames the Distribute path touches, each guarded in
+		Features/Mail-Sender.lua. A mail add-on that replaces them shows here: with SendMailFrame
+		missing, every run ends as "the mail panel is closed" before an item is touched.
+	]]
+	{
+		"MailFrame",
+		function()
+			return type(MailFrame) == "table"
+		end,
+	},
+	{
+		"SendMailFrame",
+		function()
+			return type(SendMailFrame) == "table"
+		end,
+	},
+	{
+		"SendMailNameEditBox",
+		function()
+			return type(SendMailNameEditBox) == "table"
+		end,
+	},
+	{
+		"SendMailSubjectEditBox",
+		function()
+			return type(SendMailSubjectEditBox) == "table"
+		end,
+	},
+	{
+		"MailFrameTab_OnClick",
+		function()
+			return type(MailFrameTab_OnClick) == "function"
+		end,
+	},
+	{
+		"ClearSendMail",
+		function()
+			return type(ClearSendMail) == "function"
+		end,
+	},
+	--[[
 		The body box Features/Mail-Sender.lua picks by availability: SendMailBodyEditBox is the retail
 		name, and on Classic Era the body lives behind MailEditBox:GetEditBox(). With neither resolving,
 		the To and Subject boxes still fill and SendMail posts a letter with an empty body and reports
-		success, so a stranger receives a bare item with no note and nothing surfaces an error. Not
-		optional: one of the two answers on both shipped flavors. Reports which one did.
+		success, so a stranger receives a bare item with no note and nothing surfaces an error. One
+		of the two answers on every target, and the row says which.
 	]]
 	{
 		"Mail body edit box",
@@ -666,8 +424,8 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-		The Given Away broadcast in Features/Generosity-Broadcast.lua. Both target flavors ship
-		C_ChatInfo, so these are not optional: a FAIL means sharing cannot register or send at all.
+		The Given Away broadcast in Features/Generosity-Broadcast.lua. Every target ships
+		C_ChatInfo, so a FAIL means sharing cannot register or send at all.
 	]]
 	{
 		"C_ChatInfo.SendAddonMessage",
@@ -725,88 +483,161 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return inOptions, description
 		end,
 	},
+	{
+		"C_Item.RequestLoadItemDataByID",
+		function()
+			return type(C_Item) == "table" and type(C_Item.RequestLoadItemDataByID) == "function"
+		end,
+	},
+	{
+		"C_Item.DoesItemExistByID",
+		function()
+			return type(C_Item) == "table" and type(C_Item.DoesItemExistByID) == "function"
+		end,
+	},
+	-- Validate Data's extra reads; one a client lacks leaves its columns blank.
+	{
+		"C_Item.GetItemSpell",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetItemSpell) == "function"
+		end,
+	},
+	{
+		"C_Item.GetDetailedItemLevelInfo",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetDetailedItemLevelInfo) == "function"
+		end,
+	},
+	{
+		"C_Item.GetItemClassInfo",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetItemClassInfo) == "function"
+		end,
+	},
+	{
+		"C_Item.GetItemSubClassInfo",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetItemSubClassInfo) == "function"
+		end,
+	},
+	{
+		"C_Spell.GetSpellDescription",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.GetSpellDescription) == "function"
+		end,
+	},
+	{
+		"C_Spell.RequestLoadSpellData",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.RequestLoadSpellData) == "function"
+		end,
+	},
+	-- Both halves of ns.GetTooltipLines, which Validate Data reads each item's tooltip through.
+	{
+		"C_TooltipInfo.GetItemByID",
+		function()
+			return type(C_TooltipInfo) == "table" and type(C_TooltipInfo.GetItemByID) == "function"
+		end,
+	},
+	{
+		"C_TooltipInfo.GetSpellByID",
+		function()
+			return type(C_TooltipInfo) == "table" and type(C_TooltipInfo.GetSpellByID) == "function"
+		end,
+	},
+	{
+		"Hidden scan tooltip (legacy)",
+		function()
+			return type(CreateFrame) == "function"
+				and type(GameTooltip) == "table"
+				and type(GameTooltip.SetHyperlink) == "function"
+				and type(GameTooltip.NumLines) == "function"
+		end,
+	},
+	-- The Generosity tooltip block: the unit post-call, the older script hook, and the secret check before both.
+	{
+		"TooltipDataProcessor.AddTooltipPostCall",
+		function()
+			return type(TooltipDataProcessor) == "table" and type(TooltipDataProcessor.AddTooltipPostCall) == "function"
+		end,
+	},
+	{
+		"Enum.TooltipDataType.Unit",
+		function()
+			return type(Enum) == "table" and type(Enum.TooltipDataType) == "table" and Enum.TooltipDataType.Unit ~= nil
+		end,
+	},
+	{
+		"GameTooltip OnTooltipSetUnit script (legacy)",
+		function()
+			return type(GameTooltip) == "table" and GameTooltip:HasScript("OnTooltipSetUnit") == true
+		end,
+	},
+	{
+		"C_Secrets.ShouldUnitIdentityBeSecret",
+		function()
+			return type(C_Secrets) == "table" and type(C_Secrets.ShouldUnitIdentityBeSecret) == "function"
+		end,
+	},
+	-- The /who zone filter asks the client for each area's name.
+	{
+		"C_Map.GetAreaInfo",
+		function()
+			return type(C_Map) == "table" and type(C_Map.GetAreaInfo) == "function"
+		end,
+	},
+	{
+		"C_Seasons.GetActiveSeason",
+		function()
+			return type(C_Seasons) == "table" and type(C_Seasons.GetActiveSeason) == "function"
+		end,
+	},
+	{
+		"Enum.SeasonID.SeasonOfDiscovery",
+		function()
+			return type(Enum) == "table" and type(Enum.SeasonID) == "table" and Enum.SeasonID.SeasonOfDiscovery ~= nil
+		end,
+	},
+	{
+		"Settings.OpenToCategory",
+		function()
+			return type(Settings) == "table" and type(Settings.OpenToCategory) == "function"
+		end,
+	},
+	{
+		"C_EventUtils.IsEventValid",
+		function()
+			return type(C_EventUtils) == "table" and type(C_EventUtils.IsEventValid) == "function"
+		end,
+	},
+	{
+		"GetCVar",
+		function()
+			return type(GetCVar) == "function"
+		end,
+	},
+	{
+		"SetCVar",
+		function()
+			return type(SetCVar) == "function"
+		end,
+	},
 }
 
+--------------------------------------------------------------------------------
+-- Play It Forward Context
+--------------------------------------------------------------------------------
+
+-- The add-on's own example reports, appended to the shared Event Log intro.
+ns.DiagnosticsStrings.EVENT_LOG_EXAMPLES = "Best for 'the window never opened' or 'nothing was sent' reports."
+
 --[[
-	Three states, not two: a row marked optional reports ABSENT rather than FAIL when it comes back
-	false, so FAIL stays reserved for rows where a false answer means something is actually broken.
-
-	The detail is whatever the check learned on the way, appended to the label. pcall hands back
-	every return value, so a check opts in just by returning a second one.
+	Item links are display escapes: pasted raw they render as a colored swatch, hiding the link
+	data the report exists to show. Doubling the pipes shows them verbatim.
 ]]
-function ns:RunApiChecks()
-	local lines = { GetClientHeader(), "" }
-	for _, check in ipairs(ns.DIAGNOSTIC_API_CHECKS) do
-		local ok, result, detail = pcall(check[2])
-		local status
-		if ok and result then
-			status = "[PASS] "
-		elseif ok and check.optional then
-			status = "[ABSENT] "
-		else
-			--[[
-				A check that throws is a defect in the check, never an absence in the client, so it
-				reports FAIL even on an optional row and carries the error text: without it a thrown
-				check is indistinguishable from one that simply answered no.
-			]]
-			status = "[FAIL] "
-		end
-		local note = ok and detail or (not ok and tostring(result)) or nil
-		lines[#lines + 1] = status .. check[1] .. (note and (" -- " .. note) or "")
-	end
-	return table.concat(lines, "\n")
+local function EscapePipes(text)
+	return (tostring(text or "?"):gsub("|", "||"))
 end
-
---------------------------------------------------------------------------------
--- Display Context
---------------------------------------------------------------------------------
-
--- The window is movable, so off-screen and wrong-scale are real failure modes. Reads only.
-function ns:BuildDisplayReport()
-	local lines = { GetClientHeader(), "" }
-
-	if type(GetPhysicalScreenSize) == "function" then
-		local width, height = GetPhysicalScreenSize()
-		lines[#lines + 1] = string.format("GetPhysicalScreenSize() = %s x %s", tostring(width), tostring(height))
-	else
-		lines[#lines + 1] = "GetPhysicalScreenSize: not available"
-	end
-
-	lines[#lines + 1] = string.format("UIParent:GetScale() = %s", tostring(UIParent and UIParent:GetScale()))
-	lines[#lines + 1] = string.format("CVar uiScale = %s", tostring(GetCVar and GetCVar("uiScale")))
-	lines[#lines + 1] = string.format("CVar useUiScale = %s", tostring(GetCVar and GetCVar("useUiScale")))
-
-	local saved = ns.db and ns.db.profile.windowPos
-	if saved and saved.point then
-		lines[#lines + 1] = string.format(
-			"Saved window position: %s relative %s at %.1f, %.1f",
-			tostring(saved.point),
-			tostring(saved.relativePoint),
-			saved.x or 0,
-			saved.y or 0
-		)
-	else
-		lines[#lines + 1] = "Saved window position: none, the window anchors to the mailbox"
-	end
-
-	local frame = ns.UI and ns.UI.frame
-	if frame then
-		lines[#lines + 1] = string.format(
-			"Window: shown=%s size=%dx%d",
-			tostring(frame:IsShown()),
-			math.floor(frame:GetWidth() or 0),
-			math.floor(frame:GetHeight() or 0)
-		)
-	else
-		lines[#lines + 1] = "Window: not built yet this session"
-	end
-
-	return table.concat(lines, "\n")
-end
-
---------------------------------------------------------------------------------
--- Shared Formatting
---------------------------------------------------------------------------------
 
 local function FormatStats(stats)
 	local keys = {}
@@ -847,7 +678,7 @@ local function AppendVerdict(lines, item, indent)
 		tostring(item.classID),
 		tostring(item.subclassID),
 		ns.Data.UsesWeaponMatrix(item) and ("weapon matrix: " .. tostring(ns.Data.WeaponKey(item) or "no key"))
-			or ("armor: " .. tostring(ns.Data.ArmorSubclass[item.subclassID] or "universal, stats alone decide")),
+			or ("armor: " .. tostring(ns.Data.ARMOR_SUBCLASS[item.subclassID] or "universal, stats alone decide")),
 		tostring(item.itemLevel or "?"),
 		tostring(item.reqLevel or "?"),
 		tostring(item.quality or "?")
@@ -1022,15 +853,120 @@ local function AppendVerdict(lines, item, indent)
 	-- WIDEST at or below CLOSEST collapses the band to one level, which is drastic and invisible.
 	if bandLo == bandHi then
 		lines[#lines + 1] = string.format(
-			"%s  ONE LEVEL ONLY. Widest Level Gap (%d) is not above Closest Level Gap (%d), so the band "
-				.. "collapsed: this item will only ever match somebody at exactly level %d. "
-				.. "Raise Widest Level Gap to search a range.",
+			"%s  ONE LEVEL ONLY. LEVEL_GAP_WIDEST (%d) is not above LEVEL_GAP_CLOSEST (%d) in Data/Data.lua, "
+				.. "so the band collapsed: this item will only ever match somebody at exactly level %d.",
 			indent,
 			low,
 			high,
 			bandHi
 		)
 	end
+end
+
+--------------------------------------------------------------------------------
+-- Mailbox
+--------------------------------------------------------------------------------
+
+-- Who a mail job is addressed to, or "none" for an empty slot on the Distributor.
+local function JobRecipient(job)
+	return job and tostring(job.recipient) or "none"
+end
+
+--[[
+	Answers "the window never opened" and "Distribute did nothing": whether the add-on believes
+	the mailbox is open, whether it believes there is anything to give, and where a mail run
+	stands. Reads only. Nothing here scans, refreshes or touches the Distributor, so running it
+	cannot change the answer it reports.
+]]
+function ns:BuildMailboxReport()
+	local lines = { GetClientHeader(), "" }
+
+	--[[
+		ns.AtMailbox asks the interaction manager where the client has one and falls back to the
+		flag the mailbox events keep; printing both, and which one answered, shows a stale flag.
+	]]
+	local manager = C_PlayerInteractionManager
+	local managerAnswers = type(manager) == "table"
+		and type(manager.IsInteractingWithNpcOfType) == "function"
+		and type(Enum) == "table"
+		and type(Enum.PlayerInteractionType) == "table"
+		and Enum.PlayerInteractionType.MailInfo ~= nil
+	lines[#lines + 1] = "mailbox open flag = " .. tostring(ns.mailboxOpen == true)
+	lines[#lines + 1] = "at mailbox = " .. tostring(ns.AtMailbox())
+	lines[#lines + 1] = "answered by = "
+		.. (managerAnswers and "the interaction manager" or "the mailbox open flag (no interaction manager)")
+	lines[#lines + 1] = "MailFrame exists = " .. tostring(MailFrame ~= nil)
+	lines[#lines + 1] = "MailFrame hooks installed at login = " .. tostring((ns.UI and ns.UI.mailFrameHooked) == true)
+	lines[#lines + 1] = "SendMailFrame exists = " .. tostring(SendMailFrame ~= nil)
+	lines[#lines + 1] = "SendMailFrame shown = " .. tostring(SendMailFrame ~= nil and SendMailFrame:IsShown() == true)
+	lines[#lines + 1] = ""
+
+	local frame = ns.UI and ns.UI.frame
+	lines[#lines + 1] = "window built = " .. tostring(frame ~= nil)
+	lines[#lines + 1] = "window shown = " .. tostring(frame ~= nil and frame:IsShown() == true)
+	-- The question the mailbox itself asks before opening the window, against the list as it stands.
+	lines[#lines + 1] = "window would open at a mailbox now = " .. tostring(ns.UI:HasSomethingToDo())
+	lines[#lines + 1] = ""
+
+	local byState, holding, ticked = {}, 0, 0
+	local items = ns.MatchList:Items()
+	for _, item in ipairs(items) do
+		local state = item.state or "unscored"
+		byState[state] = (byState[state] or 0) + 1
+		if item.recipient then
+			holding = holding + 1
+		end
+		if item.send and item.recipient then
+			ticked = ticked + 1
+		end
+	end
+	lines[#lines + 1] = string.format(
+		"items listed = %d (gift %d, leftover %d, unreadable %d)",
+		#items,
+		byState[ns.Matcher.GIFT] or 0,
+		byState[ns.Matcher.LEFTOVER] or 0,
+		byState[ns.Matcher.UNREADABLE] or 0
+	)
+	lines[#lines + 1] = "items holding a recipient = " .. holding
+	lines[#lines + 1] = "items ticked to send = " .. ticked
+	lines[#lines + 1] = "list is stale, rescans at the next mailbox = " .. tostring(ns.MatchList:IsStale() == true)
+	lines[#lines + 1] = ""
+
+	local mailer = ns.Distributor
+	lines[#lines + 1] = "mail run busy = " .. tostring(mailer.busy == true)
+	lines[#lines + 1] = "mail run queue = " .. #mailer.queue
+	lines[#lines + 1] = "mail run errors in a row = " .. tostring(mailer.errors)
+	lines[#lines + 1] = "sending to = " .. JobRecipient(mailer.busy and mailer._current or nil)
+	lines[#lines + 1] = "awaiting a late result for = " .. JobRecipient(mailer._awaiting)
+	lines[#lines + 1] = "settling a refusal for = " .. JobRecipient(mailer._settling)
+	lines[#lines + 1] =
+		string.format("money = %d copper, postage per mail = %d copper", GetMoney() or 0, mailer.MAIL_COST)
+	lines[#lines + 1] = ""
+
+	--[[
+		The settings Bag Scan's rejection codes are decided against, so a pasted Bag Scan reads
+		with them beside it: GEAR_DISABLED, KIND_DISABLED, ABOVE_MAX_RARITY and LEVEL_GAP mean
+		nothing alone.
+	]]
+	local profile = ns.db and ns.db.profile or {}
+	local kindsOn = {}
+	for _, kind in ipairs(ns.CONSUMABLE_KIND_ORDER) do
+		if profile.consumableKinds and profile.consumableKinds[kind] then
+			kindsOn[#kindsOn + 1] = kind
+		end
+	end
+	lines[#lines + 1] = string.format(
+		"settings: includeGear=%s includeConsumables=%s consumableKinds=%s maxRarity=%s (%s) consumableLevelGap=%s MIN_RARITY=%s playerLevel=%s",
+		tostring(profile.includeGear),
+		tostring(profile.includeConsumables),
+		(#kindsOn > 0) and table.concat(kindsOn, ",") or "none",
+		tostring(profile.maxRarity),
+		profile.maxRarity and ns.QualityName(profile.maxRarity) or "?",
+		tostring(profile.consumableLevelGap),
+		tostring(ns.Data.MIN_RARITY),
+		tostring(UnitLevel("player"))
+	)
+	return table.concat(lines, "\n")
 end
 
 --------------------------------------------------------------------------------
@@ -1057,7 +993,7 @@ function ns:BuildBagScanReport()
 	local accepted, byState, byReason = 0, {}, {}
 	for _, row in ipairs(rows) do
 		local name, _, quality, _, reqLevel, _, _, _, equipLoc, _, _, classID, subclassID, bindType =
-			GetItemInfo(row.link)
+			C_Item.GetItemInfo(row.link)
 		lines[#lines + 1] = string.format(
 			"bag %d slot %d | %s | id %s | quality %s | req %s | %s | class %s/%s | bind %s",
 			row.bag,
@@ -1163,11 +1099,16 @@ function ns:BuildRosterReport()
 		stats.connectedRealm,
 		stats.unknownClass
 	)
+	-- Conditional like the cap row below: only Forever answers /who with the other faction.
+	if stats.otherFaction > 0 then
+		lines[#lines + 1] =
+			string.format("Dropped %d from the other faction, who cannot be mailed.", stats.otherFaction)
+	end
 	-- Only once an answer has been truncated: a permanent "capped 0" row trains the eye to skip it.
 	if stats.capped > 0 then
 		lines[#lines + 1] = string.format(
 			"%d quer(ies) came back full at the %d-result cap, so the server had more to send. "
-				.. "Not chased: an item needs one recipient, not every candidate.",
+				.. "Chased only by the class and zone queries already planned, never by splitting.",
 			stats.capped,
 			ns.Who.RESULT_CAP
 		)
@@ -1187,17 +1128,62 @@ function ns:BuildRosterReport()
 		searchLine = searchLine
 			.. string.format(" %d dropped once nothing in their band was still searching.", stats.pruned)
 	end
+	if stats.exhausted > 0 then
+		searchLine = searchLine
+			.. string.format(" %d skipped, already answered by a query that came back under the cap.", stats.exhausted)
+	end
 	lines[#lines + 1] = searchLine
 
 	--[[
+		Why a press of Find Recipients did nothing visible. A query still out, the throttle, a
+		press the client refused and a query that never answered all look like "nobody found".
+		Printed every time: here a zero is the answer, not noise.
+	]]
+	local label, canceled, age = ns.Who:InFlight()
+	if label then
+		lines[#lines + 1] = string.format(
+			"  In flight: %s, sent %.1fs ago%s.",
+			tostring(label),
+			age,
+			canceled and ", canceled, its answer will only be tidied up" or ""
+		)
+	else
+		lines[#lines + 1] = "  In flight: none."
+	end
+	lines[#lines + 1] = string.format("  Throttle: %.1fs before the next query can go out.", ns.Who:ThrottleLeft())
+	lines[#lines + 1] = string.format(
+		"  Timed out: %d, put back on the plan. Blocked: %d, SendWho refused because the press did not count as a click.",
+		stats.timedOut,
+		stats.blocked
+	)
+	local quieted = ns.Who:QuietedFrames()
+	lines[#lines + 1] = string.format(
+		"  Who panel frames quieted: %d%s",
+		quieted,
+		(quieted > 0 and not label) and ", with nothing in flight: the player's own /who is broken until a reload."
+			or "."
+	)
+	if #ns.Who.plan > 0 then
+		lines[#lines + 1] = "  Still planned, in order:"
+		for index, attempt in ipairs(ns.Who.plan) do
+			lines[#lines + 1] = string.format("    %d. %s", index, tostring(attempt.label))
+		end
+	end
+
+	--[[
 		"The guild added nobody" and "the guild has nobody active" look identical from the match
-		list, and only one of them is a bug worth chasing.
+		list, and only one of them is a bug worth chasing. Not being in a guild, and a request the
+		server never answered, are printed first for the same reason.
 	]]
 	local guild = ns.Guild:Stats()
+	lines[#lines + 1] = string.format(
+		"Guild: in a guild %s, roster request waiting %s.",
+		tostring(IsInGuild and IsInGuild() and true or false),
+		tostring(ns.Guild:Pending())
+	)
 	if guild.rows > 0 then
 		-- Reads the window off ns.Guild rather than naming it here, which would drift the day it changes.
-		lines[#lines + 1] =
-			string.format("Guild: %d of %d eligible, %d online.", guild.eligible, guild.rows, guild.online)
+		lines[#lines + 1] = string.format("  %d of %d eligible, %d online.", guild.eligible, guild.rows, guild.online)
 		lines[#lines + 1] = string.format(
 			"  Dropped: %d not on in %d day(s), %d summoning alts, %d of your own characters, %d unreadable.",
 			guild.stale,
@@ -1231,13 +1217,19 @@ function ns:BuildRosterReport()
 		for _, person in ipairs(pools[class]) do
 			local fresh = ns.Fairness:IsFresh(person.name, person.level)
 			local wanted = candidateFor[person.name]
+			--[[
+				Unreachable outranks fresh: the server refused a mail to this name, so
+				Fairness:PickFrom never picks them however fresh they are.
+			]]
+			local standing = (not ns.Fairness:IsReachable(person.name)) and "unreachable"
+				or (fresh and "fresh" or "on cooldown")
 			lines[#lines + 1] = string.format(
 				"%s | level %s | %s | %s | %s | candidate for: %s",
 				tostring(person.name),
 				tostring(person.level),
 				tostring(person.class),
 				tostring(person.area or "?"),
-				fresh and "fresh" or "on cooldown",
+				standing,
 				wanted and EscapePipes(table.concat(wanted, ", ")) or "nothing"
 			)
 		end
@@ -1335,10 +1327,7 @@ local function AppendClassLine(lines)
 	lines[#lines + 1] = ""
 end
 
-function ns:BuildArmorGroupsReport(level)
-	level = tonumber(level) or UnitLevel("player") or 60
-	local lines = { GetClientHeader(), "" }
-	AppendClassLine(lines)
+local function AppendArmorGroups(lines, level)
 	local available = AvailableClasses()
 	lines[#lines + 1] = string.format("Armor groups for an item requiring level %d:", level)
 	for _, armorType in ipairs({ "CLOTH", "LEATHER", "MAIL", "PLATE" }) do
@@ -1348,7 +1337,6 @@ function ns:BuildArmorGroupsReport(level)
 			GroupedByTier(ns.Data.ArmorPriorityFor(armorType, level) or {}, 9, available)
 		)
 	end
-	return table.concat(lines, "\n")
 end
 
 local WEAPON_ORDER = {
@@ -1369,12 +1357,12 @@ local WEAPON_ORDER = {
 	"WAND",
 	"SHIELD",
 	"HELD",
+	"LIBRAM",
+	"IDOL",
+	"TOTEM",
 }
 
-function ns:BuildWeaponGroupsReport(level)
-	level = tonumber(level) or UnitLevel("player") or 60
-	local lines = { GetClientHeader(), "" }
-	AppendClassLine(lines)
+local function AppendWeaponGroups(lines, level)
 	lines[#lines + 1] =
 		string.format("Weapon priority for an item requiring level %d (group 1 = every spec wants it):", level)
 	for _, weaponKey in ipairs(WEAPON_ORDER) do
@@ -1387,6 +1375,16 @@ function ns:BuildWeaponGroupsReport(level)
 		end
 		lines[#lines + 1] = string.format("  %-9s %s", weaponKey:lower(), GroupedByTier(byClass, 3))
 	end
+end
+
+-- Both matrices for an item requiring this level, or the player's own when none was entered.
+function ns:BuildClassGroupsReport(level)
+	level = tonumber(level) or UnitLevel("player") or 60
+	local lines = { GetClientHeader(), "" }
+	AppendClassLine(lines)
+	AppendArmorGroups(lines, level)
+	lines[#lines + 1] = ""
+	AppendWeaponGroups(lines, level)
 	return table.concat(lines, "\n")
 end
 
@@ -1418,7 +1416,8 @@ end
 
 --[[
 	Answers "why don't I see anyone": are we sharing, did the prefix register, what are our own
-	totals, and who nearby have we heard from and how long ago. Inline literals like every other
+	totals, which tooltip hook drew the block, where the send throttles stand, and who nearby have
+	we heard from and how long ago. Inline literals like every other
 	builder; the panel labels live in ns.DiagnosticsStrings.
 ]]
 function ns:BuildGenerosityReport()
@@ -1442,6 +1441,32 @@ function ns:BuildGenerosityReport()
 		string.format("my totals: gifts=%d items=%d itemLevels=%d value=%d", gifts, items, itemLevels, value)
 	lines[#lines + 1] = ""
 
+	--[[
+		Which unit-tooltip hook this client took, and whether the secret-identity check it runs
+		first exists here. Either missing means no block on anybody's tooltip.
+	]]
+	lines[#lines + 1] = "tooltip hook = " .. tostring(ns.Generosity.tooltipHook or "none installed")
+	lines[#lines + 1] = "C_Secrets.ShouldUnitIdentityBeSecret present = "
+		.. tostring(type(C_Secrets) == "table" and type(C_Secrets.ShouldUnitIdentityBeSecret) == "function")
+
+	--[[
+		The throttles, as they stand. A broadcast refused by the interval and one never sent look the
+		same from outside; so do a peer who never answered and one we were too recently pinged by.
+	]]
+	local now = GetTime()
+	local function Since(stamp)
+		return (stamp or 0) > 0 and string.format("%ds ago", math.floor(now - stamp)) or "never"
+	end
+	local lastBroadcast, lastPingAnswer = ns.Generosity:LastSends()
+	lines[#lines + 1] = "last broadcast = " .. Since(lastBroadcast)
+	lines[#lines + 1] = string.format(
+		"next broadcast allowed in = %ds",
+		math.max(0, math.ceil(ns.Generosity.BROADCAST_MIN_INTERVAL - (now - lastBroadcast)))
+	)
+	lines[#lines + 1] = "last ping answered = " .. Since(lastPingAnswer)
+	lines[#lines + 1] = "last hover ping sent = " .. Since(ns.Generosity:LastHoverPing())
+	lines[#lines + 1] = ""
+
 	local peers = ns.Generosity:AllPeers()
 	local names = {}
 	for key in pairs(peers) do
@@ -1452,17 +1477,18 @@ function ns:BuildGenerosityReport()
 		lines[#lines + 1] = "no nearby players heard from yet"
 	else
 		lines[#lines + 1] = string.format("%d nearby player(s) heard from:", #names)
-		local now = GetTime()
 		for _, key in ipairs(names) do
 			local peer = peers[key]
+			local age = math.floor(now - (peer.t or now))
 			lines[#lines + 1] = string.format(
-				"  %s: gifts=%d items=%d itemLevels=%d value=%d (%ds ago)",
+				"  %s: gifts=%d items=%d itemLevels=%d value=%d (%ds ago%s)",
 				key,
 				peer.gifts,
 				peer.items,
 				peer.itemLevels,
 				peer.value,
-				math.floor(now - (peer.t or now))
+				age,
+				age > ns.Generosity.PEER_MAX_AGE and ", expired, the tooltip treats them as unheard" or ""
 			)
 		end
 	end
@@ -1470,84 +1496,196 @@ function ns:BuildGenerosityReport()
 end
 
 --------------------------------------------------------------------------------
--- Other Add-ons
+-- Game Names
 --------------------------------------------------------------------------------
 
-function ns:BuildAddOnReport()
-	local lines = { GetClientHeader(), "" }
-	local getInfo = (C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo
-	local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
-	local count = (C_AddOns and C_AddOns.GetNumAddOns and C_AddOns.GetNumAddOns()) or GetNumAddOns()
-	for index = 1, count do
-		local name, _, _, loadable = getInfo(index)
-		local version = getMeta(index, "Version") or "?"
-		lines[#lines + 1] = string.format("%s v%s [%s]", name, version, loadable and "loadable" or "disabled")
-	end
-	return table.concat(lines, "\n")
-end
-
---------------------------------------------------------------------------------
--- Saved Variables
---------------------------------------------------------------------------------
-
-local function DumpTable(value, indent, depth, lines)
-	if depth > 8 then
-		lines[#lines + 1] = indent .. "<max depth>"
-		return
-	end
+--[[
+	Every game name the add-on matches against what the client shows, each read through the same
+	call its feature makes, so a NIL here is a name that feature cannot match on this client.
+	Each entry's ids expand at run time from the add-on's own data, so a stat, class or zone added
+	there gets its row without an edit here, and the faction-gated class list is read when it is
+	known rather than at load. The add-on names no items by ID, so nothing here waits on a load.
+]]
+local function SortedKeys(map)
 	local keys = {}
-	for key in pairs(value) do
+	for key in pairs(map or {}) do
 		keys[#keys + 1] = key
 	end
-	table.sort(keys, function(a, b)
-		return tostring(a) < tostring(b)
-	end)
-	for _, key in ipairs(keys) do
-		local entry = value[key]
-		if type(entry) == "table" then
-			lines[#lines + 1] = indent .. tostring(key) .. " = {"
-			DumpTable(entry, indent .. "    ", depth + 1, lines)
-			lines[#lines + 1] = indent .. "}"
-		else
-			lines[#lines + 1] = indent .. tostring(key) .. " = " .. EscapePipes(entry)
-		end
+	table.sort(keys)
+	return keys
+end
+
+local function SortedClasses()
+	local classes = {}
+	for _, class in ipairs(ns.Matcher:Classes()) do
+		classes[#classes + 1] = class
+	end
+	table.sort(classes)
+	return classes
+end
+
+local function GlobalString(name)
+	return _G[name]
+end
+
+ns.DIAGNOSTIC_NAME_LOOKUPS = {
+	-- { constant, kind, ids, lookup }
+	-- The stat names Features/Scan-Tooltip.lua reads a "+9 Intellect" line by.
+	{
+		constant = "ns.Data.STAT_MAP",
+		kind = "Blizzard UI label",
+		ids = function()
+			return SortedKeys(ns.Data.STAT_MAP)
+		end,
+		lookup = GlobalString,
+	},
+	-- The refusal Features/Mail-Sender.lua recognizes when a send crosses factions.
+	{
+		constant = "ERR_PLAYER_WRONG_FACTION",
+		kind = "Blizzard UI label",
+		ids = function()
+			return { "ERR_PLAYER_WRONG_FACTION" }
+		end,
+		lookup = GlobalString,
+	},
+	--[[
+		The name a /who class filter goes out with. The planner falls back to the token itself,
+		which /who cannot match, so a fallback counts as NIL here.
+	]]
+	{
+		constant = "LOCALIZED_CLASS_NAMES_MALE",
+		kind = "class",
+		ids = SortedClasses,
+		lookup = function(token)
+			local name = ns.Who.ClassName(token)
+			return name ~= token and name or nil
+		end,
+	},
+	-- The other half of reading a /who result's class back to its token.
+	{
+		constant = "LOCALIZED_CLASS_NAMES_FEMALE",
+		kind = "class",
+		ids = SortedClasses,
+		lookup = function(token)
+			return LOCALIZED_CLASS_NAMES_FEMALE and LOCALIZED_CLASS_NAMES_FEMALE[token]
+		end,
+	},
+	-- The zone names the /who search sends; an unnamed zone is never searched.
+	{
+		constant = "ns.Data.ZONES",
+		kind = "zone (AreaTable)",
+		ids = function()
+			local ids = {}
+			for _, zone in ipairs(ns.Data.ZONES or {}) do
+				ids[#ids + 1] = zone[ns.Data.ZONE_COLUMNS.AREA_ID]
+			end
+			return ids
+		end,
+		lookup = ns.Who.AreaName,
+	},
+}
+
+--------------------------------------------------------------------------------
+-- Validate Data Sources
+--------------------------------------------------------------------------------
+
+--[[
+	One entry per flavor-folder file, and one report row per entry on the Data tab. The label is the table-name part of the file name, so
+	ns.DataSourceFileName names the file this client's folder built. Food, potions and scrolls
+	are positional rows, { itemId, quality, useLevel, restores or buffs }, so the id is the first
+	field. Recipients-Zones rows are { areaId, min level, max level, faction }, checked by the
+	name C_Map.GetAreaInfo gives each one, since that name is what the /who zone filter sends.
+
+	Match-Stat-Budget, Match-Weapons, Match-Armor and Match-Classes are keyed by tokens and
+	subclass numbers no client API looks up, so they are "other" rows: each table's row count,
+	and TABLE MISSING when this client's folder never built it.
+]]
+local function FirstField(_, row)
+	return type(row) == "table" and row[1] or nil
+end
+
+local function RowField(position)
+	return function(_, row)
+		return type(row) == "table" and row[position] or nil
 	end
 end
 
-function ns:BuildSavedVariablesReport()
-	local lines = { GetClientHeader(), "", "PlayItForwardDB = {" }
-	DumpTable(PlayItForwardDB or {}, "    ", 1, lines)
-	lines[#lines + 1] = "}"
-	return table.concat(lines, "\n")
-end
+local CONSUMABLE_COLUMNS = {
+	{ "DATA_QUALITY", RowField(2) },
+	{ "DATA_USE_LEVEL", RowField(3) },
+	{ "DATA_RESTORES", RowField(4) },
+}
 
---------------------------------------------------------------------------------
--- Library Versions
---------------------------------------------------------------------------------
+local SCROLL_COLUMNS = {
+	{ "DATA_QUALITY", RowField(2) },
+	{ "DATA_USE_LEVEL", RowField(3) },
+	{ "DATA_BUFFS", RowField(4) },
+}
 
-function ns:BuildLibraryReport()
-	local lines = { GetClientHeader(), "" }
-	local names = {}
-	for name in LibStub:IterateLibraries() do
-		names[#names + 1] = name
-	end
-	table.sort(names)
-	for _, name in ipairs(names) do
-		lines[#lines + 1] = string.format("%s (minor %s)", name, tostring(LibStub.minors[name]))
-	end
-	return table.concat(lines, "\n")
-end
+-- A zone with no faction is searched by both, so its cell says so rather than printing blank.
+local ZONE_COLUMNS = {
+	{ "DATA_MIN_LEVEL", RowField(2) },
+	{ "DATA_MAX_LEVEL", RowField(3) },
+	{
+		"DATA_FACTION",
+		function(_, row)
+			return type(row) == "table" and (row[4] or "Both") or nil
+		end,
+	},
+}
 
---------------------------------------------------------------------------------
--- Taint Log
---------------------------------------------------------------------------------
-
--- taintLog writes to Logs\taint.log: level 2 logs blocked actions and tainted-global reads, 0 off.
-
-function ns:GetTaintLogState()
-	return tonumber(GetCVar("taintLog")) or 0
-end
-
-function ns:SetTaintLog(enabled)
-	SetCVar("taintLog", enabled and 2 or 0)
-end
+ns.DIAGNOSTIC_DATA_SOURCES = {
+	-- { label, sources = { { table, kind, rowId or collect, dataColumns } } }
+	{
+		label = "Scan-Food",
+		sources = {
+			{ table = "FOOD_AND_WATER", kind = "item", rowId = FirstField, dataColumns = CONSUMABLE_COLUMNS },
+		},
+	},
+	{
+		label = "Scan-Potions",
+		sources = {
+			{ table = "POTIONS", kind = "item", rowId = FirstField, dataColumns = CONSUMABLE_COLUMNS },
+		},
+	},
+	{
+		label = "Scan-Scrolls",
+		sources = {
+			{ table = "SCROLLS", kind = "item", rowId = FirstField, dataColumns = SCROLL_COLUMNS },
+		},
+	},
+	{
+		label = "Recipients-Zones",
+		sources = {
+			{ table = "ZONES", kind = "area", rowId = FirstField, dataColumns = ZONE_COLUMNS },
+		},
+	},
+	{
+		label = "Match-Stat-Budget",
+		sources = {
+			{ table = "STAT_BUDGET", kind = "other" },
+		},
+	},
+	{
+		label = "Match-Weapons",
+		sources = {
+			{ table = "WEAPON_SUBCLASS", kind = "other" },
+			{ table = "RELIC_SUBCLASS", kind = "other" },
+			{ table = "WEAPON_CLASS_ORDER", kind = "other" },
+			{ table = "WEAPON_SPECS", kind = "other" },
+		},
+	},
+	{
+		label = "Match-Armor",
+		sources = {
+			{ table = "ARMOR_SUBCLASS", kind = "other" },
+			{ table = "NATIVE_ARMOR", kind = "other" },
+		},
+	},
+	{
+		label = "Match-Classes",
+		sources = {
+			{ table = "FACTION_CLASSES", kind = "other" },
+		},
+	},
+}

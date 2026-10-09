@@ -7,13 +7,9 @@ ns.name = ADDON_NAME
 --[[
 	The TOC ships the literal token @project-version@ and the CurseForge packager replaces it at
 	build time, so a version still carrying an @ is an unpackaged dev copy.
-
-	THE NIL TEST COMES FIRST AND IS LOAD-BEARING. An unpackaged metadata read answers nil, so
-	testing for the @ first would error on exactly the local-dev path this exists for.
 ]]
 local function GetVersion()
-	local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
-	local version = GetAddOnMetadata and GetAddOnMetadata(ADDON_NAME, "Version")
+	local version = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version")
 	if not version or version:find("@") then
 		return "Dev"
 	end
@@ -73,14 +69,14 @@ end)
 	early, and PLAYER_ENTERING_WORLD refires on every loading screen. New's third argument is the
 	shared "Default" profile -- omit it and every character silently gets its own.
 ]]
-ns.on("ADDON_LOADED", function(name)
+local function OnAddonLoaded(name)
 	if name ~= ADDON_NAME then
 		return
 	end
 	ns.db = LibStub("AceDB-3.0"):New("PlayItForwardDB", ns.DATABASE_DEFAULTS, true)
 
-	-- Deprecated: a setting no control ever reached, and a constant now as ns.Data.MIN_RARITY.
-	ns.db.profile.minRarity = nil
+	-- MIGRATION (remove after 2026-11-05)
+	ns.db.profile.recipients = nil
 
 	--[[
 		A reset or a profile switch replaces ns.db.profile wholesale. Settings read live off it
@@ -99,15 +95,14 @@ ns.on("ADDON_LOADED", function(name)
 		ns.db.RegisterCallback(ns, msg, "ApplyProfile")
 	end
 
-	-- The cooldown is per-session, so the list starts empty at every login.
-	ns.Fairness:Reset()
-
 	ns:RegisterOptionsPanels()
-end)
+end
+ns.on("ADDON_LOADED", OnAddonLoaded)
 
-ns.on("PLAYER_LOGIN", function()
+local function OnPlayerLogin()
 	if not ns.db.profile.showWelcome then
 		return
 	end
 	ns:PrintMessage(L["CHAT_LOADED"]:format(ns.Version))
-end)
+end
+ns.on("PLAYER_LOGIN", OnPlayerLogin)

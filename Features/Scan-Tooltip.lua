@@ -62,8 +62,8 @@ local function tooltipLines(link)
 	-- Same requirement as above: a line count with every font string empty is not a read.
 	local out, anyText = {}, false
 	for i = 1, tip:NumLines() do
-		local fs = _G["PlayItForwardScanTooltipTextLeft" .. i]
-		local text = (fs and fs:GetText()) or ""
+		local fontString = _G["PlayItForwardScanTooltipTextLeft" .. i]
+		local text = (fontString and fontString:GetText()) or ""
 		out[i] = text
 		if text ~= "" then
 			anyText = true
@@ -107,7 +107,7 @@ local function statNames()
 		return STAT_BY_NAME
 	end
 	STAT_BY_NAME = {}
-	for globalName, token in pairs(ns.Data.StatMap) do
+	for globalName, token in pairs(ns.Data.STAT_MAP) do
 		local localized = _G[globalName]
 		if type(localized) == "string" and localized ~= "" then
 			STAT_BY_NAME[localized:lower()] = token
@@ -145,6 +145,8 @@ end
 
 local EQUIP_PATTERNS = {
 	{ "ranged attack power by (%d+)", "RANGED_AP" },
+	-- Must precede plain attack power, which would hand a feral staff to the rogue.
+	{ "attack power by (%d+) in cat", "FERAL_AP" },
 	{ "attack power by (%d+)", "ATTACK_POWER" },
 	-- Must precede the school pattern: this line reads "damage and healing done by".
 	{ "damage and healing done by magical spells.-by up to (%d+)", "SPELL_POWER" },

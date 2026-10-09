@@ -3,8 +3,8 @@ local L = ns.L
 
 --[[
 	Renders a player's Given Away totals at the bottom of their unit tooltip: your own live tally on
-	your own tooltip, and a nearby peer's cached totals on theirs. These flavors predate
-	TooltipDataProcessor, so the block is added from a script hook on OnTooltipSetUnit.
+	your own tooltip, and a nearby peer's cached totals on theirs. The block is added from a
+	TooltipDataProcessor unit post-call; WoW Forever's client has no OnTooltipSetUnit script to hook.
 
 	PROXIMITY MODEL, WITH ACCEPTED LATENCY. A player you have never heard from shows nothing on the
 	first hover; that hover fires a throttled ping, nearby clients answer, and the block is present
@@ -20,6 +20,11 @@ local Generosity = ns.Generosity
 -- The tooltip's own throttle: at most one presence ping per HOVER_PING_INTERVAL, however fast you hover.
 local HOVER_PING_INTERVAL = 10
 local lastPing = 0
+
+-- When a hover last pinged, GetTime() or 0 for never. For the diagnostics sharing report.
+function Generosity:LastHoverPing()
+	return lastPing
+end
 
 -- Our own identity, to tell our own tooltip from a peer's. The same helper the peers cache keys on.
 local function ownKey()
@@ -64,7 +69,7 @@ local function appendBlock(tooltip, gifts, items, itemLevels, value)
 
 	tooltip:AddLine(" ")
 	-- The same branded line a chat print carries: blue name, gray separator, white body.
-	tooltip:AddLine(ns:BuildBrandedLine(L["TOOLTIP_GENEROSITY_HEADER"]))
+	tooltip:AddLine(ns:BuildBrandedLine(L["OPTIONS_GENEROSITY_HEADER"]))
 	row(L["OPTIONS_GENEROSITY_GIFTS"], ns.CommaNumber(gifts))
 	row(L["OPTIONS_GENEROSITY_ITEMS"], ns.CommaNumber(items))
 	row(L["OPTIONS_GENEROSITY_ITEM_LEVELS"], ns.CommaNumber(itemLevels))
@@ -83,7 +88,14 @@ local function onTooltipSetUnit(tooltip)
 	end
 	-- The unit token is the second return; the first is the display name we already have on the tip.
 	local _, unit = tooltip:GetUnit()
-	if not unit or not UnitIsPlayer(unit) then
+	if not unit then
+		return
+	end
+	-- On WoW Forever a unit's name reads as a secret value in combat, which cannot be compared.
+	if C_Secrets.ShouldUnitIdentityBeSecret(unit) then
+		return
+	end
+	if not UnitIsPlayer(unit) then
 		return
 	end
 
@@ -114,6 +126,16 @@ local function onTooltipSetUnit(tooltip)
 	appendBlock(tooltip, gifts, items, itemLevels, value)
 end
 
-if GameTooltip and GameTooltip.HookScript then
+-- Picked by availability. The post-call fires for every tooltip showing a unit, so only GameTooltip is drawn on.
+-- Which one this client took is recorded for the diagnostics sharing report.
+if TooltipDataProcessor then
+	TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip)
+		if tooltip == GameTooltip then
+			onTooltipSetUnit(tooltip)
+		end
+	end)
+	Generosity.tooltipHook = "TooltipDataProcessor unit post-call"
+else
 	GameTooltip:HookScript("OnTooltipSetUnit", onTooltipSetUnit)
+	Generosity.tooltipHook = "GameTooltip OnTooltipSetUnit"
 end
