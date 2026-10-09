@@ -12,25 +12,14 @@ local EVERY_CLASS =
 	{ "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID", "DEATHKNIGHT" }
 
 --[[
-	/who and the mailbox are both same-faction, so a class the player's own side cannot
-	roll is unreachable however well the item suits it. The faction pair is Era only:
-	draenei shamans and blood elf paladins arrive in TBC.
-]]
-local ABSENT = {
-	DEATHKNIGHT = function()
-		return not ns.isWrathOrLater
-	end,
-	SHAMAN = function(faction)
-		return ns.isEra and faction == "Alliance"
-	end,
-	PALADIN = function(faction)
-		return ns.isEra and faction == "Horde"
-	end,
-}
+	/who and the mailbox are both same-faction, so a class the player's own side cannot roll is
+	unreachable however well the item suits it. Which classes each faction can roll on this
+	client is the flavor folder's ns.Data.FACTION_CLASSES; EVERY_CLASS only sets the order.
 
---[[
 	Memoized only once the faction is known: a cached nil would drop a real class for the session.
-	Unresolved returns unfiltered and retries -- over-including is recoverable.
+	Unresolved returns every class either faction can roll and retries -- over-including is
+	recoverable. A faction the table has no row for, such as a Pandaren yet to choose, gets the
+	same.
 ]]
 local memo
 local function ALL_CLASSES()
@@ -38,10 +27,18 @@ local function ALL_CLASSES()
 		return memo
 	end
 	local faction = UnitFactionGroup("player")
+	local listed = faction and ns.Data.FACTION_CLASSES[faction]
+	local rollable = {}
+	for rowFaction, classes in pairs(ns.Data.FACTION_CLASSES) do
+		if not listed or rowFaction == faction then
+			for _, class in ipairs(classes) do
+				rollable[class] = true
+			end
+		end
+	end
 	local out = {}
 	for _, class in ipairs(EVERY_CLASS) do
-		local absent = ABSENT[class]
-		if not (absent and absent(faction)) then
+		if rollable[class] then
 			out[#out + 1] = class
 		end
 	end
@@ -61,22 +58,22 @@ end
 
 function Matcher:EligibleClasses(item)
 	if item.kind == "consumable" then
-		local classes = ns.Data.ConsumableClasses[item.def.restores]
+		local classes = ns.Data.CONSUMABLE_CLASSES[item.def.restores or item.def.buffs]
 		if classes == nil or classes == "ALL" then
 			return ALL_CLASSES()
 		end
 		--[[
-			ConsumableClasses is a client-agnostic roster of who has a mana bar, so returning it
+			CONSUMABLE_CLASSES is a client-agnostic roster of who has a mana bar, so returning it
 			whole names the phantom classes described at the top of this file.
 		]]
 		local available = {}
-		for _, cls in ipairs(ALL_CLASSES()) do
-			available[cls] = true
+		for _, class in ipairs(ALL_CLASSES()) do
+			available[class] = true
 		end
 		local out = {}
-		for _, cls in ipairs(classes) do
-			if available[cls] then
-				out[#out + 1] = cls
+		for _, class in ipairs(classes) do
+			if available[class] then
+				out[#out + 1] = class
 			end
 		end
 		return out
@@ -84,39 +81,39 @@ function Matcher:EligibleClasses(item)
 
 	-- gear
 	local out = {}
-	local classID, subID, equipLoc = item.classID, item.subclassID, item.equipLoc
+	local classID, subclassID, equipLoc = item.classID, item.subclassID, item.equipLoc
 
 	if classID == 2 then
 		-- Weapons: eligibility is "the priority lookup returned a group".
 		local key = ns.Data.WeaponKey(item)
 		if key then
-			for _, cls in ipairs(ALL_CLASSES()) do
-				if ns.Data.WeaponPriorityFor(key, cls, item.reqLevel) then
-					table.insert(out, cls)
+			for _, class in ipairs(ALL_CLASSES()) do
+				if ns.Data.WeaponPriorityFor(key, class) then
+					table.insert(out, class)
 				end
 			end
 		end
 		return out
 	elseif classID == 4 then
 		--[[
-			Armor. Shields and held off-hands use the weapon matrix, and this must stay above the
+			Armor. Shields, held off-hands and relics use the weapon matrix, and this must stay above the
 			universal check below: held items are armor subclass 0, so that branch would otherwise
 			claim them.
 		]]
 		if ns.Data.UsesWeaponMatrix(item) then
 			local key = ns.Data.WeaponKey(item)
-			for _, cls in ipairs(ALL_CLASSES()) do
-				if key and ns.Data.WeaponPriorityFor(key, cls, item.reqLevel) then
-					table.insert(out, cls)
+			for _, class in ipairs(ALL_CLASSES()) do
+				if key and ns.Data.WeaponPriorityFor(key, class) then
+					table.insert(out, class)
 				end
 			end
 			return out
 		end
 		-- Rings/necks/trinkets/cloaks/held: everyone, and no group -- stats alone decide.
-		if ns.Data.UniversalEquipLoc[equipLoc] or subID == 0 then
+		if ns.Data.UNIVERSAL_EQUIP_LOC[equipLoc] or subclassID == 0 then
 			return ALL_CLASSES()
 		end
-		local armorType = ns.Data.ArmorSubclass[subID]
+		local armorType = ns.Data.ARMOR_SUBCLASS[subclassID]
 		if not armorType then
 			return ALL_CLASSES()
 		end -- unknown -> don't over-filter
@@ -124,9 +121,9 @@ function Matcher:EligibleClasses(item)
 		if not priority then
 			return ALL_CLASSES()
 		end
-		for _, cls in ipairs(ALL_CLASSES()) do
-			if priority[cls] then
-				table.insert(out, cls)
+		for _, class in ipairs(ALL_CLASSES()) do
+			if priority[class] then
+				table.insert(out, class)
 			end
 		end
 		return out
@@ -143,17 +140,17 @@ end
 function Matcher:Priority(item, classToken)
 	-- Held is armor subclass 0, so this must stay above the universal branch below.
 	if ns.Data.UsesWeaponMatrix(item) then
-		return ns.Data.WeaponPriorityFor(ns.Data.WeaponKey(item), classToken, item.reqLevel) or 9
+		return ns.Data.WeaponPriorityFor(ns.Data.WeaponKey(item), classToken) or 9
 	end
 
 	if item.classID ~= 4 then
 		return 1
 	end
-	if ns.Data.UniversalEquipLoc[item.equipLoc] or item.subclassID == 0 then
+	if ns.Data.UNIVERSAL_EQUIP_LOC[item.equipLoc] or item.subclassID == 0 then
 		return 1
 	end
 
-	local armorType = ns.Data.ArmorSubclass[item.subclassID]
+	local armorType = ns.Data.ARMOR_SUBCLASS[item.subclassID]
 	local priority = armorType and ns.Data.ArmorPriorityFor(armorType, item.reqLevel)
 	if not priority then
 		return 1
@@ -172,49 +169,50 @@ function Matcher:Score(item, classToken)
 		return 1
 	end
 
-	local weights = ns.Data.StatWeights[classToken]
+	local weights = ns.Data.STAT_WEIGHTS[classToken]
 	if not weights then
 		return 0
 	end
 	local score = 0
 	for stat, val in pairs(item.stats or {}) do
 		if weights[stat] then
-			score = score + val * weights[stat]
+			score = score + ns.Data.StatPoints(stat, val) * weights[stat]
 		end
 	end
 	--[[
-		An item-level baseline so statless weapons still place; shields and held off-hands take it
-		too, being matrix-ranked everywhere else. Constant per item, so it shifts every admitted
-		class equally and only decides whether the item clears the threshold. The GetItemInfo
+		An item-level baseline so statless weapons still place; shields, held off-hands and relics
+		take it too, being matrix-ranked everywhere else. Constant per item, so it shifts every admitted
+		class equally and only decides whether the item clears the threshold. The C_Item.GetItemInfo
 		fallback is for a record built by hand rather than by the scanner.
 	]]
 	if ns.Data.UsesWeaponMatrix(item) then
-		local ilvl = item.itemLevel or select(4, GetItemInfo(item.link)) or item.reqLevel or 1
-		score = score + ilvl * (ns.Data.WEAPON_BASELINE or 0)
+		local itemLevel = item.itemLevel or select(4, C_Item.GetItemInfo(item.link)) or item.reqLevel or 1
+		score = score + itemLevel * (ns.Data.WEAPON_BASELINE or 0)
 	end
 	return score
 end
 
 --[[
 	Claim: only the stats the point tables rank for this class -- no universal weight, no weapon
-	baseline. It decides whether a class has any claim at all, separately from how it ranks, which
-	is what makes universal weights safe to add: Stamina at 0.5 for everybody would otherwise give
-	a mage 2.5 on an Agility cloak, none of it from the agility.
+	baseline. It decides whether a class has any claim at all, separately from how it ranks, so any
+	universal weight stays out of the claim: Stamina at 0.5 for everybody would otherwise give a mage
+	2.5 on an Agility cloak, none of it from the agility. Fit still carries one, which is why
+	Data/Match-Stats.lua keeps UNIVERSAL_WEIGHTS empty.
 ]]
 function Matcher:SpecScore(item, classToken)
 	if item.kind == "consumable" then
 		return 1
 	end
-	local weights = ns.Data.StatWeights[classToken]
+	local weights = ns.Data.STAT_WEIGHTS[classToken]
 	if not weights then
 		return 0
 	end
 
-	local universal = ns.Data.UniversalWeights or {}
+	local universal = ns.Data.UNIVERSAL_WEIGHTS or {}
 	local score = 0
 	for stat, val in pairs(item.stats or {}) do
 		if weights[stat] and not universal[stat] then
-			score = score + val * weights[stat]
+			score = score + ns.Data.StatPoints(stat, val) * weights[stat]
 		end
 	end
 	return score
@@ -230,8 +228,9 @@ end
 	wins with half the item dead on him. Coverage separates using an item from using part of one.
 
 	THE DENOMINATOR IS SCOREABLE STATS, NOT THE ITEM'S STAT LINE. Only stats some class
-	competes on can say who competes: counting crit, defense or a resistance would put a
-	rogue at 50% on his own gear and demote him off it.
+	competes on can say who competes: counting defense or a resistance would put a rogue at
+	50% on his own gear and demote him off it. Each stat counts at its budget, not its raw
+	number, or "+1% crit" would be a rounding error beside "+10 Agility".
 
 	WHICH MEANS WEIGHTING A STAT IS NEVER ONLY A SCORING CHANGE. It enlarges this
 	denominator on every item carrying that stat, and the majority test is strictly greater
@@ -244,7 +243,7 @@ end
 	baseline and the statless fallback, and a 0 would quietly bin every one of them.
 ]]
 function Matcher:Coverage(item, classToken)
-	local weights = ns.Data.StatWeights[classToken]
+	local weights = ns.Data.STAT_WEIGHTS[classToken]
 	if not weights then
 		return 0
 	end
@@ -252,9 +251,10 @@ function Matcher:Coverage(item, classToken)
 	local total, used = 0, 0
 	for stat, value in pairs(item.stats or {}) do
 		if ranked[stat] then
-			total = total + value
+			local points = ns.Data.StatPoints(stat, value)
+			total = total + points
 			if (weights[stat] or 0) > 0 then
-				used = used + value
+				used = used + points
 			end
 		end
 	end
@@ -296,10 +296,10 @@ local function applyPreference(verdict, item, context)
 		return
 	end
 	local named = {}
-	for _, cls in ipairs(preferred) do
+	for _, class in ipairs(preferred) do
 		for _, admitted in ipairs(verdict.admitted) do
-			if cls == admitted then
-				named[#named + 1] = cls
+			if class == admitted then
+				named[#named + 1] = class
 				break
 			end
 		end
@@ -327,9 +327,9 @@ local function applyDemotion(verdict, item, scored, context)
 
 	local function without(list)
 		local out = {}
-		for _, cls in ipairs(list or {}) do
-			if not demoted[cls] then
-				out[#out + 1] = cls
+		for _, class in ipairs(list or {}) do
+			if not demoted[class] then
+				out[#out + 1] = class
 			end
 		end
 		return out
@@ -355,9 +355,9 @@ function Matcher:Verdict(item)
 	local vetoed = ns.Data.VetoedClasses(item)
 	if vetoed and item.kind ~= "consumable" then
 		local kept = {}
-		for _, cls in ipairs(eligible) do
-			if not vetoed[cls] then
-				kept[#kept + 1] = cls
+		for _, class in ipairs(eligible) do
+			if not vetoed[class] then
+				kept[#kept + 1] = class
 			end
 		end
 		eligible = kept
@@ -411,13 +411,13 @@ function Matcher:Verdict(item)
 		weights and the weapon baseline. Claim decides who is admitted, fit how they rank.
 	]]
 	local anyClaim = false
-	for _, cls in ipairs(eligible) do
-		verdict.fits[cls] = self:Score(item, cls)
-		verdict.claims[cls] = self:SpecScore(item, cls)
-		if verdict.claims[cls] > verdict.bestClaim then
-			verdict.bestClaim = verdict.claims[cls]
+	for _, class in ipairs(eligible) do
+		verdict.fits[class] = self:Score(item, class)
+		verdict.claims[class] = self:SpecScore(item, class)
+		if verdict.claims[class] > verdict.bestClaim then
+			verdict.bestClaim = verdict.claims[class]
 		end
-		if verdict.claims[cls] > 0 then
+		if verdict.claims[class] > 0 then
 			anyClaim = true
 		end
 	end
@@ -425,15 +425,15 @@ function Matcher:Verdict(item)
 	--[[
 		With no claim anywhere, only matrix-ranked items fall back to "offer it to everyone": a
 		statless weapon's level baseline is a genuine universal claim, and the matrix already
-		narrows shields and held off-hands to the classes that carry the type. Statless armor must
+		narrows shields, held off-hands and relics to the classes that carry the type. Statless armor must
 		not take the fallback -- with nothing to separate them, whoever is closest in level takes
 		it. The unread case is gone by here, so this is armor that genuinely carries nothing.
 	]]
 	local offerToEveryone = (not anyClaim) and ns.Data.UsesWeaponMatrix(item)
 
-	for _, cls in ipairs(eligible) do
-		if offerToEveryone or verdict.claims[cls] > 0 then
-			verdict.admitted[#verdict.admitted + 1] = cls
+	for _, class in ipairs(eligible) do
+		if offerToEveryone or verdict.claims[class] > 0 then
+			verdict.admitted[#verdict.admitted + 1] = class
 		end
 	end
 
@@ -447,13 +447,13 @@ function Matcher:Verdict(item)
 	]]
 	local shareOf = verdict.bestClaim * ns.Data.CLASS_SHARE
 	local wanted = {}
-	for _, cls in ipairs(verdict.admitted) do
-		local coverage = self:Coverage(item, cls)
-		verdict.coverage[cls] = coverage
-		if (verdict.claims[cls] or 0) >= shareOf then
-			wanted[#wanted + 1] = cls
+	for _, class in ipairs(verdict.admitted) do
+		local coverage = self:Coverage(item, class)
+		verdict.coverage[class] = coverage
+		if (verdict.claims[class] or 0) >= shareOf then
+			wanted[#wanted + 1] = class
 			if coverage > ns.Data.COVERAGE_MAJORITY then
-				verdict.contenders[#verdict.contenders + 1] = cls
+				verdict.contenders[#verdict.contenders + 1] = class
 			end
 		end
 	end
@@ -483,16 +483,16 @@ function Matcher:Verdict(item)
 		whichever group is closer to the item's armor type.
 	]]
 	local bestScore, bestTier = -math.huge, 99
-	for _, cls in ipairs(verdict.contenders) do
-		local score, tier = verdict.fits[cls] or 0, self:Priority(item, cls)
+	for _, class in ipairs(verdict.contenders) do
+		local score, tier = verdict.fits[class] or 0, self:Priority(item, class)
 		if score > bestScore or (score == bestScore and tier < bestTier) then
-			bestScore, bestTier, verdict.best = score, tier, cls
+			bestScore, bestTier, verdict.best = score, tier, class
 		end
 	end
 
 	--[[
 		Both gates, and the order matters. No admitted class means no recipient can ever
-		exist, whatever the score says; the threshold is the player's own setting on top.
+		exist, whatever the score says; the threshold, ns.Data.LEFTOVER_THRESHOLD, sits on top.
 	]]
 	if #verdict.admitted > 0 then
 		verdict.score = (bestScore > -math.huge) and bestScore or 0
@@ -506,227 +506,4 @@ end
 -- Cached per scan; a record built outside one, such as the Verdict report, gets a fresh verdict.
 function Matcher:VerdictFor(item)
 	return item.verdict or self:Verdict(item)
-end
-
--- There is deliberately no Matcher:Best. Read verdict.best and verdict.state instead.
-
---[[
-	Everyone in pools (classToken -> players) who can use this item and sits in its level band, in
-	the order it would be handed out:
-
-	  fit bucket -> level proximity -> armor/weapon group -> class fit -> guild -> random
-
-	Bucket leads, so a class that genuinely wants the item beats one that barely does however
-	close to equipping it they are. Level comes next, ahead of group, so a druid one level off
-	beats a mage two off for cloth. Random tail, or every spare green goes to whoever is early in
-	the alphabet.
-]]
-function Matcher:RankCandidates(item, pools)
-	local out, meta = {}, {}
-
-	--[[
-		Who may receive this is Verdict's answer, never a second opinion formed here; this only
-		orders the people behind those classes. A leftover still ranks candidates so the dropdown
-		can overrule the vendor pile by hand; an unreadable one lands here with an empty list.
-	]]
-	local verdict = self:VerdictFor(item)
-
-	--[[
-		Read from Verdict, never recomputed: it buckets on claim, and fit would let a universal
-		weight compress the ratio and lift a druid past a rogue on proximity.
-	]]
-	local topBucket = {}
-	for _, cls in ipairs(verdict.contenders or {}) do
-		topBucket[cls] = true
-	end
-
-	--[[
-		PER CLASS, NEVER item.bandLo: a class that trains the armor material later searches higher
-		up, and reading one band off the item would either hand a hunter mail he cannot wear for
-		six levels or never look for him at all. Matcher:LevelBand answers the item's own band for
-		everything else, so this is the same numbers for nearly every item.
-	]]
-	for _, cls in ipairs(verdict.admitted) do
-		local fit, tier = verdict.fits[cls] or 0, self:Priority(item, cls)
-		local lo, hi = self:LevelBand(item, cls)
-		--[[
-			The level this item is worth most at, and what proximity is measured against. Gear
-			anchors to the TOP of its band, arriving just before it can be equipped; a consumable
-			anchors to the BOTTOM, its own use level, because its band runs upward from there.
-			Measuring a potion to the top of its band ranks whoever has most outgrown it first,
-			which is backwards.
-		]]
-		local anchor = (item.kind == "consumable") and lo or hi
-		--[[
-			Bucket rather than cut. A marginal class still appears in the dropdown and still
-			receives the item when nobody better is in range.
-		]]
-		local bucket = topBucket[cls] and 1 or 2
-		for _, person in ipairs(pools[cls] or {}) do
-			if person.level >= lo and person.level <= hi then
-				table.insert(out, person)
-				meta[person] = { tier = tier, fit = fit, bucket = bucket, anchor = anchor }
-			end
-		end
-	end
-
-	table.sort(out, function(a, b)
-		local ma, mb = meta[a], meta[b]
-		if ma.bucket ~= mb.bucket then
-			return ma.bucket < mb.bucket
-		end
-		-- Each against its own class's anchor, which is the level that class equips the item at.
-		local aDist = math.abs((a.level or 0) - ma.anchor)
-		local bDist = math.abs((b.level or 0) - mb.anchor)
-		if aDist ~= bDist then
-			return aDist < bDist
-		end
-		if ma.tier ~= mb.tier then
-			return ma.tier < mb.tier
-		end
-		if ma.fit ~= mb.fit then
-			return ma.fit > mb.fit
-		end
-		--[[
-			Soft priority for guildmates, last before the coin flip: everything above measures how
-			well the item suits the person, so a guildmate never takes something from somebody it
-			suits better. It still decides often -- tier and fit are per-class, so two candidates
-			of the same class at the same level reach this line with nothing between them.
-		]]
-		local aGuild, bGuild = a.guild or false, b.guild or false
-		if aGuild ~= bGuild then
-			return aGuild
-		end
-
-		--[[
-			Equals. The shuffle key is precomputed per player and never rolled inside the
-			comparator: a comparator that changes mid-sort makes table.sort throw.
-		]]
-		local aRoll, bRoll = a.shuffle or 0, b.shuffle or 0
-		if aRoll ~= bRoll then
-			return aRoll < bRoll
-		end
-		return (a.name or "") < (b.name or "")
-	end)
-	return out
-end
-
---[[
-	Recipient level band. Gear spans [equip level - WIDEST, equip level - CLOSEST].
-
-	WITH A CLASS IT IS THAT CLASS'S BAND, and for nearly every item the two are the same answer:
-	the equip level is the item's own requirement. It moves only where the class has to train the
-	armor material first -- a level 36 mail belt is equipped at 40 by a hunter and at 36 by a
-	paladin, so the two search 38-39 and 34-35 and one band cannot state both. Called without a
-	class it answers for the item alone, which is what the reports and the tooltip want.
-]]
-function Matcher:LevelBand(item, classToken)
-	--[[
-		A consumable runs from its use level up by CONSUMABLE_RECIPIENT_GAP, short on purpose: a
-		potion is worth having to somebody who can drink it now. Not profile.consumableLevelGap,
-		which is the sender's outgrown-it threshold and a much longer span -- the note on the
-		constant has why the two are not the same number. No class shift: nothing is trained to
-		drink one.
-	]]
-	if item.kind == "consumable" then
-		local lo = math.max(1, item.def.useLevel)
-		return lo, lo + ns.Data.CONSUMABLE_RECIPIENT_GAP
-	end
-	local req = classToken and ns.Data.EquipLevelFor(item, classToken) or (item.reqLevel or 1)
-	local lo = math.max(1, req - ns.Data.LEVEL_GAP_WIDEST)
-	local hi = math.max(lo, req - ns.Data.LEVEL_GAP_CLOSEST)
-	return lo, hi
-end
-
---[[
-	The classes grouped by the band each of them searches -- one group for nearly every item, two
-	for the sub-40 mail and plate half the field cannot wear until it trains the material. Shaped
-	the way Features/Recipients-Who.lua wants a plan, so the query looking for the hunter can ask
-	38-39 while the one beside it asks the paladin's 34-35.
-
-	Group order follows the class list it was given, which is what lets a caller put the classes
-	the item is FOR at the front of the plan.
-]]
-function Matcher:BandGroups(item, classes)
-	local order, byBand = {}, {}
-	for _, class in ipairs(classes or {}) do
-		local lo, hi = self:LevelBand(item, class)
-		local key = ("%d:%d"):format(lo, hi)
-		local group = byBand[key]
-		if not group then
-			group = { lo = lo, hi = hi, classes = {} }
-			byBand[key] = group
-			order[#order + 1] = group
-		end
-		group.classes[#group.classes + 1] = class
-	end
-	return order
-end
-
---[[
-	Every band the item searches, as one span. For the tooltip and the reports, which have room
-	for one pair of numbers; the search itself uses the groups above and never this. Falls back to
-	the item's own band when no class was passed, so an item nobody is admitted for still reads.
-]]
-function Matcher:SearchBand(item, classes)
-	local lo, hi
-	for _, group in ipairs(self:BandGroups(item, classes)) do
-		lo = math.min(lo or group.lo, group.lo)
-		hi = math.max(hi or group.hi, group.hi)
-	end
-	if not lo then
-		return self:LevelBand(item)
-	end
-	return lo, hi
-end
-
---[[
-	The bands one targeted search should ask for, best first: the classes the verdict says the item
-	is FOR, then everybody admitted behind them.
-
-	CONTENDERS LEAD, replacing the earlier "admitted, the point is more names to choose from"
-	(maintainer ruling, 2026-08-09). A lone contender is the only shape /who can be filtered on --
-	the client honors one c-"..." and drops the rest -- so leading with it is what turns this into
-	a query for hunters instead of the unfiltered one the main button already sent. The fallbacks
-	keep their own group behind it and are still asked for, one press later.
-]]
-function Matcher:TargetedBands(item)
-	local verdict = self:VerdictFor(item)
-	local admitted = (#verdict.admitted > 0) and verdict.admitted or verdict.eligible
-	local contenders = (#(verdict.contenders or {}) > 0) and verdict.contenders or admitted
-
-	local leads = {}
-	for _, class in ipairs(contenders) do
-		leads[class] = true
-	end
-	local behind = {}
-	for _, class in ipairs(admitted) do
-		if not leads[class] then
-			behind[#behind + 1] = class
-		end
-	end
-
-	local groups = self:BandGroups(item, contenders)
-	for _, group in ipairs(self:BandGroups(item, behind)) do
-		--[[
-			Folded back into the leaders' group when they share a band and there is more than one
-			of them: two classes carry no class filter either way, so a separate group would spend
-			a whole press on a query identical to the one in front of it.
-		]]
-		local merged
-		for _, lead in ipairs(groups) do
-			if lead.lo == group.lo and lead.hi == group.hi and #lead.classes > 1 then
-				merged = lead
-				break
-			end
-		end
-		if merged then
-			for _, class in ipairs(group.classes) do
-				merged.classes[#merged.classes + 1] = class
-			end
-		else
-			groups[#groups + 1] = group
-		end
-	end
-	return groups
 end

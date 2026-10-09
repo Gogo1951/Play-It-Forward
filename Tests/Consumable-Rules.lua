@@ -7,7 +7,7 @@
 	they set who is in contention and leave everybody else admitted behind them.
 
 	POTIONS, NOT FOOD, and that distinction is the whole care in this file.
-	Data/Scan-Food.lua holds 42 things that restore mana, and all of them are
+	Each flavor folder's Scan-Food file holds 42 things that restore mana, and all of them are
 	water. A rule reading only "restores mana" would put mages behind priests for water,
 	when a mage drinks more of it than anybody in the game.
 ]]
@@ -129,12 +129,12 @@ test("the scanner records whether a consumable is a potion", function()
 	local ns = load()
 
 	local potion, water
-	for _, row in ipairs(ns.Data.Potions) do
+	for _, row in ipairs(ns.Data.POTIONS) do
 		if row[4] == "HEALTH" and row[3] <= 30 and not potion then
 			potion = row
 		end
 	end
-	for _, row in ipairs(ns.Data.FoodAndWater) do
+	for _, row in ipairs(ns.Data.FOOD_AND_WATER) do
 		if row[4] == "MANA" and row[3] <= 30 and not water then
 			water = row
 		end
@@ -159,7 +159,7 @@ test("a real healing potion off the scanner reaches warriors and rogues", functi
 	local ns = load()
 
 	local potion
-	for _, row in ipairs(ns.Data.Potions) do
+	for _, row in ipairs(ns.Data.POTIONS) do
 		if row[4] == "HEALTH" and row[3] <= 30 and not potion then
 			potion = row
 		end

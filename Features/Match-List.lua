@@ -9,8 +9,8 @@ local _, ns = ...
 ns.MatchList = {}
 local MatchList = ns.MatchList
 
-local pools = {} -- classToken -> { {name, level, class, area}, ... } from /who
-local items = {} -- current scan, decorated with .best/.eligible/.band/.recipient
+local pools = {} -- classToken -> { {name, level, class, area}, ... } from /who and the guild roster
+local items = {} -- current scan, decorated with .verdict/.state/.score/.bandLo/.bandHi/.recipient/.send/.pinned
 local assignedTo = {} -- recipient name -> the item they're currently holding
 local seenPlayer = {} -- qualified identity -> its pool entry, dedupes across sources and chunks
 --[[
@@ -54,18 +54,25 @@ local function windowIsShown()
 	return ns.UI and ns.UI.frame and ns.UI.frame:IsShown()
 end
 
+--[[
+	Nothing to scan against before the saved variables exist, and nothing worth scanning
+	mid-mail-run: the Distributor's slots stay full until each send is confirmed, and the
+	BAG_UPDATE the deliveries raise brings the scan back round anyway. The dirty flag makes
+	skipping a closed window safe -- nothing reads the answer away from a mailbox, so the next
+	mailboxOpened pays for one scan. Tested in scanSoon and not only in the timer: BAG_UPDATE and
+	GET_ITEM_INFO_RECEIVED are the noisy events, and arming a timer that will find the window
+	closed is work for nothing on nearly every one.
+
+	One function, because the diagnostics event log classifies both events with it: a firing
+	this answers true for is one that armed a rescan, and the log keeps it in full.
+]]
+local function wouldRescan()
+	return (ns.db and not ns.Distributor.busy and windowIsShown()) and true or false
+end
+
 local function scanSoon()
 	bagsDirty = true
-	--[[
-		Nothing to scan against before the saved variables exist, and nothing worth scanning
-		mid-mail-run: the Distributor's slots stay full until each send is confirmed, and the
-		BAG_UPDATE the deliveries raise brings the scan back round anyway. The dirty flag makes
-		skipping a closed window safe -- nothing reads the answer away from a mailbox, so the next
-		mailboxOpened pays for one scan. Tested here and not only in the timer: BAG_UPDATE and
-		GET_ITEM_INFO_RECEIVED are the noisy events, and arming a timer that will find the window
-		closed is work for nothing on nearly every one.
-	]]
-	if not ns.db or ns.Distributor.busy or not windowIsShown() then
+	if not wouldRescan() then
 		return
 	end
 	if scanTimer then
@@ -84,13 +91,19 @@ local function scanSoon()
 	end)
 end
 
-ns.on("BAG_UPDATE", scanSoon)
+local function OnBagUpdate()
+	scanSoon()
+end
+ns.on("BAG_UPDATE", OnBagUpdate)
 
 --[[
 	An unresolved item is rejected as NOT_CACHED, so a cold-cache scan reports a bag emptier than
 	it is -- and that decides whether the window opens at all.
 ]]
-ns.on("GET_ITEM_INFO_RECEIVED", scanSoon)
+local function OnGetItemInfoReceived()
+	scanSoon()
+end
+ns.on("GET_ITEM_INFO_RECEIVED", OnGetItemInfoReceived)
 
 --[[
 	Clusters, not one span: bags routinely hold low-level gear and high-level consumables and
@@ -146,8 +159,9 @@ end
 	The contenders are who the verdict says the item is FOR, and a fallback pairing must not
 	read as the search having found them: it cleared the plan the moment two paladins held a
 	pair of warrior swords, with the warrior zones never asked. A pinned row is the player's
-	decision, and final. Leftovers and unreadables are excluded, or Scan Again stays offered
-	for the whole session.
+	decision, and final; an unticked row is pinned, so it is never searched for. Leftovers and
+	unreadables are excluded, or the plan never empties and every press of Find Recipients goes
+	on spending the /who throttle for the whole session.
 ]]
 local function stillSearching(item)
 	if item.state ~= ns.Matcher.GIFT or item.pinned then
@@ -202,15 +216,25 @@ local function rescanBags()
 		local reachable = (#verdict.admitted > 0) and verdict.admitted or eligible
 		item.bandLo, item.bandHi = ns.Matcher:SearchBand(item, reachable)
 
+		--[[
+			THE UNTICK ALWAYS SURVIVES. Only a recipient another row already holds is dropped, and
+			a row still ticked that loses its name goes back to auto-assignment, or it would sit
+			pinned to nobody. A row with nothing remembered starts ticked, like every row.
+		]]
 		local kept = previous[slotKey(item)]
-		local taken = kept and kept.recipient and assignedTo[kept.recipient.name]
-		if kept and not taken then
-			item.recipient, item.send, item.pinned = kept.recipient, kept.send, kept.pinned
-			if kept.recipient then
+		if kept then
+			item.send, item.pinned = kept.send, kept.pinned
+			if kept.recipient and not assignedTo[kept.recipient.name] then
+				item.recipient = kept.recipient
 				assignedTo[kept.recipient.name] = item
+			else
+				item.recipient = nil
+				if item.send then
+					item.pinned = false
+				end
 			end
 		else
-			item.recipient, item.send = nil, false
+			item.recipient, item.send = nil, true
 		end
 
 		--[[
@@ -285,6 +309,16 @@ function MatchList:EnsureScan()
 	ensureScan()
 end
 
+-- Whether the next mailbox rescans the bags, for the Mailbox report. Reads the flag only.
+function MatchList:IsStale()
+	return bagsDirty
+end
+
+-- Whether a bag or item-info event right now would arm a rescan. Read by the event log filter.
+function MatchList:WouldRescan()
+	return wouldRescan()
+end
+
 function MatchList:SlotKey(item)
 	return slotKey(item)
 end
@@ -307,7 +341,7 @@ function MatchList:Assign()
 				assignedTo[item.recipient.name] = item
 			end
 		else
-			item.recipient, item.send = nil, false
+			item.recipient, item.send = nil, true
 		end
 	end
 
@@ -350,12 +384,12 @@ function MatchList:Assign()
 		local pick = ns.Fairness:PickFrom(entry.ranked, isTaken)
 		if pick then
 			--[[
-				Ticked only for a class in contention. A fallback pairing is a suggestion, not a
-				send: Distribute must never mail an item to a class the verdict says it is not for
-				unless the player ticked that row themselves -- which pins it, so a rebuild here
-				never reaches it again.
+				EVERY ROW IS TICKED UNTIL THE PLAYER SAYS OTHERWISE, so a match arrives ticked, a
+				fallback included. A fallback is still not final -- the row stays unpinned and its
+				band stays on the plan, so a contender turning up on a later press takes it over.
+				Unticking is the player's veto, and pins it.
 			]]
-			entry.item.recipient, entry.item.send = pick, inContention(entry.item, pick.class)
+			entry.item.recipient, entry.item.send = pick, true
 			assignedTo[pick.name] = entry.item
 		end
 	end
@@ -416,10 +450,12 @@ end
 --[[
 	Folds one query's results into the roster, deduped. The shuffle key is rolled once as a player
 	enters the pool, so the order among equals holds still instead of moving between renders.
+	Returns how many pool entries changed: new players, plus known ones who just became guildmates
+	or were seen at a higher level.
 ]]
 function MatchList:AddResults(results)
-	local added = 0
-	for _, p in ipairs(results) do
+	local changed = 0
+	for _, person in ipairs(results) do
 		--[[
 			THE ONE LEVEL FLOOR, here rather than in either reader because this is the single door
 			every recipient comes through: /who and the guild roster both arrive at this line, and
@@ -427,7 +463,7 @@ function MatchList:AddResults(results)
 			dedupe, so the number means "people this rule turned away", not "people it turned away
 			who were also new".
 		]]
-		if (p.level or 0) < ns.Data.MIN_RECIPIENT_LEVEL then
+		if (person.level or 0) < ns.Data.MIN_RECIPIENT_LEVEL then
 			tooLow = tooLow + 1
 		else
 			--[[
@@ -437,41 +473,45 @@ function MatchList:AddResults(results)
 				twice -- two entries, two items, two parcels in one mailbox. The entry itself
 				keeps the name it arrived under, because that is the address.
 			]]
-			local key = ns.QualifyPlayerName(p.name) or p.name
+			local key = ns.QualifyPlayerName(person.name) or person.name
 			local known = seenPlayer[key]
 			if known then
-				-- The later sighting still has something to add: a guildmate's tiebreak.
-				if p.guild then
+				-- The later sighting still has something to add: a guildmate's tiebreak, or a level gained.
+				local entryChanged = false
+				if person.guild and not known.guild then
 					known.guild = true
+					entryChanged = true
+				end
+				if type(person.level) == "number" and person.level > (known.level or 0) then
+					known.level = person.level
+					entryChanged = true
+				end
+				if entryChanged then
+					changed = changed + 1
 				end
 			else
-				p.shuffle = math.random()
-				seenPlayer[key] = p
-				pools[p.class] = pools[p.class] or {}
-				table.insert(pools[p.class], p)
-				added = added + 1
+				person.shuffle = math.random()
+				seenPlayer[key] = person
+				pools[person.class] = pools[person.class] or {}
+				table.insert(pools[person.class], person)
+				changed = changed + 1
 			end
 		end
 	end
 	--[[
-		Only when somebody actually entered a pool: a query returning nothing new leaves the
-		ranking unchanged, and bumping would throw the cache away once per press for an answer
-		that could not have moved -- the common case, since the guild roster re-answers in full
-		every time.
+		Only when a pool entry changed: a query returning nothing new leaves the ranking unchanged,
+		and bumping would throw the cache away once per press for an answer that could not have
+		moved -- the common case, since the guild roster re-answers in full every time. A known
+		player turning out to be a guildmate does change it, through the guild tiebreak, and so
+		does one seen at a higher level, through their band and the gift cooldown.
 	]]
-	if added > 0 then
+	if changed > 0 then
 		poolsGeneration = poolsGeneration + 1
 	end
-	return added
+	return changed
 end
 
 -- How many candidates the level floor turned away this session, for the roster report.
 function MatchList:TooLowCount()
 	return tooLow
 end
-
---[[
-	There is deliberately no ClearPools. The roster is runtime state that dies with the session,
-	and the cooldown list it used to be cleared alongside is already wiped in Core's ADDON_LOADED
-	handler, so nothing was left for a by-hand clear to do.
-]]

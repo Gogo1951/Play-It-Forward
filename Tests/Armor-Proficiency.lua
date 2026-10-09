@@ -4,7 +4,7 @@
 	The item that prompted this was a Captain's Waistguard of the Falcon: mail, requiring
 	level 36, carrying nothing but Agility. Every hunter spec builds on Agility and two of
 	three paladin specs merely tolerate it, so the point tables put the hunter six to the
-	paladin's two -- and the hunter never got a look, because ns.Data.NativeArmor says he
+	paladin's two -- and the hunter never got a look, because ns.Data.NATIVE_ARMOR says he
 	is leather until 40 and the eligibility gate read that as "not his item" rather than
 	"not yet". The belt went to a paladin and hunters were never even searched for.
 
@@ -236,7 +236,7 @@ test("a targeted search asks for the contender first, by name and in its own ban
 	equal(sorted(groups[1].classes), "HUNTER", "and he is alone in it, so the query can name him")
 	equal(sorted(groups[2].classes), "PALADIN WARRIOR", "the fallbacks are behind him, not dropped")
 
-	ns.Who:Plan(groups)
+	ns.Who:Plan(groups, true)
 	ns.Who:Step(function() end)
 
 	local query = Stub.whoQueries[1]

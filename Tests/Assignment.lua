@@ -143,14 +143,38 @@ test("a player found under both name spellings is one person, not two", function
 	equal(ns.MatchList:AddResults({ { name = "Bob", level = 19, class = "WARRIOR" } }), 1, "the bare name is new")
 	equal(
 		ns.MatchList:AddResults({ { name = "Bob-Test", level = 19, class = "WARRIOR", guild = true } }),
-		0,
-		"the qualified spelling is the same person"
+		1,
+		"the qualified spelling is the same person, changed only by the guild flag"
 	)
 
 	local warriors = ns.UI:Pools()["WARRIOR"] or {}
 	equal(#warriors, 1, "one pool entry")
 	check(warriors[1].guild, "carrying the guild flag the second sighting brought")
 	equal(warriors[1].name, "Bob", "under the name the client actually gave us, which is the address")
+end)
+
+-- The guild flag a later sighting hands over has to reach a ranking already cached.
+test("a guild sighting of a known player re-ranks the cached candidates", function()
+	local ns = load()
+	mailPair(ns)
+	ns.MatchList:AddResults({
+		{ name = "Bob", level = 19, class = "WARRIOR" },
+		{ name = "Carl", level = 19, class = "WARRIOR" },
+	})
+	-- Carl wins the coin flip, so only the guild tiebreak can put Bob ahead of him.
+	for _, person in ipairs(ns.UI:Pools()["WARRIOR"]) do
+		person.shuffle = (person.name == "Carl") and 0.1 or 0.9
+	end
+	local item = ns.UI:Items()[1]
+	ns.MatchList:Candidates(item)
+	ns.MatchList:Candidates(item)
+
+	-- Cached before the flips above took effect, so ask past them once.
+	ns.MatchList:AddResults({ { name = "Dave", level = 30, class = "WARRIOR" } })
+	equal(ns.MatchList:Candidates(item)[1].name, "Carl", "Carl leads on the coin flip")
+
+	ns.MatchList:AddResults({ { name = "Bob-Test", level = 19, class = "WARRIOR", guild = true } })
+	equal(ns.MatchList:Candidates(item)[1].name, "Bob", "the guildmate now wins the tie")
 end)
 
 test("neither spelling of one player is handed a second item", function()

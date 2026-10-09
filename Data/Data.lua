@@ -3,40 +3,24 @@ local ADDON_NAME, ns = ...
 ns.L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
 
 --------------------------------------------------------------------------------
--- Namespace and Client Flavor
+-- Namespace
 --------------------------------------------------------------------------------
 
---[[
-	Loads ahead of every other data file and of Core: they read these at load time --
-	Match-Stats branches on ns.isWrathOrLater while building, and all of them write ns.Data.
-]]
+-- Loads ahead of every other data file and of Core, all of which write ns.Data.
 ns.Data = ns.Data or {}
 
 -- Display title and the parent panel name. Never the code identifier, which is the TOC folder name.
-ns.AddonTitle = ns.L["ADDON_TITLE"]
+ns.ADDON_TITLE = ns.L["ADDON_TITLE"]
 
---[[
-	Read in three places. Features/Match-Engine.lua's ABSENT table is the load-bearing one: it
-	gates shamans out for Alliance and paladins out for Horde, so this decides the eligible class
-	list for every item. The other two are the zone flavor column in Features/Recipients-Who.lua
-	and the interaction-manager mailbox registrations in Features/UI-Mailbox.lua, taken off Era
-	only. MAIL_SHOW and MAIL_CLOSED register on every flavor and do not read this.
-]]
-ns.isEra = (WOW_PROJECT_ID == (WOW_PROJECT_CLASSIC or 2))
-
--- 3.0 merged the caster stats into one. Before that they rank differently per class, so the tables branch here.
-local PRE_WRATH = {
-	[WOW_PROJECT_CLASSIC or 2] = true,
-	[WOW_PROJECT_BURNING_CRUSADE_CLASSIC or 5] = true,
-}
-ns.isWrathOrLater = not PRE_WRATH[WOW_PROJECT_ID or 2]
+-- The SavedVariables global, by name, for the Diagnostics dump.
+ns.SAVED_VARIABLES_NAME = "PlayItForwardDB"
 
 --------------------------------------------------------------------------------
 -- Links
 --------------------------------------------------------------------------------
 
 -- Rendered in this order, rows skipped when missing. Slugs are irregular and never derived from the display name.
-ns.Links = {
+ns.LINKS = {
 	DISCORD = "https://discord.gg/eh8hKq992Q",
 	GITHUB = "https://github.com/Gogo1951/Play-It-Forward",
 	CURSEFORGE = "https://www.curseforge.com/wow/addons/play-it-forward",
@@ -63,14 +47,14 @@ ns.OPTIONS_REGISTRY = {
 	a widget rather than above it. A control wanting more room passes its own width to
 	ns.OptionsRowLabel and takes ROW minus that, so every row still ends where the others do.
 ]]
-ns.OPTIONS_ROW_WIDTH = 2.6
-ns.OPTIONS_LABEL_WIDTH = 1.3
+ns.OPTIONS_ROW_WIDTH = 3.4
+ns.OPTIONS_LABEL_WIDTH = 2.1
 ns.OPTIONS_CONTROL_WIDTH = ns.OPTIONS_ROW_WIDTH - ns.OPTIONS_LABEL_WIDTH
 
 -- The remove column of a player-managed item list, sized to its icon. This add-on ships no list.
 ns.OPTIONS_REMOVE_ICON_WIDTH = 0.25
 
--- The blank cell a sub-option row leads with, so its control indents. This add-on ships no sub-options.
+-- The blank cell a sub-option row leads with, so its control indents.
 ns.OPTIONS_SUB_INDENT_WIDTH = 0.115
 
 --------------------------------------------------------------------------------
@@ -138,8 +122,8 @@ ns.Data.LEVEL_GAP_CLOSEST = 1
 	preferring whoever sits closest to the BOTTOM of that band: a level 21 Greater Healing
 	Potion goes to a 21 over a 23, because the point is somebody who drinks it now.
 
-	ONE RULE FOR EVERY CONSUMABLE. Data/Scan-Potions.lua and Data/Scan-Food.lua share a shape
-	and carry no per-item level range, so there is nothing to branch on.
+	ONE RULE FOR EVERY CONSUMABLE. Each flavor folder's Scan-Food, Scan-Potions and Scan-Scrolls
+	files share a shape and carry no per-item level range, so there is nothing to branch on.
 
 	DELIBERATELY NOT profile.consumableLevelGap, which answers the opposite question: that is
 	the sender's threshold for when a potion counts as spare, and wants to be large or a level
@@ -148,8 +132,8 @@ ns.Data.LEVEL_GAP_CLOSEST = 1
 ns.Data.CONSUMABLE_RECIPIENT_GAP = 2
 
 --[[
-	The lowest level anybody can receive anything, whatever list named them (maintainer ruling,
-	2026-07-20). Levels 1 to 4 are where bank and profession alts sit.
+	The lowest level anybody can receive anything, whatever list named them. Levels 1 to 4 are
+	where bank and profession alts sit.
 
 	ENFORCED IN ONE PLACE, Features/Match-List.lua's AddResults, because that is the single door
 	every recipient comes through -- /who results, the guild roster, anything added later. A
@@ -173,15 +157,43 @@ ns.CONSUMABLE_GAP_ORDER = { 0, 5, 10, 15, 20 }
 --------------------------------------------------------------------------------
 
 --[[
-	What a consumable restores decides who can receive it, not a class list on every row.
-	Hunters have mana in Classic and TBC and belong here; death knights use runic power.
+	What a consumable restores, or the stat a scroll buffs, decides who can receive it, not a
+	class list on every row. Hunters have mana in Classic and TBC and belong here; death knights
+	use runic power. A scroll goes to the classes that build on its stat, so a Scroll of Agility
+	never reaches a mage; Stamina and armor help everybody. Pet food feeds a hunter's pet, so it
+	goes to hunters alone.
 ]]
 local MANA_USERS = { "MAGE", "PRIEST", "WARLOCK", "PALADIN", "SHAMAN", "DRUID", "HUNTER" }
 
-ns.Data.ConsumableClasses = {
+ns.Data.CONSUMABLE_CLASSES = {
 	HEALTH = "ALL",
 	MANA = MANA_USERS,
 	BOTH = MANA_USERS,
+	STRENGTH = { "WARRIOR", "PALADIN", "SHAMAN", "DRUID", "DEATHKNIGHT" },
+	AGILITY = { "ROGUE", "HUNTER", "WARRIOR", "DRUID" },
+	STAMINA = "ALL",
+	INTELLECT = MANA_USERS,
+	SPIRIT = { "PRIEST", "MAGE", "DRUID", "SHAMAN", "PALADIN" },
+	ARMOR = "ALL",
+	PET = { "HUNTER" },
+}
+
+--------------------------------------------------------------------------------
+-- Consumable Kinds
+--------------------------------------------------------------------------------
+
+--[[
+	The kinds a player switches on and off one by one, in the order the options panel and the
+	mail window both draw them. One list and one map of locale keys, so the two surfaces cannot
+	name or order a kind differently. Features/Scan-Bags.lua says which kinds each row is.
+]]
+ns.CONSUMABLE_KIND_ORDER = { "FOOD", "DRINK", "POTION", "SCROLL" }
+
+ns.CONSUMABLE_KIND_STRINGS = {
+	FOOD = { label = "OPTIONS_KIND_FOOD", description = "OPTIONS_KIND_FOOD_DESCRIPTION" },
+	DRINK = { label = "OPTIONS_KIND_DRINK", description = "OPTIONS_KIND_DRINK_DESCRIPTION" },
+	POTION = { label = "OPTIONS_KIND_POTIONS", description = "OPTIONS_KIND_POTIONS_DESCRIPTION" },
+	SCROLL = { label = "OPTIONS_KIND_SCROLLS", description = "OPTIONS_KIND_SCROLLS_DESCRIPTION" },
 }
 
 --------------------------------------------------------------------------------

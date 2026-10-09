@@ -23,6 +23,8 @@ ns.DATABASE_DEFAULTS = {
 		maxRarity = UNCOMMON,
 		includeGear = true,
 		includeConsumables = true,
+		-- One switch per kind in ns.CONSUMABLE_KIND_ORDER, read only while includeConsumables is on.
+		consumableKinds = { FOOD = true, DRINK = true, POTION = true, SCROLL = true },
 
 		--[[
 			Only offer a consumable once the player is at least this far past its level. Twenty
@@ -40,13 +42,6 @@ ns.DATABASE_DEFAULTS = {
 
 		-- Empty until the player drags the window. Read via its point field.
 		windowPos = {},
-
-		--[[
-			Fairness history: recipient name -> { level }. Cleared at every login in
-			Features/Core.lua, so the cooldown only spreads gifts out within one session. A name
-			that has received something is held back until it is next seen at a higher level.
-		]]
-		recipients = {},
 	},
 
 	--[[

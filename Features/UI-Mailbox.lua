@@ -8,8 +8,9 @@ local Picker = ns.Picker
 
 --[[
 	The mailbox lifecycle: finding recipients, handing the list to the mailer, and the open/close
-	behavior around a mailbox. Features/UI-Window.lua owns the frame itself and everything the
-	player edits by hand; both halves extend the one ns.UI table, so this file loads after it.
+	behavior around a mailbox. Features/UI-Window.lua owns the frame itself and
+	Features/UI-Assignment.lua everything the player edits by hand; all three extend the one
+	ns.UI table, so this file loads after them.
 ]]
 
 --------------------------------------------------------------------------------
@@ -44,8 +45,9 @@ function UI:FindRecipients()
 	end
 
 	--[[
-		Only on a fresh search, not on every Scan Again: the roster costs no press but does cost a
-		walk of every member with a last-online call apiece, and cannot change much in five seconds.
+		Only on a fresh plan, not on every press that steps one: the roster costs no press but does
+		cost a walk of every member with a last-online call apiece, and cannot change much in five
+		seconds.
 	]]
 	pullGuild()
 
@@ -122,13 +124,14 @@ function UI:FindRecipientsForItem(item)
 	if #((verdict and verdict.eligible) or {}) == 0 then
 		return
 	end
-	ns.Who:Plan(ns.Matcher:TargetedBands(item))
+	ns.Who:Plan(ns.Matcher:TargetedBands(item), true)
 	self:_step()
 end
 
 --[[
-	Whether there is somewhere left to look, never how many: the count moves in both directions,
-	since an unanswered query goes back on the plan and an assignment prunes bands it finished.
+	Puts the button's one name back once the Searching lock is up. ONE NAME, whatever the plan
+	holds: chat lines such as WHO_BLOCKED tell the player to press Find Recipients, so a second
+	label for a mid-plan press would leave them looking for a button that is not on screen.
 
 	Silent while the lock is up, or the callback would put a live-looking label on a dead button.
 ]]
@@ -136,7 +139,7 @@ function UI:_syncFindButton()
 	if searchTimer then
 		return
 	end
-	self.frame.findButton:SetText((ns.Who:Remaining() > 0) and L["BUTTON_SCAN_AGAIN"] or L["BUTTON_FIND_RECIPIENTS"])
+	self.frame.findButton:SetText(L["BUTTON_FIND_RECIPIENTS"])
 end
 
 -- The allocation is Features/Match-List.lua's; putting it on screen is what belongs here.
@@ -151,8 +154,8 @@ end
 	setting changes. Pools are untouched, so nobody already found is lost.
 
 	Plan before assigning. Assign clears the plan once no gift is left unmatched, so this order
-	lets it drop a plan that turned out unnecessary; the other leaves it standing and puts Scan
-	Again on the button with nothing to scan for.
+	lets it drop a plan that turned out unnecessary; the other would leave a plan standing that
+	nothing is searching for.
 
 	Guarded on the frame: a setting can change before the window has ever been built.
 ]]
@@ -168,6 +171,7 @@ end
 --------------------------------------------------------------------------------
 -- Distribute checked rows
 --------------------------------------------------------------------------------
+
 function UI:Distribute()
 	Picker:Close()
 	local jobs = {}
@@ -243,8 +247,9 @@ function UI:_releaseRecipient(job)
 	for _, item in ipairs(MatchList:Items()) do
 		if MatchList:SlotKey(item) == (job.uid or "") then
 			if item.recipient and not ns.Fairness:IsReachable(item.recipient.name) then
+				-- Still ticked and back to auto-assignment: the player never unticked it.
 				MatchList:AssignedTo()[item.recipient.name] = nil
-				item.recipient, item.send = nil, false
+				item.recipient, item.send, item.pinned = nil, true, false
 			end
 			break
 		end
@@ -265,8 +270,9 @@ function UI:_afterDelivery()
 end
 
 --------------------------------------------------------------------------------
--- Auto-open at the mailbox (MAIL_SHOW / MAIL_CLOSED everywhere, interaction manager off Era)
+-- Auto-open at the mailbox
 --------------------------------------------------------------------------------
+
 -- It does not scan: every caller had to read the bags to decide whether to call this at all.
 local function openWindow()
 	UI:_buildFrame()
@@ -274,39 +280,6 @@ local function openWindow()
 
 	pullGuild()
 	UI:Refresh()
-end
-
---[[
-	"No window appeared" has two causes wanting opposite responses: off-screen, or nothing to show.
-	This drops the saved position, re-centers, and reports what the scan found.
-]]
-function UI:ForceShow()
-	ns.db.profile.windowPos = {}
-	MatchList:EnsureScan()
-	local f = self:_buildFrame()
-	f:ClearAllPoints()
-	f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-	f:Show()
-	UI:Refresh()
-
-	local giftable = 0
-	for _, item in ipairs(MatchList:Items()) do
-		if item.state == ns.Matcher.GIFT then
-			giftable = giftable + 1
-		end
-	end
-
-	-- Read at call time, not aliased at file scope: Features/Diagnostics.lua loads after this file.
-	local D = ns.DiagnosticsStrings
-	ns:PrintMessage(
-		D.WINDOW_FORCED:format(
-			tostring(f:IsShown()),
-			math.floor(f:GetWidth() or 0),
-			math.floor(f:GetHeight() or 0),
-			#MatchList:Items(),
-			giftable
-		)
-	)
 end
 
 --[[
@@ -348,11 +321,13 @@ end
 	Features/Recipients-Who.lua deafens it for the life of a query).
 
 	So it opens on the mailbox and never auto-closes. Match-List holds items, roster and pairings
-	at file scope, so matches survive walking away.
+	at file scope, so matches survive walking away. On the module so the Mailbox diagnostics report
+	asks the same question the mailbox does. Unticked rows do not count: a mailbox holding only
+	rows the player is keeping opens nothing.
 ]]
-local function haveSomethingToDo()
+function UI:HasSomethingToDo()
 	for _, item in ipairs(MatchList:Items()) do
-		if item.recipient or item.state == ns.Matcher.GIFT then
+		if item.send and (item.recipient or item.state == ns.Matcher.GIFT) then
 			return true
 		end
 	end
@@ -361,12 +336,12 @@ end
 
 --[[
 	Nothing to hand out means nothing happens, and nothing is said: no spare gear is the ordinary
-	state of a mailbox visit. A shut window also looks broken, which Force the Window Open answers.
+	state of a mailbox visit.
 ]]
 local function mailboxOpened()
 	ns.mailboxOpen = true
 	MatchList:EnsureScan()
-	if haveSomethingToDo() then
+	if UI:HasSomethingToDo() then
 		openWindow()
 	end
 end
@@ -406,7 +381,7 @@ end
 	Track the mailbox, not its frame: MailFrame:IsShown reports wrongly under TSM and while the
 	Who panel is up, and this flag is what Distributor gates on.
 ]]
-ns.on("PLAYER_LOGIN", function()
+local function OnPlayerLogin()
 	if MailFrame then
 		MailFrame:HookScript("OnShow", mailboxOpened)
 		--[[
@@ -419,25 +394,37 @@ ns.on("PLAYER_LOGIN", function()
 			registered. A spurious hide costs one re-check that changes nothing.
 		]]
 		MailFrame:HookScript("OnHide", recheckDistribute)
+		-- Read by the Mailbox diagnostics report: no MailFrame at login means no hooks all session.
+		UI.mailFrameHooked = true
 	end
-end)
+end
+ns.on("PLAYER_LOGIN", OnPlayerLogin)
 
--- From the client's own enum, literal as fallback: a bare 17 in two files is two places to be wrong.
+-- The client's own enum is preferred; 17 is its fallback.
 local MAILBOX_INTERACTION = (Enum and Enum.PlayerInteractionType and Enum.PlayerInteractionType.MailInfo) or 17
 
-ns.on("MAIL_SHOW", mailboxOpened)
-ns.on("MAIL_CLOSED", mailboxClosed)
+local function OnMailShow()
+	mailboxOpened()
+end
+ns.on("MAIL_SHOW", OnMailShow)
 
-if not ns.isEra then
-	-- BCC / retail-style: the interaction manager reports the mailbox as well.
-	ns.on("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", function(t)
+local function OnMailClosed()
+	mailboxClosed()
+end
+ns.on("MAIL_CLOSED", OnMailClosed)
+
+if ns.FLAVOR ~= "Vanilla" then
+	-- TBC Anniversary and Forever's Retail client: the interaction manager reports the mailbox as well.
+	local function OnPlayerInteractionManagerFrameShow(t)
 		if t == MAILBOX_INTERACTION then
 			mailboxOpened()
 		end
-	end)
-	ns.on("PLAYER_INTERACTION_MANAGER_FRAME_HIDE", function(t)
+	end
+	ns.on("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", OnPlayerInteractionManagerFrameShow)
+	local function OnPlayerInteractionManagerFrameHide(t)
 		if t == MAILBOX_INTERACTION then
 			mailboxClosed()
 		end
-	end)
+	end
+	ns.on("PLAYER_INTERACTION_MANAGER_FRAME_HIDE", OnPlayerInteractionManagerFrameHide)
 end

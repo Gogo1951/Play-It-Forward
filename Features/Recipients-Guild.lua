@@ -23,7 +23,7 @@ local Guild = ns.Guild
 	in longer is not going to read the mail before it expires, and their spot is better spent on
 	somebody who will.
 
-	Three days rather than a week (maintainer ruling, 2026-07): a guild this size has far more
+	Three days rather than a week: a guild this size has far more
 	eligible members than there are items to hand out, so the tighter window costs nothing and
 	the gear lands with somebody who is actually playing.
 ]]
@@ -35,14 +35,13 @@ Guild.ACTIVE_DAYS = ACTIVE_DAYS
 --[[
 	A guild warlock parked in this band is a summoning alt: Ritual of Summoning unlocks at 20, and
 	they sit there rather than level on, so gear sent there is gear nobody wears. A range rather
-	than the unlock level alone, because they drift a level or two before stopping (maintainer
-	ruling, 2026-07-20). THIS RULE IS THE GUILD ROSTER'S ALONE: the same character found by /who is
+	than the unlock level alone, because they drift a level or two before stopping. THIS RULE IS THE GUILD ROSTER'S ALONE: the same character found by /who is
 	out in the world and playing, and nothing can tell a parked alt from a real one except which
 	list named them.
 
 	No level floor here, deliberately. The low levels are turned away for every source at once by
-	ns.Data.MIN_RECIPIENT_LEVEL in Features/Match-List.lua; a second copy of that rule living here
-	is how the guild floor and the consumable band drifted into each other the first time.
+	ns.Data.MIN_RECIPIENT_LEVEL in Features/Match-List.lua, and a second copy of that rule here
+	would drift from it.
 ]]
 local SUMMON_ALT_MIN_LEVEL = 20
 local SUMMON_ALT_MAX_LEVEL = 23
@@ -203,20 +202,21 @@ function Guild:Request(callback)
 		return false
 	end
 	pendingCallback = callback
-	-- C_GuildInfo.GuildRoster is the modern name; the bare global is the pre-9.0 one.
-	if C_GuildInfo and C_GuildInfo.GuildRoster then
-		C_GuildInfo.GuildRoster()
-	elseif GuildRoster then
-		GuildRoster()
-	end
+	C_GuildInfo.GuildRoster()
 	return true
 end
 
-ns.on("GUILD_ROSTER_UPDATE", function()
+-- Whether a roster request is still waiting for its answer. Read by the diagnostics roster report.
+function Guild:Pending()
+	return pendingCallback ~= nil
+end
+
+local function OnGuildRosterUpdate()
 	if not pendingCallback then
 		return
 	end
 	local callback = pendingCallback
 	pendingCallback = nil
 	callback(Guild:Read())
-end)
+end
+ns.on("GUILD_ROSTER_UPDATE", OnGuildRosterUpdate)

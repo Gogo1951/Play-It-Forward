@@ -4,7 +4,7 @@ local _, ns = ...
 	GetItemStats keys -> internal stat tokens. The key set differs between clients, so a stat
 	that scores on one and not another means a row is missing here, not a broken scorer.
 ]]
-ns.Data.StatMap = {
+ns.Data.STAT_MAP = {
 	ITEM_MOD_STRENGTH_SHORT = "STRENGTH",
 	ITEM_MOD_AGILITY_SHORT = "AGILITY",
 	ITEM_MOD_INTELLECT_SHORT = "INTELLECT",
@@ -13,6 +13,8 @@ ns.Data.StatMap = {
 
 	ITEM_MOD_ATTACK_POWER_SHORT = "ATTACK_POWER",
 	ITEM_MOD_RANGED_ATTACK_POWER_SHORT = "RANGED_AP",
+	-- "In Cat, Bear, Dire Bear, and Moonkin forms only": a druid's, never plain Attack Power.
+	ITEM_MOD_FERAL_ATTACK_POWER_SHORT = "FERAL_AP",
 
 	-- Pre-Wrath these are three separate stats the weight tables rank differently: never fold them together.
 	ITEM_MOD_SPELL_POWER_SHORT = "SPELL_POWER", -- unified damage+healing

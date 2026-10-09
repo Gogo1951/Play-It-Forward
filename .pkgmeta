@@ -27,6 +27,9 @@ ignore:
   - .luacheckrc
   - .pkgmeta
   - .vscode
+  - Data/Mainline
+  - Data/Mists
+  - Data/Wrath
   - LICENSE
   - Suffix.md
   - Tests

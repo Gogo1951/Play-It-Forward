@@ -84,8 +84,8 @@ test("a bag nobody can use leaves the window shut", function()
 	--[[
 		AND SAID NOTHING ABOUT IT. Having nothing spare in your bags is the ordinary state
 		of a mailbox visit, and an add-on that comments on ordinary states is one more
-		thing talking over the game. Force the Window Open on the Diagnostic Tools panel is
-		there for anyone who wants to check the silence was correct.
+		thing talking over the game. The Bag Scan report on the Diagnostic Tools panel says
+		what every slot was judged, for anyone who wants to check the silence was correct.
 	]]
 	equal(#Stub.printed, 0, "and said nothing about it")
 end)
@@ -116,25 +116,6 @@ test("items nobody can use still ride along with a giftable one", function()
 
 	check(windowShown(ns), "window opened")
 	equal(#ns.UI:Items(), 2, "both rows are listed")
-end)
-
---[[
-	The escape hatch. A shut window is the correct answer to a bag nobody can use and it
-	is also what a broken add-on looks like, so there has to be a way to open it and read
-	the verdicts for yourself. That is Force the Window Open on the Diagnostic Tools
-	panel, which is the only way in now that the window opens by itself or not at all.
-]]
-test("Force the Window Open shows a bag with nothing to give", function()
-	local ns = load()
-	Stub.SetBackpack({ lowLevelPlate() })
-
-	ns.fire("MAIL_SHOW")
-	check(not windowShown(ns), "the mailbox left it shut")
-
-	ns.UI:ForceShow()
-
-	check(windowShown(ns), "asking directly opened it")
-	equal(#ns.UI:Items(), 1, "and the item is listed, with its verdict")
 end)
 
 --[[

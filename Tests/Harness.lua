@@ -14,45 +14,47 @@ local Harness = { Stub = Stub }
 
 --[[
 	The load order from the TOC, minus the libraries and the files that only build
-	options panels. Order is load-bearing: Data.lua seeds ns.Data and the flavor flags
-	the data files read as they load, and the locale has to register before Data.lua
+	options panels. Order is load-bearing: Flavor.lua sets the flavor the data files read
+	as they load, Data.lua seeds ns.Data, and the locale has to register before Data.lua
 	asks for it.
 ]]
 local FILES = {
 	"Locales/enUS.lua",
+	"Data/Flavor.lua",
 	"Data/Data.lua",
-	"Data/Default-Settings.lua",
+	"FLAVOR_FOLDER",
 	"Data/Match-Stats.lua",
 	"Data/Match-Armor.lua",
-	"Data/Match-Weapons.lua",
 	"Data/Match-Rules.lua",
 	"Data/Scan-Stats.lua",
-	"Data/Scan-Food.lua",
-	"Data/Scan-Potions.lua",
-	"Data/Recipients-Zones.lua",
+	"Data/Default-Settings.lua",
 	"Features/Utilities.lua",
 	"Features/Scan-Tooltip.lua",
 	"Features/Scan-Bags.lua",
 	"Features/Match-Derivations.lua",
 	"Features/Match-Engine.lua",
+	"Features/Match-Ranking.lua",
 	"Features/Match-List.lua",
+	"Features/Recipients-Who-Plan.lua",
 	"Features/Recipients-Who.lua",
 	"Features/Recipients-Guild.lua",
 	"Features/Recipients-Fairness.lua",
 	"Features/Mail-Sender.lua",
 	"Features/UI-Picker.lua",
 	"Features/UI-Window.lua",
+	"Features/UI-Assignment.lua",
 	"Features/UI-Mailbox.lua",
 	"Features/Generosity.lua",
 	"Features/Generosity-Broadcast.lua",
 	"Features/Generosity-Tooltip.lua",
-	"Features/Diagnostics.lua",
-	--[[
-		The options panels are not loaded, but this file is not only panels: the consumable
-		gap labels and the snapping the dropdown reads live here, and Tests/Options-Values.lua
-		asserts on both. It loads last because it reads ns.GetColor and ns.L.
-	]]
-	"Options/Options-Utilities.lua",
+	"Diagnostics/Diagnostics-Core.lua",
+	"Diagnostics/Manifests.lua",
+	"Diagnostics/Event-Log.lua",
+	"Diagnostics/Code-Reports.lua",
+	"Diagnostics/Settings-Reports.lua",
+	"Diagnostics/Localization-Reports.lua",
+	"Diagnostics/Validate-Data.lua",
+	"Diagnostics/Report-Runner.lua",
 	--[[
 		Not only panels either: the /pif slash command and the combat gate in front of
 		the Settings panel live here, and Tests/Options-Open.lua drives both. The panel
@@ -62,6 +64,32 @@ local FILES = {
 }
 
 local ADDON = "Play-It-Forward"
+
+--[[
+	Each TOC lists its own data folder where FLAVOR_FOLDER sits above, so the folder follows
+	Stub.flavor. Classic Era's TOC lists Discovery's folder after its own, as the client does.
+]]
+local FLAVOR_TABLES = {
+	"Match-Stat-Budget",
+	"Scan-Food",
+	"Scan-Potions",
+	"Scan-Scrolls",
+	"Recipients-Zones",
+	"Match-Weapons",
+	"Match-Armor",
+	"Match-Classes",
+}
+
+local function flavorFiles(flavor)
+	local folders = (flavor == "Vanilla") and { "Vanilla", "Discovery" } or { flavor }
+	local out = {}
+	for _, folder in ipairs(folders) do
+		for _, name in ipairs(FLAVOR_TABLES) do
+			out[#out + 1] = ("Data/%s/%s-%s.lua"):format(folder, name, folder)
+		end
+	end
+	return out
+end
 
 local function copy(value)
 	if type(value) ~= "table" then
@@ -104,8 +132,6 @@ local function injectModules(ns, events)
 		return ((ns.L and ns.L["ADDON_TITLE"]) or "") .. " // " .. tostring(message)
 	end
 
-	ns.diagnostics = { enabled = false, logging = false }
-
 	--[[
 		Core.lua sets this at load and is not loaded here. "Dev" is what it answers for an
 		unpackaged copy. Left nil, the diagnostics header's string.format raises on Lua 5.1,
@@ -125,9 +151,18 @@ function Harness.LoadAddon(root)
 	local events = {}
 	injectModules(ns, events)
 
-	for _, file in ipairs(FILES) do
+	local function run(file)
 		local chunk = assert(loadfile(root .. "/" .. file))
 		chunk(ADDON, ns)
+	end
+	for _, file in ipairs(FILES) do
+		if file == "FLAVOR_FOLDER" then
+			for _, flavorFile in ipairs(flavorFiles(Stub.flavor)) do
+				run(flavorFile)
+			end
+		else
+			run(file)
+		end
 	end
 
 	--[[

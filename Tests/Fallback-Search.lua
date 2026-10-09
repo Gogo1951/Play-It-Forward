@@ -1,5 +1,5 @@
 --[[
-	A fallback pairing is a suggestion, never a send.
+	A fallback pairing is a placeholder, never the end of the search.
 
 	The reported case: two main-hand swords, contenders WARRIOR and ROGUE by the one-hand
 	rule, paired -- and TICKED -- with two level-18 paladins because no warrior or rogue
@@ -10,9 +10,9 @@
 	Two rules pin that shut. A gift held by a class outside the verdict's contenders
 	still counts as searching: its band stays on the plan, narrowed to the contenders,
 	and every later answer re-assigns, which is what flips the row the moment a warrior
-	turns up. And a fallback pairing arrives unticked: the paladin shows on the row so
-	the player can see who else could take it, but only their own hand ticks it. A
-	pinned row is the player's decision and ends the search for that item as before.
+	turns up. It arrives ticked like any match -- a named row with its box off read as a
+	failed match (2026-10-09) -- but unpinned, so the upgrade can still take it. Only
+	the player's own hand pins it, and a pinned row ends the search for that item.
 ]]
 
 local Harness = require("Harness")
@@ -45,10 +45,14 @@ local function mainHandSword(ns)
 	ns.fire("MAIL_SHOW")
 end
 
--- One press of Find Recipients, answered with the given roster.
+--[[
+	One press of Find Recipients, answered with the given roster -- as a capped answer, so
+	the server is understood to have more people than it sent and the hunt goes on.
+]]
 local function search(ns, results)
 	Stub.now = Stub.now + 60
 	Stub.whoResults = results
+	Stub.whoTotal = 999
 	ns.UI:FindRecipients()
 	ns.fire("WHO_LIST_UPDATE")
 	Stub.FireTimers()
@@ -66,7 +70,8 @@ test("a fallback pairing keeps the search alive", function()
 	search(ns, { PALADIN })
 
 	equal(ns.UI:Items()[1].recipient.name, "Palario", "the paladin is suggested meanwhile")
-	equal(ns.UI:Items()[1].send, false, "but not ticked: a fallback sends only by the player's own hand")
+	equal(ns.UI:Items()[1].send, true, "ticked, like any match")
+	check(not ns.UI:Items()[1].pinned, "but not pinned, so a contender can still take it")
 	check(ns.Who:Remaining() > 0, "and the plan is still standing, not cleared")
 end)
 
@@ -104,7 +109,7 @@ test("the hunt upgrades the fallback when a contender turns up", function()
 	equal(ns.Who:Remaining(), 0, "and only then is the search over")
 end)
 
-test("an exhausted hunt leaves the fallback standing, still unticked", function()
+test("an exhausted hunt leaves the fallback standing", function()
 	local ns = load()
 	mainHandSword(ns)
 
@@ -118,7 +123,7 @@ test("an exhausted hunt leaves the fallback standing, still unticked", function(
 
 	equal(ns.Who:Remaining(), 0, "the plan drained rather than looping")
 	equal(ns.UI:Items()[1].recipient.name, "Palario", "the paladin still holds the suggestion")
-	equal(ns.UI:Items()[1].send, false, "and sending it stays the player's call")
+	equal(ns.UI:Items()[1].send, true, "ticked to send")
 end)
 
 test("a fallback ticked by hand is the player's decision", function()
@@ -127,7 +132,7 @@ test("a fallback ticked by hand is the player's decision", function()
 
 	search(ns, { PALADIN })
 	local item = ns.UI:Items()[1]
-	ns.UI:_setSend(item, true)
+	ns.UI:_toggleRow(item, true)
 
 	search(ns, { WARRIOR })
 

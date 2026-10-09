@@ -23,9 +23,14 @@ local function load()
 	return Harness.LoadAddon(ADDON_ROOT)
 end
 
--- Send every planned query and hand back the raw filter strings.
+--[[
+	Send every planned query and hand back the raw filter strings. Every answer reads as
+	capped: one under the cap ends the search for its levels, and these cases are about the
+	whole ladder.
+]]
 local function drain(ns, limit)
 	local out = {}
+	Stub.whoTotal = 999
 	while ns.Who:Remaining() > 0 and #out < (limit or 40) do
 		ns.Who:Step(function() end)
 		out[#out + 1] = Stub.whoQueries[#Stub.whoQueries]
@@ -43,13 +48,21 @@ local function countOf(text, needle)
 	return n
 end
 
+local function firstZoned(queries)
+	for _, query in ipairs(queries) do
+		if query:find('z%-"') then
+			return query
+		end
+	end
+end
+
 --------------------------------------------------------------------------------
 
 test("every zone for a band goes in one query", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 16, hi = 19, classes = { "WARRIOR", "PALADIN" } } })
 
-	local first = drain(ns, 1)[1]
+	local first = firstZoned(drain(ns)) or ""
 	check(countOf(first, 'z%-"') > 1, "several zones in one query: " .. first)
 	check(first:find("16%-19"), "carrying the band's levels")
 end)
@@ -72,7 +85,8 @@ test("each wanted class is asked for by name, one query apiece", function()
 	ns.Who:Plan({ { lo = 16, hi = 19, classes = { "WARRIOR", "PALADIN" } } })
 
 	local queries = drain(ns)
-	check(not queries[1]:find('c%-"'), "the zoned press is unfiltered, zones do the narrowing: " .. queries[1])
+	local zoned = firstZoned(queries) or ""
+	check(not zoned:find('c%-"'), "the zoned press is unfiltered, zones do the narrowing: " .. zoned)
 
 	local askedWarrior, askedPaladin, askedMage = false, false, false
 	for _, query in ipairs(queries) do
@@ -93,8 +107,9 @@ test("no class filter when every class is wanted", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 16, hi = 19, classes = ns.Matcher:Classes() } })
 
-	local first = drain(ns, 1)[1]
-	check(not first:find('c%-"'), "no class filter at all: " .. first)
+	for _, query in ipairs(drain(ns)) do
+		check(not query:find('c%-"'), "no class filter at all: " .. query)
+	end
 end)
 
 --[[
@@ -143,27 +158,18 @@ test("a single tight band is one zone query", function()
 end)
 
 --[[
-	The ladder, in order. Zones first because that is where people levelling are; the
-	unzoned query last because it answers with whoever is standing in a capital, which
-	is the population this approach exists to avoid.
+	The ladder, in order. Bare levels first because a press is worth up to 50 people and
+	nothing fills it like asking for everybody; then a class at a time, for a class the cap
+	crowded out; then the zones, a different slice of a population too big for one answer.
 ]]
-test("the search widens rather than repeating itself", function()
+test("the search narrows rather than repeating itself", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 16, hi = 19, classes = { "WARRIOR", "PALADIN" } } })
 
 	local queries = drain(ns)
-	check(queries[1]:find('z%-"'), "starts in the zones")
-
-	local last = queries[#queries]
-	check(not last:find('z%-"'), "ends with no zone filter: " .. last)
-	check(not last:find('c%-"'), "and no class filter either, as a true last resort")
-
-	--[[
-		The step between is the same widening with the class filter still on: somebody in
-		a city or an instance who can still use the item, without giving up on class yet.
-	]]
-	local middle = queries[#queries - 1]
-	check(not middle:find('z%-"') and middle:find('c%-"'), "widened by dropping zones first: " .. middle)
+	equal(queries[1], "16-19", "starts with bare levels")
+	check(queries[2]:find('c%-"') and not queries[2]:find('z%-"'), "then a class by name: " .. queries[2])
+	check(queries[#queries]:find('z%-"'), "and ends in the zones: " .. queries[#queries])
 end)
 
 test("bands still take turns", function()
@@ -234,6 +240,7 @@ test("the plan's class queries come from the bag's items", function()
 		}),
 	})
 	ns.fire("MAIL_SHOW")
+	Stub.whoTotal = 999
 	ns.UI:FindRecipients()
 
 	local askedMage, askedWarrior, askedRogue = false, false, false

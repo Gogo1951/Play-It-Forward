@@ -12,9 +12,14 @@ local Picker = ns.Picker
 local ROW_H = 24
 local FRAME_W = 600
 local FRAME_H = 470
-local ITEM_W = 250
--- The widest labels in the column are cross-realm names, "Bubbafrances-Ashkandi (26)" shaped.
-local RECIP_W = 250
+--[[
+	The item column gets the room: a random suffix ("of the Monkey") ends the name and is what says
+	who the item is for. The widest recipient label is a cross-realm name with its level,
+	"Bubbafrances-Ashkandi (26)" shaped, which fits in 200. The two plus the box and gaps stay
+	inside f.rowWidth, clear of the scrollbar.
+]]
+local ITEM_W = 300
+local RECIP_W = 200
 -- A floor, not the width: both buttons are sized to the widest label either can show.
 local BUTTON_W = 150
 local BUTTON_PAD = 24 -- room around the label, matching the picker's ruler allowance
@@ -35,23 +40,16 @@ local GAP_WIDTH = 200
 --------------------------------------------------------------------------------
 
 --[[
-	A top-bar dropdown: a gold caption naming what it governs, then its current value, an arrow and
-	a hover highlight. Two are built from this, so the pair cannot drift apart the way two
-	hand-rolled copies would. The caption is what carries the context the options panel gets from
-	the toggle beside each control, since the window has no toggles.
+	A top-bar dropdown: its current value, an arrow and a hover highlight. Two are built from
+	this, so the pair cannot drift apart the way two hand-rolled copies would. It carries no
+	caption: the tick beside it names what it governs, as the toggle does in the options panel.
 
-	The caller anchors the caption and the button follows it, so a row is positioned once. The
-	value text is anchored on both sides and ellipsized, or a long one runs under the arrow.
+	The caller anchors it. The value text is anchored on both sides and ellipsized, or a long one
+	runs under the arrow.
 ]]
-local function buildDropdown(parent, width, labelText)
-	local label = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	label:SetText(labelText)
-	label:SetTextColor(ns.GetColorRGB("TITLE"))
-
+local function buildDropdown(parent, width)
 	local button = CreateFrame("Button", nil, parent)
 	button:SetSize(width, 18)
-	button:SetPoint("LEFT", label, "RIGHT", 6, 0)
-	button.label = label
 
 	button.text = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	button.text:SetPoint("LEFT", 3, 0)
@@ -70,6 +68,46 @@ local function buildDropdown(parent, width, labelText)
 
 	return button
 end
+
+--[[
+	A top-bar tick: a checkbox with its caption to the right, the caption clickable too. Its
+	tooltip is the options panel's own description for the same setting, so the window and the
+	panel never explain one switch two ways. The caller anchors it and sets its OnClick.
+]]
+local function buildToggle(parent, text, colorKey, tooltipKey)
+	local check = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+	check:SetSize(20, 20)
+	check.colorKey = colorKey
+
+	check.label = check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	check.label:SetPoint("LEFT", check, "RIGHT", 2, 0)
+	check.label:SetText(text)
+	check.label:SetTextColor(ns.GetColorRGB(colorKey))
+	check:SetHitRectInsets(0, -(check.label:GetStringWidth() + 2), 0, 0)
+
+	check:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:SetText(text, ns.GetColorRGB("TITLE"))
+		GameTooltip:AddLine(L[tooltipKey], 1, 1, 1, true)
+		GameTooltip:Show()
+	end)
+	check:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
+	return check
+end
+
+--[[
+	A tick or dropdown in the window writes the same profile key its twin in the options panel
+	does, so an open panel is told to redraw as well as the bags being re-read against it. The
+	/who pool already found is kept.
+]]
+local function afterToggle()
+	UI:_syncControls()
+	UI:Rescan()
+	LibStub("AceConfigRegistry-3.0"):NotifyChange(ns.OPTIONS_REGISTRY.General)
+end
+
 function UI:_buildFrame()
 	if UI.frame then
 		return UI.frame
@@ -134,26 +172,68 @@ function UI:_buildFrame()
 	end)
 
 	--[[
-		The two giftability controls, the same pair the options panel carries and drawing the same
-		locale strings. Each value states what it means ("Rare & Lower", "Outgrown by 20+ Levels"),
-		so neither needs a caption and the window cannot word a setting differently to the panel.
+		The giftability controls, the same set the options panel carries and drawing the same
+		locale strings. Consumables leads on the left with its level rule beside it and its four
+		kind ticks beneath; Gear sits on the right with its rarity cap (README-Notes.md). Each
+		dropdown value states what it means ("Rare & Lower", "Outgrown by 20+ Levels"), so the
+		window cannot word a setting differently to the panel. A dropdown hides while its tick is
+		off, as its select does in the panel.
 	]]
-	local rarity = buildDropdown(f, RARITY_WIDTH, L["WINDOW_GEAR_LABEL"])
-	rarity.label:SetPoint("TOPLEFT", 12, -30)
-	rarity:SetScript("OnClick", function(button)
-		UI:_openRarityPicker(button)
+	local consumables =
+		buildToggle(f, L["WINDOW_CONSUMABLES_LABEL"], "TITLE", "OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION")
+	consumables:SetPoint("TOPLEFT", 12, -28)
+	consumables:SetScript("OnClick", function(check)
+		ns.db.profile.includeConsumables = check:GetChecked() and true or false
+		afterToggle()
 	end)
-	f.rarityButton = rarity
+	f.consumablesToggle = consumables
 
-	local gap = buildDropdown(f, GAP_WIDTH, L["WINDOW_CONSUMABLES_LABEL"])
-	gap.label:SetPoint("LEFT", rarity, "RIGHT", 16, 0)
+	local gap = buildDropdown(f, GAP_WIDTH)
+	gap:SetPoint("LEFT", consumables.label, "RIGHT", 6, 0)
 	gap:SetScript("OnClick", function(button)
 		UI:_openGapPicker(button)
 	end)
 	f.gapButton = gap
 
+	-- Vertically centered on the ticks' line: a tick is 20 tall from -28, so its middle is -38.
+	local rarity = buildDropdown(f, RARITY_WIDTH)
+	rarity:SetPoint("RIGHT", f, "TOPRIGHT", -12, -38)
+	rarity:SetScript("OnClick", function(button)
+		UI:_openRarityPicker(button)
+	end)
+	f.rarityButton = rarity
+
+	-- Right to left from the dropdown: caption, then its box.
+	local gear = buildToggle(f, L["WINDOW_GEAR_LABEL"], "TITLE", "OPTIONS_INCLUDE_GEAR_DESCRIPTION")
+	gear.label:ClearAllPoints()
+	gear.label:SetPoint("RIGHT", rarity, "LEFT", -6, 0)
+	gear:SetPoint("RIGHT", gear.label, "LEFT", -2, 0)
+	gear:SetScript("OnClick", function(check)
+		ns.db.profile.includeGear = check:GetChecked() and true or false
+		afterToggle()
+	end)
+	f.gearToggle = gear
+
+	f.kindToggles = {}
+	local previous
+	for _, kind in ipairs(ns.CONSUMABLE_KIND_ORDER) do
+		local strings = ns.CONSUMABLE_KIND_STRINGS[kind]
+		local toggle = buildToggle(f, L[strings.label], "TEXT", strings.description)
+		if previous then
+			toggle:SetPoint("LEFT", previous.label, "RIGHT", 10, 0)
+		else
+			toggle:SetPoint("TOPLEFT", consumables, "BOTTOMLEFT", 0, -2)
+		end
+		toggle:SetScript("OnClick", function(check)
+			ns.db.profile.consumableKinds[kind] = check:GetChecked() and true or false
+			afterToggle()
+		end)
+		f.kindToggles[kind] = toggle
+		previous = toggle
+	end
+
 	local inset = CreateFrame("Frame", nil, f, INSET_TEMPLATE)
-	inset:SetPoint("TOPLEFT", 6, -52)
+	inset:SetPoint("TOPLEFT", 6, -74)
 	inset:SetPoint("BOTTOMRIGHT", -6, 36)
 
 	local scroll = CreateFrame("ScrollFrame", "PlayItForwardScroll", f, "UIPanelScrollFrameTemplate")
@@ -164,6 +244,24 @@ function UI:_buildFrame()
 	scroll:SetScrollChild(content)
 	f.content = content
 	f.rowWidth = FRAME_W - 12 - 32
+
+	--[[
+		An empty list says so, or a window with nothing left reads as broken or still working.
+		The hint points at the top bar, the only thing that can list more.
+	]]
+	local emptyText = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	emptyText:SetPoint("CENTER", inset, "CENTER", 0, 8)
+	emptyText:SetText(L["WINDOW_EMPTY"])
+	emptyText:SetTextColor(ns.GetColorRGB("TEXT"))
+	emptyText:Hide()
+	f.emptyText = emptyText
+
+	local emptyHint = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	emptyHint:SetPoint("TOP", emptyText, "BOTTOM", 0, -4)
+	emptyHint:SetText(L["WINDOW_EMPTY_HINT"])
+	emptyHint:SetTextColor(ns.GetColorRGB("HELP"))
+	emptyHint:Hide()
+	f.emptyHint = emptyHint
 
 	local find = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
 	find:SetSize(BUTTON_W, 22)
@@ -193,7 +291,6 @@ function UI:_buildFrame()
 	local widest = BUTTON_W
 	for _, text in ipairs({
 		L["BUTTON_FIND_RECIPIENTS"],
-		L["BUTTON_SCAN_AGAIN"],
 		L["BUTTON_SEARCHING"],
 		L["BUTTON_DISTRIBUTE"],
 		L["BUTTON_NEEDS_MAILBOX"],
@@ -225,13 +322,35 @@ function UI:_buildFrame()
 end
 
 --[[
-	Both top-bar buttons at once. The one entry point, so a caller that changes either setting
-	cannot refresh half the bar: Features/Core.lua's profile hook and the options panel's own
-	setters both come through here.
+	The whole top bar at once. The one entry point, so a caller that changes any setting cannot
+	refresh half the bar: Features/Core.lua's profile hook, the options panel's own setters and
+	the window's ticks all come through here.
 ]]
 function UI:_syncControls()
+	self:_syncToggles()
 	self:_syncRarityButton()
 	self:_syncGapButton()
+end
+
+--[[
+	The kind ticks are disabled and dimmed, never hidden, while Consumables is off, so the row
+	keeps its shape and the player can see what will come back with it.
+]]
+function UI:_syncToggles()
+	local f = self.frame
+	if not f or not f.gearToggle then
+		return
+	end
+	local profile = ns.db.profile
+	f.gearToggle:SetChecked(profile.includeGear)
+	f.rarityButton:SetShown(profile.includeGear)
+	f.consumablesToggle:SetChecked(profile.includeConsumables)
+	f.gapButton:SetShown(profile.includeConsumables)
+	for kind, toggle in pairs(f.kindToggles) do
+		toggle:SetChecked(profile.consumableKinds[kind])
+		toggle:SetEnabled(profile.includeConsumables)
+		toggle.label:SetTextColor(ns.GetColorRGB(profile.includeConsumables and toggle.colorKey or "MUTED"))
+	end
 end
 
 function UI:_syncRarityButton()
@@ -287,9 +406,7 @@ function UI:_openRarityPicker(anchor)
 			return
 		end
 		ns.db.profile.maxRarity = opt.quality
-		UI:_syncControls()
-		-- Re-read the bags against the new cap, reusing the /who pool we already have.
-		UI:Rescan()
+		afterToggle()
 	end)
 end
 
@@ -300,14 +417,14 @@ function UI:_openGapPicker(anchor)
 			return
 		end
 		ns.db.profile.consumableLevelGap = opt.gap
-		UI:_syncControls()
-		UI:Rescan()
+		afterToggle()
 	end)
 end
 
 --------------------------------------------------------------------------------
 -- Row rendering
 --------------------------------------------------------------------------------
+
 -- Section bands, styled like Connoisseur's: a subtle gold wash and gold caption.
 local headers = {}
 
@@ -321,8 +438,8 @@ local function getHeader(i)
 	local bg = h:CreateTexture(nil, "BACKGROUND")
 	bg:SetPoint("TOPLEFT", 0, -2)
 	bg:SetPoint("BOTTOMRIGHT", 0, 2)
-	local r, g, b = ns.GetColorRGB("TITLE")
-	bg:SetColorTexture(r, g, b, 0.10)
+	local red, green, blue = ns.GetColorRGB("TITLE")
+	bg:SetColorTexture(red, green, blue, 0.10)
 
 	h.text = h:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 	h.text:SetTextColor(ns.GetColorRGB("TITLE"))
@@ -346,6 +463,29 @@ local function getRow(i)
 	row.check:SetScript("OnClick", function(self)
 		UI:_toggleRow(row._item, self:GetChecked() and true or false)
 	end)
+	--[[
+		Says what the tick does, which a row cannot show: on a bare row it decides whether the
+		item is searched for at all. Nothing on unreadable or leftover rows, whose recipient
+		tooltip explains them.
+	]]
+	row.check:SetScript("OnEnter", function(self)
+		local item = row._item
+		local text
+		if item and item.recipient then
+			text = L["TOOLTIP_CHECK_SEND"]
+		elseif item and item.state == ns.Matcher.GIFT then
+			text = L["TOOLTIP_CHECK_WAITING"]
+		end
+		if not text then
+			return
+		end
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine(text, 1, 1, 1, true)
+		GameTooltip:Show()
+	end)
+	row.check:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
 
 	row.itemText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	row.itemText:SetPoint("LEFT", row.check, "RIGHT", 2, 0)
@@ -354,35 +494,51 @@ local function getRow(i)
 	-- Rows sit a fixed ROW_H apart: a wrapped name would draw over the row below, not push it down.
 	row.itemText:SetWordWrap(false)
 
-	local btn = CreateFrame("Button", nil, row)
-	btn:SetPoint("LEFT", row.itemText, "RIGHT", 4, 0)
-	btn:SetSize(RECIP_W, ROW_H - 4)
-	btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	btn.text:SetPoint("LEFT", 3, 0)
-	btn.text:SetPoint("RIGHT", -14, 0)
-	btn.text:SetJustifyH("LEFT")
+	local button = CreateFrame("Button", nil, row)
+	button:SetPoint("LEFT", row.itemText, "RIGHT", 4, 0)
+	button:SetSize(RECIP_W, ROW_H - 4)
+	button.text = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	button.text:SetPoint("LEFT", 3, 0)
+	button.text:SetPoint("RIGHT", -14, 0)
+	button.text:SetJustifyH("LEFT")
 	-- Ellipsized for the same reason itemText is: a wrapped name draws over the row below.
-	btn.text:SetWordWrap(false)
+	button.text:SetWordWrap(false)
 
-	btn.arrow = btn:CreateTexture(nil, "OVERLAY")
-	btn.arrow:SetTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
-	btn.arrow:SetSize(14, 14)
-	btn.arrow:SetPoint("RIGHT", 0, 0)
+	button.arrow = button:CreateTexture(nil, "OVERLAY")
+	button.arrow:SetTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
+	button.arrow:SetSize(14, 14)
+	button.arrow:SetPoint("RIGHT", 0, 0)
 
-	local hl = btn:CreateTexture(nil, "HIGHLIGHT")
-	hl:SetAllPoints()
-	hl:SetColorTexture(1, 1, 1, 0.10)
+	local highlight = button:CreateTexture(nil, "HIGHLIGHT")
+	highlight:SetAllPoints()
+	highlight:SetColorTexture(1, 1, 1, 0.10)
 
-	btn:SetScript("OnClick", function(self)
+	button:SetScript("OnClick", function(self)
 		UI:_openPicker(self:GetParent())
 	end)
-	btn:SetScript("OnEnter", function(self)
+	button:SetScript("OnEnter", function(self)
 		local item = self:GetParent()._item
 		if not item then
 			return
 		end
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:AddLine(L["TOOLTIP_RECIPIENT"])
+		--[[
+			An unreadable row, or a leftover no class is eligible for, can never be offered anyone:
+			its count always reads zero and "Click to reassign" points at an empty picker. Say why
+			instead. A leftover some class can take keeps the count, since a hand pick works there.
+		]]
+		local reason
+		if item.state == ns.Matcher.UNREADABLE then
+			reason = L["ITEM_STATS_UNREADABLE"]
+		elseif item.state == ns.Matcher.LEFTOVER and #(item.eligible or {}) == 0 then
+			reason = L["TOOLTIP_RECIPIENT_KEPT"]
+		end
+		if reason then
+			GameTooltip:AddLine(reason, 1, 1, 1, true)
+			GameTooltip:Show()
+			return
+		end
 		GameTooltip:AddLine(
 			L["TOOLTIP_RECIPIENT_CANDIDATES"]:format(#UI:_candidates(item), item.bandLo or 0, item.bandHi or 0),
 			1,
@@ -392,10 +548,10 @@ local function getRow(i)
 		GameTooltip:AddLine(L["TOOLTIP_RECIPIENT_HINT"], 0.6, 0.6, 0.6)
 		GameTooltip:Show()
 	end)
-	btn:SetScript("OnLeave", function()
+	button:SetScript("OnLeave", function()
 		GameTooltip:Hide()
 	end)
-	row.recipButton = btn
+	row.recipButton = button
 
 	row:SetScript("OnEnter", function(self)
 		if not self._link then
@@ -456,12 +612,23 @@ local SECTION = {
 	[4] = L["WINDOW_KEPT"],
 }
 
+--[[
+	Each band carries its row count, so a list running past the fold says how much waits below.
+	Counted first, since a band's header is placed before its rows.
+]]
 local function renderList()
+	local order = displayOrder()
+	local counts = {}
+	for _, entry in ipairs(order) do
+		local rank = displayRank(entry.item)
+		counts[rank] = (counts[rank] or 0) + 1
+	end
+
 	local out, lastRank = {}, nil
-	for _, entry in ipairs(displayOrder()) do
+	for _, entry in ipairs(order) do
 		local rank = displayRank(entry.item)
 		if rank ~= lastRank then
-			out[#out + 1] = { header = SECTION[rank] }
+			out[#out + 1] = { header = SECTION[rank], count = counts[rank] }
 			lastRank = rank
 		end
 		out[#out + 1] = { item = entry.item }
@@ -471,8 +638,8 @@ end
 
 function UI:Refresh()
 	local f = self:_buildFrame()
-	for _, r in ipairs(rows) do
-		r:Hide()
+	for _, row in ipairs(rows) do
+		row:Hide()
 	end
 	for _, h in ipairs(headers) do
 		h:Hide()
@@ -488,7 +655,7 @@ function UI:Refresh()
 			headerIndex = headerIndex + 1
 			local header = getHeader(headerIndex)
 			header:SetPoint("TOPLEFT", 0, y)
-			header.text:SetText(entry.header)
+			header.text:SetText(("%s " .. GetColor("MUTED") .. "(%d)|r"):format(entry.header, entry.count))
 			header:Show()
 		else
 			local item = entry.item
@@ -510,7 +677,6 @@ function UI:Refresh()
 				row.recipButton.text:SetText(
 					("%s " .. GetColor("MUTED") .. "(%d)|r"):format(ns.ColorName(who.name, who.class), who.level)
 				)
-				row.check:SetChecked(item.send and true or false)
 			else
 				-- Gold reads as "still working on it", muted as "nothing to do here".
 				local label
@@ -522,161 +688,17 @@ function UI:Refresh()
 					label = GetColor("MUTED") .. L["WINDOW_KEPT"] .. "|r"
 				end
 				row.recipButton.text:SetText(label)
-				row.check:SetChecked(false)
 			end
-			-- Always live: on a bare row a tick means "match this again", never a dead control.
+			-- Always live and always the row's own tick: on a bare row it decides whether to search.
+			row.check:SetChecked(item.send and true or false)
 			row.check:Enable()
 		end
 	end
 
 	f.content:SetSize(f.rowWidth or 460, math.max(1, #list * ROW_H))
+	f.emptyText:SetShown(#list == 0)
+	f.emptyHint:SetShown(#list == 0)
 	self:_syncDistributeButton()
-end
-
---------------------------------------------------------------------------------
--- Candidates + manual assignment
---------------------------------------------------------------------------------
---[[
-	Split from opening the picker so Tests/Manual-Assignment.lua can read the options without a
-	frame. Nobody is hidden and nobody is gated: the notes beside a name ("has one", "refused",
-	"recent") are information for the player's judgment, and every candidate can be picked. The
-	list ends with a divider and a targeted search for this one item.
-]]
-function UI:_pickerOptions(item)
-	local options = { {
-		text = GetColor("MUTED") .. L["PICKER_KEEP_OPTION"] .. "|r",
-		clear = true,
-	} }
-
-	local candidates = self:_candidates(item)
-	if #candidates == 0 then
-		-- An empty list has two causes and only one is fixed by querying again, so say which.
-		table.insert(options, {
-			text = GetColor("TITLE")
-				.. ((item.state == ns.Matcher.UNREADABLE) and L["PICKER_UNREADABLE"] or L["PICKER_NONE_IN_RANGE"])
-				.. "|r",
-			disabled = true,
-		})
-	end
-
-	for _, p in ipairs(candidates) do
-		local held = MatchList:AssignedTo()[p.name] and MatchList:AssignedTo()[p.name] ~= item
-		local refused = not ns.Fairness:IsReachable(p.name)
-
-		local note = ""
-		if refused then
-			note = L["PICKER_NOTE_REFUSED"]
-		elseif held then
-			note = L["PICKER_NOTE_HAS_ONE"]
-		elseif not ns.Fairness:IsFresh(p.name, p.level) then
-			note = L["PICKER_NOTE_RECENT"]
-		end
-		if note ~= "" then
-			note = " " .. GetColor("MUTED") .. note .. "|r"
-		end
-
-		-- No class word: the name is already class-colored, and the color says it.
-		table.insert(options, {
-			text = ("%s " .. GetColor("MUTED") .. "(%d)|r%s"):format(ns.ColorName(p.name, p.class), p.level, note),
-			pick = p,
-		})
-	end
-
-	table.insert(options, { separator = true, disabled = true })
-	table.insert(options, {
-		text = GetColor("INFO") .. L["PICKER_FIND_FOR_ITEM"] .. "|r",
-		findForItem = true,
-	})
-
-	return options
-end
-
-function UI:_openPicker(row)
-	local item = row._item
-	if not item then
-		return
-	end
-	Picker:Open(row.recipButton, self:_pickerOptions(item), function(opt)
-		UI:_pickerSelect(item, opt)
-	end)
-end
-
--- What a picked entry does, off the frame so the tests can drive it.
-function UI:_pickerSelect(item, opt)
-	if opt.findForItem then
-		self:FindRecipientsForItem(item)
-		return
-	end
-	self:_setRecipient(item, opt.pick)
-end
-
-function UI:_setRecipient(item, who)
-	--[[
-		THE PLAYER'S PICK IS NEVER REFUSED (maintainer ruling, 2026-07-23). A name already
-		holding another row is taken from it, and the freed row drops back to auto-assignment
-		-- unpinned, or it would read as a deliberate keep. A name the server bounced earlier
-		is theirs to retry. The picker's notes state these facts; they are not gates.
-	]]
-	if who then
-		local other = MatchList:AssignedTo()[who.name]
-		if other and other ~= item then
-			other.recipient, other.send, other.pinned = nil, false, false
-		end
-	end
-
-	if item.recipient then
-		MatchList:AssignedTo()[item.recipient.name] = nil
-	end
-
-	--[[
-		Pinned because a player chose it: _assign rebuilds only what it decided itself. Keep Item
-		included, where "nobody" is the choice.
-	]]
-	item.pinned = true
-
-	if who then
-		item.recipient, item.send = who, true
-		MatchList:AssignedTo()[who.name] = item
-	else
-		item.recipient, item.send = nil, false
-	end
-
-	self:Refresh()
-end
-
---[[
-	Pinned for the same reason: the tick is the last thing between an item and a stranger's
-	mailbox, and a rebuild that re-ticks a row somebody unticked has overridden them.
-]]
-function UI:_setSend(item, send)
-	if not item.recipient then
-		item.send = false
-		return
-	end
-	item.pinned = true
-	item.send = send and true or false
-end
-
---[[
-	The checkbox, which is always live. On a row with a recipient it is the send switch; on a
-	kept or unmatched row a tick means "match this again" -- the pin comes off and the allocator
-	runs, and the box then shows whatever that produced: a contender arrives ticked, a fallback
-	as an unticked suggestion, nobody at all snaps the box back off. The Refresh is what keeps
-	the box and the Distribute button honest either way.
-]]
-function UI:_toggleRow(item, checked)
-	if not item then
-		return
-	end
-	if item.recipient then
-		self:_setSend(item, checked)
-		self:Refresh()
-		return
-	end
-	if checked then
-		item.pinned = false
-		self:_assign()
-	end
 end
 
 --[[
@@ -718,7 +740,7 @@ end
 -- Reading the match list
 --------------------------------------------------------------------------------
 
--- The names Features/Diagnostics.lua and Tests/ call. The state is Features/Match-List.lua's.
+-- The names Diagnostics/Manifests.lua and Tests/ call. The state is Features/Match-List.lua's.
 function UI:Items()
 	return MatchList:Items()
 end
