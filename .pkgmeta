@@ -31,5 +31,8 @@ ignore:
   - Data/Mists
   - Data/Wrath
   - LICENSE
+  - README-Notes.md
+  - README-Technical.md
+  - README-Testing.md
   - Suffix.md
   - Tests
