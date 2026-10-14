@@ -40,7 +40,7 @@ Send the gear and consumables you've outgrown to guildies or strangers who'll ap
 * Click any recipient to pick someone else, search for that one item, or keep it.
 * The ticks across the top choose what's on offer: gear up to a rarity you set, plus food, drink, potions, and scrolls.
 
-<img width="500" src="https://github.com/user-attachments/assets/1bb7b389-05bb-4e06-ad2f-b3b828078e85" />
+<img width="500" src="https://github.com/user-attachments/assets/f39ad6d7-8466-4bee-9715-330062178322" />
 
 ### What Lands in Their Mailbox
 
