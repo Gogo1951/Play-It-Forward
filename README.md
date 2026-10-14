@@ -28,19 +28,10 @@ Send the gear and consumables you've outgrown to guildies or strangers who'll ap
 
 ## How It Works
 
-### The Window
-
-| Group | What's in it |
-|---|---|
-| **Matched** | Someone's been picked. These are the rows Distribute sends. |
-| **Pending Match** | The add-on knows who it's for, but hasn't found them yet. Press Find Recipients again. |
-| **Stats Couldn't Be Read** | The game never handed over the item's stats, so it sat this round out. |
-| **Kept** | Staying in your bags, because you said so or because no class wanted it. |
+<img width="500" src="https://github.com/user-attachments/assets/f39ad6d7-8466-4bee-9715-330062178322" />
 
 * Click any recipient to pick someone else, search for that one item, or keep it.
 * The ticks across the top choose what's on offer: gear up to a rarity you set, plus food, drink, potions, and scrolls.
-
-<img width="500" src="https://github.com/user-attachments/assets/f39ad6d7-8466-4bee-9715-330062178322" />
 
 ### What Lands in Their Mailbox
 
