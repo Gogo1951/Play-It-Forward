@@ -4,6 +4,8 @@ Send the gear and consumables you've outgrown to guildies or strangers who'll ap
 
 **TL;DR**: For anyone with bags full of greens and leftover potions they'll never use. It finds the lowbie who needs each one and mails it to them for you.
 
+<img width="800" src="https://github.com/user-attachments/assets/e25d7faa-6e88-4d6d-a0f5-a7bd3a2ff094" />
+
 ## Features
 
 🎁 **Makes Someone's Day** // A surprise parcel from a stranger costs you next to nothing, and it's the kind of small kindness that keeps a server worth playing on.
