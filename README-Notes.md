@@ -7,7 +7,7 @@
 ### Diagnostics framework extensions
 
 - **Departs from:** DIAGNOSTIC TOOLS → Live Reference, which copies Magic Eraser's `Diagnostics/` folder whole.
-- **Instead:** keeps three additions to the copied framework: API Endpoints rows that say what they found, report rows that take a typed input, and zone rows in Validate Data.
+- **Instead:** keeps two additions to the copied framework: API Endpoints rows that say what they found, and report rows that take a typed input.
 - **Why:** maintainer decision: these are upgrades the shared framework should carry, not drift to revert.
 
 ### Shared matching policy
@@ -21,10 +21,3 @@
 - **Departs from:** LOCALIZATION, every string translated in every locale.
 - **Instead:** `MAIL_SUBJECT` and `MAIL_BODY` stay English in every locale file.
 - **Why:** The maintainer's choice.
-
-## Decisions
-
-- In the mail window, Consumables leads on the left with its Food, Drink, Potions and Scrolls ticks beneath it, and Gear sits on the right.
-- Player-facing English uses the serial comma ("food, drink, potions, and scrolls"), matching the README.
-- Every row in the mail window starts ticked: the tick means give this item away, so no row needs ticking again to be searched for, and an untick is remembered and never undone by a search or rescan.
-- The mail a recipient receives, `MAIL_SUBJECT` and `MAIL_BODY`, stays English in every locale file; everything else the player reads is translated.
