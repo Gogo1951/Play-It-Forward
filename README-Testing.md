@@ -8,7 +8,6 @@ Play It Forward lists the gear and consumables you've outgrown when you open a m
 
 1. Click a recipient, choose **Find Recipients for This Item**, then keep pressing **Find Recipients**: the best-suited class should be tried first (warriors before paladins for plate with Strength), and the search should stop once nobody better could turn up.
 2. Open Options > AddOns > Play It Forward > Feedback & Support, check the Discord, CurseForge, Wago and GitHub links and the version line, and copy one link with Ctrl+A and Ctrl+C.
-3. Log out and back in: the welcome message should only appear the first time after installing or updating.
 
 ## Everything Else
 

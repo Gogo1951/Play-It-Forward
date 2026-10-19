@@ -177,8 +177,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 L["OPTIONS_DESCRIPTION"] =
 	"Envía el equipo y los consumibles que ya has superado a compañeros de hermandad o desconocidos que sabrán apreciarlos. Cada objeto se asigna a la clase a la que mejor le va, y el desorden olvidado de tus bolsas se convierte en la próxima mejora de otra persona. Pásalo, un objeto verde cada vez."
 L["OPTIONS_WELCOME"] = "Activar mensaje de bienvenida"
-L["OPTIONS_WELCOME_DESCRIPTION"] =
-	"Muestra la versión y el recordatorio de ajustes la primera vez que inicias sesión tras instalar o actualizar."
+L["OPTIONS_WELCOME_DESCRIPTION"] = "Muestra la versión y el recordatorio de ajustes al iniciar sesión."
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Comandos"
 L["OPTIONS_COMMAND"] = "/pif"

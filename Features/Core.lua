@@ -100,19 +100,10 @@ local function OnAddonLoaded(name)
 end
 ns.on("ADDON_LOADED", OnAddonLoaded)
 
--- Once per install or update. welcomeVersion is global so a new character or a reset never repeats it.
-local function PrintWelcome()
+local function OnPlayerLogin()
 	if not ns.db.profile.showWelcome then
 		return
 	end
-	if ns.Version == ns.db.global.welcomeVersion then
-		return
-	end
 	ns:PrintMessage(L["CHAT_LOADED"]:format(ns.Version))
-	ns.db.global.welcomeVersion = ns.Version
-end
-
-local function OnPlayerLogin()
-	PrintWelcome()
 end
 ns.on("PLAYER_LOGIN", OnPlayerLogin)

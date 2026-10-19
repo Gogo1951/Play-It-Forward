@@ -176,7 +176,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 L["OPTIONS_DESCRIPTION"] =
 	"把你用不到的裝備和消耗品送給會珍惜它們的公會成員或陌生人。每件物品都會配對給最適合它的職業，把背包裡被遺忘的雜物變成別人的下一次升級。傳遞善意，一次一件綠裝。"
 L["OPTIONS_WELCOME"] = "啟用歡迎訊息"
-L["OPTIONS_WELCOME_DESCRIPTION"] = "安裝或更新後首次登入時顯示版本和設定提醒。"
+L["OPTIONS_WELCOME_DESCRIPTION"] = "登入時顯示版本和設定提醒。"
 
 L["OPTIONS_COMMANDS_HEADER"] = "/指令"
 L["OPTIONS_COMMAND"] = "/pif"

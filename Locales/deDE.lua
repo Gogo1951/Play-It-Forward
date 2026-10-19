@@ -180,8 +180,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 L["OPTIONS_DESCRIPTION"] =
 	"Schicke Ausrüstung und Verbrauchsgüter, aus denen du herausgewachsen bist, an Gildenmitglieder oder Fremde, die sich darüber freuen. Jeder Gegenstand wird der Klasse zugeordnet, zu der er am besten passt, und so wird vergessener Taschenkram zum nächsten Upgrade für jemand anderen. Gib es weiter, ein grünes Teil nach dem anderen."
 L["OPTIONS_WELCOME"] = "Willkommensnachricht aktivieren"
-L["OPTIONS_WELCOME_DESCRIPTION"] =
-	"Die Version und den Hinweis zu den Einstellungen beim ersten Einloggen nach einer Installation oder einem Update ausgeben."
+L["OPTIONS_WELCOME_DESCRIPTION"] = "Beim Einloggen die Version und den Hinweis zu den Einstellungen ausgeben."
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Befehle"
 L["OPTIONS_COMMAND"] = "/pif"
