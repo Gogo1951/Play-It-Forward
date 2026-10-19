@@ -109,7 +109,7 @@ function Matcher:EligibleClasses(item)
 			end
 			return out
 		end
-		-- Rings/necks/trinkets/cloaks/held: everyone, and no group -- stats alone decide.
+		-- Rings/necks/trinkets/cloaks: everyone, and no group -- stats alone decide.
 		if ns.Data.UNIVERSAL_EQUIP_LOC[equipLoc] or subclassID == 0 then
 			return ALL_CLASSES()
 		end

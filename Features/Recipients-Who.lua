@@ -355,5 +355,6 @@ end
 -- Drops the plan. A query in flight is canceled, not forgotten -- see Who:CancelPending above.
 function Who:Clear()
 	wipe(plan)
+	Who.targeted = false
 	Who:CancelPending()
 end

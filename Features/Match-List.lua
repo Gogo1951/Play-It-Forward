@@ -157,8 +157,8 @@ end
 --[[
 	A gift is still worth searching for while nobody holds it -- or while only a fallback does.
 	The contenders are who the verdict says the item is FOR, and a fallback pairing must not
-	read as the search having found them: it cleared the plan the moment two paladins held a
-	pair of warrior swords, with the warrior zones never asked. A pinned row is the player's
+	read as the search having found them, or the plan clears before the contenders' bands are
+	asked. A pinned row is the player's
 	decision, and final; an unticked row is pinned, so it is never searched for. Leftovers and
 	unreadables are excluded, or the plan never empties and every press of Find Recipients goes
 	on spending the /who throttle for the whole session.
@@ -260,6 +260,56 @@ end
 function ensureScan()
 	if bagsDirty then
 		rescanBags()
+	end
+end
+
+--[[
+	The row a targeted search is looking for, by slot key: rescanBags replaces every item table,
+	so a reference would go stale under it. Read only while Who.targeted says the plan is still
+	that search's; a fresh plan or a Clear ends it without this having to be told.
+]]
+local targetKey
+
+-- The row itself, or nil once it has left the bags.
+local function targetItem()
+	if not targetKey then
+		return nil
+	end
+	for _, item in ipairs(items) do
+		if slotKey(item) == targetKey then
+			return item
+		end
+	end
+	return nil
+end
+
+--[[
+	Narrows a targeted search to the attempts that could still turn up somebody who outranks the
+	row's holder, and ends it once none is left -- or at once when the row is gone or the player
+	decided it by hand. An attempt with no class filter (a consumable's zones) asks for everybody,
+	so it stays while any admitted class could.
+]]
+local function narrowTargeted()
+	local item = targetItem()
+	if not item or item.pinned then
+		ns.Who:Clear()
+		return
+	end
+
+	local admitted = (item.verdict and item.verdict.admitted) or {}
+	ns.Who:PruneTargeted(function(attempt)
+		local classes = (#attempt.classes > 0) and attempt.classes or admitted
+		for _, class in ipairs(classes) do
+			if ns.Matcher:CouldOutrank(item, item.recipient, class) then
+				return true
+			end
+		end
+		return false
+	end)
+
+	-- Remaining, not the plan alone: a query still in flight is answered and assigned first.
+	if ns.Who:Remaining() == 0 then
+		ns.Who:Clear()
 	end
 end
 
@@ -401,11 +451,23 @@ function MatchList:Assign()
 		band keeps taking a turn that costs a click and the full throttle to ask a question
 		nothing is waiting on.
 	]]
-	if searchingGifts() == 0 then
+	--[[
+		A targeted search is the exception: it is pressed exactly when somebody in contention
+		already holds the row and is not good enough, so that rule would end it after one press.
+		It is narrowed against its one row's holder instead, and the bands below never touch it.
+	]]
+	if ns.Who.targeted then
+		narrowTargeted()
+	elseif searchingGifts() == 0 then
 		ns.Who:Clear()
 	else
 		ns.Who:Prune(searchingBands())
 	end
+end
+
+-- Marks the row a targeted search is for; Assign narrows and ends that search against it.
+function MatchList:Target(item)
+	targetKey = item and slotKey(item) or nil
 end
 
 --------------------------------------------------------------------------------

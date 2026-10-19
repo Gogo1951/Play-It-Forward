@@ -109,21 +109,24 @@ function UI:_lockFindButton()
 end
 
 --[[
-	One press of a targeted search for this item alone, from the bottom of its dropdown -- for
-	when the names on offer are not good enough. It asks who this item is actually for and goes
-	looking for exactly them: Matcher:TargetedBands puts the classes the verdict named at the
-	front, so a lone contender becomes a query carrying c-"Hunter" over the zones its band
-	passes through, with the fallbacks behind it a press later.
+	The first press of a targeted search for this item alone, from the bottom of its dropdown --
+	for when the names on offer are not good enough. It asks who this item is actually for and
+	goes looking for exactly them, one class per press, best fit first and anywhere in the world:
+	Matcher:TargetedBands makes "of the Bear" plate a c-"Warrior" query before a c-"Paladin" one,
+	with zones only behind a class whose answer came back capped.
 
 	It RETASKS the plan: whatever the previous plan still held is dropped for this item's
-	attempts, and the next fresh press of Find Recipients rebuilds the full plan for every item.
-	Runs off the picker click, which is the hardware event SendWho demands.
+	attempts. Find Recipients steps the rest; every answer drops the attempts that could only turn
+	up somebody who ties or loses to the row's holder, and the search ends when none is left
+	(MatchList:Assign). The next fresh press rebuilds the full
+	plan for every item. Runs off the picker click, which is the hardware event SendWho demands.
 ]]
 function UI:FindRecipientsForItem(item)
 	local verdict = item.verdict or ns.Matcher:VerdictFor(item)
 	if #((verdict and verdict.eligible) or {}) == 0 then
 		return
 	end
+	MatchList:Target(item)
 	ns.Who:Plan(ns.Matcher:TargetedBands(item), true)
 	self:_step()
 end

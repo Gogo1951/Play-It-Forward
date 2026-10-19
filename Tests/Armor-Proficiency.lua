@@ -222,9 +222,9 @@ end)
 
 --[[
 	"Find Recipients for This Item" is meant to answer "who would be best for this", and
-	the only shape /who can be filtered on is one class at a time. So the lone contender
-	gets a query of its own, first, over its own band and the zones that band passes
-	through -- which is what turns this into `38-39 z-"..." c-"Hunter"`.
+	the only shape /who can be filtered on is one class at a time. So every class gets a
+	group of its own, the contender first, over its own band -- which is what turns the
+	first press into `38-39 c-"Hunter"`, asked anywhere rather than zone by zone.
 ]]
 test("a targeted search asks for the contender first, by name and in its own band", function()
 	local ns = load()
@@ -234,7 +234,12 @@ test("a targeted search asks for the contender first, by name and in its own ban
 	local groups = ns.Matcher:TargetedBands(item)
 	equal(groups[1].lo, 38, "the hunter's band leads the plan")
 	equal(sorted(groups[1].classes), "HUNTER", "and he is alone in it, so the query can name him")
-	equal(sorted(groups[2].classes), "PALADIN WARRIOR", "the fallbacks are behind him, not dropped")
+	local behind = {}
+	for index = 2, #groups do
+		equal(#groups[index].classes, 1, "every fallback has a group of its own")
+		behind[#behind + 1] = groups[index].classes[1]
+	end
+	equal(sorted(behind), "PALADIN WARRIOR", "the fallbacks are behind him, not dropped")
 
 	ns.Who:Plan(groups, true)
 	ns.Who:Step(function() end)
@@ -242,21 +247,93 @@ test("a targeted search asks for the contender first, by name and in its own ban
 	local query = Stub.whoQueries[1]
 	check(query:find('c%-"Hunter"'), "the query names the hunter: " .. query)
 	check(query:find("38%-39"), "over his band, not the item's: " .. query)
-	check(query:find('z%-"'), "and it still carries the zone rules: " .. query)
+	check(not query:find('z%-"'), "asked by class before any zone: " .. query)
 end)
 
 --[[
-	The other half of the ruling. Two contenders cannot both be filtered on -- the client
-	honors one c-"..." and drops the rest -- so splitting them off from the fallbacks would
-	spend a press on a query identical to the one behind it.
+	Two contenders cannot both be filtered on -- the client honors one c-"..." and drops the
+	rest -- so each gets its own query, and both lead the fallbacks.
 ]]
-test("two contenders share their band with the fallbacks rather than repeating a query", function()
+test("two contenders each get a query of their own, ahead of the fallbacks", function()
 	local ns = load()
 	local item = armor(ns, LEATHER, 36, { ITEM_MOD_AGILITY_SHORT = 8 })
 	item.verdict = ns.Matcher:Verdict(item)
 
 	local groups = ns.Matcher:TargetedBands(item)
-	equal(#groups, 1, "one band, one group")
-	check(contains(groups[1].classes, "HUNTER"), "the contenders are in it")
-	check(contains(groups[1].classes, "WARRIOR"), "and so are the fallbacks")
+	for _, group in ipairs(groups) do
+		equal(#group.classes, 1, "one class per group")
+	end
+	equal(sorted({ groups[1].classes[1], groups[2].classes[1] }), "HUNTER ROGUE", "the contenders lead")
+	check(#groups > 2, "and the fallbacks follow")
+end)
+
+--------------------------------------------------------------------------------
+-- When the targeted search stops
+--------------------------------------------------------------------------------
+
+--[[
+	Pressed from the belt's own dropdown, answered with the given roster. Capped, so the
+	hunter's zones stay on the plan behind his class query.
+]]
+local function targetedSearch(ns, results)
+	Stub.SetBackpack({
+		Stub.Item({
+			name = "Test Waistguard",
+			quality = 2,
+			reqLevel = 36,
+			itemLevel = 41,
+			equipLoc = "INVTYPE_WAIST",
+			classID = 4,
+			subclassID = MAIL,
+			bindType = 2,
+			stats = { ITEM_MOD_AGILITY_SHORT = 8 },
+		}),
+	})
+	ns.fire("MAIL_SHOW")
+	local item = ns.UI:Items()[1]
+
+	Stub.now = Stub.now + 60
+	Stub.whoResults = results
+	Stub.whoTotal = 999
+	ns.UI:FindRecipientsForItem(item)
+	ns.fire("WHO_LIST_UPDATE")
+	return item
+end
+
+local function plannedClasses(ns)
+	local out = {}
+	for _, attempt in ipairs(ns.Who.plan) do
+		for _, class in ipairs(attempt.classes) do
+			out[class] = true
+		end
+	end
+	return out
+end
+
+test("a contender short of his anchor drops the fallbacks but keeps his own class", function()
+	local ns = load()
+	local item = targetedSearch(ns, { { name = "Nearly", level = 38, class = "HUNTER" } })
+
+	equal(item.recipient and item.recipient.name, "Nearly", "the hunter holds the belt")
+	local left = plannedClasses(ns)
+	check(left.HUNTER, "a hunter at 39 would still beat him, so his zones stay")
+	check(not left.PALADIN, "no paladin can take it off a contender")
+	check(not left.WARRIOR, "nor a warrior")
+end)
+
+test("a best-fit contender at his anchor ends the search", function()
+	local ns = load()
+	local item = targetedSearch(ns, { { name = "Ready", level = 39, class = "HUNTER" } })
+
+	equal(item.recipient and item.recipient.name, "Ready", "the hunter holds the belt")
+	equal(ns.Who:Remaining(), 0, "nobody left to find could outrank him")
+end)
+
+test("an unheld row keeps every attempt", function()
+	local ns = load()
+	local item = targetedSearch(ns, {})
+	local planned = ns.Who:Planned()
+
+	equal(item.recipient, nil, "nobody found yet")
+	equal(ns.Who:Remaining(), planned - 1, "only the press already spent is gone")
 end)
