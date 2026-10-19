@@ -47,6 +47,7 @@ A parcel titled **Play It Forward!** with a short note, so a gift from a strange
 
 * **General** // What to give away, your generosity totals, and whether other players can see them.
 * **Profiles** // Switch, copy, or reset your settings.
+* **Feedback & Support** // Where to report a bug, share an idea, or help the add-on find more players.
 * **Diagnostic Tools** // Reports to attach when something isn't working.
 
 ### Slash Commands
@@ -81,7 +82,7 @@ A parcel titled **Play It Forward!** with a short note, so a gift from a strange
 ### 🟢 Pairs With
 
 * Gogo1951's [Come & Get It](https://www.curseforge.com/wow/addons/come-get-it)
-* Gogo1951's [Connoisseur](https://www.curseforge.com/wow/addons/consumable-connoisseur)
+* Gogo1951's [Connoisseur & Restocker](https://www.curseforge.com/wow/addons/connoisseur-restocker)
 * Gogo1951's [Magic Eraser](https://www.curseforge.com/wow/addons/magic-eraser)
 * Gogo1951's [Open Sesame](https://www.curseforge.com/wow/addons/open-sesame)
 * Gogo1951's [Thanks for the Buff](https://www.curseforge.com/wow/addons/thanks-for-the-buff-revisited)
@@ -93,3 +94,7 @@ A parcel titled **Play It Forward!** with a short note, so a gift from a strange
 * Xinhuan's [Postal](https://www.curseforge.com/wow/addons/postal)
 * jaliborc's [Scrap](https://www.curseforge.com/wow/addons/scrap)
 * Sapu94's [TradeSkillMaster](https://www.curseforge.com/wow/addons/tradeskill-master)
+
+### 🔴 Alternatives
+
+* GageCage's [HandMeDowns](https://www.curseforge.com/wow/addons/handmedowns)
