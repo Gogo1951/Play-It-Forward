@@ -121,9 +121,9 @@ ns.DiagnosticsStrings = {
 	CODE_RUN_ALL = "Run All Code Reports",
 	DATA_INTRO = "Checks every item and zone the add-on ships against this client. Paste a result into a spreadsheet and sort by STATUS to find what needs pruning.",
 	DATA_RUN_ALL = "Validate All Data Files",
-	LOCALIZATION_INTRO = "Which language this client speaks, and whether every game name "
+	LOCALIZATION_INTRO = "Playing in a language other than English and a name or prompt reads wrong? These show what your client calls everything "
 		.. TITLE
-		.. " matches against comes back from it. Run this on a non-English client when names or searches come out wrong.",
+		.. " names.",
 	LOCALIZATION_RUN_ALL = "Run All Localization Reports",
 	RUN_ALL_DESCRIPTION = "Runs %s, one after another.",
 
@@ -151,7 +151,7 @@ ns.DiagnosticsStrings = {
 	GENEROSITY_DESCRIPTION = "Whether you are sharing and resting, your own totals, and every nearby player you have heard from.",
 
 	--[[
-		Where the next /who will look, composed by Features/Recipients-Who.lua for the roster report.
+		Where the next /who will look, composed by Features/Recipients-Who-Plan.lua for the roster report.
 		The client's filter syntax is `21-22 z-"Redridge Mountains"`; these say the same thing in words.
 	]]
 	WHO_LABEL_IN_ZONE = "%s (%s)",
@@ -161,23 +161,22 @@ ns.DiagnosticsStrings = {
 	VALIDATE_TITLE = "Validate Data: %s",
 	VALIDATE_DESCRIPTION = "Checks every id in this data file against this client and exports the results as tab-separated text.",
 	VALIDATE_PROGRESS = "%s / %s IDs",
-	VALIDATE_HINT = "Checks every item and zone id a data file ships against this client and exports what the client knows about each one as tab-separated text, ready to paste into a spreadsheet. Item rows carry every item API return, the file's own values in the DATA columns so you can sort for mismatches, everything the client knows about the item's spell including its tooltip in SPELL_TOOLTIP, and the whole item tooltip in one TOOLTIP cell, its lines joined by // and a right-hand text after >>. Zone rows carry AREA_ID and the AREA_NAME the /who search sends, with the file's level range and faction in the DATA columns. A file with no ids the client can look up prints ROWS and how many rows its table holds. STATUS reads OK, NOT ON CLIENT for an id this client does not have or never answers for, INCOMPLETE when an item loaded but its tooltip or spell text never did, NO NAME when this client leaves a zone unnamed (not grounds to prune), ERROR with the message in the name cell when a read throws, or TABLE MISSING when this client's folder never built a table. Zone ids come first, in a block of their own.",
 	DISPLAY_TITLE = "Display Context",
 	DISPLAY_DESCRIPTION = "Shows your screen size, UI scale and the mail window's saved position.",
 	ADDONS_TITLE = "Other Add-ons",
 	ADDONS_DESCRIPTION = "Lists every installed add-on with its version, and whether it is loadable or disabled.",
 	SAVED_TITLE = "Saved Variables",
 	SAVED_DESCRIPTION = "Prints " .. TITLE .. "'s saved settings and lists as readable text.",
-	LOCALE_TITLE = "Locale Context",
-	LOCALE_DESCRIPTION = "Shows the client's language settings and how many strings " .. TITLE .. " defines.",
-	NAMES_TITLE = "Game Names",
-	NAMES_DESCRIPTION = "Reads every game name "
-		.. TITLE
-		.. " matches against, the way the add-on reads it, and flags any that come back empty.",
-	NAMES_ALL_FOUND = "all named",
-	NAMES_SOME_NIL = "%d NIL",
 	LIBS_TITLE = "Library Versions",
 	LIBS_DESCRIPTION = "Lists the version of every library " .. TITLE .. " loaded.",
+	LOCALE_TITLE = "Locale Context",
+	LOCALE_DESCRIPTION = "Shows your client's language, its text and audio language settings, and how many of "
+		.. TITLE
+		.. "'s own strings loaded.",
+	NAMES_TITLE = "Game Names",
+	NAMES_DESCRIPTION = "Shows the name your client gives every game string " .. TITLE .. " shows or matches.",
+	NAMES_ALL_FOUND = "all found",
+	NAMES_SOME_NIL = "%d NIL",
 
 	STATUS_WAITING = "Waiting",
 	STATUS_RUNNING = "Running",

@@ -237,13 +237,15 @@ end)
 
 --[[
 	Find Recipients for This Item exists to ask for the class it names; leading with the
-	bare query would only repeat what the main button already sent.
+	bare query would only repeat what the main button already sent. A class filter reaches
+	everybody of that class wherever they stand, so it goes before the zones.
 ]]
-test("a targeted plan still leads with its zones and its class", function()
+test("a targeted plan asks by class before it asks by zone", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 21, hi = 22, classes = { "HUNTER" } } }, true)
 	local label = ns.Who:Peek()
-	check(label:find("zone") and label:find("Hunter"), "zones and the hunter first: " .. label)
+	check(label:find("anywhere") and label:find("Hunter"), "the hunter, anywhere, first: " .. label)
+	check(ns.Who:Remaining() > 1, "with his zones still behind it")
 end)
 
 test("bands take turns rather than one running to exhaustion", function()

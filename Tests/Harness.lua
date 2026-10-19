@@ -52,8 +52,8 @@ local FILES = {
 	"Diagnostics/Event-Log.lua",
 	"Diagnostics/Code-Reports.lua",
 	"Diagnostics/Settings-Reports.lua",
-	"Diagnostics/Localization-Reports.lua",
 	"Diagnostics/Validate-Data.lua",
+	"Diagnostics/Localization-Reports.lua",
 	"Diagnostics/Report-Runner.lua",
 	--[[
 		Not only panels either: the /pif slash command and the combat gate in front of

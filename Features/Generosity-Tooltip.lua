@@ -135,7 +135,9 @@ if TooltipDataProcessor then
 		end
 	end)
 	Generosity.tooltipHook = "TooltipDataProcessor unit post-call"
-else
+elseif GameTooltip:HasScript("OnTooltipSetUnit") then
 	GameTooltip:HookScript("OnTooltipSetUnit", onTooltipSetUnit)
 	Generosity.tooltipHook = "GameTooltip OnTooltipSetUnit"
+else
+	Generosity.tooltipHook = "none"
 end

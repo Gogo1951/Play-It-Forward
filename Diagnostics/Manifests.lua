@@ -20,6 +20,19 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_AddOns) == "table" and type(C_AddOns.GetAddOnMetadata) == "function"
 		end,
 	},
+	-- The Other Add-ons report walks the list with these two.
+	{
+		"C_AddOns.GetAddOnInfo",
+		function()
+			return type(C_AddOns) == "table" and type(C_AddOns.GetAddOnInfo) == "function"
+		end,
+	},
+	{
+		"C_AddOns.GetNumAddOns",
+		function()
+			return type(C_AddOns) == "table" and type(C_AddOns.GetNumAddOns) == "function"
+		end,
+	},
 	{
 		"C_Container.GetContainerNumSlots",
 		function()
@@ -532,6 +545,12 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_Spell) == "table" and type(C_Spell.RequestLoadSpellData) == "function"
 		end,
 	},
+	{
+		"C_Spell.IsSpellDataCached",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.IsSpellDataCached) == "function"
+		end,
+	},
 	-- Both halves of ns.GetTooltipLines, which Validate Data reads each item's tooltip through.
 	{
 		"C_TooltipInfo.GetItemByID",
@@ -602,6 +621,62 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		"Settings.OpenToCategory",
 		function()
 			return type(Settings) == "table" and type(Settings.OpenToCategory) == "function"
+		end,
+	},
+	--[[
+		The quality the Maximum Rarity default is set from. Data/Default-Settings.lua falls back to 2
+		without it, which is the same number, so a FAIL here changes nothing a player sees.
+	]]
+	{
+		"Enum.ItemQuality.Uncommon",
+		function()
+			return type(Enum) == "table" and type(Enum.ItemQuality) == "table" and Enum.ItemQuality.Uncommon ~= nil
+		end,
+	},
+	--[[
+		The colors names and qualities are drawn in, each picked by availability in
+		Features/Utilities.lua: a class-color add-on's table first, then the client's, then the
+		add-on's own palette in Data/Data.lua. A FAIL is cosmetic, and the row says which answered.
+	]]
+	{
+		"Class colors for player names",
+		function()
+			if type(CUSTOM_CLASS_COLORS) == "table" then
+				return true, "via CUSTOM_CLASS_COLORS"
+			end
+			if type(RAID_CLASS_COLORS) == "table" then
+				return true, "via RAID_CLASS_COLORS"
+			end
+			return false, "falling back to the add-on's own class colors"
+		end,
+	},
+	{
+		"ITEM_QUALITY_COLORS",
+		function()
+			return type(ITEM_QUALITY_COLORS) == "table"
+		end,
+	},
+	-- The combat gate /pif checks before opening the options panel.
+	{
+		"InCombatLockdown",
+		function()
+			return type(InCombatLockdown) == "function"
+		end,
+	},
+	--[[
+		Load-bearing for every wait the add-on makes: the /who timeout, the mail result timeout,
+		the bag-scan debounce, the Find Recipients lock and this panel's report runner.
+	]]
+	{
+		"C_Timer.After",
+		function()
+			return type(C_Timer) == "table" and type(C_Timer.After) == "function"
+		end,
+	},
+	{
+		"C_Timer.NewTimer",
+		function()
+			return type(C_Timer) == "table" and type(C_Timer.NewTimer) == "function"
 		end,
 	},
 	{
@@ -1416,8 +1491,8 @@ end
 
 --[[
 	Answers "why don't I see anyone": are we sharing, did the prefix register, what are our own
-	totals, which tooltip hook drew the block, where the send throttles stand, and who nearby have
-	we heard from and how long ago. Inline literals like every other
+	totals, which tooltip hook drew the block, where the send throttles stand, what the last send
+	answered, and who nearby have we heard from and how long ago. Inline literals like every other
 	builder; the panel labels live in ns.DiagnosticsStrings.
 ]]
 function ns:BuildGenerosityReport()
@@ -1465,6 +1540,16 @@ function ns:BuildGenerosityReport()
 	)
 	lines[#lines + 1] = "last ping answered = " .. Since(lastPingAnswer)
 	lines[#lines + 1] = "last hover ping sent = " .. Since(ns.Generosity:LastHoverPing())
+	--[[
+		What the client said to the last send, broadcast or ping. A refused channel comes back here
+		rather than as an error, and the send is otherwise fire-and-forget.
+	]]
+	local result = ns.Generosity.lastSendResult
+	lines[#lines + 1] = "last send answered = "
+		.. (
+			result and string.format("ok=%s result=%s", tostring(result.ok), tostring(result.result))
+			or "nothing sent yet"
+		)
 	lines[#lines + 1] = ""
 
 	local peers = ns.Generosity:AllPeers()
@@ -1496,16 +1581,28 @@ function ns:BuildGenerosityReport()
 end
 
 --------------------------------------------------------------------------------
--- Game Names
+-- Name Lookups
 --------------------------------------------------------------------------------
 
 --[[
-	Every game name the add-on matches against what the client shows, each read through the same
-	call its feature makes, so a NIL here is a name that feature cannot match on this client.
-	Each entry's ids expand at run time from the add-on's own data, so a stat, class or zone added
-	there gets its row without an edit here, and the faction-gated class list is read when it is
-	known rather than at load. The add-on names no items by ID, so nothing here waits on a load.
+	Every game name Play It Forward shows or matches against what the client shows, for the
+	Localization tab's Game Names report, each read through the same call its feature makes, so a
+	NIL here is a name that feature cannot show or match on this client. The rows are built here
+	from the add-on's own data, so a stat, class or zone added there gets its row without an edit
+	here. Classes are every one either faction can roll on this client, since the faction gate is
+	not known at load. The add-on names no items or spells by ID, so no row waits on a load.
 ]]
+local function UiLabel(constant)
+	return {
+		constant = constant,
+		kind = "uiLabel",
+		id = constant,
+		lookup = function()
+			return _G[constant]
+		end,
+	}
+end
+
 local function SortedKeys(map)
 	local keys = {}
 	for key in pairs(map or {}) do
@@ -1515,75 +1612,69 @@ local function SortedKeys(map)
 	return keys
 end
 
-local function SortedClasses()
-	local classes = {}
-	for _, class in ipairs(ns.Matcher:Classes()) do
-		classes[#classes + 1] = class
+local function ClientClasses()
+	local seen = {}
+	for _, classes in pairs(ns.Data.FACTION_CLASSES or {}) do
+		for _, class in ipairs(classes) do
+			seen[class] = true
+		end
 	end
-	table.sort(classes)
-	return classes
-end
-
-local function GlobalString(name)
-	return _G[name]
+	return SortedKeys(seen)
 end
 
 ns.DIAGNOSTIC_NAME_LOOKUPS = {
-	-- { constant, kind, ids, lookup }
-	-- The stat names Features/Scan-Tooltip.lua reads a "+9 Intellect" line by.
-	{
-		constant = "ns.Data.STAT_MAP",
-		kind = "Blizzard UI label",
-		ids = function()
-			return SortedKeys(ns.Data.STAT_MAP)
-		end,
-		lookup = GlobalString,
-	},
+	-- { constant, kind, id, lookup }
 	-- The refusal Features/Mail-Sender.lua recognizes when a send crosses factions.
-	{
-		constant = "ERR_PLAYER_WRONG_FACTION",
-		kind = "Blizzard UI label",
-		ids = function()
-			return { "ERR_PLAYER_WRONG_FACTION" }
-		end,
-		lookup = GlobalString,
-	},
+	UiLabel("ERR_PLAYER_WRONG_FACTION"),
+	-- The quality names the Maximum Rarity dropdown shows, through ns.QualityName.
+	UiLabel("ITEM_QUALITY2_DESC"),
+	UiLabel("ITEM_QUALITY3_DESC"),
+	UiLabel("ITEM_QUALITY4_DESC"),
+}
+
+-- The stat names Features/Scan-Tooltip.lua reads a "+9 Intellect" line by.
+for _, constant in ipairs(SortedKeys(ns.Data.STAT_MAP)) do
+	ns.DIAGNOSTIC_NAME_LOOKUPS[#ns.DIAGNOSTIC_NAME_LOOKUPS + 1] = UiLabel(constant)
+end
+
+for _, token in ipairs(ClientClasses()) do
 	--[[
 		The name a /who class filter goes out with. The planner falls back to the token itself,
 		which /who cannot match, so a fallback counts as NIL here.
 	]]
-	{
+	ns.DIAGNOSTIC_NAME_LOOKUPS[#ns.DIAGNOSTIC_NAME_LOOKUPS + 1] = {
 		constant = "LOCALIZED_CLASS_NAMES_MALE",
 		kind = "class",
-		ids = SortedClasses,
-		lookup = function(token)
+		id = token,
+		lookup = function()
 			local name = ns.Who.ClassName(token)
 			return name ~= token and name or nil
 		end,
-	},
+	}
 	-- The other half of reading a /who result's class back to its token.
-	{
+	ns.DIAGNOSTIC_NAME_LOOKUPS[#ns.DIAGNOSTIC_NAME_LOOKUPS + 1] = {
 		constant = "LOCALIZED_CLASS_NAMES_FEMALE",
 		kind = "class",
-		ids = SortedClasses,
-		lookup = function(token)
+		id = token,
+		lookup = function()
 			return LOCALIZED_CLASS_NAMES_FEMALE and LOCALIZED_CLASS_NAMES_FEMALE[token]
 		end,
-	},
-	-- The zone names the /who search sends; an unnamed zone is never searched.
-	{
+	}
+end
+
+-- The zone names the /who search sends; an unnamed zone is never searched.
+local AREA_ID_COLUMN = ns.Data.ZONE_COLUMNS and ns.Data.ZONE_COLUMNS.AREA_ID or 1
+for _, zone in ipairs(ns.Data.ZONES or {}) do
+	local areaId = zone[AREA_ID_COLUMN]
+	ns.DIAGNOSTIC_NAME_LOOKUPS[#ns.DIAGNOSTIC_NAME_LOOKUPS + 1] = {
 		constant = "ns.Data.ZONES",
-		kind = "zone (AreaTable)",
-		ids = function()
-			local ids = {}
-			for _, zone in ipairs(ns.Data.ZONES or {}) do
-				ids[#ids + 1] = zone[ns.Data.ZONE_COLUMNS.AREA_ID]
-			end
-			return ids
+		kind = "area",
+		id = areaId,
+		lookup = function()
+			return ns.Who.AreaName(areaId)
 		end,
-		lookup = ns.Who.AreaName,
-	},
-}
+	}
+end
 
 --------------------------------------------------------------------------------
 -- Validate Data Sources
