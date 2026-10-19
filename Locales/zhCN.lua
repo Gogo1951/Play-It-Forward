@@ -9,7 +9,7 @@ end
 
 L["ADDON_TITLE"] = "Play It Forward"
 L["CHAT_LOADED"] =
-	"版本 %s。设置（包括关闭此消息的选项）位于 选项 > 插件 > Play It Forward。喜欢这个插件吗？告诉朋友吧！(="
+	"版本 %s。设置（包括关闭此消息的选项）位于 选项 > 插件 > Play It Forward。喜欢这个插件吗？告诉朋友，在 CurseForge 上收藏它，或在 GitHub 上给它点个 Star。(="
 L["CHAT_OPTIONS_IN_COMBAT"] = "出于安全考虑，战斗中无法打开设置界面。"
 
 --------------------------------------------------------------------------------
@@ -118,7 +118,7 @@ L["TOOLTIP_CHECK_WAITING"] = "搜索一找到人就会匹配。取消勾选即�
 	along with WHO_BLOCKED, PICKER_NONE_IN_RANGE, PICKER_FIND_FOR_ITEM and TOOLTIP_CHECK_SEND above,
 	which name those buttons too.
 ]]
-L["MAIL_STILL_SENDING"] = "仍在发送，请稍候。"
+L["MAIL_STILL_SENDING"] = "仍在发送。请稍等片刻。"
 L["MAIL_NOTHING_TO_DISTRIBUTE"] = "没有可分发的物品。"
 L["MAIL_DISTRIBUTING"] = "在每个确认窗口中点击接受，以寄出 %d 件物品。"
 L["MAIL_ITEM_MOVED"] = "请点击寻找收件人重新扫描。%s 在你的背包中被移动了。"
@@ -130,7 +130,7 @@ L["MAIL_NO_POSTAGE"] = "放入一点铜币作为邮费，然后点击分发以�
 L["MAIL_PANEL_CLOSED"] =
 	"打开暴雪的发送邮件面板，然后再次点击分发。没有寄出或改动任何东西。"
 L["MAIL_PANEL_CLOSED_HINT"] =
-	"如果你使用 TSM，请为此切换到默认邮件界面。TSM 的邮箱不接受附件。"
+	"如果你使用 TSM，请为此切换到暴雪的发送邮件面板。TSM 的邮箱不接受附件。"
 L["MAIL_ATTACH_FAILED"] = "无法附加 %s，因此未寄出。"
 L["MAIL_AWAITING_CONFIRM"] = "在 %s 的确认窗口中点击接受，然后点击分发以寄出剩余物品。"
 L["MAIL_SENT"] = "已将 %s 寄给 %s (%d/%d)。"
@@ -170,13 +170,13 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 	.. "Happy adventuring!"
 
 --------------------------------------------------------------------------------
--- Options Panel
+-- Options: General Panel
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
 	"把你用不上的装备和消耗品送给会珍惜它们的公会成员或陌生人。每件物品都会匹配给最适合它的职业，把背包里被遗忘的杂物变成别人的下一次升级。传递善意，一次一件绿装。"
 L["OPTIONS_WELCOME"] = "启用欢迎消息"
-L["OPTIONS_WELCOME_DESCRIPTION"] = "登录时显示版本和设置提示。"
+L["OPTIONS_WELCOME_DESCRIPTION"] = "安装或更新后首次登录时显示版本和设置提示。"
 
 L["OPTIONS_COMMANDS_HEADER"] = "/命令"
 L["OPTIONS_COMMAND"] = "/pif"
@@ -234,9 +234,29 @@ L["OPTIONS_SHARE_STATS"] = "启用慷慨提示"
 L["OPTIONS_SHARE_STATS_DESCRIPTION"] =
 	"在城市和旅店中，你附近的玩家可以在你的鼠标提示中看到你的统计。关闭后将停止分享，但你仍能看到他们的统计，而你下方的统计无论如何都会继续累计。"
 
-L["OPTIONS_FEEDBACK_HEADER"] = "反馈与支持"
-L["OPTIONS_DISCORD"] = "Discord"
-L["OPTIONS_GITHUB"] = "GitHub"
+--------------------------------------------------------------------------------
+-- Options: Feedback & Support Panel
+--------------------------------------------------------------------------------
+
+L["OPTIONS_LEVEL_UP_TITLE"] = "帮助 Play It Forward 升级"
+L["OPTIONS_LEVEL_UP_INTRO"] =
+	"这个插件由热爱这款游戏、希望让每个人都尽可能玩得开心的玩家打造。我们永远不会请求捐赠。真正的满足感来自知道我们的工作让你的游戏变得更好一点。如果确实如此，我们很乐意听你说说！"
+L["OPTIONS_LEVEL_UP_WAYS"] = "以下是几种帮助我们接触更多玩家的方式。"
+L["OPTIONS_LEVEL_UP_FEEDBACK"] =
+	"• 分享反馈：发现了错误或有什么想法？请在 Discord 上告诉我们。你的反馈能帮助我们改进插件，也随时欢迎提交拉取请求。"
+L["OPTIONS_LEVEL_UP_FRIEND"] =
+	"• 告诉朋友：认识可能会喜欢这个插件的人吗？告诉他们吧。口碑能帮助更多玩家发现优秀的插件。"
+L["OPTIONS_LEVEL_UP_CURSEFORGE"] =
+	"• 在 CurseForge 上收藏：打开下方的 CurseForge 链接，登录后点击 Download 按钮下方的星标。收藏能帮助更多玩家发现这个插件。"
+L["OPTIONS_LEVEL_UP_GITHUB"] =
+	"• 在 GitHub 上点 Star：打开下方的 GitHub 链接，登录后点击右上角的 Star。Star 能帮助项目获得更多免费的开发者工具。"
+L["OPTIONS_LEVEL_UP_THANKS"] = "感谢选择 Play It Forward！"
+
+L["OPTIONS_FEEDBACK"] = "反馈与支持"
+L["OPTIONS_FEEDBACK_LINKS_HEADER"] = "反馈与支持链接"
 L["OPTIONS_CURSEFORGE"] = "CurseForge"
+L["OPTIONS_GITHUB"] = "GitHub"
+L["OPTIONS_DISCORD"] = "Discord"
 L["OPTIONS_WAGO"] = "Wago"
+L["OPTIONS_COPY_LINK"] = "要复制链接，请点击其输入框，然后按 Ctrl+A 和 Ctrl+C。"
 L["OPTIONS_VERSION"] = "版本 %s"

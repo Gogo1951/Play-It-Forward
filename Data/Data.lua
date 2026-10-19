@@ -19,7 +19,7 @@ ns.SAVED_VARIABLES_NAME = "PlayItForwardDB"
 -- Links
 --------------------------------------------------------------------------------
 
--- Rendered in this order, rows skipped when missing. Slugs are irregular and never derived from the display name.
+-- Display order lives in Options/Options-Feedback-Support.lua. Slugs are irregular and never derived from the display name.
 ns.LINKS = {
 	DISCORD = "https://discord.gg/eh8hKq992Q",
 	GITHUB = "https://github.com/Gogo1951/Play-It-Forward",
@@ -35,6 +35,7 @@ ns.LINKS = {
 ns.OPTIONS_REGISTRY = {
 	General = ADDON_NAME,
 	Profiles = ADDON_NAME .. "_Profiles",
+	FeedbackSupport = ADDON_NAME .. "_FeedbackSupport",
 	Diagnostics = ADDON_NAME .. "_Diagnostics",
 }
 

@@ -19,7 +19,6 @@ local GetColor = ns.GetColor
 	Features/Generosity-Tooltip.lua heads its block with the same line. One builder so the two can
 	never brand the add-on differently, and so a locale body stays the body alone.
 ]]
--- Format: |cff[INFO]Add-on Name|r |cff[SEPARATOR]//|r |cff[TEXT]Message|r
 function ns:BuildBrandedLine(message)
 	return GetColor("INFO")
 		.. L["ADDON_TITLE"]

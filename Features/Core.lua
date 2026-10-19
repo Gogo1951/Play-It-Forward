@@ -5,8 +5,9 @@ local L = ns.L
 ns.name = ADDON_NAME
 
 --[[
-	The TOC ships the literal token @project-version@ and the CurseForge packager replaces it at
-	build time, so a version still carrying an @ is an unpackaged dev copy.
+	The TOC's Version field holds the packager's version token until a release build fills it in,
+	so a version still carrying an @ is an unpackaged dev copy. Never write the token out here:
+	the packager replaces it in every file, comments included.
 ]]
 local function GetVersion()
 	local version = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version")
@@ -99,10 +100,19 @@ local function OnAddonLoaded(name)
 end
 ns.on("ADDON_LOADED", OnAddonLoaded)
 
-local function OnPlayerLogin()
+-- Once per install or update. welcomeVersion is global so a new character or a reset never repeats it.
+local function PrintWelcome()
 	if not ns.db.profile.showWelcome then
 		return
 	end
+	if ns.Version == ns.db.global.welcomeVersion then
+		return
+	end
 	ns:PrintMessage(L["CHAT_LOADED"]:format(ns.Version))
+	ns.db.global.welcomeVersion = ns.Version
+end
+
+local function OnPlayerLogin()
+	PrintWelcome()
 end
 ns.on("PLAYER_LOGIN", OnPlayerLogin)

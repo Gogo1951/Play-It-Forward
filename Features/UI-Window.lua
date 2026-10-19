@@ -31,6 +31,10 @@ local INSET_TEMPLATE = ns.PickTemplate("InsetFrameTemplate3", "InsetFrameTemplat
 
 local rows = {}
 
+-- Tooltip line colors, unpacked once: GetColorRGB mid-argument-list would keep only its first value.
+local BODY_R, BODY_G, BODY_B = ns.GetColorRGB("BODY")
+local HELP_R, HELP_G, HELP_B = ns.GetColorRGB("HELP")
+
 -- Sized to their longest value: "Epic & Lower" and "Outgrown by 20+ Levels".
 local RARITY_WIDTH = 130
 local GAP_WIDTH = 200
@@ -88,7 +92,7 @@ local function buildToggle(parent, text, colorKey, tooltipKey)
 	check:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:SetText(text, ns.GetColorRGB("TITLE"))
-		GameTooltip:AddLine(L[tooltipKey], 1, 1, 1, true)
+		GameTooltip:AddLine(L[tooltipKey], BODY_R, BODY_G, BODY_B, true)
 		GameTooltip:Show()
 	end)
 	check:SetScript("OnLeave", function()
@@ -174,7 +178,7 @@ function UI:_buildFrame()
 	--[[
 		The giftability controls, the same set the options panel carries and drawing the same
 		locale strings. Consumables leads on the left with its level rule beside it and its four
-		kind ticks beneath; Gear sits on the right with its rarity cap (README-Notes.md). Each
+		kind ticks beneath; Gear sits on the right with its rarity cap. Each
 		dropdown value states what it means ("Rare & Lower", "Outgrown by 20+ Levels"), so the
 		window cannot word a setting differently to the panel. A dropdown hides while its tick is
 		off, as its select does in the panel.
@@ -480,7 +484,7 @@ local function getRow(i)
 			return
 		end
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine(text, 1, 1, 1, true)
+		GameTooltip:AddLine(text, BODY_R, BODY_G, BODY_B, true)
 		GameTooltip:Show()
 	end)
 	row.check:SetScript("OnLeave", function()
@@ -535,17 +539,17 @@ local function getRow(i)
 			reason = L["TOOLTIP_RECIPIENT_KEPT"]
 		end
 		if reason then
-			GameTooltip:AddLine(reason, 1, 1, 1, true)
+			GameTooltip:AddLine(reason, BODY_R, BODY_G, BODY_B, true)
 			GameTooltip:Show()
 			return
 		end
 		GameTooltip:AddLine(
 			L["TOOLTIP_RECIPIENT_CANDIDATES"]:format(#UI:_candidates(item), item.bandLo or 0, item.bandHi or 0),
-			1,
-			1,
-			1
+			BODY_R,
+			BODY_G,
+			BODY_B
 		)
-		GameTooltip:AddLine(L["TOOLTIP_RECIPIENT_HINT"], 0.6, 0.6, 0.6)
+		GameTooltip:AddLine(L["TOOLTIP_RECIPIENT_HINT"], HELP_R, HELP_G, HELP_B)
 		GameTooltip:Show()
 	end)
 	button:SetScript("OnLeave", function()
