@@ -181,8 +181,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 L["OPTIONS_DESCRIPTION"] =
 	"더 이상 쓰지 않는 장비와 소모품을 고마워할 길드원이나 낯선 이에게 보내세요. 모든 아이템은 가장 잘 맞는 직업에 배정되어, 가방 속 잊힌 잡동사니가 누군가의 다음 업그레이드가 됩니다. 녹색 아이템 하나씩, 받은 만큼 베푸세요."
 L["OPTIONS_WELCOME"] = "환영 메시지 사용"
-L["OPTIONS_WELCOME_DESCRIPTION"] =
-	"설치하거나 업데이트한 뒤 처음 접속할 때 버전과 설정 안내를 표시합니다."
+L["OPTIONS_WELCOME_DESCRIPTION"] = "접속할 때 버전과 설정 안내를 표시합니다."
 
 L["OPTIONS_COMMANDS_HEADER"] = "/명령어"
 L["OPTIONS_COMMAND"] = "/pif"

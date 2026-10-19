@@ -175,8 +175,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 L["OPTIONS_DESCRIPTION"] =
 	"Send the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time."
 L["OPTIONS_WELCOME"] = "Enable Welcome Message"
-L["OPTIONS_WELCOME_DESCRIPTION"] =
-	"Print the version and settings reminder the first time you log in after installing or updating."
+L["OPTIONS_WELCOME_DESCRIPTION"] = "Print the version and settings reminder when you log in."
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMAND"] = "/pif"

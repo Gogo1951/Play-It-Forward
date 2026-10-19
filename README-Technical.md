@@ -104,7 +104,7 @@ Play-It-Forward/
 | Event | Registered in | Purpose |
 |---|---|---|
 | `ADDON_LOADED` | `Core.lua` | Name-guarded. Creates `PlayItForwardDB`, runs the dated migration, wires `ns:ApplyProfile` to the profile callbacks, calls `ns:RegisterOptionsPanels`. |
-| `PLAYER_LOGIN` | `Core.lua` | Welcome print, when `profile.showWelcome` is on and `ns.Version` differs from `global.welcomeVersion`, which it then stores. |
+| `PLAYER_LOGIN` | `Core.lua` | Welcome print, when `profile.showWelcome` is on. |
 | `PLAYER_LOGIN` | `UI-Mailbox.lua` | Hooks `MailFrame` `OnShow` (opens the mailbox flow) and `OnHide` (rechecks Distribute). |
 | `MAIL_SHOW` / `MAIL_CLOSED` | `UI-Mailbox.lua` | Mailbox open and close, every flavor. |
 | `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` / `_HIDE` | `UI-Mailbox.lua` | The same signal, filtered to `Enum.PlayerInteractionType.MailInfo` (17 where the enum is missing). Behind an `ns.FLAVOR ~= "Vanilla"` gate, so Classic Era never registers them. |
@@ -418,9 +418,9 @@ The README-Notes exception keeps two additions to Magic Eraser's framework: an A
 
 One table, `PlayItForwardDB`, created in the name-guarded `ADDON_LOADED` handler with `LibStub("AceDB-3.0"):New("PlayItForwardDB", ns.DATABASE_DEFAULTS, true)`.
 
-**The model is Simple.** Nothing the add-on stores differs from character to character, so every character shares the `"Default"` profile (that third argument `true`). **Reset Profile restores every setting to its install default, and leaves `global` untouched: the giving tally and the welcome stamp.** A new setting goes in `profile`; only reset-proof state belongs in `global`.
+**The model is Simple.** Nothing the add-on stores differs from character to character, so every character shares the `"Default"` profile (that third argument `true`). **Reset Profile restores every setting to its install default, and leaves `global` untouched: the giving tally.** A new setting goes in `profile`; only reset-proof state belongs in `global`.
 
-`profile` holds the presentation and giftability settings (`showWelcome`, `shareStats`, `maxRarity`, `includeGear`, `includeConsumables`, `consumableKinds`, `consumableLevelGap`) and the dragged `windowPos`. `global.stats` holds the four tally counters, written only by `ns.Generosity:RecordSend`. `global.welcomeVersion` is the last `ns.Version` the welcome printed for, written by `PrintWelcome` in `Features/Core.lua` and absent from the defaults; it is global so a new character or a profile reset never repeats the message. Read `Data/Default-Settings.lua` for the current shape and defaults. `consumableLevelGap` of 0 is a sentinel, the All Consumables stop, which lifts the level test outright.
+`profile` holds the presentation and giftability settings (`showWelcome`, `shareStats`, `maxRarity`, `includeGear`, `includeConsumables`, `consumableKinds`, `consumableLevelGap`) and the dragged `windowPos`. `global.stats` holds the four tally counters, written only by `ns.Generosity:RecordSend`. Read `Data/Default-Settings.lua` for the current shape and defaults. `consumableLevelGap` of 0 is a sentinel, the All Consumables stop, which lifts the level test outright.
 
 AceDB applies `ns.DATABASE_DEFAULTS` when a scope is first accessed, never overriding an explicit user value including `false`; scalar and table defaults are copied into the saved table, and `removeDefaults` strips any key still equal to its default on logout, so an untouched profile saves empty. A key removed from `ns.DATABASE_DEFAULTS` is never visited by that cleanup, so retiring one takes an explicit nil inside a tagged migration.
 
@@ -463,7 +463,7 @@ Not settings, on purpose: the rarity floor `ns.Data.MIN_RARITY` (Uncommon, gear 
 
 ## Adding a New Options Control
 
-1. Add its key and default to `ns.DATABASE_DEFAULTS.profile` in `Data/Default-Settings.lua`. Under the Simple model every setting lives on the profile; `global` holds only the giving tally and the welcome stamp.
+1. Add its key and default to `ns.DATABASE_DEFAULTS.profile` in `Data/Default-Settings.lua`. Under the Simple model every setting lives on the profile; `global` holds only the giving tally.
 2. Add the widget to `ns.BuildGeneralOptions` in `Options/Options-General.lua` with the `ns.OptionsHeader`, `ns.OptionsDesc`, `ns.OptionsSpacer` and `ns.OptionsRowLabel` constructors from `Options/Options-Utilities.lua`. Its explanation goes in `desc`, never a second line under it. Follow the spacer rule under The Options Panel → Layout.
 3. Add its strings to `Locales/enUS.lua` only.
 4. If it changes what counts as giftable, call `refreshWindow()` from its setter, and mirror it in the window's top bar only if the bar already shows its section.
