@@ -183,51 +183,126 @@ function Matcher:SearchBand(item, classes)
 end
 
 --[[
-	The bands one targeted search should ask for, best first: the classes the verdict says the item
-	is FOR, then everybody admitted behind them.
-
-	CONTENDERS LEAD. A lone contender is the only shape /who can be filtered on --
-	the client honors one c-"..." and drops the rest -- so leading with it is what turns this into
-	a query for hunters instead of the unfiltered one the main button already sent. The fallbacks
-	keep their own group behind it and are still asked for, one press later.
+	The classes one targeted search asks for, best first: the contenders the verdict says the item
+	is FOR, then everybody admitted behind them. Each half sorts the way RankCandidates breaks a
+	level tie -- armor group, then fit -- so the class most likely to take the row is asked
+	first: on "of the Bear" plate, the warrior ahead of the paladin, who ranks only part of it.
 ]]
-function Matcher:TargetedBands(item)
+function Matcher:TargetedClasses(item)
 	local verdict = self:VerdictFor(item)
 	local admitted = (#verdict.admitted > 0) and verdict.admitted or verdict.eligible
 	local contenders = (#(verdict.contenders or {}) > 0) and verdict.contenders or admitted
 
-	local leads = {}
+	local leads, behind = {}, {}
 	for _, class in ipairs(contenders) do
 		leads[class] = true
 	end
-	local behind = {}
 	for _, class in ipairs(admitted) do
 		if not leads[class] then
 			behind[#behind + 1] = class
 		end
 	end
 
-	local groups = self:BandGroups(item, contenders)
-	for _, group in ipairs(self:BandGroups(item, behind)) do
-		--[[
-			Folded back into the leaders' group when they share a band and there is more than one
-			of them: two classes carry no class filter either way, so a separate group would spend
-			a whole press on a query identical to the one in front of it.
-		]]
-		local merged
-		for _, lead in ipairs(groups) do
-			if lead.lo == group.lo and lead.hi == group.hi and #lead.classes > 1 then
-				merged = lead
-				break
-			end
+	local function ranked(list)
+		local out, position = {}, {}
+		for index, class in ipairs(list) do
+			out[index], position[class] = class, index
 		end
-		if merged then
-			for _, class in ipairs(group.classes) do
-				merged.classes[#merged.classes + 1] = class
+		table.sort(out, function(a, b)
+			local tierA, tierB = self:Priority(item, a), self:Priority(item, b)
+			if tierA ~= tierB then
+				return tierA < tierB
 			end
-		else
-			groups[#groups + 1] = group
-		end
+			local fitA, fitB = verdict.fits[a] or 0, verdict.fits[b] or 0
+			if fitA ~= fitB then
+				return fitA > fitB
+			end
+			return position[a] < position[b] -- stable: the verdict's own order among equals
+		end)
+		return out
+	end
+
+	local out = ranked(contenders)
+	for _, class in ipairs(ranked(behind)) do
+		out[#out + 1] = class
+	end
+	return out
+end
+
+--[[
+	The bands one targeted search should ask for, best first: ONE CLASS PER GROUP, in the order
+	TargetedClasses puts them. A lone class is the only shape /who can be filtered on -- the
+	client honors one c-"..." and drops the rest -- and a class filter reaches everybody of that
+	class wherever they stand, where a zone filter misses anyone in a dungeon, a battleground or
+	a zone the table does not list. Observed live (2026-10-10): a 54 warrior in Sunken Temple, the
+	best fit for a pair of "of the Bear" gauntlets, never turned up while the search asked the
+	unfiltered zones its two plate contenders shared.
+
+	A consumable keeps its classes in one group: every class wants it equally, so splitting by
+	class orders nothing and only multiplies the presses.
+]]
+function Matcher:TargetedBands(item)
+	local classes = self:TargetedClasses(item)
+	if item.kind == "consumable" then
+		return self:BandGroups(item, classes)
+	end
+
+	local groups = {}
+	for _, class in ipairs(classes) do
+		local lo, hi = self:LevelBand(item, class)
+		groups[#groups + 1] = { lo = lo, hi = hi, classes = { class } }
 	end
 	return groups
+end
+
+-- The level RankCandidates measures this class's proximity against: the top of its band for gear, the bottom for a consumable.
+local function anchorFor(matcher, item, classToken)
+	local lo, hi = matcher:LevelBand(item, classToken)
+	return (item.kind == "consumable") and lo or hi
+end
+
+--[[
+	Whether somebody of this class, standing at that class's own anchor, would sort ahead of
+	person under RankCandidates: bucket, then distance from each one's own anchor, then group,
+	then fit. A tie never outranks -- past it only the guild flag and the coin flip are left. A
+	class the verdict did not admit never ranks at all; nobody holding the row is outranked by
+	every class that did.
+
+	What a targeted search stops on: an attempt for a class that cannot outrank the holder can
+	only turn up somebody who ties or loses, and is not worth a press.
+]]
+function Matcher:CouldOutrank(item, person, classToken)
+	local verdict = self:VerdictFor(item)
+	local admitted, contenders = false, {}
+	for _, class in ipairs(verdict.admitted) do
+		if class == classToken then
+			admitted = true
+			break
+		end
+	end
+	if not admitted then
+		return false
+	end
+	if not (person and person.class and person.level) then
+		return true
+	end
+
+	for _, class in ipairs(verdict.contenders or {}) do
+		contenders[class] = true
+	end
+	local bucket = contenders[classToken] and 1 or 2
+	local heldBucket = contenders[person.class] and 1 or 2
+	if bucket ~= heldBucket then
+		return bucket < heldBucket
+	end
+
+	if person.level ~= anchorFor(self, item, person.class) then
+		return true
+	end
+
+	local tier, heldTier = self:Priority(item, classToken), self:Priority(item, person.class)
+	if tier ~= heldTier then
+		return tier < heldTier
+	end
+	return (verdict.fits[classToken] or 0) > (verdict.fits[person.class] or 0)
 end

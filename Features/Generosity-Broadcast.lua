@@ -97,6 +97,21 @@ function Generosity:LastSends()
 end
 
 --[[
+	What the last send answered: the pcall's ok, then the API's own first return as text, or
+	nil before any send. A refused channel comes back as a result here rather than an error, and
+	nothing else would show it, since the send is otherwise fire-and-forget.
+]]
+Generosity.lastSendResult = nil
+
+local function send(payload)
+	if not SendAddonMessage then
+		return
+	end
+	local ok, result = pcall(SendAddonMessage, PREFIX, payload, CHANNEL)
+	Generosity.lastSendResult = { ok = ok, result = tostring(result) }
+end
+
+--[[
 	Send our totals, if sharing is on. Versioned payload "1|S|gifts|items|itemLevels|value" from
 	Get. A share-on user with zero gifts still broadcasts, so presence shows before their first gift.
 	Throttled so nothing that calls this can exceed one send per BROADCAST_MIN_INTERVAL, which is
@@ -120,10 +135,7 @@ function Generosity:Broadcast()
 	end
 	lastBroadcast = now
 	local gifts, items, itemLevels, value = self:Get()
-	local payload = table.concat({ PAYLOAD_VERSION, "S", gifts, items, itemLevels, value }, "|")
-	if SendAddonMessage then
-		pcall(SendAddonMessage, PREFIX, payload, CHANNEL)
-	end
+	send(table.concat({ PAYLOAD_VERSION, "S", gifts, items, itemLevels, value }, "|"))
 end
 
 --[[
@@ -135,9 +147,7 @@ function Generosity:Ping()
 	if not ns.AtRest() then
 		return
 	end
-	if SendAddonMessage then
-		pcall(SendAddonMessage, PREFIX, PAYLOAD_VERSION .. "|?", CHANNEL)
-	end
+	send(PAYLOAD_VERSION .. "|?")
 end
 
 --[[

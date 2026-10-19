@@ -9,7 +9,7 @@ end
 
 L["ADDON_TITLE"] = "Play It Forward"
 L["CHAT_LOADED"] =
-	"버전 %s. 설정(이 메시지를 끄는 옵션 포함)은 설정 > 애드온 > Play It Forward에서 찾을 수 있습니다. 애드온이 마음에 드시나요? 친구에게 알려 주세요! (="
+	"버전 %s. 설정(이 메시지를 끄는 옵션 포함)은 설정 > 애드온 > Play It Forward에 있습니다. 이 애드온이 마음에 드시나요? 친구에게 알려 주시거나, CurseForge에서 즐겨찾기하거나, GitHub에서 Star를 눌러 주세요. (="
 L["CHAT_OPTIONS_IN_COMBAT"] = "안전을 위해 전투 중에는 설정 창을 열 수 없습니다."
 
 --------------------------------------------------------------------------------
@@ -119,7 +119,7 @@ L["TOOLTIP_CHECK_WAITING"] =
 	along with WHO_BLOCKED, PICKER_NONE_IN_RANGE, PICKER_FIND_FOR_ITEM and TOOLTIP_CHECK_SEND above,
 	which name those buttons too.
 ]]
-L["MAIL_STILL_SENDING"] = "아직 보내는 중입니다. 잠시만 기다리세요."
+L["MAIL_STILL_SENDING"] = "아직 보내는 중입니다. 잠깐만 기다려 주세요."
 L["MAIL_NOTHING_TO_DISTRIBUTE"] = "나눠 줄 것이 없습니다."
 L["MAIL_DISTRIBUTING"] = "아이템 %d개를 보내려면 각 확인 창에서 수락을 클릭하세요."
 L["MAIL_ITEM_MOVED"] =
@@ -134,7 +134,7 @@ L["MAIL_NO_POSTAGE"] =
 L["MAIL_PANEL_CLOSED"] =
 	"Blizzard 기본 우편 보내기 창을 열고 나눠 주기를 다시 누르세요. 아무것도 보내거나 건드리지 않았습니다."
 L["MAIL_PANEL_CLOSED_HINT"] =
-	"TSM을 사용한다면 이 작업에는 기본 우편 UI로 전환하세요. TSM 우편함은 첨부를 받지 않습니다."
+	"TSM을 사용한다면 이 작업에는 Blizzard 기본 우편 보내기 창으로 전환하세요. TSM 우편함은 첨부를 받지 않습니다."
 L["MAIL_ATTACH_FAILED"] = "%s 첨부에 실패하여 보내지 않았습니다."
 L["MAIL_AWAITING_CONFIRM"] =
 	"%s 확인 창에서 수락을 클릭한 뒤 나눠 주기를 눌러 나머지를 보내세요."
@@ -175,13 +175,14 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 	.. "Happy adventuring!"
 
 --------------------------------------------------------------------------------
--- Options Panel
+-- Options: General Panel
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
 	"더 이상 쓰지 않는 장비와 소모품을 고마워할 길드원이나 낯선 이에게 보내세요. 모든 아이템은 가장 잘 맞는 직업에 배정되어, 가방 속 잊힌 잡동사니가 누군가의 다음 업그레이드가 됩니다. 녹색 아이템 하나씩, 받은 만큼 베푸세요."
 L["OPTIONS_WELCOME"] = "환영 메시지 사용"
-L["OPTIONS_WELCOME_DESCRIPTION"] = "접속할 때 버전과 설정 안내를 표시합니다."
+L["OPTIONS_WELCOME_DESCRIPTION"] =
+	"설치하거나 업데이트한 뒤 처음 접속할 때 버전과 설정 안내를 표시합니다."
 
 L["OPTIONS_COMMANDS_HEADER"] = "/명령어"
 L["OPTIONS_COMMAND"] = "/pif"
@@ -241,9 +242,30 @@ L["OPTIONS_SHARE_STATS"] = "베풂 툴팁 사용"
 L["OPTIONS_SHARE_STATS_DESCRIPTION"] =
 	"도시와 여관에서 근처 플레이어가 내 툴팁에서 합계를 볼 수 있습니다. 끄면 공유가 멈추지만 다른 사람의 합계는 계속 보이며, 아래의 내 합계는 어느 쪽이든 계속 집계됩니다."
 
-L["OPTIONS_FEEDBACK_HEADER"] = "피드백 및 지원"
-L["OPTIONS_DISCORD"] = "Discord"
-L["OPTIONS_GITHUB"] = "GitHub"
+--------------------------------------------------------------------------------
+-- Options: Feedback & Support Panel
+--------------------------------------------------------------------------------
+
+L["OPTIONS_LEVEL_UP_TITLE"] = "Play It Forward의 레벨 업을 도와주세요"
+L["OPTIONS_LEVEL_UP_INTRO"] =
+	"이 애드온은 이 게임을 사랑하고 모두가 최대한 즐겁게 플레이하길 바라는 플레이어들이 만들었습니다. 저희는 절대 후원을 요청하지 않습니다. 저희 작업이 여러분의 게임을 조금 더 즐겁게 만든다는 것이 진정한 보람입니다. 그렇다면 꼭 알려 주세요!"
+L["OPTIONS_LEVEL_UP_WAYS"] =
+	"더 많은 플레이어에게 다가갈 수 있도록 도와주실 방법이 몇 가지 있습니다."
+L["OPTIONS_LEVEL_UP_FEEDBACK"] =
+	"• 피드백 공유: 버그를 찾았거나 아이디어가 있으신가요? Discord에서 알려 주세요. 여러분의 피드백은 애드온 개선에 도움이 되며, 풀 리퀘스트는 언제나 환영합니다."
+L["OPTIONS_LEVEL_UP_FRIEND"] =
+	"• 친구에게 알리기: 이 애드온을 좋아할 만한 사람을 알고 계신가요? 소개해 주세요. 입소문은 더 많은 플레이어가 좋은 애드온을 발견하는 데 도움이 됩니다."
+L["OPTIONS_LEVEL_UP_CURSEFORGE"] =
+	"• CurseForge 즐겨찾기: 아래 CurseForge 링크를 열고 로그인한 뒤 Download 버튼 아래의 별을 클릭하세요. 즐겨찾기는 더 많은 플레이어가 애드온을 발견하는 데 도움이 됩니다."
+L["OPTIONS_LEVEL_UP_GITHUB"] =
+	"• GitHub Star: 아래 GitHub 링크를 열고 로그인한 뒤 오른쪽 위의 Star를 클릭하세요. Star는 프로젝트가 더 많은 무료 개발자 도구를 받을 자격을 얻는 데 도움이 됩니다."
+L["OPTIONS_LEVEL_UP_THANKS"] = "Play It Forward를 선택해 주셔서 감사합니다!"
+
+L["OPTIONS_FEEDBACK"] = "피드백 및 지원"
+L["OPTIONS_FEEDBACK_LINKS_HEADER"] = "피드백 및 지원 링크"
 L["OPTIONS_CURSEFORGE"] = "CurseForge"
+L["OPTIONS_GITHUB"] = "GitHub"
+L["OPTIONS_DISCORD"] = "Discord"
 L["OPTIONS_WAGO"] = "Wago"
+L["OPTIONS_COPY_LINK"] = "링크를 복사하려면 상자를 클릭한 다음 Ctrl+A, Ctrl+C를 누르세요."
 L["OPTIONS_VERSION"] = "버전 %s"

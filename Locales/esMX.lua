@@ -9,7 +9,7 @@ end
 
 L["ADDON_TITLE"] = "Play It Forward"
 L["CHAT_LOADED"] =
-	"Versión %s. Los ajustes (incluida la opción de desactivar este mensaje) están en Opciones > Accesorios > Play It Forward. ¿Te gusta el accesorio? ¡Cuéntaselo a un amigo! (="
+	"Versión %s. Los ajustes (incluida la opción de desactivar este mensaje) están en Opciones > Accesorios > Play It Forward. ¿Te gusta este accesorio? Cuéntaselo a un amigo, márcalo como favorito en CurseForge o dale una Star en GitHub. (="
 L["CHAT_OPTIONS_IN_COMBAT"] = "Por precaución, la interfaz de opciones no se puede abrir en combate."
 
 --------------------------------------------------------------------------------
@@ -118,7 +118,7 @@ L["TOOLTIP_CHECK_WAITING"] = "Se asigna en cuanto una búsqueda encuentre a algu
 	along with WHO_BLOCKED, PICKER_NONE_IN_RANGE, PICKER_FIND_FOR_ITEM and TOOLTIP_CHECK_SEND above,
 	which name those buttons too.
 ]]
-L["MAIL_STILL_SENDING"] = "Aún enviando, dame un momento."
+L["MAIL_STILL_SENDING"] = "Aún enviando. Dame un segundo."
 L["MAIL_NOTHING_TO_DISTRIBUTE"] = "Nada que repartir."
 L["MAIL_DISTRIBUTING"] = "Haz clic en Aceptar en cada ventana de confirmación para enviar %d objeto(s)."
 L["MAIL_ITEM_MOVED"] = "Presiona Buscar destinatarios para volver a escanear. %s se movió en tus bolsas."
@@ -131,7 +131,7 @@ L["MAIL_NO_POSTAGE"] = "Agrega un poco de cobre para el franqueo y luego presion
 L["MAIL_PANEL_CLOSED"] =
 	"Abre el panel de envío de correo de Blizzard y presiona Repartir otra vez. No se envió ni se tocó nada."
 L["MAIL_PANEL_CLOSED_HINT"] =
-	"Si usas TSM, cambia a la interfaz de correo predeterminada para esto. El buzón de TSM no acepta adjuntos."
+	"Si usas TSM, cambia al panel de envío de correo de Blizzard para esto. El buzón de TSM no acepta adjuntos."
 L["MAIL_ATTACH_FAILED"] = "No se pudo adjuntar %s, así que no se envió."
 L["MAIL_AWAITING_CONFIRM"] = "Haz clic en Aceptar en la ventana de %s y luego presiona Repartir para enviar el resto."
 L["MAIL_SENT"] = "Enviado %s a %s (%d/%d)."
@@ -171,13 +171,14 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 	.. "Happy adventuring!"
 
 --------------------------------------------------------------------------------
--- Options Panel
+-- Options: General Panel
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
 	"Envía el equipo y los consumibles que ya has superado a compañeros de hermandad o desconocidos que sabrán apreciarlos. Cada objeto se asigna a la clase a la que mejor le va, y el desorden olvidado de tus bolsas se convierte en la próxima mejora de otra persona. Pásalo, un objeto verde cada vez."
 L["OPTIONS_WELCOME"] = "Activar mensaje de bienvenida"
-L["OPTIONS_WELCOME_DESCRIPTION"] = "Muestra la versión y el recordatorio de ajustes al iniciar sesión."
+L["OPTIONS_WELCOME_DESCRIPTION"] =
+	"Muestra la versión y el recordatorio de ajustes la primera vez que inicias sesión después de instalar o actualizar."
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Comandos"
 L["OPTIONS_COMMAND"] = "/pif"
@@ -236,9 +237,29 @@ L["OPTIONS_SHARE_STATS"] = "Activar descripciones de generosidad"
 L["OPTIONS_SHARE_STATS_DESCRIPTION"] =
 	"Los jugadores cerca de ti en ciudades y posadas pueden ver tus totales en tu descripción emergente. Al desactivarlo dejas de compartirlos, pero sigues viendo los suyos, y tus propios totales de abajo siguen sumando de todos modos."
 
-L["OPTIONS_FEEDBACK_HEADER"] = "Comentarios y soporte"
-L["OPTIONS_DISCORD"] = "Discord"
-L["OPTIONS_GITHUB"] = "GitHub"
+--------------------------------------------------------------------------------
+-- Options: Feedback & Support Panel
+--------------------------------------------------------------------------------
+
+L["OPTIONS_LEVEL_UP_TITLE"] = "Ayuda a Play It Forward a subir de nivel"
+L["OPTIONS_LEVEL_UP_INTRO"] =
+	"Este accesorio lo crearon jugadores que aman este juego y quieren hacerlo lo más divertido posible para todos. Nunca pediremos donaciones. La verdadera satisfacción es saber que nuestro trabajo hace el juego un poco mejor para ti. Si es así, ¡nos encantaría saberlo!"
+L["OPTIONS_LEVEL_UP_WAYS"] = "Estas son algunas formas de ayudarnos a llegar a más jugadores."
+L["OPTIONS_LEVEL_UP_FEEDBACK"] =
+	"• Comparte tu opinión: ¿Encontraste un error o tienes una idea? Avísanos en Discord. Tus comentarios nos ayudan a mejorar el accesorio, y los pull requests siempre son bienvenidos."
+L["OPTIONS_LEVEL_UP_FRIEND"] =
+	"• Cuéntaselo a un amigo: ¿Conoces a alguien a quien le podría gustar este accesorio? Háblale de él. El boca a boca ayuda a más jugadores a descubrir grandes accesorios."
+L["OPTIONS_LEVEL_UP_CURSEFORGE"] =
+	"• Favorito en CurseForge: Abre el enlace de CurseForge de abajo, inicia sesión y haz clic en la estrella debajo del botón Download. Los favoritos ayudan a más jugadores a descubrir el accesorio."
+L["OPTIONS_LEVEL_UP_GITHUB"] =
+	"• Star en GitHub: Abre el enlace de GitHub de abajo, inicia sesión y haz clic en Star arriba a la derecha. Las estrellas ayudan al proyecto a calificar para más herramientas gratuitas para desarrolladores."
+L["OPTIONS_LEVEL_UP_THANKS"] = "¡Gracias por elegir Play It Forward!"
+
+L["OPTIONS_FEEDBACK"] = "Comentarios y soporte"
+L["OPTIONS_FEEDBACK_LINKS_HEADER"] = "Enlaces de comentarios y soporte"
 L["OPTIONS_CURSEFORGE"] = "CurseForge"
+L["OPTIONS_GITHUB"] = "GitHub"
+L["OPTIONS_DISCORD"] = "Discord"
 L["OPTIONS_WAGO"] = "Wago"
+L["OPTIONS_COPY_LINK"] = "Para copiar un enlace, haz clic en su casilla y presiona Ctrl+A y Ctrl+C."
 L["OPTIONS_VERSION"] = "Versión %s"

@@ -9,7 +9,7 @@ end
 
 L["ADDON_TITLE"] = "Play It Forward"
 L["CHAT_LOADED"] =
-	"Version %s. Settings (including the option to disable this message) can be found under Options > AddOns > Play It Forward. Enjoying the add-on? Tell a friend about it! (="
+	"Version %s. Settings (including the option to disable this message) are under Options > AddOns > Play It Forward. Enjoying this add-on? Tell a friend, Favorite it on CurseForge, or Star it on GitHub. (="
 L["CHAT_OPTIONS_IN_COMBAT"] = "As a safety precaution, the Options Interface cannot be opened during combat."
 
 --------------------------------------------------------------------------------
@@ -118,7 +118,7 @@ L["TOOLTIP_CHECK_WAITING"] = "Matched as soon as a search finds someone. Untick 
 	along with WHO_BLOCKED, PICKER_NONE_IN_RANGE, PICKER_FIND_FOR_ITEM and TOOLTIP_CHECK_SEND above,
 	which name those buttons too.
 ]]
-L["MAIL_STILL_SENDING"] = "Still sending, give it a sec."
+L["MAIL_STILL_SENDING"] = "Still sending. Give it a sec."
 L["MAIL_NOTHING_TO_DISTRIBUTE"] = "Nothing to distribute."
 L["MAIL_DISTRIBUTING"] = "Click Accept on each confirmation popup to send %d item(s)."
 L["MAIL_ITEM_MOVED"] = "Press Find Recipients to re-scan. %s moved in your bags."
@@ -129,7 +129,7 @@ L["MAIL_MAILBOX_CLOSED"] = "Open a mailbox and press Distribute to send the rest
 L["MAIL_NO_POSTAGE"] = "Add a little copper for postage, then press Distribute to send the rest."
 L["MAIL_PANEL_CLOSED"] = "Open Blizzard's Send Mail panel and press Distribute again. Nothing was sent or touched."
 L["MAIL_PANEL_CLOSED_HINT"] =
-	"If you use TSM, switch to the default mail UI for this. TSM's mailbox doesn't accept attachments."
+	"If you use TSM, switch to Blizzard's Send Mail panel for this. TSM's mailbox doesn't accept attachments."
 L["MAIL_ATTACH_FAILED"] = "Couldn't attach %s, so it wasn't sent."
 L["MAIL_AWAITING_CONFIRM"] = "Click Accept on the popup for %s, then press Distribute to send the rest."
 L["MAIL_SENT"] = "Sent %s to %s (%d/%d)."
@@ -169,13 +169,14 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 	.. "Happy adventuring!"
 
 --------------------------------------------------------------------------------
--- Options Panel
+-- Options: General Panel
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
 	"Send the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time."
 L["OPTIONS_WELCOME"] = "Enable Welcome Message"
-L["OPTIONS_WELCOME_DESCRIPTION"] = "Print the version and settings reminder when you log in."
+L["OPTIONS_WELCOME_DESCRIPTION"] =
+	"Print the version and settings reminder the first time you log in after installing or updating."
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMAND"] = "/pif"
@@ -233,9 +234,29 @@ L["OPTIONS_SHARE_STATS"] = "Enable Generosity Tooltips"
 L["OPTIONS_SHARE_STATS_DESCRIPTION"] =
 	"Players near you in cities and inns can see your totals on your tooltip. Turning this off stops sharing, but you still see theirs, and your own totals below keep counting either way."
 
-L["OPTIONS_FEEDBACK_HEADER"] = "Feedback & Support"
-L["OPTIONS_DISCORD"] = "Discord"
-L["OPTIONS_GITHUB"] = "GitHub"
+--------------------------------------------------------------------------------
+-- Options: Feedback & Support Panel
+--------------------------------------------------------------------------------
+
+L["OPTIONS_LEVEL_UP_TITLE"] = "Help Play It Forward Level Up"
+L["OPTIONS_LEVEL_UP_INTRO"] =
+	"This add-on was built by players who love this game and want to make it as fun as possible for everyone. We'll never ask for donations. The real satisfaction comes from knowing our work makes the game a little better for you. If it does, we'd love to hear about it!"
+L["OPTIONS_LEVEL_UP_WAYS"] = "Here are a few ways you can help us reach more players."
+L["OPTIONS_LEVEL_UP_FEEDBACK"] =
+	"• Share Feedback: Found a bug or have an idea? Let us know on Discord. Your feedback helps us improve the add-on, and pull requests are always welcome."
+L["OPTIONS_LEVEL_UP_FRIEND"] =
+	"• Tell a Friend: Know someone who might enjoy this add-on? Tell them about it. Word of mouth helps more players discover great add-ons."
+L["OPTIONS_LEVEL_UP_CURSEFORGE"] =
+	"• Favorite on CurseForge: Open the CurseForge link below, sign in, and click the star beneath the Download button. Favorites help more players discover the add-on."
+L["OPTIONS_LEVEL_UP_GITHUB"] =
+	"• Star on GitHub: Open the GitHub link below, sign in, and click Star in the top right. Stars help the project qualify for more free developer tools."
+L["OPTIONS_LEVEL_UP_THANKS"] = "Thanks for choosing Play It Forward!"
+
+L["OPTIONS_FEEDBACK"] = "Feedback & Support"
+L["OPTIONS_FEEDBACK_LINKS_HEADER"] = "Feedback & Support Links"
 L["OPTIONS_CURSEFORGE"] = "CurseForge"
+L["OPTIONS_GITHUB"] = "GitHub"
+L["OPTIONS_DISCORD"] = "Discord"
 L["OPTIONS_WAGO"] = "Wago"
+L["OPTIONS_COPY_LINK"] = "To copy a link, click its box, then press Ctrl+A and Ctrl+C."
 L["OPTIONS_VERSION"] = "Version %s"

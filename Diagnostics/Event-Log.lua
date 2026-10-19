@@ -117,7 +117,7 @@ function ns:StopEventLog()
 end
 
 --[[
-    Called by Core's central dispatcher for every event while logging is active.
+    One entry in the buffer, for ns:LogEvent and ns:LogEventNow below.
     Snapshots arguments to strings immediately -- never retain references, since
     some events carry frames or tables that would leak memory or go stale. Caps
     the arg count and per-argument byte length so a single entry can't run away.
@@ -127,13 +127,7 @@ end
     swatch. Escaping last also means the cut can never leave a dangling pipe that
     would eat the following ", " separator.
 ]]
-function ns:LogEvent(event, ...)
-	if ns.DIAGNOSTIC_EVENT_EXCLUDE[event] then
-		return
-	end
-	if ns:SuppressUncorrelatedMessage(event, ...) then
-		return
-	end
+local function AppendEntry(event, ...)
 	local log = ns.diagnostics.log
 	if not log then
 		return
@@ -150,6 +144,31 @@ function ns:LogEvent(event, ...)
 	if #log > EVENT_LOG_SIZE then
 		table.remove(log, 1)
 	end
+end
+
+-- Called by Core's central dispatcher for every event while logging is active.
+function ns:LogEvent(event, ...)
+	if ns.DIAGNOSTIC_EVENT_EXCLUDE[event] then
+		return
+	end
+	if ns:SuppressUncorrelatedMessage(event, ...) then
+		return
+	end
+	AppendEntry(event, ...)
+end
+
+--[[
+    The way back in for an excluded firehose that is sometimes signal: the
+    handler that decides a firing mattered calls this with the event and its
+    arguments, and it is recorded as the dispatcher would have, past the
+    exclude list. Feature code calls it, so it carries the dispatcher's own
+    single boolean check before any work.
+]]
+function ns:LogEventNow(event, ...)
+	if not ns.diagnostics.logging then
+		return
+	end
+	AppendEntry(event, ...)
 end
 
 --[[
@@ -178,9 +197,9 @@ local function AppendSuppressedSummary(lines)
 	end)
 
 	lines[#lines + 1] = ""
-	lines[#lines + 1] = "Suppressed, counted rather than logged (nothing the add-on acts on):"
+	lines[#lines + 1] = "Suppressed uncorrelated traffic:"
 	for _, entry in ipairs(entries) do
-		lines[#lines + 1] = string.format("  %s(%s, %s) x%d", entry.event, tostring(entry.id), entry.text, entry.count)
+		lines[#lines + 1] = string.format("%s(%s, %s) x%d", entry.event, tostring(entry.id), entry.text, entry.count)
 	end
 end
 

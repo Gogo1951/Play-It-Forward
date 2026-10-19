@@ -9,7 +9,7 @@ end
 
 L["ADDON_TITLE"] = "Play It Forward"
 L["CHAT_LOADED"] =
-	"Version %s. Les paramètres (y compris l'option pour désactiver ce message) se trouvent dans Options > AddOns > Play It Forward. Vous aimez cet add-on ? Parlez-en à un ami ! (="
+	"Version %s. Les paramètres (y compris l'option pour désactiver ce message) se trouvent dans Options > AddOns > Play It Forward. Vous aimez cet add-on ? Parlez-en à un ami, ajoutez-le à vos favoris sur CurseForge ou donnez-lui une Star sur GitHub. (="
 L["CHAT_OPTIONS_IN_COMBAT"] = "Par mesure de sécurité, l'interface des options ne peut pas être ouverte en combat."
 
 --------------------------------------------------------------------------------
@@ -69,7 +69,7 @@ L["WINDOW_KEPT"] = "Conservé"
 -- Row labels are Title Case, like the dropdown's own actions.
 L["ROW_NO_RECIPIENT"] = "Aucun destinataire"
 -- The section band's words, reordered as a row label, so one state is not named two ways.
-L["ROW_UNREADABLE"] = "Illisible"
+L["ROW_UNREADABLE"] = "Caractéristiques non lues"
 
 L["PICKER_KEEP_OPTION"] = "Garder l'objet"
 L["PICKER_NONE_IN_RANGE"] = "Personne dans la tranche de niveaux. Appuyez sur Chercher des destinataires."
@@ -118,7 +118,7 @@ L["TOOLTIP_CHECK_WAITING"] = "Attribué dès qu'une recherche trouve quelqu'un. 
 	along with WHO_BLOCKED, PICKER_NONE_IN_RANGE, PICKER_FIND_FOR_ITEM and TOOLTIP_CHECK_SEND above,
 	which name those buttons too.
 ]]
-L["MAIL_STILL_SENDING"] = "Envoi en cours, un instant."
+L["MAIL_STILL_SENDING"] = "Envoi en cours. Un instant."
 L["MAIL_NOTHING_TO_DISTRIBUTE"] = "Rien à distribuer."
 L["MAIL_DISTRIBUTING"] = "Cliquez sur Accepter dans chaque fenêtre de confirmation pour envoyer %d objet(s)."
 L["MAIL_ITEM_MOVED"] =
@@ -133,7 +133,7 @@ L["MAIL_NO_POSTAGE"] =
 L["MAIL_PANEL_CLOSED"] =
 	"Ouvrez le panneau d'envoi de courrier de Blizzard et appuyez de nouveau sur Distribuer. Rien n'a été envoyé ni modifié."
 L["MAIL_PANEL_CLOSED_HINT"] =
-	"Si vous utilisez TSM, passez à l'interface de courrier par défaut pour cela. La boîte aux lettres de TSM n'accepte pas les pièces jointes."
+	"Si vous utilisez TSM, passez au panneau d'envoi de courrier de Blizzard pour cela. La boîte aux lettres de TSM n'accepte pas les pièces jointes."
 L["MAIL_ATTACH_FAILED"] = "Impossible de joindre %s, il n'a donc pas été envoyé."
 L["MAIL_AWAITING_CONFIRM"] =
 	"Cliquez sur Accepter dans la fenêtre pour %s, puis appuyez sur Distribuer pour envoyer le reste."
@@ -174,13 +174,14 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 	.. "Happy adventuring!"
 
 --------------------------------------------------------------------------------
--- Options Panel
+-- Options: General Panel
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
 	"Envoyez l'équipement et les consommables devenus trop faibles pour vous à des membres de votre guilde ou à des inconnus qui sauront les apprécier. Chaque objet est attribué à la classe à qui il convient le mieux, et le bazar oublié de vos sacs devient la prochaine amélioration de quelqu'un d'autre. Faites passer, un objet vert à la fois."
 L["OPTIONS_WELCOME"] = "Activer le message de bienvenue"
-L["OPTIONS_WELCOME_DESCRIPTION"] = "Affiche la version et le rappel des paramètres à la connexion."
+L["OPTIONS_WELCOME_DESCRIPTION"] =
+	"Affiche la version et le rappel des paramètres à la première connexion après une installation ou une mise à jour."
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Commandes"
 L["OPTIONS_COMMAND"] = "/pif"
@@ -240,9 +241,29 @@ L["OPTIONS_SHARE_STATS"] = "Activer les infobulles de générosité"
 L["OPTIONS_SHARE_STATS_DESCRIPTION"] =
 	"Les joueurs proches de vous dans les villes et les auberges voient vos totaux dans votre infobulle. Le désactiver arrête le partage, mais vous voyez toujours les leurs, et vos propres totaux ci-dessous continuent de compter dans tous les cas."
 
-L["OPTIONS_FEEDBACK_HEADER"] = "Retours et assistance"
-L["OPTIONS_DISCORD"] = "Discord"
-L["OPTIONS_GITHUB"] = "GitHub"
+--------------------------------------------------------------------------------
+-- Options: Feedback & Support Panel
+--------------------------------------------------------------------------------
+
+L["OPTIONS_LEVEL_UP_TITLE"] = "Aidez Play It Forward à monter de niveau"
+L["OPTIONS_LEVEL_UP_INTRO"] =
+	"Cet add-on a été créé par des joueurs qui adorent ce jeu et veulent le rendre aussi amusant que possible pour tout le monde. Nous ne demanderons jamais de dons. La vraie satisfaction, c'est de savoir que notre travail rend le jeu un peu meilleur pour vous. Si c'est le cas, nous serions ravis de le savoir !"
+L["OPTIONS_LEVEL_UP_WAYS"] = "Voici quelques façons de nous aider à toucher plus de joueurs."
+L["OPTIONS_LEVEL_UP_FEEDBACK"] =
+	"• Donnez votre avis : Vous avez trouvé un bug ou avez une idée ? Dites-le-nous sur Discord. Vos retours nous aident à améliorer l'add-on, et les pull requests sont toujours les bienvenues."
+L["OPTIONS_LEVEL_UP_FRIEND"] =
+	"• Parlez-en à un ami : Vous connaissez quelqu'un qui pourrait aimer cet add-on ? Parlez-lui-en. Le bouche-à-oreille aide plus de joueurs à découvrir de super add-ons."
+L["OPTIONS_LEVEL_UP_CURSEFORGE"] =
+	"• Favori sur CurseForge : Ouvrez le lien CurseForge ci-dessous, connectez-vous et cliquez sur l'étoile sous le bouton Download. Les favoris aident plus de joueurs à découvrir l'add-on."
+L["OPTIONS_LEVEL_UP_GITHUB"] =
+	"• Star sur GitHub : Ouvrez le lien GitHub ci-dessous, connectez-vous et cliquez sur Star en haut à droite. Les stars aident le projet à obtenir plus d'outils de développement gratuits."
+L["OPTIONS_LEVEL_UP_THANKS"] = "Merci d'avoir choisi Play It Forward !"
+
+L["OPTIONS_FEEDBACK"] = "Retours et assistance"
+L["OPTIONS_FEEDBACK_LINKS_HEADER"] = "Liens de retours et d'assistance"
 L["OPTIONS_CURSEFORGE"] = "CurseForge"
+L["OPTIONS_GITHUB"] = "GitHub"
+L["OPTIONS_DISCORD"] = "Discord"
 L["OPTIONS_WAGO"] = "Wago"
+L["OPTIONS_COPY_LINK"] = "Pour copier un lien, cliquez dans sa case, puis appuyez sur Ctrl+A et Ctrl+C."
 L["OPTIONS_VERSION"] = "Version %s"

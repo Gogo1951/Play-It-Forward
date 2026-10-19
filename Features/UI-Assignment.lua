@@ -125,8 +125,9 @@ function UI:_setRecipient(item, who)
 end
 
 --[[
-	The checkbox, which is always live. A tick means "give this away", and every row starts
-	ticked (README-Notes.md). Unticking is the player's keep: it pins the row, recipient and all,
+	The checkbox, which is always live. Every row starts ticked by design: the tick means give this
+	away, so no row needs ticking before it is searched for, and an untick is never undone by a
+	search or rescan. Unticking is the player's keep: it pins the row, recipient and all,
 	because the tick is the last thing between an item and a stranger's mailbox and a rebuild
 	that re-ticks it has overridden them. Ticking a row with a name sends it to that name, still
 	pinned; ticking a bare row unpins it and the allocator runs, so it is matched like any other.

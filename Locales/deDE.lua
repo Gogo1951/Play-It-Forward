@@ -9,7 +9,7 @@ end
 
 L["ADDON_TITLE"] = "Play It Forward"
 L["CHAT_LOADED"] =
-	"Version %s. Die Einstellungen (inklusive der Option, diese Nachricht abzuschalten) findest du unter Optionen > AddOns > Play It Forward. Gefällt dir das Add-on? Erzähl einem Freund davon! (="
+	"Version %s. Die Einstellungen (inklusive der Option, diese Nachricht abzuschalten) findest du unter Optionen > AddOns > Play It Forward. Gefällt dir dieses Add-on? Erzähl einem Freund davon, markiere es auf CurseForge als Favorit oder gib ihm auf GitHub einen Star. (="
 L["CHAT_OPTIONS_IN_COMBAT"] = "Aus Sicherheitsgründen kann das Optionsmenü im Kampf nicht geöffnet werden."
 
 --------------------------------------------------------------------------------
@@ -119,7 +119,7 @@ L["TOOLTIP_CHECK_WAITING"] = "Wird zugeordnet, sobald eine Suche jemanden findet
 	along with WHO_BLOCKED, PICKER_NONE_IN_RANGE, PICKER_FIND_FOR_ITEM and TOOLTIP_CHECK_SEND above,
 	which name those buttons too.
 ]]
-L["MAIL_STILL_SENDING"] = "Wird noch verschickt, einen Moment."
+L["MAIL_STILL_SENDING"] = "Wird noch verschickt. Einen Moment."
 L["MAIL_NOTHING_TO_DISTRIBUTE"] = "Nichts zu verteilen."
 L["MAIL_DISTRIBUTING"] =
 	"Klicke in jedem Bestätigungsfenster auf Annehmen, um %d Gegenstand/Gegenstände zu verschicken."
@@ -133,7 +133,7 @@ L["MAIL_NO_POSTAGE"] = "Leg etwas Kupfer für das Porto bereit und drücke dann 
 L["MAIL_PANEL_CLOSED"] =
 	"Öffne Blizzards Fenster zum Verschicken von Post und drücke erneut Verteilen. Nichts wurde verschickt oder verändert."
 L["MAIL_PANEL_CLOSED_HINT"] =
-	"Wenn du TSM nutzt, wechsle dafür zur Standard-Postoberfläche. Der Briefkasten von TSM nimmt keine Anhänge an."
+	"Wenn du TSM nutzt, wechsle dafür zu Blizzards Fenster zum Verschicken von Post. Der Briefkasten von TSM nimmt keine Anhänge an."
 L["MAIL_ATTACH_FAILED"] = "%s konnte nicht angehängt werden und wurde daher nicht verschickt."
 L["MAIL_AWAITING_CONFIRM"] =
 	"Klicke im Fenster für %s auf Annehmen und drücke dann Verteilen, um den Rest zu verschicken."
@@ -174,13 +174,14 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 	.. "Happy adventuring!"
 
 --------------------------------------------------------------------------------
--- Options Panel
+-- Options: General Panel
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
 	"Schicke Ausrüstung und Verbrauchsgüter, aus denen du herausgewachsen bist, an Gildenmitglieder oder Fremde, die sich darüber freuen. Jeder Gegenstand wird der Klasse zugeordnet, zu der er am besten passt, und so wird vergessener Taschenkram zum nächsten Upgrade für jemand anderen. Gib es weiter, ein grünes Teil nach dem anderen."
 L["OPTIONS_WELCOME"] = "Willkommensnachricht aktivieren"
-L["OPTIONS_WELCOME_DESCRIPTION"] = "Beim Einloggen die Version und den Hinweis zu den Einstellungen ausgeben."
+L["OPTIONS_WELCOME_DESCRIPTION"] =
+	"Die Version und den Hinweis zu den Einstellungen beim ersten Einloggen nach einer Installation oder einem Update ausgeben."
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Befehle"
 L["OPTIONS_COMMAND"] = "/pif"
@@ -240,9 +241,29 @@ L["OPTIONS_SHARE_STATS"] = "Großzügigkeits-Tooltips aktivieren"
 L["OPTIONS_SHARE_STATS_DESCRIPTION"] =
 	"Spieler in deiner Nähe in Städten und Gasthäusern sehen deine Summen in deinem Tooltip. Ausschalten beendet das Teilen, du siehst ihre aber weiterhin, und deine eigenen Summen unten zählen so oder so weiter."
 
-L["OPTIONS_FEEDBACK_HEADER"] = "Feedback & Unterstützung"
-L["OPTIONS_DISCORD"] = "Discord"
-L["OPTIONS_GITHUB"] = "GitHub"
+--------------------------------------------------------------------------------
+-- Options: Feedback & Support Panel
+--------------------------------------------------------------------------------
+
+L["OPTIONS_LEVEL_UP_TITLE"] = "Hilf Play It Forward beim Leveln"
+L["OPTIONS_LEVEL_UP_INTRO"] =
+	"Dieses Add-on wurde von Spielern entwickelt, die dieses Spiel lieben und es für alle so unterhaltsam wie möglich machen wollen. Wir werden nie um Spenden bitten. Die wahre Belohnung ist das Wissen, dass unsere Arbeit das Spiel für dich ein bisschen besser macht. Wenn das so ist, würden wir uns freuen, davon zu hören!"
+L["OPTIONS_LEVEL_UP_WAYS"] = "Hier sind ein paar Möglichkeiten, wie du uns helfen kannst, mehr Spieler zu erreichen."
+L["OPTIONS_LEVEL_UP_FEEDBACK"] =
+	"• Feedback geben: Einen Fehler gefunden oder eine Idee? Sag es uns auf Discord. Dein Feedback hilft uns, das Add-on zu verbessern, und Pull Requests sind immer willkommen."
+L["OPTIONS_LEVEL_UP_FRIEND"] =
+	"• Einem Freund erzählen: Kennst du jemanden, dem dieses Add-on gefallen könnte? Erzähl ihm davon. Mundpropaganda hilft mehr Spielern, großartige Add-ons zu entdecken."
+L["OPTIONS_LEVEL_UP_CURSEFORGE"] =
+	"• Favorit auf CurseForge: Öffne unten den CurseForge-Link, melde dich an und klicke auf den Stern unter dem Download-Button. Favoriten helfen mehr Spielern, das Add-on zu entdecken."
+L["OPTIONS_LEVEL_UP_GITHUB"] =
+	"• Star auf GitHub: Öffne unten den GitHub-Link, melde dich an und klicke oben rechts auf Star. Stars helfen dem Projekt, sich für mehr kostenlose Entwicklerwerkzeuge zu qualifizieren."
+L["OPTIONS_LEVEL_UP_THANKS"] = "Danke, dass du dich für Play It Forward entschieden hast!"
+
+L["OPTIONS_FEEDBACK"] = "Feedback & Unterstützung"
+L["OPTIONS_FEEDBACK_LINKS_HEADER"] = "Links für Feedback & Unterstützung"
 L["OPTIONS_CURSEFORGE"] = "CurseForge"
+L["OPTIONS_GITHUB"] = "GitHub"
+L["OPTIONS_DISCORD"] = "Discord"
 L["OPTIONS_WAGO"] = "Wago"
+L["OPTIONS_COPY_LINK"] = "Um einen Link zu kopieren, klicke in sein Feld und drücke dann Strg+A und Strg+C."
 L["OPTIONS_VERSION"] = "Version %s"

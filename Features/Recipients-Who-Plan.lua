@@ -44,6 +44,14 @@ Who.counts = {
 local plan, counts = Who.plan, Who.counts
 local planned = 0
 
+--[[
+	Whether the plan standing is a targeted one, Find Recipients for This Item's. MatchList:Assign
+	reads it: the "every gift has a contender" rule that ends a full search must not end a targeted
+	one, which is pressed exactly when the contender holding the item is not good enough. Reset by
+	every Who:Plan and by Who:Clear.
+]]
+Who.targeted = false
+
 --------------------------------------------------------------------------------
 -- Class Names
 --------------------------------------------------------------------------------
@@ -354,18 +362,24 @@ end
 	     population too big for one answer. Unfiltered by class unless exactly one is wanted,
 	     per the single-filter rule at the top of this file.
 
-	TARGETED runs the ladder the other way and skips the coalescing: Find Recipients for This
-	Item exists to ask for the classes it names, and a bare query is what the main button
-	already sent. The count returned is not a countdown: the search stops at the first match in
-	contention.
+	TARGETED skips the coalescing and the bare stage, and asks by class before it asks by zone:
+	Find Recipients for This Item exists to ask for the classes it names, and a bare query is
+	what the main button already sent. A class filter slices everybody online, a zone filter only
+	the zones the table lists. See targetedPlan below. The count returned is not a countdown: the
+	search stops at the first match in contention, or for a targeted search once nothing left on
+	the plan could outrank whoever holds the row.
 ]]
+local targetedPlan
+
 function Who:Plan(groups, targeted)
 	wipe(plan)
 	Who:CancelPending()
+	Who.targeted = targeted and true or false
 
-	if not targeted then
-		groups = coalesce(groups)
+	if targeted then
+		return targetedPlan(groups)
 	end
+	groups = coalesce(groups)
 
 	local zoned, widened, bare = {}, {}, {}
 	for _, group in ipairs(groups or {}) do
@@ -394,9 +408,53 @@ function Who:Plan(groups, targeted)
 		bare[#bare + 1] = { newAttempt(lo, hi, nil, nil) }
 	end
 
-	local stages = targeted and { zoned, widened, bare } or { bare, widened, zoned }
-	for _, stage in ipairs(stages) do
+	for _, stage in ipairs({ bare, widened, zoned }) do
 		for _, attempt in ipairs(interleave(stage)) do
+			plan[#plan + 1] = attempt
+		end
+	end
+
+	planned = #plan
+	return #plan
+end
+
+--[[
+	Matcher:TargetedBands hands over one class per group, best fit first. Two stages, each in that
+	order and never interleaved, because the order IS the ranking:
+
+	  1  one class-filtered query per group, no zones -- everybody of that class at those levels,
+	     wherever they stand
+	  2  the zones, under the same class filter -- only for a class whose answer came back
+	     capped. An answer under the cap runs Who:Exhausted, which drops these unsent.
+
+	A group naming several classes (a consumable's, which every class wants equally) asks each of
+	them by class, then its zones unfiltered.
+
+	After every answer MatchList:Assign drops the attempts whose class could not outrank the row's
+	holder (Who:PruneTargeted), so a search ends as soon as no press left could change the row.
+]]
+function targetedPlan(groups)
+	local filtered, zoned = {}, {}
+	for _, group in ipairs(groups or {}) do
+		local lo = math.max(1, group.lo or 1)
+		local hi = math.max(lo, group.hi or lo)
+		local classes = group.classes or {}
+
+		if #classes > 0 and #classes < #ns.Matcher:Classes() then
+			for _, token in ipairs(classes) do
+				filtered[#filtered + 1] = newAttempt(lo, hi, nil, { token })
+			end
+		end
+
+		local single = (#classes == 1) and classes or nil
+		local singlePart = single and (classFilter(single)) or ""
+		for _, chunk in ipairs(zoneChunks(lo, hi, singlePart)) do
+			zoned[#zoned + 1] = newAttempt(lo, hi, chunk, single)
+		end
+	end
+
+	for _, stage in ipairs({ filtered, zoned }) do
+		for _, attempt in ipairs(stage) do
 			plan[#plan + 1] = attempt
 		end
 	end
@@ -544,6 +602,29 @@ function Who:Prune(groups)
 		Counted for the roster report, which otherwise shows places-left falling without a press
 		and no way to tell pruning from a query that quietly went missing.
 	]]
+	counts.pruned = counts.pruned + dropped
+	return dropped
+end
+
+--[[
+	Drops every planned attempt keep turns down, for a targeted search narrowed against its row's
+	holder. Only ever removes, as Who:Prune does, and counted with it.
+]]
+function Who:PruneTargeted(keep)
+	local kept, dropped = {}, 0
+	for _, attempt in ipairs(plan) do
+		if keep(attempt) then
+			kept[#kept + 1] = attempt
+		else
+			dropped = dropped + 1
+		end
+	end
+
+	wipe(plan)
+	for _, attempt in ipairs(kept) do
+		plan[#plan + 1] = attempt
+	end
+
 	counts.pruned = counts.pruned + dropped
 	return dropped
 end

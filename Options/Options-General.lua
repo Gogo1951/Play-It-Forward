@@ -4,63 +4,14 @@ local L = ns.L
 local GetColor = ns.GetColor
 
 --[[
-	A gated label row: ns.OptionsRowLabel takes no hidden argument, so a label that hides with its
-	control sets it on the returned table.
-]]
-local function gatedRowLabel(text, order, hidden, width)
-	local label = ns.OptionsRowLabel(text, order, width)
-	label.hidden = hidden
-	return label
-end
-
---[[
-	One split for every label-beside-value row on this panel: a one-word label against a wide
-	cell, the two totalling ns.OPTIONS_ROW_WIDTH like every other row. Shared by the link rows and
-	the Generosity totals, so the numbers start where the URLs do.
+	The Generosity totals' split: a one-word label against a wide cell, the two totalling
+	ns.OPTIONS_ROW_WIDTH like every other row.
 
 	EVERY PAIR NEEDS ITS SPACER. AceConfig's flow packs cells until a row fills, and a full-width
 	spacer is what ends one; pairs written without them run together and the rows interleave.
 ]]
 local ROW_LABEL_WIDTH = 0.6
 local ROW_VALUE_WIDTH = ns.OPTIONS_ROW_WIDTH - ROW_LABEL_WIDTH
-
--- The input stays inlined: it carries its own hidden function beside the label's.
-local FEEDBACK_LINKS = {
-	{ id = "Discord", label = L["OPTIONS_DISCORD"], key = "DISCORD" },
-	{ id = "GitHub", label = L["OPTIONS_GITHUB"], key = "GITHUB" },
-	{ id = "CurseForge", label = L["OPTIONS_CURSEFORGE"], key = "CURSEFORGE" },
-	{ id = "Wago", label = L["OPTIONS_WAGO"], key = "WAGO" },
-}
-
-local function addFeedbackLinks(args, startOrder)
-	local order = startOrder
-	for index, link in ipairs(FEEDBACK_LINKS) do
-		local key = link.key
-		local hidden = function()
-			return not ns.LINKS[key]
-		end
-		args["label" .. link.id] =
-			gatedRowLabel(GetColor("TITLE") .. link.label .. "|r", order, hidden, ROW_LABEL_WIDTH)
-		args["link" .. link.id] = {
-			type = "input",
-			name = "",
-			width = ROW_VALUE_WIDTH,
-			order = order + 1,
-			get = function()
-				return ns.LINKS[key]
-			end,
-			set = function() end,
-			hidden = hidden,
-		}
-		order = order + 2
-
-		-- Between rows only: a trailing one would double the gap before the version line.
-		if index < #FEEDBACK_LINKS then
-			args["spacer" .. link.id] = ns.OptionsSpacer(order, hidden)
-			order = order + 1
-		end
-	end
-end
 
 -- The rarity select hides while Include Gear is off, the gap select with its sub-row; spacerGive2 separates the two.
 local function gearOff()
@@ -122,8 +73,7 @@ local function addConsumableKinds(args, startOrder)
 end
 
 --[[
-	The read-only tally, on the same split as the link rows above, so its numbers start exactly
-	where the URL boxes do. Each value is a function, so the display tracks ns.db.global.stats
+	The read-only tally, on the split above. Each value is a function, so the display tracks ns.db.global.stats
 	live rather than freezing at build time, and it returns its own formatting: the counts
 	comma-grouped and white, the money as the client's coin string, which do not color alike.
 ]]
@@ -175,7 +125,7 @@ local function addGenerosityStats(args, startOrder)
 		}
 		order = order + 2
 
-		-- Between rows only, as the link rows do: a trailing one doubles the gap before Feedback.
+		-- Between rows only: a trailing one doubles the gap before /Commands.
 		if index < #GENEROSITY_STATS then
 			args["spacer" .. row.id] = ns.OptionsSpacer(order)
 			order = order + 1
@@ -253,7 +203,7 @@ function ns.BuildGeneralOptions()
 			end,
 		},
 
-		-- Between the two rows only, matching the link rows below: no trailing one.
+		-- Between the two rows only, as the Generosity totals space theirs: no trailing one.
 		spacerGive2 = ns.OptionsSpacer(25),
 		toggleIncludeConsumables = {
 			type = "toggle",
@@ -320,7 +270,7 @@ function ns.BuildGeneralOptions()
 		spacerGiven2 = ns.OptionsSpacer(44),
 		-- The four totals are added by addGenerosityStats below, from order 45.
 
-		-- Directly above Feedback & Support, after every section with settings in it.
+		-- The panel ends here, after every section with settings in it.
 		spacerCommands0 = ns.OptionsSpacer(80),
 		headerCommands = ns.OptionsHeader(L["OPTIONS_COMMANDS_HEADER"], 81),
 		spacerCommands1 = ns.OptionsSpacer(82),
@@ -328,28 +278,10 @@ function ns.BuildGeneralOptions()
 			GetColor("INFO") .. L["OPTIONS_COMMAND"] .. "|r" .. "  " .. L["OPTIONS_COMMAND_DESCRIPTION"],
 			83
 		),
-
-		spacerFeedback0 = ns.OptionsSpacer(90),
-		headerFeedback = ns.OptionsHeader(L["OPTIONS_FEEDBACK_HEADER"], 91),
-		spacerFeedback1 = ns.OptionsSpacer(92),
-
-		spaceVersion0 = {
-			type = "description",
-			name = " ",
-			width = "full",
-			order = 998,
-		},
-		versionLine = {
-			type = "description",
-			name = GetColor("MUTED") .. L["OPTIONS_VERSION"]:format(ns.Version) .. "|r",
-			fontSize = "medium",
-			order = 999,
-		},
 	}
 
 	addConsumableKinds(args, 28)
 	addGenerosityStats(args, 45)
-	addFeedbackLinks(args, 93)
 
 	return {
 		type = "group",

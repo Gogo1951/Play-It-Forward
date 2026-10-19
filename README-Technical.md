@@ -7,88 +7,93 @@ This document combines architecture notes and contribution guidance for develope
 ```text
 Play-It-Forward/
 ├── .github/
+│   ├── ISSUE_TEMPLATE/               Issue forms; defect.yml and request.yml synced from Common-Core
+│   │   ├── config.yml                Per add-on: the New issue page links
+│   │   ├── defect.yml
+│   │   └── request.yml
 │   └── workflows/
-│       ├── ci.yml                Calls Common-Core: Lua 5.1 syntax, luacheck, StyLua and the offline tests
-│       └── package.yml           Calls Common-Core: packages and uploads a tagged release
-├── .gitattributes                Shared Common-Core file
-├── .gitignore                    Shared Common-Core file
-├── .luacheckrc                   Lint config
-├── .pkgmeta                      Externals and ignore list
-├── Play-It-Forward_Vanilla.toc   Classic Era, Season of Discovery included
-├── Play-It-Forward_TBC.toc       TBC Anniversary
-├── Play-It-Forward_Camelot.toc   WoW Forever
+│       ├── ci.yml                    Calls Common-Core: Lua 5.1 syntax, luacheck, StyLua and the offline tests
+│       ├── issue-labels.yml          Calls Common-Core: labels a new Defect by its Issue Type
+│       └── package.yml               Calls Common-Core: packages and uploads a tagged release
+├── .gitattributes                    Shared Common-Core file
+├── .gitignore                        Shared Common-Core file
+├── .luacheckrc                       Lint config
+├── .pkgmeta                          Externals and ignore list
+├── Play-It-Forward_Vanilla.toc       Classic Era, Season of Discovery included
+├── Play-It-Forward_TBC.toc           TBC Anniversary
+├── Play-It-Forward_Camelot.toc       WoW Forever
 ├── Data/
-│   ├── Flavor.lua                Canonical: ns.FLAVOR, ns.EXPANSION, ns.IS_DISCOVERY, ns.DATA_FOLDER
-│   ├── Data.lua                  Locale init, ns.Data, palette, links, layout grid, shared constants
-│   ├── Default-Settings.lua      ns.DATABASE_DEFAULTS
-│   ├── Match-Stats.lua           Shared policy: per-talent-tree stat points and the scoring thresholds
-│   ├── Match-Armor.lua           Shared policy: armor weights, PROFICIENCY_REACH, universal equip slots
-│   ├── Match-Rules.lua           Shared policy: ns.Data.ITEM_RULES
-│   ├── Scan-Stats.lua            Shared policy: GetItemStats keys to internal stat tokens
-│   ├── Vanilla/                  Classic Era game data; every file opens with the Discovery guard
-│   ├── Discovery/                Season of Discovery game data, inverse guard; rides the Vanilla TOC
-│   ├── TBC/                      TBC Anniversary game data
-│   ├── Camelot/                  WoW Forever game data
-│   ├── Wrath/                    No TOC lists it; .pkgmeta keeps it out of the zip
-│   ├── Mists/                    No TOC lists it; .pkgmeta keeps it out of the zip
-│   └── Mainline/                 No TOC lists it; .pkgmeta keeps it out of the zip
-├── Diagnostics/                  Diagnostic Tools framework, copied from Magic Eraser
-│   ├── Diagnostics-Core.lua      ns.diagnostics gate and ns.DiagnosticsStrings
-│   ├── Manifests.lua             This add-on's surface: API rows, context probes, data sources, name lookups
-│   ├── Event-Log.lua             Event buffer and the per-id noise filter
-│   ├── Code-Reports.lua          Event Registration, API Endpoints, Library Versions
-│   ├── Settings-Reports.lua      Saved Variables, Display Context, Other Add-ons
-│   ├── Localization-Reports.lua  Locale Context, Game Names
-│   ├── Validate-Data.lua         One report per flavor-folder data file
-│   ├── Report-Runner.lua         ns.DIAGNOSTIC_REPORTS, ns.DIAGNOSTIC_SECTIONS, the one-at-a-time runner
-│   └── Options-Diagnostics.lua   The panel builder; loads with the Options block
+│   ├── Flavor.lua                    Canonical: ns.FLAVOR, ns.EXPANSION, ns.IS_DISCOVERY, ns.DATA_FOLDER
+│   ├── Data.lua                      Locale init, ns.Data, palette, links, layout widths, shared constants
+│   ├── Default-Settings.lua          The AceDB-3.0 defaults, ns.DATABASE_DEFAULTS
+│   ├── Match-Stats.lua               Shared policy: per-talent-tree stat points and the scoring thresholds
+│   ├── Match-Armor.lua               Shared policy: armor weights, PROFICIENCY_REACH, universal equip slots
+│   ├── Match-Rules.lua               Shared policy: ns.Data.ITEM_RULES
+│   ├── Scan-Stats.lua                Shared policy: GetItemStats keys to internal stat tokens
+│   ├── Vanilla/                      Classic Era game data; every file opens with the Discovery guard
+│   ├── Discovery/                    Season of Discovery game data, inverse guard; rides the Vanilla TOC
+│   ├── TBC/                          TBC Anniversary game data
+│   ├── Camelot/                      WoW Forever game data
+│   ├── Wrath/                        No TOC lists it; .pkgmeta keeps it out of the zip
+│   ├── Mists/                        No TOC lists it; .pkgmeta keeps it out of the zip
+│   └── Mainline/                     No TOC lists it; .pkgmeta keeps it out of the zip
+├── Diagnostics/                      Diagnostic Tools framework, copied from Magic Eraser
+│   ├── Diagnostics-Core.lua          The ns.diagnostics gate and ns.DiagnosticsStrings
+│   ├── Manifests.lua                 This add-on's surface: API rows, context probes, data sources, name lookups
+│   ├── Event-Log.lua                 Event buffer and the per-id noise filter
+│   ├── Code-Reports.lua              Event Registration, API Endpoints, Library Versions
+│   ├── Settings-Reports.lua          Saved Variables, Display Context, Other Add-ons
+│   ├── Validate-Data.lua             One TSV report per flavor-folder data file
+│   ├── Localization-Reports.lua      Locale Context, Game Names
+│   ├── Report-Runner.lua             The report and tab manifests and the one-at-a-time runner
+│   └── Options-Diagnostics.lua       The panel builder; loads with the Options block
 ├── Features/
-│   ├── Core.lua                  Identity, AceDB lifecycle, ns.on dispatcher
-│   ├── Utilities.lua             API aliases, colors, money, ns.QualifyPlayerName, ns.AtMailbox, ns.AtRest
-│   ├── Announcements.lua         ns:BuildBrandedLine and ns:PrintMessage; player-only output
-│   ├── Scan-Tooltip.lua          Stats read off a rendered tooltip, where random suffixes live
-│   ├── Scan-Bags.lua             Bag slot to item record, or nil plus a reject code
-│   ├── Match-Derivations.lua     ns.Data answers over the tables: priority groups, weapon keys, rule matching
-│   ├── Match-Engine.lua          Eligibility, claim, fit, coverage, rules, the verdict
-│   ├── Match-Ranking.lua         Level bands, band groups, candidate ranking
-│   ├── Match-List.lua            Items, pools and pairings; rescan, AddResults, the allocator
-│   ├── Recipients-Who-Plan.lua   Builds, prunes and exhausts the /who plan; ns.Data.ZonesFor
-│   ├── Recipients-Who.lua        Sends one /who per press; throttle, Who panel deafening, parsing
-│   ├── Recipients-Guild.lua      Guild roster as a second recipient source
-│   ├── Recipients-Fairness.lua   Session cooldown and the unreachable list
-│   ├── Mail-Sender.lua           ns.Distributor: one SendMail at a time, event-driven
-│   ├── UI-Picker.lua             ns.Picker, the scrolling dropdown list
-│   ├── UI-Window.lua             ns.UI: the mail window, top bar, rows and sections
-│   ├── UI-Assignment.lua         Row dropdown options, manual picks, row ticks
-│   ├── UI-Mailbox.lua            Mailbox open and close, Find Recipients, Distribute
-│   ├── Generosity.lua            Account-wide giving tally in global.stats
-│   ├── Generosity-Broadcast.lua  Shares the tally with nearby players over YELL add-on messages
-│   └── Generosity-Tooltip.lua    A peer's totals at the foot of their unit tooltip
+│   ├── Core.lua                      Identity, AceDB lifecycle, welcome, the ns.on dispatcher
+│   ├── Utilities.lua                 API aliases, colors, money, ns.QualifyPlayerName, ns.AtMailbox, ns.AtRest
+│   ├── Announcements.lua             The ns:BuildBrandedLine and ns:PrintMessage builders; player-only output
+│   ├── Scan-Tooltip.lua              Stats read off a rendered tooltip, where random suffixes live
+│   ├── Scan-Bags.lua                 Bag slot to item record, or nil plus a reject code
+│   ├── Match-Derivations.lua         The ns.Data answers over the tables: priority groups, weapon keys, rule matching
+│   ├── Match-Engine.lua              Eligibility, claim, fit, coverage, rules, the verdict
+│   ├── Match-Ranking.lua             Level bands, band groups, candidate ranking, targeted search order
+│   ├── Match-List.lua                Items, pools and pairings; rescan, AddResults, the allocator
+│   ├── Recipients-Who-Plan.lua       Builds, prunes and exhausts the /who plan; ns.Data.ZonesFor
+│   ├── Recipients-Who.lua            Sends one /who per press; throttle, Who panel deafening, parsing
+│   ├── Recipients-Guild.lua          Guild roster as a second recipient source
+│   ├── Recipients-Fairness.lua       Session cooldown and the unreachable list
+│   ├── Mail-Sender.lua               The ns.Distributor: one SendMail at a time, event-driven
+│   ├── UI-Picker.lua                 The ns.Picker scrolling dropdown list
+│   ├── UI-Window.lua                 The ns.UI mail window: top bar, rows and sections
+│   ├── UI-Assignment.lua             Row dropdown options, manual picks, row ticks
+│   ├── UI-Mailbox.lua                Mailbox open and close, Find Recipients, Distribute
+│   ├── Generosity.lua                Account-wide giving tally in global.stats
+│   ├── Generosity-Broadcast.lua      Shares the tally with nearby players over YELL add-on messages
+│   └── Generosity-Tooltip.lua        A peer's totals at the foot of their unit tooltip
 ├── Includes/
 │   ├── Images/
-│   │   └── Play-It-Forward.tga   Icon
-│   └── Libraries/                Vendored Ace3 down to AceDBOptions-3.0, nothing else
-├── Locales/                      Eleven locales
-│   └── enUS.lua                  Source of truth
+│   │   └── Play-It-Forward.tga       Icon
+│   └── Libraries/                    Vendored Ace3 down to AceDBOptions-3.0, nothing else
+├── Locales/                          Eleven locales
+│   └── enUS.lua                      Source of truth
 ├── Options/
-│   ├── Options-Utilities.lua     Shared ns.Options* widget constructors
-│   ├── Options-General.lua       The root panel
-│   ├── Options-Profiles.lua      Stock AceDBOptions-3.0 table
-│   └── Options.lua               Registration, ns:OpenOptionsPanel, /pif
-├── Tests/                        Offline suite on Lua 5.1: 28 cases plus Run, Harness and Stub-WoW-API; never ships
-├── LICENSE                       MIT
-├── README.md                     Player documentation
-├── README-Notes.md               Maintainer's settled exceptions and decisions
-├── README-Technical.md           This document
-├── README-Testing.md             Manual test plan
-└── Suffix.md                     Random-enchantment reference; development only, never ships
+│   ├── Options-Utilities.lua         Shared ns.Options* widget constructors
+│   ├── Options-General.lua           The root panel
+│   ├── Options-Profiles.lua          Stock AceDBOptions-3.0 table
+│   ├── Options-Feedback-Support.lua  Level Up note, links, version line
+│   └── Options.lua                   Registration, ns:OpenOptionsPanel, /pif
+├── Tests/                            Offline suite, run on Lua 5.1: 28 cases plus Run, Harness and Stub-WoW-API; never ships
+├── LICENSE                           MIT
+├── README.md                         Player documentation
+├── README-Notes.md                   The add-on's exceptions to the Style Guide
+├── README-Technical.md               This document
+└── README-Testing.md                 Manual test plan
 ```
 
 **Files that must not come back.** There is no mini-map button, so `Features/Minimap-Button.lua`, LibDataBroker-1.1 and LibDBIcon-1.0 are deliberately absent. The diagnostics panel lives in `Diagnostics/Options-Diagnostics.lua`, never `Features/Diagnostics.lua` or `Options/Options-Diagnostics.lua`. The universal `Data/Match-Weapons.lua`, `Data/Recipients-Zones.lua`, `Data/Scan-Food.lua` and `Data/Scan-Potions.lua` are replaced by their per-flavor copies; game data never returns to a file every client loads.
 
 **Each client loads one data folder.** Every flavor folder holds the same eight files, suffixed with the folder name, and declares the same thirteen tables: `Match-Stat-Budget` (`STAT_BUDGET`), `Scan-Food` (`FOOD_AND_WATER`), `Scan-Potions` (`POTIONS`), `Scan-Scrolls` (`SCROLLS`), `Recipients-Zones` (`ZONES`, `ZONE_COLUMNS`), `Match-Weapons` (`WEAPON_SUBCLASS`, `RELIC_SUBCLASS`, `WEAPON_CLASS_ORDER`, `WEAPON_SPECS`), `Match-Armor` (`ARMOR_SUBCLASS`, `NATIVE_ARMOR`) and `Match-Classes` (`FACTION_CLASSES`), all under `ns.Data`. Each TOC lists its own folder only. The Vanilla TOC lists `Data/Vanilla/` then `Data/Discovery/`; Vanilla files open with `if ns.IS_DISCOVERY then return end` and Discovery files with the inverse, so exactly one set builds. The matching policy that reads those facts (talent-tree weights, item rules, the stat-name map) stays in shared `Data/` files every flavor loads, per the README-Notes exception.
 
-`Suffix.md` and `Tests/` are development-only: no TOC lists them and `.pkgmeta` ignores both.
+`Tests/` is development-only: no TOC lists it and `.pkgmeta` ignores it.
 
 ## Architecture
 
@@ -99,10 +104,10 @@ Play-It-Forward/
 | Event | Registered in | Purpose |
 |---|---|---|
 | `ADDON_LOADED` | `Core.lua` | Name-guarded. Creates `PlayItForwardDB`, runs the dated migration, wires `ns:ApplyProfile` to the profile callbacks, calls `ns:RegisterOptionsPanels`. |
-| `PLAYER_LOGIN` | `Core.lua` | Welcome print, when `profile.showWelcome` is on. |
+| `PLAYER_LOGIN` | `Core.lua` | Welcome print, when `profile.showWelcome` is on and `ns.Version` differs from `global.welcomeVersion`, which it then stores. |
 | `PLAYER_LOGIN` | `UI-Mailbox.lua` | Hooks `MailFrame` `OnShow` (opens the mailbox flow) and `OnHide` (rechecks Distribute). |
 | `MAIL_SHOW` / `MAIL_CLOSED` | `UI-Mailbox.lua` | Mailbox open and close, every flavor. |
-| `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` / `_HIDE` | `UI-Mailbox.lua` | The same signal, filtered to `Enum.PlayerInteractionType.MailInfo`. Not registered on the Vanilla TOC. |
+| `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` / `_HIDE` | `UI-Mailbox.lua` | The same signal, filtered to `Enum.PlayerInteractionType.MailInfo` (17 where the enum is missing). Behind an `ns.FLAVOR ~= "Vanilla"` gate, so Classic Era never registers them. |
 | `BAG_UPDATE`, `GET_ITEM_INFO_RECEIVED` | `Match-List.lua` | Mark the bag scan stale; see Debounced Bag Scanning. |
 | `WHO_LIST_UPDATE` | `Recipients-Who.lua` | Parses a `/who` answer under `pcall`, ends the query, prunes exhausted attempts, hands results on. |
 | `ADDON_ACTION_BLOCKED` | `Recipients-Who.lua` | Our own blocked `SendWho` only: prints an explanation instead of leaving silence. |
@@ -224,7 +229,7 @@ Items are handed out **scarcest first, then best first**. One item per person pe
 
 When the pass leaves no gift still searching, `ns.Who:Clear()` drops the plan; otherwise `ns.Who:Prune` narrows it. **Still searching means unmatched or held only by a fallback.** A pairing with a class outside the verdict's contenders keeps that item's band on the plan, narrowed to the contenders, and because every pass re-decides, a contender found later takes the item off its fallback. A pinned row ends the search for that item.
 
-**Every row starts ticked, and a tick means give this away** (README-Notes). The tick does not pin, so a fallback stays provisional. Unticking is the player's keep and pins the row; it keeps any name it held so a re-tick restores it, and no search, pass or rescan re-ticks it. `rescanBags` carries `send` and `pinned` across by slot; a ticked row that loses its recipient to another row comes back unpinned. Ticking a bare row unpins it and runs the allocator; ticking a row with a name keeps it pinned. A row whose name the server refused keeps its tick and returns to auto-assignment.
+**Every row starts ticked, and a tick means give this away**, so no row needs ticking before it is searched for. The tick does not pin, so a fallback stays provisional. Unticking is the player's keep and pins the row; it keeps any name it held so a re-tick restores it, and no search, pass or rescan re-ticks it. `rescanBags` carries `send` and `pinned` across by slot; a ticked row that loses its recipient to another row comes back unpinned. Ticking a bare row unpins it and runs the allocator; ticking a row with a name keeps it pinned. A row whose name the server refused keeps its tick and returns to auto-assignment.
 
 ## /who Search Planning
 
@@ -253,7 +258,7 @@ Bare first, because a press is worth up to 50 people and the bare query is the m
 
 **A settings change re-plans.** `UI:Rescan` feeds the freshly merged bands to `Who:Plan` before assigning, so a raised rarity cap searches for what is on the list now. Found players are kept; only the places left to look are rebuilt. `Who:Plan` and `Who:Clear` both cancel whatever query is pending.
 
-**Find Recipients for This Item** plans with `Matcher:TargetedBands` and `targeted = true`: zones first, then per class, then bare, with no folding, because a bare query is what the main button already sent. A lone contender becomes a query naming it over its own band and zones (`38-39 z-"..." c-"Hunter"`). Two or more contenders share their group with fallbacks of the exact same band, since a query with two class filters is a query with none. Other fallbacks keep their own group a press later. It retasks the shared plan; the main button keeps stepping it while `Who:Remaining()` is above zero, and rebuilds the full plan once it is empty.
+**Find Recipients for This Item** plans with `Matcher:TargetedBands` and `targeted = true`: one class per group, contenders first, each half sorted by armor group then fit (`Matcher:TargetedClasses`), with no folding and no bare query, because a bare query is what the main button already sent. Each class is asked anywhere first (`38-39 c-"Hunter"`), since a class filter reaches everybody of that class wherever they stand; its zones follow under the same filter, and `Who:Exhausted` drops them when the class answer came back under the cap. A consumable keeps its classes in one group. After every answer `MatchList:Assign` narrows the plan against the row's holder: `Who:PruneTargeted` drops each attempt whose class could not outrank the holder (`Matcher:CouldOutrank`: bucket, then distance from each class's own anchor, then group, then fit, ties never outranking), and the search ends once nothing is left, or at once when the row is gone or pinned. It retasks the shared plan; the main button keeps stepping it while `Who:Remaining()` is above zero, and rebuilds the full plan once it is empty.
 
 **Timing.** `WHO_THROTTLE` (5s, exposed as `Who.THROTTLE` and read by `UI:_lockFindButton`) runs from the send, not the answer: a reply often lands in under a second, and re-enabling then offers a press the server refuses for four more. `RESULT_TIMEOUT` (6s) puts an unanswered query back on the front of the plan, since a blocked call never fires `WHO_LIST_UPDATE`. `Who:Step` returns `false, 0` while any job is pending.
 
@@ -304,7 +309,7 @@ An attach can fail with the panel up, and `SendMail` will then post an empty let
 
 The window (`PlayItForwardMailFrame`, `Features/UI-Window.lua`) opens at the mailbox when the scan found something to act on, and never auto-closes. Items, roster and pairings live at file scope in `Match-List.lua`, so matches survive walking away. It anchors beside `MailFrame` until dragged; a drag saves `profile.windowPos`, and its `point` field is what says the player moved it.
 
-**The top bar mirrors the options panel**, writing the same profile keys. Consumables leads on the left, its tick and Level Rule dropdown on one line with the Food, Drink, Potions and Scrolls ticks beneath; Gear sits on the right with its rarity dropdown against the window edge (README-Notes). A dropdown hides while its tick is off; the kind ticks disable and dim instead, so the row keeps its shape. Each tick's tooltip is the panel's own description. Both dropdowns come from one `buildDropdown` and open `ns.Picker`. `UI:_syncControls` is the one place the bar is redrawn from the profile, called by the ticks, the panel's setters and `ns:ApplyProfile`, and a tick also calls `NotifyChange` so an open panel redraws.
+**The top bar mirrors the options panel**, writing the same profile keys. Consumables leads on the left, its tick and Level Rule dropdown on one line with the Food, Drink, Potions and Scrolls ticks beneath; Gear sits on the right with its rarity dropdown against the window edge. A dropdown hides while its tick is off; the kind ticks disable and dim instead, so the row keeps its shape. Each tick's tooltip is the panel's own description. Both dropdowns come from one `buildDropdown` and open `ns.Picker`. `UI:_syncControls` is the one place the bar is redrawn from the profile, called by the ticks, the panel's setters and `ns:ApplyProfile`, and a tick also calls `NotifyChange` so an open panel redraws.
 
 Rows sort into four sections (matched, pending match, unreadable, kept), then by score, then bag order, because the list outgrows the window and the rows worth acting on would fall below the fold. Find Recipients and Distribute share one width, the widest of their labels capped at half the frame, so the bar does not jump as labels change. Distribute is disabled away from a mailbox and enabled only when a ticked row has a recipient.
 
@@ -333,6 +338,8 @@ The prefix is `ns.ADDON_MESSAGE_PREFIX` (`"PIForward"`, `Data/Data.lua`; the cli
 
 An unknown version or foreign prefix is dropped. Peers are cached by `ns.QualifyPlayerName` with their `GetTime()` stamp and good for `PEER_MAX_AGE` (1800s); expired entries are swept on the next stats message received, the only point the table grows, so it stays bounded without a timer. The span is long on purpose: an expired entry is refilled only by the tooltip's presence ping, so a short window would make a peer beside you flicker out between hovers. A share-on account broadcasts even at zero gifts, so presence shows before the first gift.
 
+Both outgoing paths go through one `send`, which runs `SendAddonMessage` under `pcall` and keeps what came back in `Generosity.lastSendResult`. A refused channel is a return value, not an error, and the send is otherwise fire-and-forget, so that field is the only place a refusal shows; Given Away Sharing prints it.
+
 **Town only.** Every send and the tooltip block are gated on `ns.AtRest()` (`IsResting`, answering `false` when the API is missing), which keeps the feature out of raids, dungeons and open-world combat without reasoning about combat state. The gate is checked before the throttle on both outgoing paths, so nothing blocked in the world spends a window it never used. Receiving is not gated, which is why the ping answer needs its own gate: unlike `Broadcast`, it is reached out in the world.
 
 Three throttles, all against `GetTime()`:
@@ -341,7 +348,7 @@ Three throttles, all against `GetTime()`:
 - **`PING_ANSWER_INTERVAL`** (30s) caps answers to received pings. An answer is a `Broadcast`, so it also needs `shareStats` on and the 60s window clear, and its own stamp is spent even when nothing went out.
 - **`HOVER_PING_INTERVAL`** (10s, tooltip side) caps presence pings fired by hovering unknown players. A ping is gated on the rest area only, not on `shareStats`.
 
-**The tooltip block's shape is constrained.** A blank line, then the header from `ns:BuildBrandedLine` (`Features/Announcements.lua`, the same builder chat prints use, so the two surfaces cannot brand the add-on differently), then four indented rows. **Values are white**: the money row comes from `GetCoinTextureString`, which carries its own markup and ignores a color prefix, so any other color leaves it out of step. Labels are `HELP` silver, because gold field titles mark a control the player acts on. The hook is `TooltipDataProcessor`'s post-call where it exists, `OnTooltipSetUnit` otherwise, on `GameTooltip` only, and `C_Secrets.ShouldUnitIdentityBeSecret` is asked before reading the unit.
+**The tooltip block's shape is constrained.** A blank line, then the header from `ns:BuildBrandedLine` (`Features/Announcements.lua`, the same builder chat prints use, so the two surfaces cannot brand the add-on differently), then four indented rows. **Values are white**: the money row comes from `GetCoinTextureString`, which carries its own markup and ignores a color prefix, so any other color leaves it out of step. Labels are `HELP` silver, because gold field titles mark a control the player acts on. The hook is `TooltipDataProcessor`'s post-call where it exists, `OnTooltipSetUnit` otherwise when `GameTooltip:HasScript` confirms the script type, and none at all on a client with neither, on `GameTooltip` only. `Generosity.tooltipHook` records which one installed. `C_Secrets.ShouldUnitIdentityBeSecret` is asked before reading the unit.
 
 **Accepted latency.** Hovering a player you have never heard from shows nothing on the first pass and fires a ping; the block appears on the next hover. A peer silent past `PEER_MAX_AGE` drops back to that state. Your own tooltip shows your live tally, even at zero. Turning sharing off stops your broadcasts but not your view of others.
 
@@ -353,17 +360,17 @@ Three throttles, all against `GetTime()`:
 
 **Never look the category up by name.** `AddToBlizOptions` returns `(frame, categoryID)`, captured as `ns.GeneralPanel` and `ns.GeneralCategoryID`. AceConfigDialog uses the display name as the category ID only on clients lacking `C_SettingsUtil.OpenSettingsPanel`; Era lacks it and TBC Anniversary has it, so a name lookup works on one flavor and floats the panel free on the other.
 
-Registration is deferred: `ns:RegisterOptionsPanels` runs from the `ADDON_LOADED` init point, because the Profiles builder reads `ns.db`. Child order is General, Profiles, Diagnostic Tools. The Diagnostics panel registers as its builder function, so its tabs are rebuilt on every repaint.
+Registration is deferred: `ns:RegisterOptionsPanels` runs from the `ADDON_LOADED` init point, because the Profiles builder reads `ns.db`. Child order is General, Profiles, Feedback & Support, Diagnostic Tools. The Diagnostics panel registers as its builder function, so its tabs are rebuilt on every repaint.
 
 ### Layout
 
 AceConfig's flow layout packs cells until a row fills, and two rules follow from that.
 
-**A label-beside-value row needs a spacer behind it.** The Feedback & Support links and the Generosity totals are built by `addFeedbackLinks` and `addGenerosityStats` (`Options/Options-General.lua`) as a `ns.OptionsRowLabel` at `ROW_LABEL_WIDTH` (0.6) plus a value at `ROW_VALUE_WIDTH` (`ns.OPTIONS_ROW_WIDTH` minus that, 2.8), with a full-width spacer between pairs and none after the last, where the gap before the next section would double. The Generosity totals are text on both sides, and two `description` widgets never break a row on their own, so they depend entirely on that spacer.
+**A label-beside-value row needs a spacer behind it.** The Generosity totals (`addGenerosityStats`, `Options/Options-General.lua`) and the Feedback & Support links (`Options/Options-Feedback-Support.lua`) are each a `ns.OptionsRowLabel` at 0.6 plus a value at `ns.OPTIONS_ROW_WIDTH` minus that (2.8), with a full-width spacer between pairs and none after the last, where the gap before the next section would double. The Generosity totals are text on both sides, and two `description` widgets never break a row on their own, so they depend entirely on that spacer.
 
-**A toggle can be its own caption.** Include Gear is a toggle at `ns.OPTIONS_LABEL_WIDTH` (2.1) with its rarity select beside it at `ns.OPTIONS_CONTROL_WIDTH` (1.3); the select's values ("Rare & Lower") describe themselves. Include Consumables is a full-width toggle with indented sub-rows beneath it (`SubRow`, `SubLabel`, `ns.OPTIONS_SUB_INDENT_WIDTH`): the Level Rule select with its caption, then the four kind toggles. A select or sub-row hides while its toggle is off, and the spacer between the two sections keeps the toggles from pairing on one line. All widths live in `Data/Data.lua` except the two row widths, which are local to `Options-General.lua`.
+**A toggle can be its own caption.** Include Gear is a toggle at `ns.OPTIONS_LABEL_WIDTH` (2.1) with its rarity select beside it at `ns.OPTIONS_CONTROL_WIDTH` (1.3); the select's values ("Rare & Lower") describe themselves. Include Consumables is a full-width toggle with indented sub-rows beneath it (`SubRow`, `SubLabel`, `ns.OPTIONS_SUB_INDENT_WIDTH`): the Level Rule select with its caption, then the four kind toggles. A select or sub-row hides while its toggle is off, and the spacer between the two sections keeps the toggles from pairing on one line. All widths live in `Data/Data.lua` except the label-beside-value splits, which are local to the file that draws them (`ROW_LABEL_WIDTH` in `Options-General.lua`, `LINK_LABEL_WIDTH` in `Options-Feedback-Support.lua`).
 
-Panel order: description, Enable Welcome Message, What to Give Away, Generosity (Share toggle and the four totals), /Commands, Feedback & Support, version line.
+General panel order: description, Enable Welcome Message, What to Give Away, Generosity (Share toggle and the four totals), /Commands. The Feedback & Support panel carries the mandated Level Up paragraphs, the Discord, CurseForge, Wago and GitHub links, the copy caption and the version line.
 
 A setter that changes what counts as giftable calls `refreshWindow()`, which runs `UI:_syncControls()` and `UI:Rescan()` when the window exists. `UI:_rarityPickerOptions` and `UI:_gapPickerOptions` are split from opening the pickers so `Tests/Options-Values.lua` can read them without a frame. The gap picker compares `opt.gap == nil` rather than truthiness, because **the All Consumables stop is a zero**. A stored gap that is not one of `ns.CONSUMABLE_GAP_ORDER` is snapped to the nearest stop for display by `ns.NearestConsumableGap`.
 
@@ -371,7 +378,7 @@ A setter that changes what counts as giftable calls `refreshWindow()`, which run
 
 `Diagnostics/` is the shared framework, gated behind a runtime-only toggle in `ns.diagnostics` that starts off every session and is never saved. Reports build only on a button press, and the panel writes nothing but the `taintLog` CVar. Five tabs: **Run Tests** (Event Log, Taint Log, in-game and external tool pointers), then **Settings**, **Code**, **Data** and **Localization**, each with Run All, one row per report and one output box. Reports and tabs come from `ns.DIAGNOSTIC_REPORTS` and `ns.DIAGNOSTIC_SECTIONS` in `Report-Runner.lua`.
 
-The README-Notes exception keeps three additions to Magic Eraser's framework: an API row's optional second return is printed beside its result, a report row can carry an input box (`input` on its `ns.DIAGNOSTIC_REPORTS` entry), and Validate Data has a zone kind. `Validate-Data.lua` reads tables off `ns.Data` rather than `ns`.
+The README-Notes exception keeps two additions to Magic Eraser's framework: an API row's optional second return is printed beside its result, and a report row can carry an input box (`input` on its `ns.DIAGNOSTIC_REPORTS` entry). `Validate-Data.lua` reads tables off `ns.Data` rather than `ns`, since that is where this add-on keeps them.
 
 **Settings** holds the context probes, then the shared Saved Variables, Display Context and Other Add-ons:
 
@@ -381,13 +388,13 @@ The README-Notes exception keeps three additions to Magic Eraser's framework: an
 - **Item Verdict**: one link or item id typed into the row's box, with both stat sources side by side, so a parse failure shows as one rather than as a low score.
 - **Class Groups**: the derived armor and weapon priority tables at a typed level, or the player's own.
 - **Outgoing Mail**: the exact subject and body a stranger receives, with byte lengths.
-- **Given Away Sharing**: share state, resting state, prefix registration, which tooltip hook installed, the throttle stamps, this account's totals, and every peer with its age and an expired marker. It answers "why don't I see anyone", usually with the resting line.
+- **Given Away Sharing**: share state, resting state, prefix registration, which tooltip hook installed, the throttle stamps, what the last send answered, this account's totals, and every peer with its age and an expired marker. It answers "why don't I see anyone", usually with the resting line.
 
 **Code** holds Event Registration (driven off `ns.EVENT_NAMES`), API Endpoints and Library Versions. `ns.DIAGNOSTIC_API_CHECKS` carries a row per API reached through a compatibility guard plus the load-bearing calls, including `C_ChatInfo.SendAddonMessage`, `C_ChatInfo.RegisterAddonMessagePrefix` and `IsResting`, which the broadcast needs. Where the add-on picks between two APIs both halves are rows, so a FAIL on one half says which branch that client took (the `C_TooltipInfo` rows fail on Classic Era, where `Scan-Tooltip.lua` reads its hidden tooltip instead). Three rows feed literal strings to `Tooltip:StatsFromLines` as regression guards: a random-suffix roll arrives color-wrapped, and when that form stops parsing every rolled green reads as statless and lands in the vendor pile while fixed-stat items keep working.
 
-**Data** has one Validate Data row per flavor-folder file (`ns.DIAGNOSTIC_DATA_SOURCES`, eight sources). Food, potions and scrolls validate as items. Zones validate as `"area"`: each row prints the name `C_Map.GetAreaInfo` gives its ID, and a blank name is `NO NAME` rather than `NOT ON CLIENT`, since a client can know an area and leave it untranslated; a wrong zone ID otherwise fails silently, because the search skips a zone it cannot name. Stat budget, weapons, armor and faction classes carry no ID a client API looks up, so they report a row count or `TABLE MISSING`.
+**Data** has one Validate Data row per flavor-folder file (`ns.DIAGNOSTIC_DATA_SOURCES`, eight sources), each titled by the file this client loaded. A report is the client header, then one tab-separated block per record kind, ready to paste into a spreadsheet and sort by `STATUS`. Food, potions and scrolls validate as `"item"`: every item API return, the file's own columns, the item's spell and its whole tooltip. Zones validate as `"area"`: each row prints the name `C_Map.GetAreaInfo` gives its ID, and a blank name is `NO NAME` rather than `NOT ON CLIENT`, since a client can know an area and leave it untranslated; a wrong zone ID otherwise fails silently, because the search skips a zone it cannot name. Stat budget, weapons, armor and faction classes carry no ID a client API looks up, so they validate as `"other"`, a row count or `TABLE MISSING`.
 
-**Localization** holds Locale Context (locale, text and audio locale CVars, defined key count) and Game Names, a table of every lookup in `ns.DIAGNOSTIC_NAME_LOOKUPS` with a nil count. The add-on sends no chat and writes no macros, so there is no Message Length report; mail lengths are in Outgoing Mail.
+**Localization** holds Locale Context (locale, text and audio locale CVars, defined key count) and Game Names: one `OK` or `NIL` line per `ns.DIAGNOSTIC_NAME_LOOKUPS` row, read through the same call its feature makes. The rows are `ERR_PLAYER_WRONG_FACTION`, the three item-quality labels, then rows built from the add-on's own data (every `STAT_MAP` global, every class either faction can roll on this client in both genders, every zone), so a stat or zone added there gets its row unedited. The add-on names no items or spells by ID, so no row waits on a server load. The add-on sends no chat and writes no macros, so there is no Message Length report; mail lengths are in Outgoing Mail.
 
 ### The Event Log Filter
 
@@ -411,9 +418,9 @@ The README-Notes exception keeps three additions to Magic Eraser's framework: an
 
 One table, `PlayItForwardDB`, created in the name-guarded `ADDON_LOADED` handler with `LibStub("AceDB-3.0"):New("PlayItForwardDB", ns.DATABASE_DEFAULTS, true)`.
 
-**The model is Simple.** Nothing the add-on stores differs from character to character, so every character shares the `"Default"` profile (that third argument `true`). **Reset Profile restores every setting to its install default, and leaves the giving tally in `global` untouched.** A new setting goes in `profile`; only reset-proof state, which here is the lifetime tally, belongs in `global`.
+**The model is Simple.** Nothing the add-on stores differs from character to character, so every character shares the `"Default"` profile (that third argument `true`). **Reset Profile restores every setting to its install default, and leaves `global` untouched: the giving tally and the welcome stamp.** A new setting goes in `profile`; only reset-proof state belongs in `global`.
 
-`profile` holds the presentation and giftability settings (`showWelcome`, `shareStats`, `maxRarity`, `includeGear`, `includeConsumables`, `consumableKinds`, `consumableLevelGap`) and the dragged `windowPos`. `global.stats` holds the four tally counters, written only by `ns.Generosity:RecordSend`. Read `Data/Default-Settings.lua` for the current shape and defaults. `consumableLevelGap` of 0 is a sentinel, the All Consumables stop, which lifts the level test outright.
+`profile` holds the presentation and giftability settings (`showWelcome`, `shareStats`, `maxRarity`, `includeGear`, `includeConsumables`, `consumableKinds`, `consumableLevelGap`) and the dragged `windowPos`. `global.stats` holds the four tally counters, written only by `ns.Generosity:RecordSend`. `global.welcomeVersion` is the last `ns.Version` the welcome printed for, written by `PrintWelcome` in `Features/Core.lua` and absent from the defaults; it is global so a new character or a profile reset never repeats the message. Read `Data/Default-Settings.lua` for the current shape and defaults. `consumableLevelGap` of 0 is a sentinel, the All Consumables stop, which lifts the level test outright.
 
 AceDB applies `ns.DATABASE_DEFAULTS` when a scope is first accessed, never overriding an explicit user value including `false`; scalar and table defaults are copied into the saved table, and `removeDefaults` strips any key still equal to its default on logout, so an untouched profile saves empty. A key removed from `ns.DATABASE_DEFAULTS` is never visited by that cleanup, so retiring one takes an explicit nil inside a tagged migration.
 
@@ -429,7 +436,7 @@ Not settings, on purpose: the rarity floor `ns.Data.MIN_RARITY` (Uncommon, gear 
 
 1. Call `ns.on("YOUR_EVENT", handler)` from the feature file that needs it. Never create a frame; it would escape the event log.
 2. `ns.EVENT_NAMES` records it automatically, so Event Registration picks it up with no second edit. Add it only on the TOCs whose client ships it, or behind the same flavor check as the `PLAYER_INTERACTION_MANAGER` pair; registering an event the client lacks throws.
-3. If it fires often enough to bury the 500-entry log, decide whether any firing is ever signal. If none is, add it to `ns.DIAGNOSTIC_EVENT_EXCLUDE` in `Diagnostics/Event-Log.lua`. If some are, add it to `ns.MESSAGE_ID_FILTERED_EVENTS` with its id position and a `correlated` predicate that calls the handler's own test. Excluding a sometimes-signal event hides the one entry a bug report needs.
+3. If it fires often enough to bury the 500-entry log, decide whether any firing is ever signal. If none is, add it to `ns.DIAGNOSTIC_EVENT_EXCLUDE` in `Diagnostics/Event-Log.lua`. If some are, add it to `ns.MESSAGE_ID_FILTERED_EVENTS` with its id position and a `correlated` predicate that calls the handler's own test. Excluding a sometimes-signal event hides the one entry a bug report needs; if an excluded one turns out to matter now and then, the handler that knows can record that firing with `ns:LogEventNow(event, ...)`, which skips the exclude list and carries the dispatcher's own logging check.
 
 ## Adding a New Giftable Consumable
 
@@ -456,7 +463,7 @@ Not settings, on purpose: the rarity floor `ns.Data.MIN_RARITY` (Uncommon, gear 
 
 ## Adding a New Options Control
 
-1. Add its key and default to `ns.DATABASE_DEFAULTS.profile` in `Data/Default-Settings.lua`. Under the Simple model every setting lives on the profile; `global` holds only the giving tally.
+1. Add its key and default to `ns.DATABASE_DEFAULTS.profile` in `Data/Default-Settings.lua`. Under the Simple model every setting lives on the profile; `global` holds only the giving tally and the welcome stamp.
 2. Add the widget to `ns.BuildGeneralOptions` in `Options/Options-General.lua` with the `ns.OptionsHeader`, `ns.OptionsDesc`, `ns.OptionsSpacer` and `ns.OptionsRowLabel` constructors from `Options/Options-Utilities.lua`. Its explanation goes in `desc`, never a second line under it. Follow the spacer rule under The Options Panel → Layout.
 3. Add its strings to `Locales/enUS.lua` only.
 4. If it changes what counts as giftable, call `refreshWindow()` from its setter, and mirror it in the window's top bar only if the bar already shows its section.
@@ -516,6 +523,7 @@ Not settings, on purpose: the rarity floor `ns.Data.MIN_RARITY` (Uncommon, gear 
 - **Adding a stat weight and expecting only scores to move**: it changes the coverage denominator on every item carrying that stat.
 - **Adding a class to a flavor's `FACTION_CLASSES` alone**: `EVERY_CLASS` in `Match-Engine.lua` filters through it and stops at the death knight.
 - **Pairing two `description` widgets on one options row without a spacer**: the flow packs them until the row fills and the rows interleave. Every label-beside-value pair needs its full-width spacer.
+- **Hooking `OnTooltipSetUnit` without asking first**: `HookScript` on a script type the widget lacks throws at load, and Forever has dropped this one. `Generosity-Tooltip.lua` prefers `TooltipDataProcessor`, checks `GameTooltip:HasScript`, and otherwise installs nothing.
 - **Opening the options panel by category name**: works on Era, floats the panel on TBC Anniversary. Route by `ns.GeneralCategoryID`.
 - **Coloring the Generosity values anything but white**: `GetCoinTextureString` ignores the prefix, so the money row stays white regardless.
 - **Removing a key from `ns.DATABASE_DEFAULTS` and expecting it to disappear**: AceDB's cleanup only visits keys still in the defaults, so the orphan persists. Nil it explicitly inside a tagged migration in `Core.lua`.
