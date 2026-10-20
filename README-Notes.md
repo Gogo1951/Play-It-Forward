@@ -21,3 +21,9 @@
 - **Departs from:** LOCALIZATION, every string translated in every locale.
 - **Instead:** `MAIL_SUBJECT` and `MAIL_BODY` stay English in every locale file.
 - **Why:** The maintainer's choice.
+
+### English-only equip and school-damage stats
+
+- **Departs from:** GAME NAMES, never match against a name we typed in.
+- **Instead:** reads "Equip:" stat lines and per-school spell damage lines off item tooltips by their English wording, so on other locales those stats go unread.
+- **Why:** maintainer decision: the client offers no ID or global for those stats, and a per-flavor stats table built from IDs costs more than the scoring it would gain.
