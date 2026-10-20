@@ -14,7 +14,7 @@ ns.Data.FACTION_CLASSES = {
 How We Got the Data
 
 Last Validated
-	2026-10-09, Classic Era 1.15.9.70003
+	2026-10-20, Classic Era 1.15.9.70003
 
 Notes
 	- The classes each faction can roll on this client. /who and the mailbox are both
@@ -36,4 +36,7 @@ wago.tools
 	https://wago.tools/db2/CharBaseInfo?build=1.15.9.70003
 	https://wago.tools/db2/ChrRaces?build=1.15.9.70003
 	https://wago.tools/db2/ChrClasses?build=1.15.9.70003
+
+QuestieDB
+	None.
 ]]

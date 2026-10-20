@@ -54,7 +54,7 @@ local SUMMON_ALT_CLASS = "WARLOCK"
 	zero. No reading at all counts as too old: the roster arrives in pieces, and guessing "recent"
 	on missing data mails gear to somebody who quit.
 ]]
-local function activeRecently(index, online)
+local function ActiveRecently(index, online)
 	if online then
 		return true
 	end
@@ -93,7 +93,7 @@ end
 	nothing else. An alt that has never run the add-on is not in there and is not caught, which is
 	the honest limit of this.
 ]]
-local function ownCharacters()
+local function OwnCharacters()
 	local out = {}
 
 	-- UnitName returns the player bare; the helper appends our realm, as it does for a roster row.
@@ -147,7 +147,7 @@ function Guild:Read()
 		return out
 	end
 
-	local mine = ownCharacters()
+	local mine = OwnCharacters()
 	local total = GetNumGuildMembers() or 0
 	counts.rows = total
 
@@ -165,7 +165,7 @@ function Guild:Read()
 			counts.ownAlts = counts.ownAlts + 1
 		elseif classToken == SUMMON_ALT_CLASS and level >= SUMMON_ALT_MIN_LEVEL and level <= SUMMON_ALT_MAX_LEVEL then
 			counts.summonAlts = counts.summonAlts + 1
-		elseif not activeRecently(index, online) then
+		elseif not ActiveRecently(index, online) then
 			counts.stale = counts.stale + 1
 		else
 			counts.eligible = counts.eligible + 1
@@ -219,4 +219,4 @@ local function OnGuildRosterUpdate()
 	pendingCallback = nil
 	callback(Guild:Read())
 end
-ns.on("GUILD_ROSTER_UPDATE", OnGuildRosterUpdate)
+ns.On("GUILD_ROSTER_UPDATE", OnGuildRosterUpdate)

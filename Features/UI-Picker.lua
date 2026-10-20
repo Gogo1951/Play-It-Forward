@@ -2,7 +2,7 @@ local _, ns = ...
 
 -- The recipient dropdown, reused by the rarity and level-rule controls. The UI files call in through ns.Picker.
 
-local ENTRY_H = 18
+local ENTRY_HEIGHT = 18
 local PICKER_MIN_WIDTH = 190
 local PICKER_MAX = 240 -- max picker height before the list scrolls
 -- Wider runs off the screen, and SetClampedToScreen shoves the list back over its own button.
@@ -34,13 +34,13 @@ function Picker:Build()
 	catcher:Hide()
 	self.catcher = catcher
 
-	local f = CreateFrame("Frame", "PlayItForwardRecipientPicker", UIParent, POPUP_TEMPLATE)
-	f:SetFrameStrata("DIALOG")
-	f:SetFrameLevel(20)
-	f:SetClampedToScreen(true)
+	local frame = CreateFrame("Frame", "PlayItForwardRecipientPicker", UIParent, POPUP_TEMPLATE)
+	frame:SetFrameStrata("DIALOG")
+	frame:SetFrameLevel(20)
+	frame:SetClampedToScreen(true)
 	-- Backdrop only on the fallback: the bordered template brings its own, and skins restyle that.
-	if POPUP_TEMPLATE == "BackdropTemplate" and f.SetBackdrop then
-		f:SetBackdrop({
+	if POPUP_TEMPLATE == "BackdropTemplate" and frame.SetBackdrop then
+		frame:SetBackdrop({
 			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
 			tile = true,
@@ -55,28 +55,28 @@ function Picker:Build()
 		opens see-through. A texture rather than an unconditional SetBackdrop, so a skinning add-on
 		still wins; BACKGROUND so entries and highlights sit above.
 	]]
-	local fill = f:CreateTexture(nil, "BACKGROUND")
+	local fill = frame:CreateTexture(nil, "BACKGROUND")
 	fill:SetPoint("TOPLEFT", 3, -3)
 	fill:SetPoint("BOTTOMRIGHT", -3, 3)
 	fill:SetColorTexture(0.05, 0.05, 0.05, 0.95)
 
-	f:Hide()
+	frame:Hide()
 
-	local scroll = CreateFrame("ScrollFrame", "PlayItForwardPickerScroll", f, "UIPanelScrollFrameTemplate")
+	local scroll = CreateFrame("ScrollFrame", "PlayItForwardPickerScroll", frame, "UIPanelScrollFrameTemplate")
 	scroll:SetPoint("TOPLEFT", 8, -8)
 	scroll:SetPoint("BOTTOMRIGHT", -26, 8)
 	local content = CreateFrame("Frame", nil, scroll)
 	content:SetSize(1, 1)
 	scroll:SetScrollChild(content)
-	f.content = content
+	frame.content = content
 
 	tinsert(UISpecialFrames, "PlayItForwardRecipientPicker")
-	f:SetScript("OnHide", function()
+	frame:SetScript("OnHide", function()
 		catcher:Hide()
 	end)
 
-	self.frame = f
-	return f
+	self.frame = frame
+	return frame
 end
 
 function Picker:GetEntry(i)
@@ -84,9 +84,9 @@ function Picker:GetEntry(i)
 		return self.entries[i]
 	end
 	local entry = CreateFrame("Button", nil, self.frame.content)
-	entry:SetHeight(ENTRY_H)
-	entry:SetPoint("TOPLEFT", 0, -((i - 1) * ENTRY_H))
-	entry:SetPoint("TOPRIGHT", 0, -((i - 1) * ENTRY_H))
+	entry:SetHeight(ENTRY_HEIGHT)
+	entry:SetPoint("TOPLEFT", 0, -((i - 1) * ENTRY_HEIGHT))
+	entry:SetPoint("TOPRIGHT", 0, -((i - 1) * ENTRY_HEIGHT))
 
 	--[[
 		Anchored on both sides: with only a LEFT anchor a font string draws at whatever width its
@@ -118,7 +118,7 @@ end
 
 -- options = { { text = "...", pick = candidate|nil, clear/disabled/separator/findForItem = bool }, ... }
 function Picker:Open(anchor, options, onSelect)
-	local f = self:Build()
+	local frame = self:Build()
 	for _, entry in ipairs(self.entries) do
 		entry:Hide()
 	end
@@ -126,44 +126,44 @@ function Picker:Open(anchor, options, onSelect)
 	-- Never narrower than the button it drops from, whichever control that is.
 	local width = math.max(PICKER_MIN_WIDTH, anchor:GetWidth() or 0)
 	-- A font string with both anchors set reports the width it was given, not the width it wants.
-	for _, opt in ipairs(options) do
+	for _, option in ipairs(options) do
 		if not self.ruler then
-			self.ruler = f:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+			self.ruler = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 			self.ruler:Hide() -- never drawn; it exists only to be measured
 		end
-		self.ruler:SetText(opt.text or "")
+		self.ruler:SetText(option.text or "")
 		width = math.max(width, self.ruler:GetStringWidth() + 24)
 	end
 	width = math.min(PICKER_MAX_WIDTH, width)
 
-	for i, opt in ipairs(options) do
+	for i, option in ipairs(options) do
 		local entry = self:GetEntry(i)
-		entry.text:SetText(opt.text or "")
-		if opt.separator then
+		entry.text:SetText(option.text or "")
+		if option.separator then
 			entry.line:Show()
 		else
 			entry.line:Hide()
 		end
 		-- An entry that will not respond to a click has to look like it; a divider is furniture.
-		entry:SetAlpha((opt.disabled and not opt.separator) and 0.45 or 1)
+		entry:SetAlpha((option.disabled and not option.separator) and 0.45 or 1)
 		entry:SetScript("OnClick", function()
-			if opt.disabled then
+			if option.disabled then
 				return
 			end
 			Picker:Close()
-			onSelect(opt)
+			onSelect(option)
 		end)
 		entry:Show()
 	end
 
-	local listH = #options * ENTRY_H
-	f.content:SetSize(width, math.max(1, listH))
-	f:SetSize(width + 40, math.min(PICKER_MAX, listH) + 16)
+	local listH = #options * ENTRY_HEIGHT
+	frame.content:SetSize(width, math.max(1, listH))
+	frame:SetSize(width + 40, math.min(PICKER_MAX, listH) + 16)
 
-	f:ClearAllPoints()
-	f:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -2)
+	frame:ClearAllPoints()
+	frame:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -2)
 	self.catcher:Show()
-	f:Show()
+	frame:Show()
 end
 
 function Picker:Close()

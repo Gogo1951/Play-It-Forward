@@ -11,7 +11,7 @@ local Distributor = ns.Distributor
 ]]
 
 -- Display only: SendMail takes the bare name, and an escape sequence would address it to nobody.
-local function recipientOf(job)
+local function RecipientOf(job)
 	return ns.ColorName(job.recipient, job.class)
 end
 
@@ -20,7 +20,7 @@ end
 	name; on Classic Era that global is nil and the body lives behind MailEditBox:GetEditBox(), so the
 	To and Subject boxes fill while the body stays empty. Picked by availability, never by flavor.
 ]]
-local function mailBodyBox()
+local function MailBodyBox()
 	if MailEditBox and MailEditBox.GetEditBox then
 		local ok, box = pcall(MailEditBox.GetEditBox, MailEditBox)
 		if ok and box then
@@ -30,15 +30,15 @@ local function mailBodyBox()
 	return SendMailBodyEditBox
 end
 
-local function fillMailPanel(job)
-	local function fill(box, text)
+local function FillMailPanel(job)
+	local function Fill(box, text)
 		if box and box.SetText then
 			pcall(box.SetText, box, text or "")
 		end
 	end
-	fill(SendMailNameEditBox, job.recipient)
-	fill(SendMailSubjectEditBox, job.subject)
-	fill(mailBodyBox(), job.body)
+	Fill(SendMailNameEditBox, job.recipient)
+	Fill(SendMailSubjectEditBox, job.subject)
+	Fill(MailBodyBox(), job.body)
 end
 
 local MAIL_COST = 30 -- copper per mail
@@ -66,14 +66,14 @@ Distributor.onProgress = nil -- optional UI callback(done, total, job, ok)
 Distributor.onDone = nil -- optional UI callback(done, total, skipped)
 
 local function OnMailSuccess()
-	Distributor:_result(true)
+	Distributor:Result(true)
 end
-ns.on("MAIL_SUCCESS", OnMailSuccess)
+ns.On("MAIL_SUCCESS", OnMailSuccess)
 local function OnMailFailed()
 	-- The event carries no detail, so the reason slot says so rather than repeating "failed".
-	Distributor:_result(false, L["MAIL_REASON_FAILED"])
+	Distributor:Result(false, L["MAIL_REASON_FAILED"])
 end
-ns.on("MAIL_FAILED", OnMailFailed)
+ns.On("MAIL_FAILED", OnMailFailed)
 
 --[[
 	Every mail refusal the client knows about, collected from its own ERR_MAIL* strings rather than
@@ -146,7 +146,7 @@ local function OnUiErrorMessage(_, message)
 	-- A name the server will not take now will not start working later in the same session.
 	if inFlight then
 		ns.Fairness:MarkUnreachable(inFlight.recipient)
-		Distributor:_result(false, message, RECIPIENT_ONLY_ERRORS[errorName])
+		Distributor:Result(false, message, RECIPIENT_ONLY_ERRORS[errorName])
 		return
 	end
 	ns.Fairness:MarkUnreachable(settling.recipient)
@@ -154,7 +154,7 @@ local function OnUiErrorMessage(_, message)
 		Distributor.onProgress(Distributor._done or 0, Distributor._total or 0, settling, false)
 	end
 end
-ns.on("UI_ERROR_MESSAGE", OnUiErrorMessage)
+ns.On("UI_ERROR_MESSAGE", OnUiErrorMessage)
 
 -- job = { bag, slot, link, recipient, level, class, subject, body }
 function Distributor:Start(jobs)
@@ -176,7 +176,7 @@ function Distributor:Start(jobs)
 	end
 	ns:PrintMessage(L["MAIL_DISTRIBUTING"]:format(#self.queue))
 	self:WarnIfOversized()
-	self:_next()
+	self:Next()
 end
 
 function Distributor:Stop()
@@ -197,7 +197,7 @@ function Distributor:Stop()
 	end
 end
 
-function Distributor:_next()
+function Distributor:Next()
 	if self.busy then
 		return
 	end
@@ -215,7 +215,7 @@ function Distributor:_next()
 
 	local job = self.queue[1]
 	if not job then
-		return self:_finish()
+		return self:Finish()
 	end
 
 	-- Gate on the mailbox, not MailFrame:IsShown(): TSM and the Who panel swap MailFrame out.
@@ -249,7 +249,7 @@ function Distributor:_next()
 		self.busy = false
 		ns:PrintMessage(L["MAIL_PANEL_CLOSED"])
 		ns:PrintMessage(L["MAIL_PANEL_CLOSED_HINT"])
-		return self:_finish()
+		return self:Finish()
 	end
 
 	if ClearSendMail then
@@ -276,7 +276,7 @@ function Distributor:_next()
 	if not attached or not (GetSendMailItem and GetSendMailItem(1)) then
 		self.busy = false
 		ns:PrintMessage(L["MAIL_ATTACH_FAILED"]:format(job.link))
-		return self:_finish()
+		return self:Finish()
 	end
 
 	--[[
@@ -284,7 +284,7 @@ function Distributor:_next()
 		overwriting a subject set earlier. Cosmetic only -- each box is guarded on its own, because
 		a cosmetic touch must never be the thing that breaks a send.
 	]]
-	fillMailPanel(job)
+	FillMailPanel(job)
 
 	--[[
 		Guarded for the reason the attach above is, and the attachment is released on the way out:
@@ -296,8 +296,8 @@ function Distributor:_next()
 		if ClearSendMail then
 			pcall(ClearSendMail)
 		end
-		ns:PrintMessage(L["MAIL_SEND_FAILED"]:format(recipientOf(job), L["MAIL_REASON_ERROR"]))
-		return self:_finish()
+		ns:PrintMessage(L["MAIL_SEND_FAILED"]:format(RecipientOf(job), L["MAIL_REASON_ERROR"]))
+		return self:Finish()
 	end
 
 	-- Wait for MAIL_SUCCESS/FAILED, or pause if the player hasn't confirmed.
@@ -306,11 +306,11 @@ function Distributor:_next()
 		-- SendMail has already fired, so a late Accept still delivers: hold the job as Stop does.
 		self._awaiting = self._current
 		self.busy = false
-		ns:PrintMessage(L["MAIL_AWAITING_CONFIRM"]:format(recipientOf(job)))
+		ns:PrintMessage(L["MAIL_AWAITING_CONFIRM"]:format(RecipientOf(job)))
 	end)
 end
 
-function Distributor:_result(ok, reason, recipientOnly)
+function Distributor:Result(ok, reason, recipientOnly)
 	-- A stopped or timed-out run can still have a send in flight: record it, then stay stopped.
 	if not self.busy then
 		local pending = self._awaiting
@@ -350,17 +350,17 @@ function Distributor:_result(ok, reason, recipientOnly)
 			ns.Generosity:RecordSend(job.link, job._count)
 		end
 		self._done = (self._done or 0) + 1
-		ns:PrintMessage(L["MAIL_SENT"]:format(job.link, recipientOf(job), self._done, self._total))
+		ns:PrintMessage(L["MAIL_SENT"]:format(job.link, RecipientOf(job), self._done, self._total))
 		table.remove(self.queue, 1)
 		self.errors = 0
 	else
 		if not recipientOnly then
 			self.errors = self.errors + 1
 		end
-		ns:PrintMessage(L["MAIL_SEND_FAILED"]:format(recipientOf(job), reason or "?"))
+		ns:PrintMessage(L["MAIL_SEND_FAILED"]:format(RecipientOf(job), reason or "?"))
 		if not recipientOnly and self.errors > 1 then
 			ns:PrintMessage(L["MAIL_ABORTED"])
-			return self:_finish()
+			return self:Finish()
 		end
 		table.remove(self.queue, 1) -- skip the problem item
 	end
@@ -369,7 +369,7 @@ function Distributor:_result(ok, reason, recipientOnly)
 		self.onProgress(self._done, self._total, job, ok)
 	end
 	if ok then
-		return self:_next()
+		return self:Next()
 	end
 
 	-- Not busy while settling, so a second signal for this refusal is absorbed rather than counted.
@@ -381,12 +381,12 @@ function Distributor:_result(ok, reason, recipientOnly)
 		end
 		self._settling = nil
 		if not self.busy then
-			self:_next()
+			self:Next()
 		end
 	end)
 end
 
-function Distributor:_finish()
+function Distributor:Finish()
 	self.busy = false
 	local done, total, skipped = self._done or 0, self._total or 0, self._skipped or 0
 	-- Skips are items that moved in the bags, not failures, so they are counted apart.
@@ -409,9 +409,10 @@ function Distributor:_finish()
 end
 
 --[[
-	Cannot fire on the shipped English -- Tests/Mail-Contents.lua holds it under the cap -- but a
-	translation of the same paragraphs can run longer. No chat preview here; Diagnostic Tools has
-	"Preview What Strangers Receive" on demand.
+	Tests/Mail-Contents.lua holds enUS.lua's copy under the cap, but every other locale file keeps
+	its own copy of the same English text, and the test never reads those: a copy that drifts
+	longer is caught only here. No chat preview; Diagnostic Tools -> Outgoing Mail shows the byte
+	counts on demand.
 ]]
 function Distributor:WarnIfOversized()
 	local subject, body = self:BuildSubject(), self:BuildBody()

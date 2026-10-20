@@ -17,9 +17,10 @@ L["CHAT_OPTIONS_IN_COMBAT"] = "As a safety precaution, the Options Interface can
 --------------------------------------------------------------------------------
 
 --[[
-	Captions on the window's two top-bar ticks, the window's twins of Include Gear and Include
-	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips and the
-	dropdown values are the panel's own strings, so a setting is never explained two ways.
+	Captions on the window's Gear and Consumables ticks, the twins of Include Gear and Include
+	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips, the kind
+	ticks and the dropdown values are the panel's own strings, so a setting is never explained two
+	ways.
 ]]
 L["WINDOW_GEAR_LABEL"] = "Gear"
 L["WINDOW_CONSUMABLES_LABEL"] = "Consumables"
@@ -46,9 +47,9 @@ L["BUTTON_NEEDS_MAILBOX"] = "Requires Open Mailbox"
 L["WHO_BLOCKED"] =
 	"Press Find Recipients again. Blizzard only allows that search straight from a button press, and something interrupted this one."
 
--- In the list while it is empty. The hint names the two top-bar captions: rename one, reread it.
+-- In the list while it is empty.
 L["WINDOW_EMPTY"] = "Nothing left to give away."
-L["WINDOW_EMPTY_HINT"] = "Change Gear or Consumables above to list more."
+L["WINDOW_EMPTY_HINT"] = "Change the settings above to list more."
 
 L["SECTION_MATCHED"] = "Matched"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
@@ -157,7 +158,8 @@ L["MAIL_BODY_TOO_LONG"] = "Body is %d characters and mail only takes %d, so it w
 
 	LENGTH: 500 characters, confirmed against a live mailbox. Past it the mail is cut short,
 	sign-off first, and Tests/Mail-Contents.lua fails on it. The runtime warning in
-	Features/Mail-Sender.lua stays even so, because the test only measures this locale.
+	Features/Mail-Sender.lua stays even so: the other locale files keep their own copies of this
+	English text, and the test does not read them.
 ]]
 L["MAIL_SUBJECT"] = "Play It Forward!"
 
@@ -173,7 +175,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Send the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time."
+	"Mail the BoE gear, food, potions, and scrolls you've outgrown to leveling players in your guild or out in the world. Every item goes to the class it suits best, turning bag clutter into somebody else's next upgrade. Pay it forward, one green at a time."
 L["OPTIONS_WELCOME"] = "Enable Welcome Message"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "Print the version and settings reminder when you log in."
 
@@ -187,7 +189,8 @@ L["OPTIONS_MAX_RARITY_DESCRIPTION"] =
 L["OPTIONS_INCLUDE_GEAR"] = "Include Gear"
 L["OPTIONS_INCLUDE_GEAR_DESCRIPTION"] = "Offer bind-on-equip weapons and armor."
 L["OPTIONS_INCLUDE_CONSUMABLES"] = "Include Consumables"
-L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] = "Offer low-level food, drink, potions, and scrolls you have outgrown."
+L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] =
+	"Offer low-level food, drink, potions, scrolls, oils, and stones you have outgrown."
 --[[
 	Self-describing: a bare "20" says nothing.
 	"%d+" rather than ">%d" because the scan admits an item at exactly that many levels past it,
@@ -214,6 +217,9 @@ L["OPTIONS_KIND_POTIONS_DESCRIPTION"] = "Offer healing, mana, and rejuvenation p
 L["OPTIONS_KIND_SCROLLS"] = "Scrolls"
 L["OPTIONS_KIND_SCROLLS_DESCRIPTION"] =
 	"Offer stat scrolls you have outgrown. Each goes to the classes that use its stat."
+L["OPTIONS_KIND_OILS_STONES"] = "Oils & Stones"
+L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
+	"Offer weapon oils, sharpening stones, and weightstones you have outgrown. Wizard oils go to spellcasters, mana oils to anyone with mana, and stones and other oils to melee fighters."
 
 --[[
 	Account-wide giving tally, read-only here. Item Levels counts equippable gear only.

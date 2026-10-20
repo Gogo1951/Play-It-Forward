@@ -91,6 +91,63 @@ test("two lines of the same stat add up", function()
 end)
 
 --------------------------------------------------------------------------------
+-- The client's own word order
+--------------------------------------------------------------------------------
+
+--[[
+	koKR writes every stat line name-first ("지능 +9"), so the "+N Name" reader sees nothing
+	there. These formats are the GlobalStrings each client ships (wago.tools, Classic Era);
+	the stub defines no long ITEM_MOD_* globals, so each case sets the one it needs and
+	clears it again.
+]]
+local function withGlobals(globals, fn)
+	local saved = {}
+	for name, value in pairs(globals) do
+		saved[name] = _G[name]
+		_G[name] = value
+	end
+	fn()
+	for name in pairs(globals) do
+		_G[name] = saved[name]
+	end
+end
+
+test("a name-first koKR stat line parses", function()
+	withGlobals({ ITEM_MOD_INTELLECT = "지능 %c%d", ITEM_MOD_INTELLECT_SHORT = "지능" }, function()
+		local ns = load()
+		local stats, unread = ns.Tooltip:StatsFromLines({ "Item Name", "지능 +9" })
+
+		equal(stats.INTELLECT, 9, "intellect off a name-first line")
+		equal(#unread, 0, "nothing unread")
+	end)
+end)
+
+test("a positional deDE format parses", function()
+	withGlobals({ ITEM_MOD_INTELLECT = "%1$c%2$d Intelligenz", ITEM_MOD_INTELLECT_SHORT = "Intelligenz" }, function()
+		local ns = load()
+
+		equal(parse(ns, "+9 Intelligenz").INTELLECT, 9, "intellect off a deDE line")
+	end)
+end)
+
+test("a color-wrapped koKR suffix line parses", function()
+	withGlobals({ ITEM_MOD_STAMINA = "체력 %c%d", ITEM_MOD_STAMINA_SHORT = "체력" }, function()
+		local ns = load()
+
+		equal(parse(ns, "|cffffffff체력 +15|r\n").STAMINA, 15, "stamina off a wrapped koKR line")
+	end)
+end)
+
+test("a name-first line no format names is reported", function()
+	withGlobals({ ITEM_MOD_INTELLECT = "지능 %c%d", ITEM_MOD_INTELLECT_SHORT = "지능" }, function()
+		local ns = load()
+		local _, unread = ns.Tooltip:StatsFromLines({ "Item Name", "정체불명 +3" })
+
+		equal(#unread, 1, "the unknown name-first line is reported")
+	end)
+end)
+
+--------------------------------------------------------------------------------
 -- Reporting what did not parse
 --------------------------------------------------------------------------------
 

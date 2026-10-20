@@ -132,7 +132,7 @@ test("a fallback ticked by hand is the player's decision", function()
 
 	search(ns, { PALADIN })
 	local item = ns.UI:Items()[1]
-	ns.UI:_toggleRow(item, true)
+	ns.UI:ToggleRow(item, true)
 
 	search(ns, { WARRIOR })
 
@@ -145,7 +145,7 @@ test("a hand-picked fallback ends the search for that item", function()
 	mainHandSword(ns)
 
 	search(ns, { PALADIN })
-	ns.UI:_setRecipient(ns.UI:Items()[1], PALADIN)
+	ns.UI:SetRecipient(ns.UI:Items()[1], PALADIN)
 
 	ns.MatchList:Assign()
 	equal(ns.Who:Remaining(), 0, "the player's choice is final, so nothing is left to hunt")

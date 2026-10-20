@@ -17,9 +17,10 @@ L["CHAT_OPTIONS_IN_COMBAT"] = "Per precauzione, l'interfaccia delle opzioni non 
 --------------------------------------------------------------------------------
 
 --[[
-	Captions on the window's two top-bar ticks, the window's twins of Include Gear and Include
-	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips and the
-	dropdown values are the panel's own strings, so a setting is never explained two ways.
+	Captions on the window's Gear and Consumables ticks, the twins of Include Gear and Include
+	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips, the kind
+	ticks and the dropdown values are the panel's own strings, so a setting is never explained two
+	ways.
 ]]
 L["WINDOW_GEAR_LABEL"] = "Equipaggiamento"
 L["WINDOW_CONSUMABLES_LABEL"] = "Consumabili"
@@ -46,9 +47,9 @@ L["BUTTON_NEEDS_MAILBOX"] = "Richiede cassetta postale aperta"
 L["WHO_BLOCKED"] =
 	"Premi di nuovo Trova destinatari. Blizzard consente questa ricerca solo direttamente dalla pressione di un pulsante, e qualcosa ha interrotto questa."
 
--- In the list while it is empty. The hint names the two top-bar captions: rename one, reread it.
+-- In the list while it is empty.
 L["WINDOW_EMPTY"] = "Non resta niente da regalare."
-L["WINDOW_EMPTY_HINT"] = "Cambia Equipaggiamento o Consumabili qui sopra per vederne altri."
+L["WINDOW_EMPTY_HINT"] = "Cambia le impostazioni qui sopra per vederne altri."
 
 L["SECTION_MATCHED"] = "Assegnati"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
@@ -159,7 +160,8 @@ L["MAIL_BODY_TOO_LONG"] = "Il testo è di %d caratteri e la posta ne accetta sol
 
 	LENGTH: 500 characters, confirmed against a live mailbox. Past it the mail is cut short,
 	sign-off first, and Tests/Mail-Contents.lua fails on it. The runtime warning in
-	Features/Mail-Sender.lua stays even so, because the test only measures this locale.
+	Features/Mail-Sender.lua stays even so: the other locale files keep their own copies of this
+	English text, and the test does not read them.
 ]]
 L["MAIL_SUBJECT"] = "Play It Forward!"
 
@@ -175,7 +177,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Invia l'equipaggiamento e i consumabili che non ti servono più a compagni di gilda o a sconosciuti che sapranno apprezzarli. Ogni oggetto viene assegnato alla classe a cui si addice di più, trasformando il disordine dimenticato nelle tue borse nel prossimo potenziamento di qualcun altro. Passalo avanti, un oggetto verde alla volta."
+	"Spedisci per posta l'equipaggiamento ancora scambiabile, il cibo, le pozioni e le pergamene che non ti servono più a giocatori che stanno salendo di livello, nella tua gilda o in giro per il mondo. Ogni oggetto va alla classe a cui si addice di più, trasformando il disordine nelle tue borse nel prossimo potenziamento di qualcun altro. Passalo avanti, un oggetto verde alla volta."
 L["OPTIONS_WELCOME"] = "Attiva messaggio di benvenuto"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "Mostra la versione e il promemoria delle impostazioni all'accesso."
 
@@ -190,7 +192,7 @@ L["OPTIONS_INCLUDE_GEAR"] = "Includi equipaggiamento"
 L["OPTIONS_INCLUDE_GEAR_DESCRIPTION"] = "Offri armi e armature che si vincolano quando equipaggiate."
 L["OPTIONS_INCLUDE_CONSUMABLES"] = "Includi consumabili"
 L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] =
-	"Offri cibo, bevande, pozioni e pergamene di basso livello che hai superato."
+	"Offri cibo, bevande, pozioni, pergamene, oli e pietre di basso livello che hai superato."
 --[[
 	Self-describing: a bare "20" says nothing.
 	"%d+" rather than ">%d" because the scan admits an item at exactly that many levels past it,
@@ -217,6 +219,9 @@ L["OPTIONS_KIND_POTIONS_DESCRIPTION"] = "Offri pozioni di cura, mana e ringiovan
 L["OPTIONS_KIND_SCROLLS"] = "Pergamene"
 L["OPTIONS_KIND_SCROLLS_DESCRIPTION"] =
 	"Offri pergamene di statistica che hai superato. Ognuna va alle classi che usano la sua statistica."
+L["OPTIONS_KIND_OILS_STONES"] = "Oli e pietre"
+L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
+	"Offri oli per armi, pietre per affilare e pietre per appesantire che hai superato. Gli oli da mago vanno agli incantatori, gli oli di mana a chi usa il mana, e le pietre e gli altri oli a chi combatte in mischia."
 
 --[[
 	Account-wide giving tally, read-only here. Item Levels counts equippable gear only.

@@ -37,7 +37,7 @@ function Generosity:RecordSend(link, quantity)
 	stats.value = stats.value + (select(11, C_Item.GetItemInfo(link)) or 0) * count
 end
 
--- The four counters, for the General panel's Given Away display and Features/Generosity-Broadcast.lua.
+-- The four counters, for the General panel's Generosity totals and Features/Generosity-Broadcast.lua.
 function Generosity:Get()
 	local stats = ns.db and ns.db.global.stats
 	if not stats then

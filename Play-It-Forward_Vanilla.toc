@@ -1,5 +1,5 @@
 ## Title: Play It Forward
-## Notes: Send the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
+## Notes: Mail the BoE gear, food, potions, and scrolls you've outgrown to leveling players in your guild or out in the world. Every item goes to the class it suits best, turning bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
 ## Author: Gogo1951
 
 ## IconTexture: Interface/AddOns/Play-It-Forward/Includes/Images/Play-It-Forward.tga
@@ -57,6 +57,7 @@ Data/Vanilla/Match-Stat-Budget-Vanilla.lua
 Data/Vanilla/Scan-Food-Vanilla.lua
 Data/Vanilla/Scan-Potions-Vanilla.lua
 Data/Vanilla/Scan-Scrolls-Vanilla.lua
+Data/Vanilla/Scan-Oils-Stones-Vanilla.lua
 Data/Vanilla/Recipients-Zones-Vanilla.lua
 Data/Vanilla/Match-Weapons-Vanilla.lua
 Data/Vanilla/Match-Armor-Vanilla.lua
@@ -65,6 +66,7 @@ Data/Discovery/Match-Stat-Budget-Discovery.lua
 Data/Discovery/Scan-Food-Discovery.lua
 Data/Discovery/Scan-Potions-Discovery.lua
 Data/Discovery/Scan-Scrolls-Discovery.lua
+Data/Discovery/Scan-Oils-Stones-Discovery.lua
 Data/Discovery/Recipients-Zones-Discovery.lua
 Data/Discovery/Match-Weapons-Discovery.lua
 Data/Discovery/Match-Armor-Discovery.lua

@@ -5,7 +5,7 @@
 	it had just been mailed to and ticked to send again. Features/Mail-Sender.lua states
 	the reason in its own comments -- MAIL_SUCCESS fires before the bag update arrives --
 	and the post-delivery refresh read the bags at exactly that instant. The sent item
-	was still in its slot, so the scan found it, and rescanBags restored the pairing it
+	was still in its slot, so the scan found it, and RescanBags restored the pairing it
 	had just been sent under.
 
 	It showed up as the last item of a run: every earlier slot had cleared by the time
@@ -37,7 +37,7 @@ local function readyToDistribute(defs, people)
 	Stub.SetBackpack(defs)
 	ns.fire("MAIL_SHOW")
 	for index, item in ipairs(ns.UI:Items()) do
-		ns.UI:_setRecipient(item, people[index])
+		ns.UI:SetRecipient(item, people[index])
 	end
 	return ns
 end
@@ -314,7 +314,7 @@ test("Distribute is dead until a mailbox is open and something is ticked", funct
 
 	equal(ns.UI.frame.distributeButton:IsEnabled(), false, "nothing matched yet")
 
-	ns.UI:_setRecipient(ns.UI:Items()[1], KEEFE)
+	ns.UI:SetRecipient(ns.UI:Items()[1], KEEFE)
 	equal(ns.UI.frame.distributeButton:IsEnabled(), true, "matched at a mailbox")
 
 	--[[
@@ -330,7 +330,7 @@ test("Distribute is dead when every row is unticked", function()
 	local ns = readyToDistribute({ cloak() }, { KEEFE })
 	equal(ns.UI.frame.distributeButton:IsEnabled(), true, "ticked and matched")
 
-	ns.UI:_toggleRow(ns.UI:Items()[1], false)
+	ns.UI:ToggleRow(ns.UI:Items()[1], false)
 	ns.UI:Refresh()
 	equal(ns.UI.frame.distributeButton:IsEnabled(), false, "unticked leaves nothing to send")
 end)

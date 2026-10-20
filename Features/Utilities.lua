@@ -84,7 +84,7 @@ ns.GetTooltipLines = TOOLTIP_DATA_GETTERS and ReadTooltipData or ReadHiddenToolt
 	The first of the given template names this client has, falling back to the last. Stock Blizzard
 	templates only: skinning add-ons restyle those and cannot touch a hand-rolled SetBackdrop.
 ]]
-local function templateExists(name)
+local function TemplateExists(name)
 	if not (C_XMLUtil and C_XMLUtil.GetTemplateInfo) then
 		return nil
 	end
@@ -95,7 +95,7 @@ end
 function ns.PickTemplate(...)
 	for i = 1, select("#", ...) do
 		local name = select(i, ...)
-		if name and templateExists(name) then
+		if name and TemplateExists(name) then
 			return name
 		end
 	end
@@ -142,7 +142,7 @@ end
 	takes, not a |cff prefix, which is why the fallback prepends "ff" itself. File-local: the
 	colored name below is what the rest of the add-on asks for.
 ]]
-local function classColor(token)
+local function ClassColor(token)
 	local c = (CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[token]) or (RAID_CLASS_COLORS and RAID_CLASS_COLORS[token])
 	if not c then
 		return "ff" .. (ns.CLASS_COLORS[token] or ns.PALETTE.TEXT)
@@ -158,7 +158,7 @@ local function classColor(token)
 end
 
 function ns.ColorName(name, token)
-	return ("|c%s%s|r"):format(classColor(token), name or "?")
+	return ("|c%s%s|r"):format(ClassColor(token), name or "?")
 end
 
 --------------------------------------------------------------------------------
@@ -298,7 +298,7 @@ end
 
 --[[
 	A whole number with thousands separators: 1234567 -> "1,234,567". Stateless, used by the General
-	panel's Given Away display and Features/Generosity-Tooltip.lua. The tally counters are integers,
+	panel's Generosity totals and Features/Generosity-Tooltip.lua. The tally counters are integers,
 	so the fractional part is dropped rather than rounded; a stray negative keeps its sign.
 ]]
 function ns.CommaNumber(n)

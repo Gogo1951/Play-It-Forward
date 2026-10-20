@@ -18,9 +18,10 @@ L["CHAT_OPTIONS_IN_COMBAT"] =
 --------------------------------------------------------------------------------
 
 --[[
-	Captions on the window's two top-bar ticks, the window's twins of Include Gear and Include
-	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips and the
-	dropdown values are the panel's own strings, so a setting is never explained two ways.
+	Captions on the window's Gear and Consumables ticks, the twins of Include Gear and Include
+	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips, the kind
+	ticks and the dropdown values are the panel's own strings, so a setting is never explained two
+	ways.
 ]]
 L["WINDOW_GEAR_LABEL"] = "Снаряжение"
 L["WINDOW_CONSUMABLES_LABEL"] = "Расходуемые"
@@ -47,10 +48,9 @@ L["BUTTON_NEEDS_MAILBOX"] = "Нужен открытый почтовый ящи
 L["WHO_BLOCKED"] =
 	"Нажмите Найти получателей еще раз. Blizzard разрешает этот поиск только напрямую по нажатию кнопки, а этот поиск что-то прервало."
 
--- In the list while it is empty. The hint names the two top-bar captions: rename one, reread it.
+-- In the list while it is empty.
 L["WINDOW_EMPTY"] = "Больше нечего отдавать."
-L["WINDOW_EMPTY_HINT"] =
-	"Измените Снаряжение или Расходуемые выше, чтобы показать больше."
+L["WINDOW_EMPTY_HINT"] = "Измените настройки выше, чтобы показать больше."
 
 L["SECTION_MATCHED"] = "Подобрано"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
@@ -175,7 +175,8 @@ L["MAIL_BODY_TOO_LONG"] =
 
 	LENGTH: 500 characters, confirmed against a live mailbox. Past it the mail is cut short,
 	sign-off first, and Tests/Mail-Contents.lua fails on it. The runtime warning in
-	Features/Mail-Sender.lua stays even so, because the test only measures this locale.
+	Features/Mail-Sender.lua stays even so: the other locale files keep their own copies of this
+	English text, and the test does not read them.
 ]]
 L["MAIL_SUBJECT"] = "Play It Forward!"
 
@@ -191,7 +192,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Отправляйте снаряжение и расходуемые предметы, из которых вы выросли, согильдийцам или незнакомцам, которые их оценят. Каждый предмет подбирается для класса, которому он подходит лучше всего, и забытый хлам в сумках становится чьим-то следующим улучшением. Передайте добро дальше, по одной зеленой вещи за раз."
+	"Отправляйте почтой снаряжение, которое становится персональным при надевании, еду, зелья и свитки, из которых вы выросли, игрокам, которые еще качаются, в вашей гильдии или где угодно в мире. Каждый предмет достается классу, которому он подходит лучше всего, и хлам в сумках становится чьим-то следующим улучшением. Передайте добро дальше, по одной зеленой вещи за раз."
 L["OPTIONS_WELCOME"] = "Включить приветственное сообщение"
 L["OPTIONS_WELCOME_DESCRIPTION"] =
 	"Выводить версию и напоминание о настройках при входе в игру."
@@ -208,7 +209,7 @@ L["OPTIONS_INCLUDE_GEAR_DESCRIPTION"] =
 	"Предлагать оружие и доспехи, становящиеся персональными при надевании."
 L["OPTIONS_INCLUDE_CONSUMABLES"] = "Включить расходуемые"
 L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] =
-	"Предлагать низкоуровневую еду, питье, зелья и свитки, из которых вы выросли."
+	"Предлагать низкоуровневую еду, питье, зелья, свитки, масла и камни, из которых вы выросли."
 --[[
 	Self-describing: a bare "20" says nothing.
 	"%d+" rather than ">%d" because the scan admits an item at exactly that many levels past it,
@@ -237,6 +238,9 @@ L["OPTIONS_KIND_POTIONS_DESCRIPTION"] =
 L["OPTIONS_KIND_SCROLLS"] = "Свитки"
 L["OPTIONS_KIND_SCROLLS_DESCRIPTION"] =
 	"Предлагать свитки характеристик, из которых вы выросли. Каждый достается классам, которые используют его характеристику."
+L["OPTIONS_KIND_OILS_STONES"] = "Масла и камни"
+L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
+	"Предлагать масла для оружия, точильные камни и грузила, из которых вы выросли. Волшебные масла достаются заклинателям, масла маны достаются всем, кто использует ману, а камни, грузила и прочие масла достаются бойцам ближнего боя."
 
 --[[
 	Account-wide giving tally, read-only here. Item Levels counts equippable gear only.

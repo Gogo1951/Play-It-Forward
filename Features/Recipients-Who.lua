@@ -36,7 +36,7 @@ end
 ]]
 local factionByRace
 
-local function raceFactions()
+local function RaceFactions()
 	if factionByRace then
 		return factionByRace
 	end
@@ -62,12 +62,12 @@ local function raceFactions()
 	return factionByRace
 end
 
-local function otherFaction(raceName)
+local function OtherFaction(raceName)
 	local mine = UnitFactionGroup("player")
 	if not (mine == "Alliance" or mine == "Horde") or not raceName then
 		return false
 	end
-	local theirs = raceFactions()[raceName]
+	local theirs = RaceFactions()[raceName]
 	return theirs and theirs ~= mine or false
 end
 
@@ -104,7 +104,7 @@ function Who:ResultStats()
 	return counts
 end
 
-local function parseResults()
+local function ParseResults()
 	local list = {}
 	-- The second return is how many matched server-side, which is what tells a full answer apart.
 	local raw, total = C_FriendList.GetNumWhoResults()
@@ -120,7 +120,7 @@ local function parseResults()
 				whether they can wear the item, or for a faction mail cannot reach.
 			]]
 			local token = info.filename or classTokenByName[info.classStr]
-			if otherFaction(info.raceStr) then
+			if OtherFaction(info.raceStr) then
 				counts.otherFaction = counts.otherFaction + 1
 			elseif token then
 				table.insert(list, {
@@ -155,12 +155,12 @@ end
 local panelWasOpen = false
 local deafened = {}
 
-local function whoPanel()
+local function WhoPanel()
 	return FriendsFrame
 end
 
-local function beginQuery()
-	panelWasOpen = whoPanel() ~= nil and whoPanel():IsShown()
+local function BeginQuery()
+	panelWasOpen = WhoPanel() ~= nil and WhoPanel():IsShown()
 	for _, frame in ipairs({ FriendsFrame, WhoFrame }) do
 		if frame and frame.IsEventRegistered and frame:IsEventRegistered("WHO_LIST_UPDATE") then
 			pcall(frame.UnregisterEvent, frame, "WHO_LIST_UPDATE")
@@ -172,7 +172,7 @@ local function beginQuery()
 	end
 end
 
-local function endQuery()
+local function EndQuery()
 	-- Exactly the frames deafened above, so a frame that never listened is never registered.
 	for index = #deafened, 1, -1 do
 		pcall(deafened[index].RegisterEvent, deafened[index], "WHO_LIST_UPDATE")
@@ -181,7 +181,7 @@ local function endQuery()
 	if C_FriendList.SetWhoToUi then
 		pcall(C_FriendList.SetWhoToUi, false)
 	end
-	local panel = whoPanel()
+	local panel = WhoPanel()
 	if SUPPRESS_WHO_UI and panel and panel:IsShown() and not panelWasOpen then
 		pcall(HideUIPanel, panel)
 	end
@@ -200,12 +200,12 @@ local function OnWhoListUpdate()
 
 		THE RESTORE RUNS WHETHER OR NOT THE READ SUCCEEDED, which is why the read is guarded. By
 		here `pending` is already nil, so Who:Step's timeout will not fire either: a throw inside
-		parseResults would leave SetWhoToUi routed at a list nothing reads and WHO_LIST_UPDATE
+		ParseResults would leave SetWhoToUi routed at a list nothing reads and WHO_LIST_UPDATE
 		still unregistered from the Blizzard frames, and the player's own /who would answer with
-		silence until they reloaded. endQuery is the only path back.
+		silence until they reloaded. EndQuery is the only path back.
 	]]
-	local ok, results, raw, total = pcall(parseResults)
-	endQuery()
+	local ok, results, raw, total = pcall(ParseResults)
+	EndQuery()
 	if not ok then
 		-- An unreadable answer is an empty one: the plan moves on rather than stalling on it.
 		results, raw = {}, 0
@@ -217,7 +217,7 @@ local function OnWhoListUpdate()
 	end
 
 	--[[
-		An abandoned query is still read this far, because endQuery is the only thing that puts
+		An abandoned query is still read this far, because EndQuery is the only thing that puts
 		SetWhoToUi back and closes the panel. What it does not get is its callback: the plan is
 		gone, and handing results to it would assign recipients in a window already closed.
 	]]
@@ -237,7 +237,7 @@ local function OnWhoListUpdate()
 		job.cb(results, job.label)
 	end
 end
-ns.on("WHO_LIST_UPDATE", OnWhoListUpdate)
+ns.On("WHO_LIST_UPDATE", OnWhoListUpdate)
 
 -- Turn a blocked call into an explanation instead of a mystery BugSack popup.
 local function OnAddonActionBlocked(addon, func)
@@ -249,11 +249,11 @@ local function OnAddonActionBlocked(addon, func)
 		ns:PrintMessage(L["WHO_BLOCKED"])
 	end
 end
-ns.on("ADDON_ACTION_BLOCKED", OnAddonActionBlocked)
+ns.On("ADDON_ACTION_BLOCKED", OnAddonActionBlocked)
 
 --[[
 	Abandons what is in flight without forgetting it. The client still answers, and that answer
-	runs endQuery -- the only thing that restores SetWhoToUi and re-registers the Who panel's
+	runs EndQuery -- the only thing that restores SetWhoToUi and re-registers the Who panel's
 	WHO_LIST_UPDATE. Drop the reference and the player's own /who stays broken for the session:
 	results routed to a list nothing reads, on a panel that no longer hears them. A canceled job
 	answers nobody, and Who:Step will not send while one is pending.
@@ -323,7 +323,7 @@ function Who:Step(callback)
 	pending = job
 	lastSent = GetTime()
 
-	beginQuery()
+	BeginQuery()
 	C_FriendList.SendWho(attempt.query)
 
 	--[[
@@ -337,7 +337,7 @@ function Who:Step(callback)
 			return
 		end
 		pending = nil
-		endQuery()
+		EndQuery()
 		-- Canceled: not put back, or the next plan is seeded with a band nothing asked for.
 		if job.canceled then
 			return

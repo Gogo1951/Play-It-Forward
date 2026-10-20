@@ -17,9 +17,10 @@ L["CHAT_OPTIONS_IN_COMBAT"] = "基於安全考量，戰鬥中無法開啟設定�
 --------------------------------------------------------------------------------
 
 --[[
-	Captions on the window's two top-bar ticks, the window's twins of Include Gear and Include
-	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips and the
-	dropdown values are the panel's own strings, so a setting is never explained two ways.
+	Captions on the window's Gear and Consumables ticks, the twins of Include Gear and Include
+	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips, the kind
+	ticks and the dropdown values are the panel's own strings, so a setting is never explained two
+	ways.
 ]]
 L["WINDOW_GEAR_LABEL"] = "裝備"
 L["WINDOW_CONSUMABLES_LABEL"] = "消耗品"
@@ -46,9 +47,9 @@ L["BUTTON_NEEDS_MAILBOX"] = "需要開啟信箱"
 L["WHO_BLOCKED"] =
 	"請再按一次尋找收件者。暴雪只允許直接透過點擊按鈕發起這種搜尋，而這次被打斷了。"
 
--- In the list while it is empty. The hint names the two top-bar captions: rename one, reread it.
+-- In the list while it is empty.
 L["WINDOW_EMPTY"] = "沒有可贈送的物品了。"
-L["WINDOW_EMPTY_HINT"] = "變更上方的裝備或消耗品以列出更多。"
+L["WINDOW_EMPTY_HINT"] = "變更上方的設定以列出更多。"
 
 L["SECTION_MATCHED"] = "已配對"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
@@ -158,7 +159,8 @@ L["MAIL_BODY_TOO_LONG"] = "內文有 %d 個字元，而郵件只接受 %d 個，
 
 	LENGTH: 500 characters, confirmed against a live mailbox. Past it the mail is cut short,
 	sign-off first, and Tests/Mail-Contents.lua fails on it. The runtime warning in
-	Features/Mail-Sender.lua stays even so, because the test only measures this locale.
+	Features/Mail-Sender.lua stays even so: the other locale files keep their own copies of this
+	English text, and the test does not read them.
 ]]
 L["MAIL_SUBJECT"] = "Play It Forward!"
 
@@ -174,7 +176,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"把你用不到的裝備和消耗品送給會珍惜它們的公會成員或陌生人。每件物品都會配對給最適合它的職業，把背包裡被遺忘的雜物變成別人的下一次升級。傳遞善意，一次一件綠裝。"
+	"把你用不到的裝綁裝備、食物、藥水和卷軸，郵寄給公會裡或世界各地正在練功的玩家。每件物品都會送給最適合它的職業，把背包裡的雜物變成別人的下一次升級。傳遞善意，一次一件綠裝。"
 L["OPTIONS_WELCOME"] = "啟用歡迎訊息"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "登入時顯示版本和設定提醒。"
 
@@ -188,7 +190,8 @@ L["OPTIONS_MAX_RARITY_DESCRIPTION"] =
 L["OPTIONS_INCLUDE_GEAR"] = "包含裝備"
 L["OPTIONS_INCLUDE_GEAR_DESCRIPTION"] = "提供裝備後綁定的武器和護甲。"
 L["OPTIONS_INCLUDE_CONSUMABLES"] = "包含消耗品"
-L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] = "提供你已用不到的低等級食物、飲料、藥水和卷軸。"
+L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] =
+	"提供你已用不到的低等級食物、飲料、藥水、卷軸、武器油和磨石。"
 --[[
 	Self-describing: a bare "20" says nothing.
 	"%d+" rather than ">%d" because the scan admits an item at exactly that many levels past it,
@@ -215,6 +218,9 @@ L["OPTIONS_KIND_POTIONS_DESCRIPTION"] = "提供你已用不到的治療、法力
 L["OPTIONS_KIND_SCROLLS"] = "卷軸"
 L["OPTIONS_KIND_SCROLLS_DESCRIPTION"] =
 	"提供你已用不到的屬性卷軸。每張都會給使用該屬性的職業。"
+L["OPTIONS_KIND_OILS_STONES"] = "油和磨石"
+L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
+	"提供你已用不到的武器油、磨刀石和平衡石。巫師之油給施法者，法力之油給使用法力的職業，磨刀石、平衡石和其他武器油給近戰職業。"
 
 --[[
 	Account-wide giving tally, read-only here. Item Levels counts equippable gear only.

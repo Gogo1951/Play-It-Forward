@@ -398,12 +398,12 @@ end)
 	Abandoning a query must not abandon its cleanup.
 
 	Who:Clear used to drop the pending job outright, so when the answer landed the
-	handler returned early and endQuery never ran: SetWhoToUi stayed true and the Who
+	handler returned early and EndQuery never ran: SetWhoToUi stayed true and the Who
 	panel this add-on had caused to open was left standing. The player closed our window
 	and Blizzard's opened by itself a second later.
 
 	The panel is the observable here because it is the symptom. The stub raises it by
-	hand the way the client does when results arrive, and endQuery is the only thing in
+	hand the way the client does when results arrive, and EndQuery is the only thing in
 	the add-on that puts it away again.
 ]]
 test("a query abandoned mid-flight still cleans up after itself", function()

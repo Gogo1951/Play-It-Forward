@@ -17,9 +17,10 @@ L["CHAT_OPTIONS_IN_COMBAT"] = "Por precaución, la interfaz de opciones no se pu
 --------------------------------------------------------------------------------
 
 --[[
-	Captions on the window's two top-bar ticks, the window's twins of Include Gear and Include
-	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips and the
-	dropdown values are the panel's own strings, so a setting is never explained two ways.
+	Captions on the window's Gear and Consumables ticks, the twins of Include Gear and Include
+	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips, the kind
+	ticks and the dropdown values are the panel's own strings, so a setting is never explained two
+	ways.
 ]]
 L["WINDOW_GEAR_LABEL"] = "Equipo"
 L["WINDOW_CONSUMABLES_LABEL"] = "Consumibles"
@@ -46,9 +47,9 @@ L["BUTTON_NEEDS_MAILBOX"] = "Requiere buzón abierto"
 L["WHO_BLOCKED"] =
 	"Pulsa Buscar destinatarios otra vez. Blizzard solo permite esa búsqueda directamente al pulsar un botón, y algo interrumpió esta."
 
--- In the list while it is empty. The hint names the two top-bar captions: rename one, reread it.
+-- In the list while it is empty.
 L["WINDOW_EMPTY"] = "No queda nada que regalar."
-L["WINDOW_EMPTY_HINT"] = "Cambia Equipo o Consumibles arriba para ver más."
+L["WINDOW_EMPTY_HINT"] = "Cambia los ajustes de arriba para ver más."
 
 L["SECTION_MATCHED"] = "Asignados"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
@@ -159,7 +160,8 @@ L["MAIL_BODY_TOO_LONG"] = "El cuerpo tiene %d caracteres y el correo solo admite
 
 	LENGTH: 500 characters, confirmed against a live mailbox. Past it the mail is cut short,
 	sign-off first, and Tests/Mail-Contents.lua fails on it. The runtime warning in
-	Features/Mail-Sender.lua stays even so, because the test only measures this locale.
+	Features/Mail-Sender.lua stays even so: the other locale files keep their own copies of this
+	English text, and the test does not read them.
 ]]
 L["MAIL_SUBJECT"] = "Play It Forward!"
 
@@ -175,7 +177,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Envía el equipo y los consumibles que ya has superado a compañeros de hermandad o desconocidos que sabrán apreciarlos. Cada objeto se asigna a la clase a la que mejor le va, y el desorden olvidado de tus bolsas se convierte en la próxima mejora de otra persona. Pásalo, un objeto verde cada vez."
+	"Envía por correo el equipo que se liga al equiparse, la comida, las pociones y los pergaminos que ya has superado a jugadores que están subiendo de nivel, en tu hermandad o por el mundo. Cada objeto va a la clase a la que mejor le va, y el desorden de tus bolsas se convierte en la próxima mejora de otra persona. Pásalo, un objeto verde cada vez."
 L["OPTIONS_WELCOME"] = "Activar mensaje de bienvenida"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "Muestra la versión y el recordatorio de ajustes al iniciar sesión."
 
@@ -190,7 +192,7 @@ L["OPTIONS_INCLUDE_GEAR"] = "Incluir equipo"
 L["OPTIONS_INCLUDE_GEAR_DESCRIPTION"] = "Ofrece armas y armaduras que se ligan al equiparlas."
 L["OPTIONS_INCLUDE_CONSUMABLES"] = "Incluir consumibles"
 L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] =
-	"Ofrece comida, bebida, pociones y pergaminos de nivel bajo que ya has superado."
+	"Ofrece comida, bebida, pociones, pergaminos, aceites y piedras de nivel bajo que ya has superado."
 --[[
 	Self-describing: a bare "20" says nothing.
 	"%d+" rather than ">%d" because the scan admits an item at exactly that many levels past it,
@@ -217,6 +219,9 @@ L["OPTIONS_KIND_POTIONS_DESCRIPTION"] = "Ofrece pociones de sanación, maná y r
 L["OPTIONS_KIND_SCROLLS"] = "Pergaminos"
 L["OPTIONS_KIND_SCROLLS_DESCRIPTION"] =
 	"Ofrece pergaminos de atributos que ya has superado. Cada uno va a las clases que usan su atributo."
+L["OPTIONS_KIND_OILS_STONES"] = "Aceites y piedras"
+L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
+	"Ofrece aceites para armas, piedras de afilar y piedras de peso que ya has superado. Los aceites de zahorí van a los hechiceros, los aceites de maná a quien use maná, y las piedras y los demás aceites a los luchadores cuerpo a cuerpo."
 
 --[[
 	Account-wide giving tally, read-only here. Item Levels counts equippable gear only.

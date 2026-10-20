@@ -45,7 +45,7 @@ ns.Data.SCROLLS = {
 How We Got the Data
 
 Last Validated
-	2026-10-09, Classic Era 1.15.9.70003
+	2026-10-20, Classic Era 1.15.9.70003
 
 Notes
 	- The six stat scroll lines: Strength, Agility, Stamina, Intellect, Spirit and Protection.
@@ -69,4 +69,7 @@ Wowhead
 wago.tools
 	https://wago.tools/db2/Item?build=1.15.9.70003
 	https://wago.tools/db2/ItemSparse?build=1.15.9.70003
+
+QuestieDB
+	None.
 ]]

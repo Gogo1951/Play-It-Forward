@@ -56,7 +56,7 @@ ns.Data.ZONE_COLUMNS = { AREA_ID = 1, MIN = 2, MAX = 3, FACTION = 4 }
 How We Got the Data
 
 Last Validated
-	2026-10-09, Classic Era 1.15.9.70003
+	2026-10-20, Classic Era 1.15.9.70003
 
 Notes
 	- Levelling zones, and who is in them: input to the /who queries in
@@ -87,4 +87,7 @@ Wowhead
 
 wago.tools
 	https://wago.tools/db2/AreaTable?build=1.15.9.70003
+
+QuestieDB
+	None.
 ]]

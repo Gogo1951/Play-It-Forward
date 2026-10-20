@@ -303,7 +303,7 @@ function Stub.Install()
 	}
 	C_Seasons = {
 		GetActiveSeason = function()
-			return 0
+			return Stub.season or 0
 		end,
 	}
 

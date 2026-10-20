@@ -10,7 +10,7 @@ ns.Data.FACTION_CLASSES = {
 How We Got the Data
 
 Last Validated
-	2026-10-09, TBC Anniversary 2.5.6.69795
+	2026-10-20, TBC Anniversary 2.5.6.70006
 
 Notes
 	- The classes each faction can roll on this client. /who and the mailbox are both
@@ -32,4 +32,7 @@ wago.tools
 	https://wago.tools/db2/CharBaseInfo?build=2.5.6.69795
 	https://wago.tools/db2/ChrRaces?build=2.5.6.69795
 	https://wago.tools/db2/ChrClasses?build=2.5.6.69795
+
+QuestieDB
+	None.
 ]]

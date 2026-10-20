@@ -36,7 +36,7 @@ ns.Data.POTIONS = {
 How We Got the Data
 
 Last Validated
-	2026-10-09, TBC Anniversary 2.5.6.69795
+	2026-10-20, TBC Anniversary 2.5.6.70006
 
 Notes
 	- Healing, mana and rejuvenation potions a player can give away: Potion consumables that can
@@ -90,4 +90,9 @@ Wowhead
 wago.tools
 	https://wago.tools/db2/Item?build=2.5.6.69795
 	https://wago.tools/db2/ItemSparse?build=2.5.6.69795
+	https://wago.tools/db2/Item?build=2.5.6.70006
+	https://wago.tools/db2/ItemSparse?build=2.5.6.70006
+
+QuestieDB
+	None.
 ]]

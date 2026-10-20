@@ -103,7 +103,7 @@ end
 ]]
 Generosity.lastSendResult = nil
 
-local function send(payload)
+local function Send(payload)
 	if not SendAddonMessage then
 		return
 	end
@@ -135,7 +135,7 @@ function Generosity:Broadcast()
 	end
 	lastBroadcast = now
 	local gifts, items, itemLevels, value = self:Get()
-	send(table.concat({ PAYLOAD_VERSION, "S", gifts, items, itemLevels, value }, "|"))
+	Send(table.concat({ PAYLOAD_VERSION, "S", gifts, items, itemLevels, value }, "|"))
 end
 
 --[[
@@ -147,7 +147,7 @@ function Generosity:Ping()
 	if not ns.AtRest() then
 		return
 	end
-	send(PAYLOAD_VERSION .. "|?")
+	Send(PAYLOAD_VERSION .. "|?")
 end
 
 --[[
@@ -157,7 +157,7 @@ end
 	unanswered once the player stepped inside. Rate-limited on its own clock past that, so a crowd
 	of pings draws one answer.
 ]]
-local function answerPing()
+local function AnswerPing()
 	if not ns.AtRest() then
 		return
 	end
@@ -173,7 +173,7 @@ end
 	Split "a|b|c" into fields. A trailing separator is appended so gmatch yields the last field, and
 	an empty field comes back as "" rather than being skipped, so positions stay aligned.
 ]]
-local function split(message)
+local function Split(message)
 	local parts = {}
 	for field in (message .. "|"):gmatch("([^|]*)|") do
 		parts[#parts + 1] = field
@@ -189,7 +189,7 @@ local function OnChatMsgAddon(prefix, message, _, sender)
 	if prefix ~= PREFIX or not message then
 		return
 	end
-	local parts = split(message)
+	local parts = Split(message)
 	if parts[1] ~= PAYLOAD_VERSION then
 		return
 	end
@@ -217,16 +217,16 @@ local function OnChatMsgAddon(prefix, message, _, sender)
 			}
 		end
 	elseif kind == "?" then
-		answerPing()
+		AnswerPing()
 	end
 end
-ns.on("CHAT_MSG_ADDON", OnChatMsgAddon)
+ns.On("CHAT_MSG_ADDON", OnChatMsgAddon)
 
 -- Presence on entering the world; the throttle in Broadcast absorbs the refire on every load screen.
 local function OnPlayerEnteringWorld()
 	Generosity:Broadcast()
 end
-ns.on("PLAYER_ENTERING_WORLD", OnPlayerEnteringWorld)
+ns.On("PLAYER_ENTERING_WORLD", OnPlayerEnteringWorld)
 
 --[[
 	The moment the town gate opens. Walking from a field into a city fires no loading screen, so
@@ -236,4 +236,4 @@ ns.on("PLAYER_ENTERING_WORLD", OnPlayerEnteringWorld)
 local function OnPlayerUpdateResting()
 	Generosity:Broadcast()
 end
-ns.on("PLAYER_UPDATE_RESTING", OnPlayerUpdateResting)
+ns.On("PLAYER_UPDATE_RESTING", OnPlayerUpdateResting)

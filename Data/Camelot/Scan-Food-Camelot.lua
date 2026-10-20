@@ -198,7 +198,7 @@ ns.Data.FOOD_AND_WATER = {
 How We Got the Data
 
 Last Validated
-	2026-10-09, WoW Forever 1.60.1.70291
+	2026-10-20, WoW Forever 1.60.1.70450
 
 Notes
 	- Food and drink a player can give away: Food & Drink consumables that restore health, mana
@@ -222,6 +222,11 @@ Notes
 	  candidate IDs were settled from a Validate Data run of them rather than by category: every
 	  Food & Drink item restoring health or mana that can be traded, isn't conjured and needs
 	  level 5 or more went in.
+	- 232436 Darkclaw Bisque, 232438 Smoked Redgill, 238637 Prowler Steak and 238639 Sunrise
+	  Omelette eat like food, but this client files them as Other (class 0, subclass 8), not
+	  Food & Drink, and QuestieDB lists no source for any of them, so they stay out. So do the
+	  raw fish (Trade Goods), 6458 Oil Covered Fish, 7676 Thistle Tea, which restores only
+	  energy, and 17405 Green Garden Tea, a holiday item.
 
 SQL (CMaNGOS)
 	Database not recorded. It returned Wrath items, so it ran against a Wrath-era database,
@@ -277,4 +282,12 @@ wago.tools
 	https://wago.tools/db2/ItemSparse?build=1.60.1.70291
 	https://wago.tools/db2/ItemEffect?build=1.60.1.70291
 	https://wago.tools/db2/ItemXItemEffect?build=1.60.1.70291
+	https://wago.tools/db2/Item?build=1.60.1.70450
+	https://wago.tools/db2/ItemSparse?build=1.60.1.70450
+	https://wago.tools/db2/ItemEffect?build=1.60.1.70450
+	https://wago.tools/db2/Spell?build=1.60.1.70450
+	https://wago.tools/db2/SpellCategories?build=1.60.1.70450
+
+QuestieDB
+	https://raw.githubusercontent.com/Questie/QuestieDB/master/data/Forever/foreverItemDB.lua
 ]]

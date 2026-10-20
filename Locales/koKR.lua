@@ -17,9 +17,10 @@ L["CHAT_OPTIONS_IN_COMBAT"] = "안전을 위해 전투 중에는 설정 창을 �
 --------------------------------------------------------------------------------
 
 --[[
-	Captions on the window's two top-bar ticks, the window's twins of Include Gear and Include
-	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips and the
-	dropdown values are the panel's own strings, so a setting is never explained two ways.
+	Captions on the window's Gear and Consumables ticks, the twins of Include Gear and Include
+	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips, the kind
+	ticks and the dropdown values are the panel's own strings, so a setting is never explained two
+	ways.
 ]]
 L["WINDOW_GEAR_LABEL"] = "장비"
 L["WINDOW_CONSUMABLES_LABEL"] = "소모품"
@@ -46,9 +47,9 @@ L["BUTTON_NEEDS_MAILBOX"] = "우편함을 열어야 함"
 L["WHO_BLOCKED"] =
 	"받을 사람 찾기를 다시 누르세요. Blizzard는 버튼을 직접 눌렀을 때만 이 검색을 허용하는데, 이번에는 무언가가 방해했습니다."
 
--- In the list while it is empty. The hint names the two top-bar captions: rename one, reread it.
+-- In the list while it is empty.
 L["WINDOW_EMPTY"] = "더 이상 나눠 줄 것이 없습니다."
-L["WINDOW_EMPTY_HINT"] = "더 보려면 위의 장비 또는 소모품을 바꾸세요."
+L["WINDOW_EMPTY_HINT"] = "더 보려면 위의 설정을 바꾸세요."
 
 L["SECTION_MATCHED"] = "배정됨"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
@@ -163,7 +164,8 @@ L["MAIL_BODY_TOO_LONG"] = "본문이 %d자인데 우편은 %d자까지만 받으
 
 	LENGTH: 500 characters, confirmed against a live mailbox. Past it the mail is cut short,
 	sign-off first, and Tests/Mail-Contents.lua fails on it. The runtime warning in
-	Features/Mail-Sender.lua stays even so, because the test only measures this locale.
+	Features/Mail-Sender.lua stays even so: the other locale files keep their own copies of this
+	English text, and the test does not read them.
 ]]
 L["MAIL_SUBJECT"] = "Play It Forward!"
 
@@ -179,7 +181,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"더 이상 쓰지 않는 장비와 소모품을 고마워할 길드원이나 낯선 이에게 보내세요. 모든 아이템은 가장 잘 맞는 직업에 배정되어, 가방 속 잊힌 잡동사니가 누군가의 다음 업그레이드가 됩니다. 녹색 아이템 하나씩, 받은 만큼 베푸세요."
+	"더 이상 쓰지 않는 착용 시 귀속 장비, 음식, 물약, 두루마리를 길드나 바깥 세상에서 레벨업 중인 플레이어에게 우편으로 보내세요. 모든 아이템은 가장 잘 맞는 직업에게 가고, 가방 속 잡동사니가 누군가의 다음 업그레이드가 됩니다. 녹색 아이템 하나씩, 받은 만큼 베푸세요."
 L["OPTIONS_WELCOME"] = "환영 메시지 사용"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "접속할 때 버전과 설정 안내를 표시합니다."
 
@@ -194,7 +196,7 @@ L["OPTIONS_INCLUDE_GEAR"] = "장비 포함"
 L["OPTIONS_INCLUDE_GEAR_DESCRIPTION"] = "착용 시 귀속되는 무기와 방어구를 제공합니다."
 L["OPTIONS_INCLUDE_CONSUMABLES"] = "소모품 포함"
 L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] =
-	"레벨이 지나 쓰지 않는 저레벨 음식, 음료, 물약, 두루마리를 제공합니다."
+	"레벨이 지나 쓰지 않는 저레벨 음식, 음료, 물약, 두루마리, 오일, 숫돌을 제공합니다."
 --[[
 	Self-describing: a bare "20" says nothing.
 	"%d+" rather than ">%d" because the scan admits an item at exactly that many levels past it,
@@ -222,6 +224,9 @@ L["OPTIONS_KIND_POTIONS_DESCRIPTION"] =
 L["OPTIONS_KIND_SCROLLS"] = "두루마리"
 L["OPTIONS_KIND_SCROLLS_DESCRIPTION"] =
 	"레벨이 지나 쓰지 않는 능력치 두루마리를 제공합니다. 각각 그 능력치를 쓰는 직업에게 갑니다."
+L["OPTIONS_KIND_OILS_STONES"] = "오일 및 숫돌"
+L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
+	"레벨이 지나 쓰지 않는 무기 오일, 숫돌, 무게추를 제공합니다. 마법사 오일은 주문 시전자에게, 마나 오일은 마나를 쓰는 직업에게, 숫돌과 무게추, 그 밖의 오일은 근접 직업에게 갑니다."
 
 --[[
 	Account-wide giving tally, read-only here. Item Levels counts equippable gear only.

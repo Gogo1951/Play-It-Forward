@@ -1,6 +1,6 @@
 # Play It Forward
 
-Send the gear and consumables you've outgrown to guildies or strangers who'll appreciate them. Every item is matched to the class it suits best, turning forgotten bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
+Mail the BoE gear, food, potions, and scrolls you've outgrown to leveling players in your guild or out in the world. Every item goes to the class it suits best, turning bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
 
 **TL;DR**: For anyone with bags full of greens and leftover potions they'll never use. It finds the lowbie who needs each one and mails it to them for you.
 
@@ -33,7 +33,7 @@ Send the gear and consumables you've outgrown to guildies or strangers who'll ap
 <img width="500" src="https://github.com/user-attachments/assets/f39ad6d7-8466-4bee-9715-330062178322" />
 
 * Click any recipient to pick someone else, search for that one item, or keep it.
-* The ticks across the top choose what's on offer: gear up to a rarity you set, plus food, drink, potions, and scrolls.
+* The ticks across the top choose what's on offer: gear up to a rarity you set, plus food, drink, potions, scrolls, and oils & stones.
 
 ### What Lands in Their Mailbox
 
@@ -98,3 +98,4 @@ A parcel titled **Play It Forward!** with a short note, so a gift from a strange
 ### 🔴 Alternatives
 
 * GageCage's [HandMeDowns](https://www.curseforge.com/wow/addons/handmedowns)
+* Supersharpie's [Sharpie's Gear Judge - Roster (Alt Upgrades)](https://www.curseforge.com/wow/addons/sharpies-gear-judge-roster-alt-upgrades)

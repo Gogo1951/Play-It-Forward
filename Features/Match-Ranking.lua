@@ -143,7 +143,7 @@ end
 --[[
 	The classes grouped by the band each of them searches -- one group for nearly every item, two
 	for the sub-40 mail and plate half the field cannot wear until it trains the material. Shaped
-	the way Features/Recipients-Who.lua wants a plan, so the query looking for the hunter can ask
+	the way Features/Recipients-Who-Plan.lua wants a plan, so the query looking for the hunter can ask
 	38-39 while the one beside it asks the paladin's 34-35.
 
 	Group order follows the class list it was given, which is what lets a caller put the classes
@@ -203,7 +203,7 @@ function Matcher:TargetedClasses(item)
 		end
 	end
 
-	local function ranked(list)
+	local function Ranked(list)
 		local out, position = {}, {}
 		for index, class in ipairs(list) do
 			out[index], position[class] = class, index
@@ -222,8 +222,8 @@ function Matcher:TargetedClasses(item)
 		return out
 	end
 
-	local out = ranked(contenders)
-	for _, class in ipairs(ranked(behind)) do
+	local out = Ranked(contenders)
+	for _, class in ipairs(Ranked(behind)) do
 		out[#out + 1] = class
 	end
 	return out
@@ -256,7 +256,7 @@ function Matcher:TargetedBands(item)
 end
 
 -- The level RankCandidates measures this class's proximity against: the top of its band for gear, the bottom for a consumable.
-local function anchorFor(matcher, item, classToken)
+local function AnchorFor(matcher, item, classToken)
 	local lo, hi = matcher:LevelBand(item, classToken)
 	return (item.kind == "consumable") and lo or hi
 end
@@ -296,7 +296,7 @@ function Matcher:CouldOutrank(item, person, classToken)
 		return bucket < heldBucket
 	end
 
-	if person.level ~= anchorFor(self, item, person.class) then
+	if person.level ~= AnchorFor(self, item, person.class) then
 		return true
 	end
 

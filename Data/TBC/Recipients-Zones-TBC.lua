@@ -63,7 +63,7 @@ ns.Data.ZONE_COLUMNS = { AREA_ID = 1, MIN = 2, MAX = 3, FACTION = 4 }
 How We Got the Data
 
 Last Validated
-	2026-10-09, TBC Anniversary 2.5.6.69795
+	2026-10-20, TBC Anniversary 2.5.6.70006
 
 Notes
 	- Levelling zones, and who is in them: input to the /who queries in
@@ -85,6 +85,7 @@ Notes
 	  starting zones and single-hub zones are locked.
 	- The wago.tools check confirmed every ID and name. AreaTable carries no level range, so
 	  no zone can be added from it; a new zone needs its levels from the author's list.
+	- 4080 Isle of Quel'Danas is left out: it is a level 70 zone, so nobody is levelling there.
 
 SQL (CMaNGOS)
 	TODO: Add SQL Query
@@ -94,4 +95,8 @@ Wowhead
 
 wago.tools
 	https://wago.tools/db2/AreaTable?build=2.5.6.69795
+	https://wago.tools/db2/AreaTable?build=2.5.6.70006
+
+QuestieDB
+	None.
 ]]

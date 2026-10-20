@@ -72,7 +72,7 @@ ns.Data.WEAPON_SPECS = {
 How We Got the Data
 
 Last Validated
-	2026-10-09, Classic Era 1.15.9.70003
+	2026-10-20, Classic Era 1.15.9.70003
 
 Notes
 	- WEAPON_SUBCLASS turns the weapon subclass the client reports for an item into the add-on's
@@ -113,4 +113,7 @@ Wowhead
 
 wago.tools
 	https://wago.tools/db2/ItemSubClass?build=1.15.9.70003
+
+QuestieDB
+	None.
 ]]

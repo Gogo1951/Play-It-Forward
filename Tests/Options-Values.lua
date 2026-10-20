@@ -117,7 +117,7 @@ end)
 test("the window gap dropdown offers every stop, All Consumables included", function()
 	local ns = load()
 
-	local options = ns.UI:_gapPickerOptions()
+	local options = ns.UI:GapPickerOptions()
 	equal(#options, #ns.CONSUMABLE_GAP_ORDER, "one entry per stop")
 
 	local byGap = {}
@@ -133,7 +133,7 @@ end)
 test("the window rarity dropdown uses the panel's quality names", function()
 	local ns = load()
 
-	local options = ns.UI:_rarityPickerOptions()
+	local options = ns.UI:RarityPickerOptions()
 	equal(#options, 3, "uncommon, rare and epic")
 	for _, option in ipairs(options) do
 		check(
