@@ -30,7 +30,7 @@ Mail the BoE gear, food, potions, and scrolls you've outgrown to leveling player
 
 ### The Mailbox Window
 
-<img width="500" src="https://github.com/user-attachments/assets/f39ad6d7-8466-4bee-9715-330062178322" />
+<img width="500" src="https://github.com/user-attachments/assets/e3beb529-fbbf-414c-a59b-655cbcf4990c" />
 
 * Click any recipient to pick someone else, search for that one item, or keep it.
 * The ticks across the top choose what's on offer: gear up to a rarity you set, plus food, drink, potions, scrolls, and oils & stones.
