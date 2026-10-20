@@ -1,6 +1,8 @@
 local _, ns = ...
 local L = ns.L
 
+local GetColor = ns.GetColor
+
 --[[
 	Renders a player's Given Away totals at the bottom of their unit tooltip: your own live tally on
 	your own tooltip, and a nearby peer's cached totals on theirs. The block is added from a
@@ -27,11 +29,11 @@ function Generosity:LastHoverPing()
 end
 
 -- Our own identity, to tell our own tooltip from a peer's. The same helper the peers cache keys on.
-local function ownKey()
+local function OwnKey()
 	return ns.QualifyPlayerName(UnitName("player")) or "?"
 end
 
-local function hoverPing()
+local function HoverPing()
 	local now = GetTime()
 	if now - lastPing < HOVER_PING_INTERVAL then
 		return
@@ -61,23 +63,23 @@ end
 ]]
 local ROW_INDENT = " "
 
-local function appendBlock(tooltip, gifts, items, itemLevels, value)
-	local labelColor, valueColor = ns.GetColor("HELP"), ns.GetColor("TEXT")
-	local function row(label, shown)
+local function AppendBlock(tooltip, gifts, items, itemLevels, value)
+	local labelColor, valueColor = GetColor("HELP"), GetColor("TEXT")
+	local function Row(label, shown)
 		tooltip:AddDoubleLine(ROW_INDENT .. labelColor .. label .. "|r", valueColor .. shown .. "|r")
 	end
 
 	tooltip:AddLine(" ")
 	-- The same branded line a chat print carries: blue name, gray separator, white body.
 	tooltip:AddLine(ns:BuildBrandedLine(L["OPTIONS_GENEROSITY_HEADER"]))
-	row(L["OPTIONS_GENEROSITY_GIFTS"], ns.CommaNumber(gifts))
-	row(L["OPTIONS_GENEROSITY_ITEMS"], ns.CommaNumber(items))
-	row(L["OPTIONS_GENEROSITY_ITEM_LEVELS"], ns.CommaNumber(itemLevels))
-	row(L["OPTIONS_GENEROSITY_VALUE"], ns.MoneyString(value))
+	Row(L["OPTIONS_GENEROSITY_GIFTS"], ns.CommaNumber(gifts))
+	Row(L["OPTIONS_GENEROSITY_ITEMS"], ns.CommaNumber(items))
+	Row(L["OPTIONS_GENEROSITY_ITEM_LEVELS"], ns.CommaNumber(itemLevels))
+	Row(L["OPTIONS_GENEROSITY_VALUE"], ns.MoneyString(value))
 	tooltip:Show()
 end
 
-local function onTooltipSetUnit(tooltip)
+local function OnTooltipSetUnit(tooltip)
 	--[[
 		TOWN ONLY, and checked first so a hover costs nothing anywhere else. Outside a rest area the
 		block does not render and no ping is fired: no tooltip clutter while a player is fighting, and
@@ -107,7 +109,7 @@ local function onTooltipSetUnit(tooltip)
 	local key = (realm and realm ~= "") and (name .. "-" .. realm) or ns.QualifyPlayerName(name)
 
 	local gifts, items, itemLevels, value
-	if key == ownKey() then
+	if key == OwnKey() then
 		-- Our own tooltip shows the live tally, always present even at all zeros.
 		gifts, items, itemLevels, value = Generosity:Get()
 	else
@@ -119,11 +121,11 @@ local function onTooltipSetUnit(tooltip)
 
 	if not gifts then
 		-- Never heard from this player: ping so a nearby client answers and the next hover has it.
-		hoverPing()
+		HoverPing()
 		return
 	end
 
-	appendBlock(tooltip, gifts, items, itemLevels, value)
+	AppendBlock(tooltip, gifts, items, itemLevels, value)
 end
 
 -- Picked by availability. The post-call fires for every tooltip showing a unit, so only GameTooltip is drawn on.
@@ -131,12 +133,12 @@ end
 if TooltipDataProcessor then
 	TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip)
 		if tooltip == GameTooltip then
-			onTooltipSetUnit(tooltip)
+			OnTooltipSetUnit(tooltip)
 		end
 	end)
 	Generosity.tooltipHook = "TooltipDataProcessor unit post-call"
 elseif GameTooltip:HasScript("OnTooltipSetUnit") then
-	GameTooltip:HookScript("OnTooltipSetUnit", onTooltipSetUnit)
+	GameTooltip:HookScript("OnTooltipSetUnit", OnTooltipSetUnit)
 	Generosity.tooltipHook = "GameTooltip OnTooltipSetUnit"
 else
 	Generosity.tooltipHook = "none"

@@ -46,8 +46,8 @@ local BIND_REJECT = {
 	positional rows into named fields. Form travels with each row because what a consumable
 	restores is not enough to say what it is: forty-odd Scan-Food rows restore mana and every
 	one is water, so "restores mana" alone would put mages behind priests for a bottle of water.
-	A scroll's fourth field is the stat it buffs rather than anything it restores, so each table
-	names the field its fourth column fills.
+	A scroll's fourth field is the stat it buffs rather than anything it restores, and an oil or
+	stone's is who it enhances a weapon for, so each table names the field its fourth column fills.
 
 	KINDS ARE NOT FORM. Form is the table a row came from, and Features/Match-Derivations.lua
 	matches its rules on it. Kinds are the player's switches in ns.CONSUMABLE_KIND_ORDER, and
@@ -55,7 +55,7 @@ local BIND_REJECT = {
 	is food and drink at once, offered while either switch is on.
 ]]
 local FOOD_KINDS = { MANA = { "DRINK" }, BOTH = { "FOOD", "DRINK" } }
-local ONLY_FOOD, ONLY_POTION, ONLY_SCROLL = { "FOOD" }, { "POTION" }, { "SCROLL" }
+local ONLY_FOOD, ONLY_POTION, ONLY_SCROLL, ONLY_OIL_STONE = { "FOOD" }, { "POTION" }, { "SCROLL" }, { "OIL_STONE" }
 
 local CONSUMABLE_TABLES = {
 	{
@@ -82,10 +82,18 @@ local CONSUMABLE_TABLES = {
 			return ONLY_SCROLL
 		end,
 	},
+	{
+		table = "OILS_AND_STONES",
+		form = "OIL_STONE",
+		effect = "enhances",
+		kinds = function()
+			return ONLY_OIL_STONE
+		end,
+	},
 }
 
 local consumableByID
-local function consumableIndex()
+local function ConsumableIndex()
 	if consumableByID then
 		return consumableByID
 	end
@@ -106,7 +114,7 @@ local function consumableIndex()
 end
 
 -- Any one switch on is enough: a food that restores mana too is listed under Food or Drink.
-local function anyKindOn(kinds)
+local function AnyKindOn(kinds)
 	local switches = ns.db.profile.consumableKinds
 	for _, kind in ipairs(kinds) do
 		if switches[kind] then
@@ -122,7 +130,7 @@ end
 	the same stat on a fixed-stat item and summing would double it. Each source's answer also comes
 	back separately, since the merge is lossy.
 ]]
-local function normalizedStats(link)
+local function NormalizedStats(link)
 	local api = {}
 	for key, value in pairs(ns.GetItemStats(link) or {}) do
 		local token = ns.Data.STAT_MAP[key]
@@ -159,7 +167,7 @@ end
 	mailed, and a link is shared by every copy of a plain item. Stable across a rescan, which is
 	how a pairing survives one.
 ]]
-local function itemUID(bag, slot, link)
+local function ItemUID(bag, slot, link)
 	return ("%d:%d:%s"):format(bag or -1, slot or -1, link or "")
 end
 
@@ -167,7 +175,7 @@ end
 	The hard filter for one bag slot, everything except reading stats. Local on purpose: a statless
 	gear record reaching the matcher reads as a parse failure, so Scanner:Classify is the way in.
 ]]
-local function filterSlot(bag, slot)
+local function FilterSlot(bag, slot)
 	local link = ns.GetItemLink(bag, slot)
 	if not link then
 		return nil, REJECT.EMPTY_SLOT
@@ -187,12 +195,12 @@ local function filterSlot(bag, slot)
 	local itemID = ns.GetInfoInstant(link)
 
 	-- Only once the player has outgrown it: a level-35 water stack is spare at 45, not at 40.
-	local consumable = consumableIndex()[itemID]
+	local consumable = ConsumableIndex()[itemID]
 	if consumable then
 		if not ns.db.profile.includeConsumables then
 			return nil, REJECT.CONSUMABLES_DISABLED
 		end
-		if not anyKindOn(consumable.kinds) then
+		if not AnyKindOn(consumable.kinds) then
 			return nil, REJECT.KIND_DISABLED
 		end
 		--[[
@@ -222,7 +230,7 @@ local function filterSlot(bag, slot)
 			link = link,
 			bag = bag,
 			slot = slot,
-			uid = itemUID(bag, slot, link),
+			uid = ItemUID(bag, slot, link),
 			itemID = itemID,
 			name = name,
 			count = count or 1,
@@ -267,7 +275,7 @@ local function filterSlot(bag, slot)
 		link = link,
 		bag = bag,
 		slot = slot,
-		uid = itemUID(bag, slot, link),
+		uid = ItemUID(bag, slot, link),
 		itemID = itemID,
 		name = name,
 		count = 1,
@@ -286,13 +294,13 @@ end
 	bare nil: "consumables are switched off" and "already soulbound" is what a player actually asks.
 ]]
 function Scanner:Classify(bag, slot)
-	local record, reason = filterSlot(bag, slot)
+	local record, reason = FilterSlot(bag, slot)
 	if not record then
 		return nil, reason
 	end
 	if record.kind == "gear" then
 		-- The expensive half: one tooltip per item, bounded by what cleared the filter.
-		record.stats, record.statRead = normalizedStats(record.link)
+		record.stats, record.statRead = NormalizedStats(record.link)
 	end
 	return record
 end
@@ -303,7 +311,7 @@ function Scanner:Describe(link)
 	if not name then
 		return nil
 	end
-	local stats, statRead = normalizedStats(link)
+	local stats, statRead = NormalizedStats(link)
 	return {
 		kind = "gear",
 		link = link,

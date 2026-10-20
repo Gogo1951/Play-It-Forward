@@ -17,9 +17,10 @@ L["CHAT_OPTIONS_IN_COMBAT"] = "Aus Sicherheitsgründen kann das Optionsmenü im 
 --------------------------------------------------------------------------------
 
 --[[
-	Captions on the window's two top-bar ticks, the window's twins of Include Gear and Include
-	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips and the
-	dropdown values are the panel's own strings, so a setting is never explained two ways.
+	Captions on the window's Gear and Consumables ticks, the twins of Include Gear and Include
+	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips, the kind
+	ticks and the dropdown values are the panel's own strings, so a setting is never explained two
+	ways.
 ]]
 L["WINDOW_GEAR_LABEL"] = "Ausrüstung"
 L["WINDOW_CONSUMABLES_LABEL"] = "Verbrauchsgüter"
@@ -46,9 +47,9 @@ L["BUTTON_NEEDS_MAILBOX"] = "Offener Briefkasten nötig"
 L["WHO_BLOCKED"] =
 	"Drücke noch einmal Empfänger suchen. Blizzard erlaubt diese Suche nur direkt per Knopfdruck, und diesmal ist etwas dazwischengekommen."
 
--- In the list while it is empty. The hint names the two top-bar captions: rename one, reread it.
+-- In the list while it is empty.
 L["WINDOW_EMPTY"] = "Nichts mehr zu verschenken."
-L["WINDOW_EMPTY_HINT"] = "Ändere oben Ausrüstung oder Verbrauchsgüter, um mehr anzuzeigen."
+L["WINDOW_EMPTY_HINT"] = "Ändere die Einstellungen oben, um mehr anzuzeigen."
 
 L["SECTION_MATCHED"] = "Zugeordnet"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
@@ -162,7 +163,8 @@ L["MAIL_BODY_TOO_LONG"] = "Der Text hat %d Zeichen, Post erlaubt aber nur %d, da
 
 	LENGTH: 500 characters, confirmed against a live mailbox. Past it the mail is cut short,
 	sign-off first, and Tests/Mail-Contents.lua fails on it. The runtime warning in
-	Features/Mail-Sender.lua stays even so, because the test only measures this locale.
+	Features/Mail-Sender.lua stays even so: the other locale files keep their own copies of this
+	English text, and the test does not read them.
 ]]
 L["MAIL_SUBJECT"] = "Play It Forward!"
 
@@ -178,7 +180,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Schicke Ausrüstung und Verbrauchsgüter, aus denen du herausgewachsen bist, an Gildenmitglieder oder Fremde, die sich darüber freuen. Jeder Gegenstand wird der Klasse zugeordnet, zu der er am besten passt, und so wird vergessener Taschenkram zum nächsten Upgrade für jemand anderen. Gib es weiter, ein grünes Teil nach dem anderen."
+	"Verschicke Ausrüstung, die beim Anlegen gebunden wird, sowie Essen, Tränke und Schriftrollen, aus denen du herausgewachsen bist, per Post an Spieler, die noch leveln, ob in deiner Gilde oder draußen in der Welt. Jeder Gegenstand geht an die Klasse, zu der er am besten passt, und so wird Taschenkram zum nächsten Upgrade für jemand anderen. Gib es weiter, ein grünes Teil nach dem anderen."
 L["OPTIONS_WELCOME"] = "Willkommensnachricht aktivieren"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "Beim Einloggen die Version und den Hinweis zu den Einstellungen ausgeben."
 
@@ -193,7 +195,7 @@ L["OPTIONS_INCLUDE_GEAR"] = "Ausrüstung einbeziehen"
 L["OPTIONS_INCLUDE_GEAR_DESCRIPTION"] = "Beim Anlegen gebundene Waffen und Rüstung anbieten."
 L["OPTIONS_INCLUDE_CONSUMABLES"] = "Verbrauchsgüter einbeziehen"
 L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] =
-	"Niedrigstufiges Essen, Trinken, Tränke und Schriftrollen anbieten, aus denen du herausgewachsen bist."
+	"Niedrigstufiges Essen, Trinken, Tränke, Schriftrollen, Öle und Steine anbieten, aus denen du herausgewachsen bist."
 --[[
 	Self-describing: a bare "20" says nothing.
 	"%d+" rather than ">%d" because the scan admits an item at exactly that many levels past it,
@@ -221,6 +223,9 @@ L["OPTIONS_KIND_POTIONS_DESCRIPTION"] =
 L["OPTIONS_KIND_SCROLLS"] = "Schriftrollen"
 L["OPTIONS_KIND_SCROLLS_DESCRIPTION"] =
 	"Werte-Schriftrollen anbieten, aus denen du herausgewachsen bist. Jede geht an die Klassen, die ihren Wert nutzen."
+L["OPTIONS_KIND_OILS_STONES"] = "Öle & Steine"
+L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
+	"Waffenöle, Wetzsteine und Gewichtssteine anbieten, aus denen du herausgewachsen bist. Zauberöle gehen an Zauberwirker, Manaöle an alle mit Mana, Steine und andere Öle an Nahkämpfer."
 
 --[[
 	Account-wide giving tally, read-only here. Item Levels counts equippable gear only.

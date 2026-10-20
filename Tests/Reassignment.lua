@@ -116,7 +116,7 @@ test("a row kept by hand stays kept", function()
 	owlStaff(ns)
 	search(ns, { HUNTER })
 
-	ns.UI:_setRecipient(ns.UI:Items()[1], nil) -- the Keep Item option
+	ns.UI:SetRecipient(ns.UI:Items()[1], nil) -- the Keep Item option
 	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), nil, "cleared")
 
 	--[[
@@ -132,7 +132,7 @@ test("a recipient picked by hand is not replaced by a better one", function()
 	owlStaff(ns)
 	search(ns, { HUNTER })
 
-	ns.UI:_setRecipient(ns.UI:Items()[1], HUNTER)
+	ns.UI:SetRecipient(ns.UI:Items()[1], HUNTER)
 	search(ns, { PRIEST })
 
 	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), "Hunty", "the hand-picked hunter keeps it")
@@ -144,7 +144,7 @@ test("a tick taken off by hand stays off", function()
 	search(ns, { HUNTER })
 
 	local staff = ns.UI:Items()[1]
-	ns.UI:_toggleRow(staff, false)
+	ns.UI:ToggleRow(staff, false)
 	equal(staff.send, false, "unticked")
 
 	search(ns, { PRIEST })
@@ -162,7 +162,7 @@ test("a row unticked before any search stays out of matching until it is ticked 
 
 	local staff = ns.UI:Items()[1]
 	equal(staff.send, true, "every row starts ticked")
-	ns.UI:_toggleRow(staff, false)
+	ns.UI:ToggleRow(staff, false)
 
 	for _ = 1, 3 do
 		search(ns, { PRIEST, HUNTER })
@@ -173,7 +173,7 @@ test("a row unticked before any search stays out of matching until it is ticked 
 	equal(staff.send, false, "still unticked after three searches and a rescan")
 	equal(staff.recipient, nil, "and nobody was handed it")
 
-	ns.UI:_toggleRow(staff, true)
+	ns.UI:ToggleRow(staff, true)
 	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), "Pri", "ticked again, it is matched from the pool")
 	equal(staff.send, true, "and ticked to send")
 end)
@@ -187,7 +187,7 @@ test("a hand-set row survives a bag rescan", function()
 	local ns = load()
 	owlStaff(ns)
 	search(ns, { HUNTER })
-	ns.UI:_setRecipient(ns.UI:Items()[1], nil)
+	ns.UI:SetRecipient(ns.UI:Items()[1], nil)
 
 	ns.fire("BAG_UPDATE", 0)
 	Stub.FireTimers()

@@ -46,7 +46,7 @@ local MAIN, USEFUL = 2, 1
 
 local MELEE = { "ATTACK_POWER", "CRIT", "HIT" }
 
-local function with(list, ...)
+local function With(list, ...)
 	local out = { ... }
 	for _, stat in ipairs(list) do
 		out[#out + 1] = stat
@@ -56,8 +56,8 @@ end
 
 ns.Data.TALENT_TREES = {
 	WARRIOR = {
-		Arms = { main = { "STRENGTH" }, useful = with(MELEE, "AGILITY") },
-		Fury = { main = { "STRENGTH" }, useful = with(MELEE, "AGILITY") },
+		Arms = { main = { "STRENGTH" }, useful = With(MELEE, "AGILITY") },
+		Fury = { main = { "STRENGTH" }, useful = With(MELEE, "AGILITY") },
 		Protection = { main = { "STRENGTH" }, useful = MELEE },
 	},
 	--[[
@@ -65,8 +65,8 @@ ns.Data.TALENT_TREES = {
 		to two trees and no more. A third would put him at 3, in contention for every Strength ring.
 	]]
 	ROGUE = {
-		Assassination = { main = { "AGILITY" }, useful = with(MELEE, "STRENGTH") },
-		Combat = { main = { "AGILITY" }, useful = with(MELEE, "STRENGTH") },
+		Assassination = { main = { "AGILITY" }, useful = With(MELEE, "STRENGTH") },
+		Combat = { main = { "AGILITY" }, useful = With(MELEE, "STRENGTH") },
 		Subtlety = { main = { "AGILITY" }, useful = MELEE },
 	},
 	--[[
@@ -75,14 +75,14 @@ ns.Data.TALENT_TREES = {
 		contention for every Intellect cloak a mage wants.
 	]]
 	HUNTER = {
-		BeastMastery = { main = { "AGILITY" }, useful = with(MELEE, "RANGED_AP", "INTELLECT") },
-		Marksmanship = { main = { "AGILITY" }, useful = with(MELEE, "RANGED_AP", "INTELLECT") },
-		Survival = { main = { "AGILITY" }, useful = with(MELEE, "RANGED_AP") },
+		BeastMastery = { main = { "AGILITY" }, useful = With(MELEE, "RANGED_AP", "INTELLECT") },
+		Marksmanship = { main = { "AGILITY" }, useful = With(MELEE, "RANGED_AP", "INTELLECT") },
+		Survival = { main = { "AGILITY" }, useful = With(MELEE, "RANGED_AP") },
 	},
 	PALADIN = {
 		Holy = { main = { "INTELLECT", "HEALING" }, useful = { "MP5", "SPELL_CRIT" } },
 		Protection = { main = { "STRENGTH" }, useful = { "ATTACK_POWER", "SPELL_DAMAGE", "HOLY" } },
-		Retribution = { main = { "STRENGTH" }, useful = with(MELEE, "AGILITY") },
+		Retribution = { main = { "STRENGTH" }, useful = With(MELEE, "AGILITY") },
 	},
 	--[[
 		SPIRIT STAYS AT 2, though Shadow levels on Spirit Tap and would make it 3. At 3 a priest
@@ -99,7 +99,7 @@ ns.Data.TALENT_TREES = {
 			main = { "INTELLECT", "SPELL_DAMAGE" },
 			useful = { "SPELL_CRIT", "SPELL_HIT", "MP5", "NATURE" },
 		},
-		Enhancement = { main = { "STRENGTH" }, useful = with(MELEE, "AGILITY") },
+		Enhancement = { main = { "STRENGTH" }, useful = With(MELEE, "AGILITY") },
 		Restoration = { main = { "INTELLECT", "HEALING" }, useful = { "MP5", "SPELL_CRIT" } },
 	},
 	MAGE = {
@@ -148,7 +148,7 @@ ns.Data.UNIVERSAL_WEIGHTS = {}
 ns.Data.STAT_WEIGHTS = {}
 
 -- A stat listed as both main and useful in one tree counts once, as main.
-local function treePoints(tree)
+local function TreePoints(tree)
 	local points = {}
 	for _, stat in ipairs(tree.useful or {}) do
 		points[stat] = USEFUL
@@ -163,7 +163,7 @@ end
 for class, trees in pairs(ns.Data.TALENT_TREES) do
 	local weights = {}
 	for _, tree in pairs(trees) do
-		for stat, points in pairs(treePoints(tree)) do
+		for stat, points in pairs(TreePoints(tree)) do
 			if points > 0 then
 				weights[stat] = (weights[stat] or 0) + points
 			end

@@ -4,7 +4,7 @@ ns.Matcher = {}
 local Matcher = ns.Matcher
 
 --[[
-	Filtered by ALL_CLASSES to what can exist for this player. A phantom class is not a harmless
+	Filtered by AllClasses to what can exist for this player. A phantom class is not a harmless
 	extra: Verdict breaks ties on the lowest priority group, so a death knight (group 1 for
 	two-handers, warrior 3) takes the headline verdict on an unusable item.
 ]]
@@ -22,7 +22,7 @@ local EVERY_CLASS =
 	same.
 ]]
 local memo
-local function ALL_CLASSES()
+local function AllClasses()
 	if memo then
 		return memo
 	end
@@ -49,7 +49,7 @@ local function ALL_CLASSES()
 end
 
 function Matcher:Classes()
-	return ALL_CLASSES()
+	return AllClasses()
 end
 
 --------------------------------------------------------------------------------
@@ -58,16 +58,16 @@ end
 
 function Matcher:EligibleClasses(item)
 	if item.kind == "consumable" then
-		local classes = ns.Data.CONSUMABLE_CLASSES[item.def.restores or item.def.buffs]
+		local classes = ns.Data.CONSUMABLE_CLASSES[item.def.restores or item.def.buffs or item.def.enhances]
 		if classes == nil or classes == "ALL" then
-			return ALL_CLASSES()
+			return AllClasses()
 		end
 		--[[
 			CONSUMABLE_CLASSES is a client-agnostic roster of who has a mana bar, so returning it
 			whole names the phantom classes described at the top of this file.
 		]]
 		local available = {}
-		for _, class in ipairs(ALL_CLASSES()) do
+		for _, class in ipairs(AllClasses()) do
 			available[class] = true
 		end
 		local out = {}
@@ -87,7 +87,7 @@ function Matcher:EligibleClasses(item)
 		-- Weapons: eligibility is "the priority lookup returned a group".
 		local key = ns.Data.WeaponKey(item)
 		if key then
-			for _, class in ipairs(ALL_CLASSES()) do
+			for _, class in ipairs(AllClasses()) do
 				if ns.Data.WeaponPriorityFor(key, class) then
 					table.insert(out, class)
 				end
@@ -102,7 +102,7 @@ function Matcher:EligibleClasses(item)
 		]]
 		if ns.Data.UsesWeaponMatrix(item) then
 			local key = ns.Data.WeaponKey(item)
-			for _, class in ipairs(ALL_CLASSES()) do
+			for _, class in ipairs(AllClasses()) do
 				if key and ns.Data.WeaponPriorityFor(key, class) then
 					table.insert(out, class)
 				end
@@ -111,17 +111,17 @@ function Matcher:EligibleClasses(item)
 		end
 		-- Rings/necks/trinkets/cloaks: everyone, and no group -- stats alone decide.
 		if ns.Data.UNIVERSAL_EQUIP_LOC[equipLoc] or subclassID == 0 then
-			return ALL_CLASSES()
+			return AllClasses()
 		end
 		local armorType = ns.Data.ARMOR_SUBCLASS[subclassID]
 		if not armorType then
-			return ALL_CLASSES()
+			return AllClasses()
 		end -- unknown -> don't over-filter
 		local priority = ns.Data.ArmorPriorityFor(armorType, item.reqLevel)
 		if not priority then
-			return ALL_CLASSES()
+			return AllClasses()
 		end
-		for _, class in ipairs(ALL_CLASSES()) do
+		for _, class in ipairs(AllClasses()) do
 			if priority[class] then
 				table.insert(out, class)
 			end
@@ -290,7 +290,7 @@ Matcher.GIFT, Matcher.LEFTOVER, Matcher.UNREADABLE = "gift", "leftover", "unread
 	untouched -- an owl staff still reaches a hunter when nobody else is there, which is what
 	makes it soft.
 ]]
-local function applyPreference(verdict, item, context)
+local function ApplyPreference(verdict, item, context)
 	local preferred = ns.Data.PreferredClasses(item, context)
 	if not preferred then
 		return
@@ -319,13 +319,13 @@ end
 	Intellect too far below its training level for PROFICIENCY_REACH to reach the hunter or the
 	shaman it was written for, which leaves nobody behind a warrior.
 ]]
-local function applyDemotion(verdict, item, scored, context)
+local function ApplyDemotion(verdict, item, scored, context)
 	local demoted = ns.Data.DemotedClasses(item, context)
 	if not demoted then
 		return
 	end
 
-	local function without(list)
+	local function Without(list)
 		local out = {}
 		for _, class in ipairs(list or {}) do
 			if not demoted[class] then
@@ -336,7 +336,7 @@ local function applyDemotion(verdict, item, scored, context)
 	end
 
 	for _, candidates in ipairs({ verdict.contenders, scored, verdict.admitted }) do
-		local kept = without(candidates)
+		local kept = Without(candidates)
 		if #kept > 0 then
 			verdict.contenders = kept
 			return
@@ -390,8 +390,8 @@ function Matcher:Verdict(item)
 			context: an unclaimed rule is about a stat claim, and a consumable is never stat-scored.
 		]]
 		local scored = verdict.contenders
-		applyPreference(verdict, item, nil)
-		applyDemotion(verdict, item, scored, nil)
+		ApplyPreference(verdict, item, nil)
+		ApplyDemotion(verdict, item, scored, nil)
 		verdict.best, verdict.score = verdict.contenders[1] or eligible[1], 1
 		return verdict
 	end
@@ -468,14 +468,14 @@ function Matcher:Verdict(item)
 	end
 
 	--[[
-		The scoring's own answer, kept so applyDemotion can fall back through it. The context is
+		The scoring's own answer, kept so ApplyDemotion can fall back through it. The context is
 		what lets a rule ask "and nobody had a claim on it": a statless gun admits a warrior, a
 		hunter and a rogue on the baseline alone, and only that fact says the hunter should lead.
 	]]
 	local scored = verdict.contenders
 	local context = { unclaimed = offerToEveryone }
-	applyPreference(verdict, item, context)
-	applyDemotion(verdict, item, scored, context)
+	ApplyPreference(verdict, item, context)
+	ApplyDemotion(verdict, item, scored, context)
 
 	--[[
 		Best of the contenders, never of the admitted: the headline must come from the same set

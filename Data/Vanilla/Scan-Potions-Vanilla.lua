@@ -26,7 +26,7 @@ ns.Data.POTIONS = {
 How We Got the Data
 
 Last Validated
-	2026-10-09, Classic Era 1.15.9.70003
+	2026-10-20, Classic Era 1.15.9.70003
 
 Notes
 	- Healing, mana and rejuvenation potions a player can give away: Potion consumables that can
@@ -41,6 +41,10 @@ Notes
 	- 44728 Endless Rejuvenation Potion is held out by hand. It is the only quality 0 result
 	  the query returns, an internal item the name exclusions match nothing in, and it returns
 	  on every re-run: drop it again rather than reading it as new.
+	- 215162 Mildly Irradiated Rejuvenation Potion, 241650 Major Discolored Healing Potion and
+	  the two Mishandled Healing Potions (241655, 241656) are in the Classic Era tables but are
+	  Season of Discovery's, which QuestieDB's Classic items don't hold. They belong in
+	  Data/Discovery/, never here.
 
 SQL (CMaNGOS)
 	Database not recorded. It returned Wrath items, so it ran against a Wrath-era database,
@@ -77,4 +81,7 @@ Wowhead
 wago.tools
 	https://wago.tools/db2/Item?build=1.15.9.70003
 	https://wago.tools/db2/ItemSparse?build=1.15.9.70003
+
+QuestieDB
+	https://raw.githubusercontent.com/Questie/QuestieDB/master/data/Classic/classicItemDB.lua
 ]]

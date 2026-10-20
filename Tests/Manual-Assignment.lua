@@ -53,7 +53,7 @@ local function twoMatched(ns)
 end
 
 local function optionFor(ns, item, name)
-	for _, option in ipairs(ns.UI:_pickerOptions(item)) do
+	for _, option in ipairs(ns.UI:PickerOptions(item)) do
 		if option.pick and option.pick.name == name then
 			return option
 		end
@@ -68,7 +68,7 @@ test("picking somebody already holding an item takes them from it", function()
 	local first, second = twoMatched(ns)
 	local held = first.recipient
 
-	ns.UI:_setRecipient(second, held)
+	ns.UI:SetRecipient(second, held)
 
 	equal(second.recipient, held, "the player's pick lands")
 	equal(first.recipient, nil, "the row that held them lets go")
@@ -108,7 +108,7 @@ test("somebody free is offered and can be picked", function()
 	check(free ~= nil, "somebody unassigned is offered")
 
 	if free then
-		ns.UI:_setRecipient(second, free.pick)
+		ns.UI:SetRecipient(second, free.pick)
 		equal(second.recipient.name, free.pick.name, "and picking them works")
 		equal(first.recipient ~= nil, true, "without disturbing the other row")
 	end
@@ -123,13 +123,13 @@ test("clearing a row frees its recipient for another row", function()
 	local first, second = twoMatched(ns)
 	local held = first.recipient
 
-	ns.UI:_setRecipient(first, nil) -- the Keep Item option
+	ns.UI:SetRecipient(first, nil) -- the Keep Item option
 	equal(first.recipient, nil, "the first row let them go")
 
 	local option = optionFor(ns, second, held.name)
 	check(option and not option.disabled, "they are selectable again")
 
-	ns.UI:_setRecipient(second, held)
+	ns.UI:SetRecipient(second, held)
 	equal(second.recipient, held, "and the second row can have them")
 end)
 
@@ -141,7 +141,7 @@ test("a recipient the server refused can still be picked by hand", function()
 	local ns = load()
 	local _, second = twoMatched(ns)
 	local target = second.recipient
-	ns.UI:_setRecipient(second, nil)
+	ns.UI:SetRecipient(second, nil)
 	ns.Fairness:MarkUnreachable(target.name)
 
 	local option = optionFor(ns, second, target.name)
@@ -149,7 +149,7 @@ test("a recipient the server refused can still be picked by hand", function()
 	check(option and not option.disabled, "and selectable")
 	check(option and option.text:find(ns.L["PICKER_NOTE_REFUSED"], 1, true) ~= nil, "with the refusal noted")
 
-	ns.UI:_setRecipient(second, target)
+	ns.UI:SetRecipient(second, target)
 	equal(second.recipient, target, "the pick lands")
 end)
 
@@ -175,7 +175,7 @@ test("the notes beside a name stay short enough to fit", function()
 		the bound is generous -- it is here to catch a blowout, not to police wording. The
 		note that broke this took entries to 63.
 	]]
-	for _, option in ipairs(ns.UI:_pickerOptions(first)) do
+	for _, option in ipairs(ns.UI:PickerOptions(first)) do
 		local plain = (option.text or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
 		check(#plain <= 50, ("entry is %d chars: %q"):format(#plain, plain))
 	end
@@ -195,10 +195,10 @@ test("an unticked row ticks back on", function()
 	local ns = load()
 	local first = twoMatched(ns)
 
-	ns.UI:_toggleRow(first, false)
+	ns.UI:ToggleRow(first, false)
 	equal(first.send, false, "unticked by hand")
 
-	ns.UI:_toggleRow(first, true)
+	ns.UI:ToggleRow(first, true)
 	equal(first.send, true, "and ticked right back")
 end)
 
@@ -206,10 +206,10 @@ test("ticking a kept row asks for a match again", function()
 	local ns = load()
 	local first = twoMatched(ns)
 
-	ns.UI:_pickerSelect(first, { clear = true })
+	ns.UI:PickerSelect(first, { clear = true })
 	equal(first.recipient, nil, "kept: no name, pinned")
 
-	ns.UI:_toggleRow(first, true)
+	ns.UI:ToggleRow(first, true)
 	check(not first.pinned, "the pin came off")
 	check(first.recipient ~= nil, "somebody from the pool took it again")
 	equal(first.send, true, "ticked, since they are in contention")
@@ -234,7 +234,7 @@ test("a bare row stays ticked while nobody is around", function()
 
 	local item = ns.UI:Items()[1]
 	equal(item.send, true, "ticked from the start")
-	ns.UI:_toggleRow(item, true)
+	ns.UI:ToggleRow(item, true)
 	equal(item.recipient, nil, "an empty pool has nobody to give")
 	equal(item.send, true, "but the box stays ticked, so the next search matches it")
 	check(not item.pinned, "and nothing holds it back")
@@ -254,11 +254,11 @@ test("the first entry is Keep Item, and picking it keeps the row", function()
 	local first = twoMatched(ns)
 	check(first.recipient ~= nil and first.send, "matched and ticked to start")
 
-	local options = ns.UI:_pickerOptions(first)
+	local options = ns.UI:PickerOptions(first)
 	check(options[1].clear, "the keep option leads the list")
 	check(options[1].text:find(ns.L["PICKER_KEEP_OPTION"], 1, true) ~= nil, "and says Keep Item")
 
-	ns.UI:_pickerSelect(first, options[1])
+	ns.UI:PickerSelect(first, options[1])
 	equal(first.recipient, nil, "the name is gone")
 	equal(first.send, false, "the row is unchecked")
 	check(first.pinned, "and the choice is pinned")
@@ -303,7 +303,7 @@ test("the list ends with a divider and a targeted search", function()
 	local ns = load()
 	local first = twoMatched(ns)
 
-	local options = ns.UI:_pickerOptions(first)
+	local options = ns.UI:PickerOptions(first)
 	local last, divider = options[#options], options[#options - 1]
 
 	check(divider and divider.separator, "a divider sits above the action")
@@ -349,7 +349,7 @@ test("the targeted search plans only this item's band", function()
 	end
 
 	Stub.now = Stub.now + 60
-	ns.UI:_pickerSelect(robe, { findForItem = true })
+	ns.UI:PickerSelect(robe, { findForItem = true })
 
 	local query = Stub.whoQueries[#Stub.whoQueries]
 	check(query and query:find("18%-19") ~= nil, "the robe's band went out: " .. tostring(query))
@@ -362,7 +362,7 @@ test("nothing is reassigned behind the player's back", function()
 	local first, second = twoMatched(ns)
 	Stub.printed = {}
 
-	ns.UI:_setRecipient(second, first.recipient)
+	ns.UI:SetRecipient(second, first.recipient)
 
 	for _, message in ipairs(Stub.printed) do
 		check(not tostring(message):find("reassigned"), "no reassignment announced: " .. tostring(message))

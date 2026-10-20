@@ -21,6 +21,9 @@ ns.Data.STAT_MAP = {
 	ITEM_MOD_SPELL_DAMAGE_DONE_SHORT = "SPELL_DAMAGE",
 	ITEM_MOD_SPELL_HEALING_DONE_SHORT = "HEALING",
 	ITEM_MOD_HEALING_DONE_SHORT = "HEALING",
+	-- TBC Anniversary's GetItemStats answers with the long keys, not the _SHORT ones.
+	ITEM_MOD_SPELL_DAMAGE_DONE = "SPELL_DAMAGE",
+	ITEM_MOD_SPELL_HEALING_DONE = "HEALING",
 	--[[
 		Per-school damage (ARCANE, FIRE, FROST, NATURE, SHADOW, HOLY) has no GetItemStats key
 		in Vanilla: tooltip text only, which is why Features/Scan-Tooltip.lua is not optional.

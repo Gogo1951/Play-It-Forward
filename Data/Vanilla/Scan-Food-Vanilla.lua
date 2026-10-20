@@ -152,7 +152,7 @@ ns.Data.FOOD_AND_WATER = {
 How We Got the Data
 
 Last Validated
-	2026-10-09, Classic Era 1.15.9.70003
+	2026-10-20, Classic Era 1.15.9.70003
 
 Notes
 	- Food and drink a player can give away: Food & Drink consumables that restore health, mana
@@ -173,6 +173,8 @@ Notes
 	  meat there (Trade Goods) and stay out, as do Green Garden Tea (a holiday item) and Oil
 	  Covered Fish. The 2xxxxx IDs the Classic Era tables hold are Season of Discovery's and
 	  belong in Data/Discovery/, never here.
+	- 4696 Lapidis Tankard of Tidesippe drinks like water but is an off-hand (Armor), so it
+	  stays out, as does 7676 Thistle Tea, which restores only energy.
 
 SQL (CMaNGOS)
 	Database not recorded. It returned Wrath items, so it ran against a Wrath-era database,
@@ -228,4 +230,8 @@ wago.tools
 	https://wago.tools/db2/ItemSparse?build=1.15.9.70003
 	https://wago.tools/db2/ItemEffect?build=1.15.9.70003
 	https://wago.tools/db2/Spell?build=1.15.9.70003
+	https://wago.tools/db2/SpellCategories?build=1.15.9.70003
+
+QuestieDB
+	https://raw.githubusercontent.com/Questie/QuestieDB/master/data/Classic/classicItemDB.lua
 ]]

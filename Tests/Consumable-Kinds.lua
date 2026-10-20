@@ -1,5 +1,5 @@
 --[[
-	The four consumable switches: Food, Drink, Potions and Scrolls.
+	The five consumable switches: Food, Drink, Potions, Scrolls, and Oils & Stones.
 
 	The food table splits across two of them. What restores mana is drink, and what restores
 	both is food and drink at once, so it stays listed while either switch is on. Turning a
@@ -98,6 +98,20 @@ test("potions and scrolls each follow their own switch", function()
 	equal(#ns.Scanner:Scan(), 0, "a scroll is held back with Scrolls off")
 	ns.db.profile.consumableKinds.SCROLL = true
 	equal(#ns.Scanner:Scan(), 1, "and listed once it is back on")
+end)
+
+test("oils and stones follow their own switch", function()
+	local ns = load()
+	local stone = row(ns.Data.OILS_AND_STONES)
+
+	backpack(ns, stone)
+	ns.db.profile.consumableKinds.POTION = false
+	ns.db.profile.consumableKinds.SCROLL = false
+	equal(#ns.Scanner:Scan(), 1, "a stone ignores the other switches")
+	ns.db.profile.consumableKinds.OIL_STONE = false
+	local record, reason = ns.Scanner:Classify(0, 1)
+	equal(record, nil, "held back with Oils & Stones off")
+	equal(reason, ns.Scanner.REJECT.KIND_DISABLED, "and the reason says why")
 end)
 
 test("Include Consumables off still wins over every kind", function()

@@ -65,7 +65,7 @@ end
 local MAX_PROBE = 80
 local trainedCache = {}
 
-local function trainedAt(class, itemWeight)
+local function TrainedAt(class, itemWeight)
 	local byWeight = trainedCache[class]
 	if not byWeight then
 		byWeight = {}
@@ -104,7 +104,7 @@ function ns.Data.ArmorEquipLevel(armorType, class, reqLevel)
 		return level
 	end
 
-	local trains = trainedAt(class, itemWeight)
+	local trains = TrainedAt(class, itemWeight)
 	if not trains or (trains - level) > ns.Data.PROFICIENCY_REACH then
 		return nil
 	end
@@ -261,7 +261,7 @@ end
 	ranks? Unranked stats do not count against exclusivity: armor and resistances sit on half the
 	items in the game, so a bare Stamina ring would qualify where a bare Stamina chest does not.
 ]]
-local function matches(rule, item, context)
+local function Matches(rule, item, context)
 	local def = item.def
 
 	--[[
@@ -350,7 +350,7 @@ end
 function ns.Data.VetoedClasses(item)
 	local out = nil
 	for _, rule in ipairs(ns.Data.ITEM_RULES) do
-		if rule.veto and matches(rule, item) then
+		if rule.veto and Matches(rule, item) then
 			out = out or {}
 			for _, class in ipairs(rule.veto) do
 				out[class] = true
@@ -367,7 +367,7 @@ end
 function ns.Data.DemotedClasses(item, context)
 	local out = nil
 	for _, rule in ipairs(ns.Data.ITEM_RULES) do
-		if rule.demote and matches(rule, item, context) then
+		if rule.demote and Matches(rule, item, context) then
 			out = out or {}
 			for _, class in ipairs(rule.demote) do
 				out[class] = true
@@ -380,7 +380,7 @@ end
 -- Classes the first matching rule names, or nil to let the point tables decide alone.
 function ns.Data.PreferredClasses(item, context)
 	for _, rule in ipairs(ns.Data.ITEM_RULES) do
-		if rule.prefer and matches(rule, item, context) then
+		if rule.prefer and Matches(rule, item, context) then
 			return rule.prefer, rule.name
 		end
 	end

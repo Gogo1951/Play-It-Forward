@@ -3,7 +3,7 @@
 
 	The bug: shields never found a recipient. Nothing in the shield path was wrong --
 	the scanner accepts them, the weapon matrix admits warriors, paladins and shamans,
-	and RankCandidates ranks them. They lost in UI:_assign, which handed items out in
+	and RankCandidates ranks them. They lost in UI:Assign, which handed items out in
 	score order and gives one item per person per pass.
 
 	A shield is the worst possible item under that rule, for three reasons that compound:
@@ -183,7 +183,7 @@ test("neither spelling of one player is handed a second item", function()
 
 	ns.MatchList:AddResults({ { name = "Bob", level = 19, class = "WARRIOR" } })
 	ns.MatchList:AddResults({ { name = "Bob-Test", level = 19, class = "WARRIOR", guild = true } })
-	ns.UI:_assign()
+	ns.UI:Assign()
 
 	local held = 0
 	for _, item in ipairs(ns.UI:Items()) do

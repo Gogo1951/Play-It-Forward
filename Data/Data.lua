@@ -123,8 +123,8 @@ ns.Data.LEVEL_GAP_CLOSEST = 1
 	preferring whoever sits closest to the BOTTOM of that band: a level 21 Greater Healing
 	Potion goes to a 21 over a 23, because the point is somebody who drinks it now.
 
-	ONE RULE FOR EVERY CONSUMABLE. Each flavor folder's Scan-Food, Scan-Potions and Scan-Scrolls
-	files share a shape and carry no per-item level range, so there is nothing to branch on.
+	ONE RULE FOR EVERY CONSUMABLE. Each flavor folder's Scan-Food, Scan-Potions, Scan-Scrolls and
+	Scan-Oils-Stones files share a shape and carry no per-item level range, so there is nothing to branch on.
 
 	DELIBERATELY NOT profile.consumableLevelGap, which answers the opposite question: that is
 	the sender's threshold for when a potion counts as spare, and wants to be large or a level
@@ -147,7 +147,7 @@ ns.Data.MIN_RECIPIENT_LEVEL = 5
 --------------------------------------------------------------------------------
 
 --[[
-	The stops the options panel offers; Options/Options-Utilities.lua labels and snaps them. Zero
+	The stops the options panel offers; Features/Utilities.lua labels and snaps them. Zero
 	is a sentinel rather than a gap: it reads as "All Consumables" and lifts the level rule in
 	Features/Scan-Bags.lua entirely. The rest mean "at least this far past the item's own level".
 ]]
@@ -158,11 +158,13 @@ ns.CONSUMABLE_GAP_ORDER = { 0, 5, 10, 15, 20 }
 --------------------------------------------------------------------------------
 
 --[[
-	What a consumable restores, or the stat a scroll buffs, decides who can receive it, not a
-	class list on every row. Hunters have mana in Classic and TBC and belong here; death knights
+	What a consumable restores, the stat a scroll buffs, or who an oil or stone enhances a weapon
+	for decides who can receive it, not a class list on every row. Hunters have mana in Classic and TBC and belong here; death knights
 	use runic power. A scroll goes to the classes that build on its stat, so a Scroll of Agility
 	never reaches a mage; Stamina and armor help everybody. Pet food feeds a hunter's pet, so it
-	goes to hunters alone.
+	goes to hunters alone. A sharpening stone, weightstone or melee oil goes to the classes that
+	fight in melee with their weapon (a druid's forms ignore it, and a hunter's damage is ranged);
+	a wizard oil to the spell-damage casters; a mana oil to anybody with a mana bar.
 ]]
 local MANA_USERS = { "MAGE", "PRIEST", "WARLOCK", "PALADIN", "SHAMAN", "DRUID", "HUNTER" }
 
@@ -177,6 +179,8 @@ ns.Data.CONSUMABLE_CLASSES = {
 	SPIRIT = { "PRIEST", "MAGE", "DRUID", "SHAMAN", "PALADIN" },
 	ARMOR = "ALL",
 	PET = { "HUNTER" },
+	MELEE = { "WARRIOR", "ROGUE", "PALADIN", "SHAMAN", "DEATHKNIGHT" },
+	SPELL_DAMAGE = { "MAGE", "WARLOCK", "PRIEST", "SHAMAN", "DRUID" },
 }
 
 --------------------------------------------------------------------------------
@@ -188,13 +192,14 @@ ns.Data.CONSUMABLE_CLASSES = {
 	mail window both draw them. One list and one map of locale keys, so the two surfaces cannot
 	name or order a kind differently. Features/Scan-Bags.lua says which kinds each row is.
 ]]
-ns.CONSUMABLE_KIND_ORDER = { "FOOD", "DRINK", "POTION", "SCROLL" }
+ns.CONSUMABLE_KIND_ORDER = { "FOOD", "DRINK", "POTION", "SCROLL", "OIL_STONE" }
 
 ns.CONSUMABLE_KIND_STRINGS = {
 	FOOD = { label = "OPTIONS_KIND_FOOD", description = "OPTIONS_KIND_FOOD_DESCRIPTION" },
 	DRINK = { label = "OPTIONS_KIND_DRINK", description = "OPTIONS_KIND_DRINK_DESCRIPTION" },
 	POTION = { label = "OPTIONS_KIND_POTIONS", description = "OPTIONS_KIND_POTIONS_DESCRIPTION" },
 	SCROLL = { label = "OPTIONS_KIND_SCROLLS", description = "OPTIONS_KIND_SCROLLS_DESCRIPTION" },
+	OIL_STONE = { label = "OPTIONS_KIND_OILS_STONES", description = "OPTIONS_KIND_OILS_STONES_DESCRIPTION" },
 }
 
 --------------------------------------------------------------------------------

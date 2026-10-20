@@ -33,7 +33,7 @@ ns.Data.STAT_BUDGET = {
 How We Got the Data
 
 Last Validated
-	2026-10-09, Classic Era 1.15.9.70003
+	2026-10-20, Classic Era 1.15.9.70003
 
 Notes
 	- What one point of each stat costs on an item, in primary-stat points, so a weight
@@ -54,5 +54,8 @@ Wowhead
 	None.
 
 wago.tools
+	None.
+
+QuestieDB
 	None.
 ]]

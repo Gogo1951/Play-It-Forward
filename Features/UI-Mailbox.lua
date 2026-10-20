@@ -22,7 +22,7 @@ local Picker = ns.Picker
 	rather than being spent from the search plan. The answer lands on GUILD_ROSTER_UPDATE some
 	frames later, which is why it re-assigns rather than returning anything.
 ]]
-local function pullGuild()
+local function PullGuild()
 	ns.Guild:Request(function(members)
 		if #members == 0 then
 			return
@@ -31,7 +31,7 @@ local function pullGuild()
 			return
 		end
 		if UI.frame and UI.frame:IsShown() then
-			UI:_assign()
+			UI:Assign()
 		end
 	end)
 end
@@ -41,7 +41,7 @@ function UI:FindRecipients()
 	Picker:Close()
 
 	if ns.Who:Remaining() > 0 then
-		return self:_step()
+		return self:Step()
 	end
 
 	--[[
@@ -49,7 +49,7 @@ function UI:FindRecipients()
 		cost a walk of every member with a last-online call apiece, and cannot change much in five
 		seconds.
 	]]
-	pullGuild()
+	PullGuild()
 
 	--[[
 		Pools are deliberately not wiped: one query returns at most ~49 people, so pressing again
@@ -62,24 +62,24 @@ function UI:FindRecipients()
 	end
 
 	ns.Who:Plan(bands)
-	self:_step()
+	self:Step()
 end
 
-function UI:_step()
+function UI:Step()
 	local sent = ns.Who:Step(function(results)
 		-- nil results: a query that never answered, back on the plan. The button still resyncs.
 		if results then
 			MatchList:AddResults(results)
-			self:_assign()
+			self:Assign()
 		end
-		self:_syncFindButton()
+		self:SyncFindButton()
 	end)
 
 	-- Locked the moment the query goes out: the throttle runs from the send, not the answer.
 	if sent then
-		self:_lockFindButton()
+		self:LockFindButton()
 	end
-	self:_syncFindButton()
+	self:SyncFindButton()
 end
 
 --[[
@@ -89,7 +89,7 @@ end
 ]]
 local searchTimer
 
-function UI:_lockFindButton()
+function UI:LockFindButton()
 	if not (self.frame and self.frame.findButton) then
 		return
 	end
@@ -103,7 +103,7 @@ function UI:_lockFindButton()
 		searchTimer = nil
 		if UI.frame and UI.frame.findButton then
 			UI.frame.findButton:Enable()
-			UI:_syncFindButton()
+			UI:SyncFindButton()
 		end
 	end)
 end
@@ -128,7 +128,7 @@ function UI:FindRecipientsForItem(item)
 	end
 	MatchList:Target(item)
 	ns.Who:Plan(ns.Matcher:TargetedBands(item), true)
-	self:_step()
+	self:Step()
 end
 
 --[[
@@ -138,7 +138,7 @@ end
 
 	Silent while the lock is up, or the callback would put a live-looking label on a dead button.
 ]]
-function UI:_syncFindButton()
+function UI:SyncFindButton()
 	if searchTimer then
 		return
 	end
@@ -146,10 +146,10 @@ function UI:_syncFindButton()
 end
 
 -- The allocation is Features/Match-List.lua's; putting it on screen is what belongs here.
-function UI:_assign()
+function UI:Assign()
 	MatchList:Assign()
 	self:Refresh()
-	self:_syncFindButton()
+	self:SyncFindButton()
 end
 
 --[[
@@ -168,7 +168,7 @@ function UI:Rescan()
 	end
 	local bands = MatchList:RescanBags()
 	ns.Who:Plan(bands)
-	self:_assign()
+	self:Assign()
 end
 
 --------------------------------------------------------------------------------
@@ -213,13 +213,13 @@ function UI:Distribute()
 	]]
 	ns.Distributor.onProgress = function(_, _, job, ok)
 		if ok then
-			UI:_delivered(job)
+			UI:Delivered(job)
 		else
-			UI:_releaseRecipient(job)
+			UI:ReleaseRecipient(job)
 		end
 	end
 	ns.Distributor.onDone = function()
-		UI:_afterDelivery()
+		UI:AfterDelivery()
 	end
 	ns.Distributor:Start(jobs)
 end
@@ -228,7 +228,7 @@ end
 	By the uid it was mailed under: two copies of one green share a name and a link, so matching
 	on anything less removes whichever the loop reached first.
 ]]
-function UI:_delivered(job)
+function UI:Delivered(job)
 	for index, item in ipairs(MatchList:Items()) do
 		if MatchList:SlotKey(item) == (job.uid or "") then
 			if item.recipient then
@@ -246,7 +246,7 @@ end
 	moment on the server, and the pairing may have been set by hand: discarding that choice because
 	one send bounced is a second failure. The item stays on the list either way.
 ]]
-function UI:_releaseRecipient(job)
+function UI:ReleaseRecipient(job)
 	for _, item in ipairs(MatchList:Items()) do
 		if MatchList:SlotKey(item) == (job.uid or "") then
 			if item.recipient and not ns.Fairness:IsReachable(item.recipient.name) then
@@ -265,11 +265,11 @@ end
 	could only put delivered items back. BAG_UPDATE marks the scan stale and the next mailbox picks
 	them up. Re-assigning is worth it: every recipient just went on cooldown.
 ]]
-function UI:_afterDelivery()
+function UI:AfterDelivery()
 	if not self.frame then
 		return
 	end
-	self:_assign()
+	self:Assign()
 end
 
 --------------------------------------------------------------------------------
@@ -277,11 +277,11 @@ end
 --------------------------------------------------------------------------------
 
 -- It does not scan: every caller had to read the bags to decide whether to call this at all.
-local function openWindow()
-	UI:_buildFrame()
+local function OpenWindow()
+	UI:BuildFrame()
 	UI.frame:Show()
 
-	pullGuild()
+	PullGuild()
 	UI:Refresh()
 end
 
@@ -299,7 +299,7 @@ function UI:Close()
 	end
 	self.frame:Hide()
 	-- Called here as well as from OnHide, for the window that was closed without ever being shown.
-	self:_onClosed()
+	self:OnClosed()
 end
 
 --[[
@@ -307,14 +307,14 @@ end
 	is idempotent, which is what lets both routes call it: Escape arrives through OnHide, the X
 	through UI:Close, and a press of the X runs both.
 ]]
-function UI:_onClosed()
+function UI:OnClosed()
 	if not self.frame then
 		return
 	end
 	Picker:Close()
 	ns.Distributor:Stop()
 	ns.Who:Clear() -- a half-finished query plan is stale; pairings are not
-	self:_syncFindButton()
+	self:SyncFindButton()
 end
 
 --[[
@@ -341,11 +341,11 @@ end
 	Nothing to hand out means nothing happens, and nothing is said: no spare gear is the ordinary
 	state of a mailbox visit.
 ]]
-local function mailboxOpened()
+local function MailboxOpened()
 	ns.mailboxOpen = true
 	MatchList:EnsureScan()
 	if UI:HasSomethingToDo() then
-		openWindow()
+		OpenWindow()
 	end
 end
 
@@ -357,7 +357,7 @@ end
 	manager. Reading it too early answers for the mailbox that is still closing and leaves the
 	button live -- the exact state this exists to clear.
 ]]
-local function recheckDistribute()
+local function RecheckDistribute()
 	C_Timer.After(0, function()
 		--[[
 			A run cannot survive the mailbox closing: nothing else clears Distributor.busy before
@@ -370,14 +370,14 @@ local function recheckDistribute()
 			ns:PrintMessage(L["MAIL_MAILBOX_CLOSED"])
 		end
 		if UI.frame and UI.frame:IsShown() then
-			UI:_syncDistributeButton()
+			UI:SyncDistributeButton()
 		end
 	end)
 end
 
-local function mailboxClosed()
+local function MailboxClosed()
 	ns.mailboxOpen = false
-	recheckDistribute()
+	RecheckDistribute()
 end
 
 --[[
@@ -386,48 +386,48 @@ end
 ]]
 local function OnPlayerLogin()
 	if MailFrame then
-		MailFrame:HookScript("OnShow", mailboxOpened)
+		MailFrame:HookScript("OnShow", MailboxOpened)
 		--[[
 			A prompt to re-check, NOT a claim the mailbox closed, and deliberately not
-			mailboxClosed: this frame hides spuriously, and flipping ns.mailboxOpen on that would
+			MailboxClosed: this frame hides spuriously, and flipping ns.mailboxOpen on that would
 			lie to the Distributor.
 
 			Here because MAIL_CLOSED does not fire on every way out -- Escape and another add-on
 			closing the frame both skip it, and on Era the interaction-manager events are not
 			registered. A spurious hide costs one re-check that changes nothing.
 		]]
-		MailFrame:HookScript("OnHide", recheckDistribute)
+		MailFrame:HookScript("OnHide", RecheckDistribute)
 		-- Read by the Mailbox diagnostics report: no MailFrame at login means no hooks all session.
 		UI.mailFrameHooked = true
 	end
 end
-ns.on("PLAYER_LOGIN", OnPlayerLogin)
+ns.On("PLAYER_LOGIN", OnPlayerLogin)
 
 -- The client's own enum is preferred; 17 is its fallback.
 local MAILBOX_INTERACTION = (Enum and Enum.PlayerInteractionType and Enum.PlayerInteractionType.MailInfo) or 17
 
 local function OnMailShow()
-	mailboxOpened()
+	MailboxOpened()
 end
-ns.on("MAIL_SHOW", OnMailShow)
+ns.On("MAIL_SHOW", OnMailShow)
 
 local function OnMailClosed()
-	mailboxClosed()
+	MailboxClosed()
 end
-ns.on("MAIL_CLOSED", OnMailClosed)
+ns.On("MAIL_CLOSED", OnMailClosed)
 
 if ns.FLAVOR ~= "Vanilla" then
 	-- TBC Anniversary and Forever's Retail client: the interaction manager reports the mailbox as well.
 	local function OnPlayerInteractionManagerFrameShow(t)
 		if t == MAILBOX_INTERACTION then
-			mailboxOpened()
+			MailboxOpened()
 		end
 	end
-	ns.on("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", OnPlayerInteractionManagerFrameShow)
+	ns.On("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", OnPlayerInteractionManagerFrameShow)
 	local function OnPlayerInteractionManagerFrameHide(t)
 		if t == MAILBOX_INTERACTION then
-			mailboxClosed()
+			MailboxClosed()
 		end
 	end
-	ns.on("PLAYER_INTERACTION_MANAGER_FRAME_HIDE", OnPlayerInteractionManagerFrameHide)
+	ns.On("PLAYER_INTERACTION_MANAGER_FRAME_HIDE", OnPlayerInteractionManagerFrameHide)
 end

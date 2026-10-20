@@ -14,11 +14,11 @@ local ROW_LABEL_WIDTH = 0.6
 local ROW_VALUE_WIDTH = ns.OPTIONS_ROW_WIDTH - ROW_LABEL_WIDTH
 
 -- The rarity select hides while Include Gear is off, the gap select with its sub-row; spacerGive2 separates the two.
-local function gearOff()
+local function GearOff()
 	return not (ns.db and ns.db.profile.includeGear)
 end
 
-local function consumablesOff()
+local function ConsumablesOff()
 	return not (ns.db and ns.db.profile.includeConsumables)
 end
 
@@ -43,18 +43,18 @@ local function SubLabel(text)
 end
 
 -- Rarity cap changes what the bag scan returns, so the open window is re-read.
-local function refreshWindow()
+local function RefreshWindow()
 	if ns.UI and ns.UI.frame then
-		ns.UI:_syncControls()
+		ns.UI:SyncControls()
 		ns.UI:Rescan()
 	end
 end
 
 -- One sub-row per kind under Include Consumables, hiding with its select.
-local function addConsumableKinds(args, startOrder)
+local function AddConsumableKinds(args, startOrder)
 	for index, kind in ipairs(ns.CONSUMABLE_KIND_ORDER) do
 		local strings = ns.CONSUMABLE_KIND_STRINGS[kind]
-		args["subKind" .. kind] = SubRow(startOrder + index - 1, consumablesOff, {
+		args["subKind" .. kind] = SubRow(startOrder + index - 1, ConsumablesOff, {
 			{
 				type = "toggle",
 				name = SubLabel(L[strings.label]),
@@ -65,7 +65,7 @@ local function addConsumableKinds(args, startOrder)
 				end,
 				set = function(_, value)
 					ns.db.profile.consumableKinds[kind] = value
-					refreshWindow()
+					RefreshWindow()
 				end,
 			},
 		})
@@ -112,7 +112,7 @@ local GENEROSITY_STATS = {
 	},
 }
 
-local function addGenerosityStats(args, startOrder)
+local function AddGenerosityStats(args, startOrder)
 	local order = startOrder
 	for index, row in ipairs(GENEROSITY_STATS) do
 		args["label" .. row.id] = ns.OptionsRowLabel(GetColor("TITLE") .. row.label .. "|r", order, ROW_LABEL_WIDTH)
@@ -177,7 +177,7 @@ function ns.BuildGeneralOptions()
 			end,
 			set = function(_, value)
 				ns.db.profile.includeGear = value
-				refreshWindow()
+				RefreshWindow()
 			end,
 		},
 		selectMaxRarity = {
@@ -186,7 +186,7 @@ function ns.BuildGeneralOptions()
 			desc = L["OPTIONS_MAX_RARITY_DESCRIPTION"],
 			width = ns.OPTIONS_CONTROL_WIDTH,
 			order = 24,
-			hidden = gearOff,
+			hidden = GearOff,
 			values = function()
 				local out = {}
 				for _, quality in ipairs({ 2, 3, 4 }) do
@@ -199,7 +199,7 @@ function ns.BuildGeneralOptions()
 			end,
 			set = function(_, value)
 				ns.db.profile.maxRarity = value
-				refreshWindow()
+				RefreshWindow()
 			end,
 		},
 
@@ -216,10 +216,10 @@ function ns.BuildGeneralOptions()
 			end,
 			set = function(_, value)
 				ns.db.profile.includeConsumables = value
-				refreshWindow()
+				RefreshWindow()
 			end,
 		},
-		subConsumableLevelGap = SubRow(27, consumablesOff, {
+		subConsumableLevelGap = SubRow(27, ConsumablesOff, {
 			{
 				type = "description",
 				name = SubLabel(L["OPTIONS_CONSUMABLE_GAP"]),
@@ -238,11 +238,11 @@ function ns.BuildGeneralOptions()
 				end,
 				set = function(_, value)
 					ns.db.profile.consumableLevelGap = value
-					refreshWindow()
+					RefreshWindow()
 				end,
 			},
 		}),
-		-- The four kind switches are added by addConsumableKinds below, at orders 28 to 31.
+		-- The five kind switches are added by AddConsumableKinds below, at orders 28 to 32.
 
 		--[[
 			The toggle leads, then the four totals. It is proximity-scoped sharing: nearby players
@@ -268,7 +268,7 @@ function ns.BuildGeneralOptions()
 			end,
 		},
 		spacerGiven2 = ns.OptionsSpacer(44),
-		-- The four totals are added by addGenerosityStats below, from order 45.
+		-- The four totals are added by AddGenerosityStats below, from order 45.
 
 		-- The panel ends here, after every section with settings in it.
 		spacerCommands0 = ns.OptionsSpacer(80),
@@ -280,8 +280,8 @@ function ns.BuildGeneralOptions()
 		),
 	}
 
-	addConsumableKinds(args, 28)
-	addGenerosityStats(args, 45)
+	AddConsumableKinds(args, 28)
+	AddGenerosityStats(args, 45)
 
 	return {
 		type = "group",

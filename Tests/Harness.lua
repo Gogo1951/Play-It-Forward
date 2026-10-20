@@ -74,6 +74,7 @@ local FLAVOR_TABLES = {
 	"Scan-Food",
 	"Scan-Potions",
 	"Scan-Scrolls",
+	"Scan-Oils-Stones",
 	"Recipients-Zones",
 	"Match-Weapons",
 	"Match-Armor",
@@ -113,7 +114,7 @@ end
 	instead, down to the scanning tooltip.
 ]]
 local function injectModules(ns, events)
-	ns.on = function(event, fn)
+	ns.On = function(event, fn)
 		events[event] = events[event] or {}
 		table.insert(events[event], fn)
 	end

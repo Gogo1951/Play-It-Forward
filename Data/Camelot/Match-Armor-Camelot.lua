@@ -28,7 +28,7 @@ ns.Data.NATIVE_ARMOR = {
 How We Got the Data
 
 Last Validated
-	2026-10-09, WoW Forever 1.60.1.70291
+	2026-10-20, WoW Forever 1.60.1.70450
 
 Notes
 	- ARMOR_SUBCLASS turns the armor subclass the client reports for an item into its material.
@@ -62,4 +62,7 @@ Wowhead
 
 wago.tools
 	https://wago.tools/db2/ItemSubClass?build=1.60.1.70291
+
+QuestieDB
+	None.
 ]]

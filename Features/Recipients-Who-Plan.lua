@@ -59,12 +59,12 @@ Who.targeted = false
 -- The localized name a /who class filter goes out with. Built once at load: the locale cannot change without a restart.
 local classNameByToken = LOCALIZED_CLASS_NAMES_MALE or {}
 
-local function className(token)
+local function ClassName(token)
 	return classNameByToken[token] or token or ""
 end
 
 -- The exact read the class filter makes, for the diagnostics Game Names report.
-Who.ClassName = className
+Who.ClassName = ClassName
 
 --------------------------------------------------------------------------------
 -- Zone Search Order
@@ -80,7 +80,7 @@ local ZONE = ns.Data.ZONE_COLUMNS
 ]]
 local areaNames = {}
 
-local function areaName(areaID)
+local function AreaName(areaID)
 	local name = areaNames[areaID]
 	if name == nil then
 		name = C_Map.GetAreaInfo(areaID)
@@ -93,7 +93,7 @@ local function areaName(areaID)
 end
 
 -- The exact read the zone filter makes, for the diagnostics Game Names report.
-Who.AreaName = areaName
+Who.AreaName = AreaName
 
 --[[
 	Every zone worth asking about for a level band, best first. Ordering decides how many presses
@@ -120,7 +120,7 @@ function ns.Data.ZonesFor(lo, hi)
 			empty query, excluding on a nil answer silently drops half the list.
 		]]
 		local rightSide = (zone[ZONE.FACTION] == nil) or (faction == nil) or (zone[ZONE.FACTION] == faction)
-		local name = areaName(zone[ZONE.AREA_ID])
+		local name = AreaName(zone[ZONE.AREA_ID])
 		if from <= to and rightSide and name then
 			out[#out + 1] = {
 				name = name,
@@ -180,7 +180,7 @@ local FILTER_MAX = 240
 Who.FILTER_MAX = FILTER_MAX
 
 -- 'c-"Warrior" c-"Paladin"', or "" when it would exclude nobody and only cost length.
-local function classFilter(classes)
+local function ClassFilter(classes)
 	if not classes or #classes == 0 then
 		return "", {}
 	end
@@ -194,7 +194,7 @@ local function classFilter(classes)
 
 	local names, parts = {}, {}
 	for _, token in ipairs(classes) do
-		local name = className(token)
+		local name = ClassName(token)
 		if name and name ~= "" then
 			names[#names + 1] = name
 			parts[#parts + 1] = ('c-"%s"'):format(name)
@@ -206,7 +206,7 @@ local function classFilter(classes)
 end
 
 -- Class names for the diagnostics roster report. Six of them is not information, so it stops at three.
-local function classLabel(names)
+local function ClassLabel(names)
 	if #names == 0 then
 		return nil
 	end
@@ -220,9 +220,9 @@ end
 	The readable form of a query, for the roster report. ns.DiagnosticsStrings is read at call
 	time rather than aliased at file scope, because Diagnostics/Diagnostics-Core.lua loads after this one.
 ]]
-local function newAttempt(lo, hi, zones, classes)
-	local D = ns.DiagnosticsStrings
-	local classPart, classNames = classFilter(classes)
+local function NewAttempt(lo, hi, zones, classes)
+	local DiagnosticsStrings = ns.DiagnosticsStrings
+	local classPart, classNames = ClassFilter(classes)
 	local levels = ("%d-%d"):format(lo, hi)
 	local query = levels
 	local label
@@ -233,17 +233,17 @@ local function newAttempt(lo, hi, zones, classes)
 			parts[#parts + 1] = ('z-"%s"'):format(name)
 		end
 		query = query .. " " .. table.concat(parts, " ")
-		label = (#zones == 1) and D.WHO_LABEL_IN_ZONE:format(zones[1], levels)
-			or D.WHO_LABEL_ZONES:format(#zones, levels)
+		label = (#zones == 1) and DiagnosticsStrings.WHO_LABEL_IN_ZONE:format(zones[1], levels)
+			or DiagnosticsStrings.WHO_LABEL_ZONES:format(#zones, levels)
 	else
-		label = D.WHO_LABEL_ANYWHERE:format(levels)
+		label = DiagnosticsStrings.WHO_LABEL_ANYWHERE:format(levels)
 	end
 
 	if classPart ~= "" then
 		query = query .. " " .. classPart
-		local named = classLabel(classNames)
+		local named = ClassLabel(classNames)
 		if named then
-			label = D.WHO_LABEL_FOR_CLASSES:format(label, named)
+			label = DiagnosticsStrings.WHO_LABEL_FOR_CLASSES:format(label, named)
 		end
 	end
 
@@ -259,7 +259,7 @@ end
 	bag holding a level 15 cloak and a level 45 sword has two bands with nothing in common, and
 	draining one band's zones first means five presses before the other item is looked at once.
 ]]
-local function interleave(lists)
+local function Interleave(lists)
 	local out, depth = {}, 0
 	for _, list in ipairs(lists) do
 		depth = math.max(depth, #list)
@@ -275,7 +275,7 @@ local function interleave(lists)
 end
 
 -- Packs a band's zones into as few queries as the length budget allows, best zones first.
-local function zoneChunks(lo, hi, classPart)
+local function ZoneChunks(lo, hi, classPart)
 	local fixed = #("%d-%d"):format(lo, hi) + (classPart ~= "" and (#classPart + 1) or 0)
 	local out, current, used = {}, {}, 0
 
@@ -310,7 +310,7 @@ local SPAN_MAX = 6
 	Folds neighbouring bands into one span, classes unioned. A band asking for no class in
 	particular asks for everybody, so a span holding one asks for everybody too.
 ]]
-local function coalesce(groups)
+local function Coalesce(groups)
 	local sorted = {}
 	for _, group in ipairs(groups or {}) do
 		local lo = math.max(1, group.lo or 1)
@@ -365,11 +365,11 @@ end
 	TARGETED skips the coalescing and the bare stage, and asks by class before it asks by zone:
 	Find Recipients for This Item exists to ask for the classes it names, and a bare query is
 	what the main button already sent. A class filter slices everybody online, a zone filter only
-	the zones the table lists. See targetedPlan below. The count returned is not a countdown: the
+	the zones the table lists. See TargetedPlan below. The count returned is not a countdown: the
 	search stops at the first match in contention, or for a targeted search once nothing left on
 	the plan could outrank whoever holds the row.
 ]]
-local targetedPlan
+local TargetedPlan
 
 function Who:Plan(groups, targeted)
 	wipe(plan)
@@ -377,9 +377,9 @@ function Who:Plan(groups, targeted)
 	Who.targeted = targeted and true or false
 
 	if targeted then
-		return targetedPlan(groups)
+		return TargetedPlan(groups)
 	end
-	groups = coalesce(groups)
+	groups = Coalesce(groups)
 
 	local zoned, widened, bare = {}, {}, {}
 	for _, group in ipairs(groups or {}) do
@@ -388,11 +388,11 @@ function Who:Plan(groups, targeted)
 		local classes = group.classes or {}
 		local single = (#classes == 1) and classes or nil
 		-- Only its length is wanted here, for the chunk budget; each attempt builds its own.
-		local singlePart = single and (classFilter(single)) or ""
+		local singlePart = single and (ClassFilter(single)) or ""
 
 		local perBand = {}
-		for _, chunk in ipairs(zoneChunks(lo, hi, singlePart)) do
-			perBand[#perBand + 1] = newAttempt(lo, hi, chunk, single)
+		for _, chunk in ipairs(ZoneChunks(lo, hi, singlePart)) do
+			perBand[#perBand + 1] = NewAttempt(lo, hi, chunk, single)
 		end
 		zoned[#zoned + 1] = perBand
 
@@ -400,16 +400,16 @@ function Who:Plan(groups, targeted)
 		if #classes > 0 and #classes < #ns.Matcher:Classes() then
 			local perClass = {}
 			for _, token in ipairs(classes) do
-				perClass[#perClass + 1] = newAttempt(lo, hi, nil, { token })
+				perClass[#perClass + 1] = NewAttempt(lo, hi, nil, { token })
 			end
 			widened[#widened + 1] = perClass
 		end
 		-- No classes: the last widening step gives up the class half, so it must not be narrowed.
-		bare[#bare + 1] = { newAttempt(lo, hi, nil, nil) }
+		bare[#bare + 1] = { NewAttempt(lo, hi, nil, nil) }
 	end
 
 	for _, stage in ipairs({ bare, widened, zoned }) do
-		for _, attempt in ipairs(interleave(stage)) do
+		for _, attempt in ipairs(Interleave(stage)) do
 			plan[#plan + 1] = attempt
 		end
 	end
@@ -433,7 +433,7 @@ end
 	After every answer MatchList:Assign drops the attempts whose class could not outrank the row's
 	holder (Who:PruneTargeted), so a search ends as soon as no press left could change the row.
 ]]
-function targetedPlan(groups)
+function TargetedPlan(groups)
 	local filtered, zoned = {}, {}
 	for _, group in ipairs(groups or {}) do
 		local lo = math.max(1, group.lo or 1)
@@ -442,14 +442,14 @@ function targetedPlan(groups)
 
 		if #classes > 0 and #classes < #ns.Matcher:Classes() then
 			for _, token in ipairs(classes) do
-				filtered[#filtered + 1] = newAttempt(lo, hi, nil, { token })
+				filtered[#filtered + 1] = NewAttempt(lo, hi, nil, { token })
 			end
 		end
 
 		local single = (#classes == 1) and classes or nil
-		local singlePart = single and (classFilter(single)) or ""
-		for _, chunk in ipairs(zoneChunks(lo, hi, singlePart)) do
-			zoned[#zoned + 1] = newAttempt(lo, hi, chunk, single)
+		local singlePart = single and (ClassFilter(single)) or ""
+		for _, chunk in ipairs(ZoneChunks(lo, hi, singlePart)) do
+			zoned[#zoned + 1] = NewAttempt(lo, hi, chunk, single)
 		end
 	end
 
@@ -481,7 +481,7 @@ function Who:Exhausted(attempt)
 		asked[class] = true
 	end
 
-	local function answered(other)
+	local function Answered(other)
 		if other.lo < attempt.lo or other.hi > attempt.hi then
 			return false
 		end
@@ -501,7 +501,7 @@ function Who:Exhausted(attempt)
 
 	local kept, dropped = {}, 0
 	for _, other in ipairs(plan) do
-		if answered(other) then
+		if Answered(other) then
 			dropped = dropped + 1
 		else
 			kept[#kept + 1] = other
@@ -538,7 +538,7 @@ function Who:Prune(groups)
 	end
 
 	-- What an attempt becomes after narrowing, or nil when nothing is left for it to ask.
-	local function survivor(attempt)
+	local function Survivor(attempt)
 		local wanted, overlaps = {}, false
 		for _, group in ipairs(groups or {}) do
 			local groupLow = group.lo or 1
@@ -580,12 +580,12 @@ function Who:Prune(groups)
 		if #narrowed == #attempt.classes then
 			return attempt
 		end
-		return newAttempt(attempt.lo, attempt.hi, attempt.zones, narrowed)
+		return NewAttempt(attempt.lo, attempt.hi, attempt.zones, narrowed)
 	end
 
 	local kept, dropped = {}, 0
 	for _, attempt in ipairs(plan) do
-		local survives = survivor(attempt)
+		local survives = Survivor(attempt)
 		if survives then
 			kept[#kept + 1] = survives
 		else

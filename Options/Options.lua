@@ -1,7 +1,7 @@
 local _, ns = ...
 local L = ns.L
 
-local D = ns.DiagnosticsStrings
+local DiagnosticsStrings = ns.DiagnosticsStrings
 
 --------------------------------------------------------------------------------
 -- Registration
@@ -36,7 +36,7 @@ function ns:RegisterOptionsPanels()
 
 	-- A builder function, so the tabs come and go with the enable toggle (see Diagnostics/Options-Diagnostics.lua).
 	AceConfig:RegisterOptionsTable(ns.OPTIONS_REGISTRY.Diagnostics, ns.BuildDiagnosticsOptions)
-	AceConfigDialog:AddToBlizOptions(ns.OPTIONS_REGISTRY.Diagnostics, D.TAB, ns.ADDON_TITLE)
+	AceConfigDialog:AddToBlizOptions(ns.OPTIONS_REGISTRY.Diagnostics, DiagnosticsStrings.TAB, ns.ADDON_TITLE)
 end
 
 --------------------------------------------------------------------------------

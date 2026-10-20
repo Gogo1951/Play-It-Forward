@@ -18,13 +18,13 @@ local Picker = ns.Picker
 	"recent") are information for the player's judgment, and every candidate can be picked. The
 	list ends with a divider and a targeted search for this one item.
 ]]
-function UI:_pickerOptions(item)
+function UI:PickerOptions(item)
 	local options = { {
 		text = GetColor("MUTED") .. L["PICKER_KEEP_OPTION"] .. "|r",
 		clear = true,
 	} }
 
-	local candidates = self:_candidates(item)
+	local candidates = self:Candidates(item)
 	if #candidates == 0 then
 		-- An empty list has two causes and only one is fixed by querying again, so say which.
 		table.insert(options, {
@@ -71,26 +71,26 @@ function UI:_pickerOptions(item)
 	return options
 end
 
-function UI:_openPicker(row)
+function UI:OpenPicker(row)
 	local item = row._item
 	if not item then
 		return
 	end
-	Picker:Open(row.recipButton, self:_pickerOptions(item), function(opt)
-		UI:_pickerSelect(item, opt)
+	Picker:Open(row.recipButton, self:PickerOptions(item), function(option)
+		UI:PickerSelect(item, option)
 	end)
 end
 
 -- What a picked entry does, off the frame so the tests can drive it.
-function UI:_pickerSelect(item, opt)
-	if opt.findForItem then
+function UI:PickerSelect(item, option)
+	if option.findForItem then
 		self:FindRecipientsForItem(item)
 		return
 	end
-	self:_setRecipient(item, opt.pick)
+	self:SetRecipient(item, option.pick)
 end
 
-function UI:_setRecipient(item, who)
+function UI:SetRecipient(item, who)
 	--[[
 		THE PLAYER'S PICK IS NEVER REFUSED. A name already
 		holding another row is taken from it, and the freed row drops back to auto-assignment
@@ -132,7 +132,7 @@ end
 	that re-ticks it has overridden them. Ticking a row with a name sends it to that name, still
 	pinned; ticking a bare row unpins it and the allocator runs, so it is matched like any other.
 ]]
-function UI:_toggleRow(item, checked)
+function UI:ToggleRow(item, checked)
 	if not item then
 		return
 	end
@@ -143,5 +143,5 @@ function UI:_toggleRow(item, checked)
 		return
 	end
 	item.pinned = false
-	self:_assign()
+	self:Assign()
 end

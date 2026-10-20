@@ -24,7 +24,7 @@ ns.Version = GetVersion()
 --------------------------------------------------------------------------------
 
 --[[
-	ns.on is the only way in: a feature file registering its own frame would bypass the Diagnostics
+	ns.On is the only way in: a feature file registering its own frame would bypass the Diagnostics
 	event log. ns.EVENT_NAMES accumulates as events register rather than being a static list,
 	because registration is flavor-conditional, so the export is exactly what this client took.
 ]]
@@ -34,7 +34,7 @@ local frame = CreateFrame("Frame")
 
 ns.EVENT_NAMES = {}
 
-function ns.on(event, fn)
+function ns.On(event, fn)
 	handlers[event] = handlers[event] or {}
 	table.insert(handlers[event], fn)
 	if not registered[event] then
@@ -86,7 +86,7 @@ local function OnAddonLoaded(name)
 	]]
 	function ns:ApplyProfile()
 		if ns.UI and ns.UI.frame then
-			ns.UI:_syncControls()
+			ns.UI:SyncControls()
 			ns.UI:Rescan()
 		end
 		LibStub("AceConfigRegistry-3.0"):NotifyChange(ns.OPTIONS_REGISTRY.General)
@@ -98,7 +98,7 @@ local function OnAddonLoaded(name)
 
 	ns:RegisterOptionsPanels()
 end
-ns.on("ADDON_LOADED", OnAddonLoaded)
+ns.On("ADDON_LOADED", OnAddonLoaded)
 
 local function OnPlayerLogin()
 	if not ns.db.profile.showWelcome then
@@ -106,4 +106,4 @@ local function OnPlayerLogin()
 	end
 	ns:PrintMessage(L["CHAT_LOADED"]:format(ns.Version))
 end
-ns.on("PLAYER_LOGIN", OnPlayerLogin)
+ns.On("PLAYER_LOGIN", OnPlayerLogin)

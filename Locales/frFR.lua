@@ -17,9 +17,10 @@ L["CHAT_OPTIONS_IN_COMBAT"] = "Par mesure de sécurité, l'interface des options
 --------------------------------------------------------------------------------
 
 --[[
-	Captions on the window's two top-bar ticks, the window's twins of Include Gear and Include
-	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips and the
-	dropdown values are the panel's own strings, so a setting is never explained two ways.
+	Captions on the window's Gear and Consumables ticks, the twins of Include Gear and Include
+	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips, the kind
+	ticks and the dropdown values are the panel's own strings, so a setting is never explained two
+	ways.
 ]]
 L["WINDOW_GEAR_LABEL"] = "Équipement"
 L["WINDOW_CONSUMABLES_LABEL"] = "Consommables"
@@ -46,9 +47,9 @@ L["BUTTON_NEEDS_MAILBOX"] = "Boîte aux lettres requise"
 L["WHO_BLOCKED"] =
 	"Appuyez de nouveau sur Chercher des destinataires. Blizzard n'autorise cette recherche que directement depuis un clic sur un bouton, et quelque chose a interrompu celle-ci."
 
--- In the list while it is empty. The hint names the two top-bar captions: rename one, reread it.
+-- In the list while it is empty.
 L["WINDOW_EMPTY"] = "Plus rien à donner."
-L["WINDOW_EMPTY_HINT"] = "Modifiez Équipement ou Consommables ci-dessus pour en afficher plus."
+L["WINDOW_EMPTY_HINT"] = "Modifiez les paramètres ci-dessus pour en afficher plus."
 
 L["SECTION_MATCHED"] = "Attribués"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
@@ -162,7 +163,8 @@ L["MAIL_BODY_TOO_LONG"] = "Le message fait %d caractères et le courrier n'en ac
 
 	LENGTH: 500 characters, confirmed against a live mailbox. Past it the mail is cut short,
 	sign-off first, and Tests/Mail-Contents.lua fails on it. The runtime warning in
-	Features/Mail-Sender.lua stays even so, because the test only measures this locale.
+	Features/Mail-Sender.lua stays even so: the other locale files keep their own copies of this
+	English text, and the test does not read them.
 ]]
 L["MAIL_SUBJECT"] = "Play It Forward!"
 
@@ -178,7 +180,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Envoyez l'équipement et les consommables devenus trop faibles pour vous à des membres de votre guilde ou à des inconnus qui sauront les apprécier. Chaque objet est attribué à la classe à qui il convient le mieux, et le bazar oublié de vos sacs devient la prochaine amélioration de quelqu'un d'autre. Faites passer, un objet vert à la fois."
+	"Envoyez par courrier l'équipement lié quand équipé, la nourriture, les potions et les parchemins devenus trop faibles pour vous à des joueurs en pleine montée de niveau, dans votre guilde ou ailleurs dans le monde. Chaque objet va à la classe à qui il convient le mieux, et le bazar de vos sacs devient la prochaine amélioration de quelqu'un d'autre. Faites passer, un objet vert à la fois."
 L["OPTIONS_WELCOME"] = "Activer le message de bienvenue"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "Affiche la version et le rappel des paramètres à la connexion."
 
@@ -193,7 +195,7 @@ L["OPTIONS_INCLUDE_GEAR"] = "Inclure l'équipement"
 L["OPTIONS_INCLUDE_GEAR_DESCRIPTION"] = "Proposer les armes et armures liées quand équipées."
 L["OPTIONS_INCLUDE_CONSUMABLES"] = "Inclure les consommables"
 L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] =
-	"Proposer la nourriture, les boissons, les potions et les parchemins de bas niveau devenus trop faibles pour vous."
+	"Proposer la nourriture, les boissons, les potions, les parchemins, les huiles et les pierres de bas niveau devenus trop faibles pour vous."
 --[[
 	Self-describing: a bare "20" says nothing.
 	"%d+" rather than ">%d" because the scan admits an item at exactly that many levels past it,
@@ -221,6 +223,9 @@ L["OPTIONS_KIND_POTIONS_DESCRIPTION"] =
 L["OPTIONS_KIND_SCROLLS"] = "Parchemins"
 L["OPTIONS_KIND_SCROLLS_DESCRIPTION"] =
 	"Proposer les parchemins de caractéristique devenus trop faibles pour vous. Chacun va aux classes qui utilisent sa caractéristique."
+L["OPTIONS_KIND_OILS_STONES"] = "Huiles et pierres"
+L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
+	"Proposer les huiles d'arme, pierres à aiguiser et pierres de lest devenues trop faibles pour vous. Les huiles de sorcier vont aux lanceurs de sorts, les huiles de mana à ceux qui utilisent du mana, et les pierres et autres huiles aux combattants au corps à corps."
 
 --[[
 	Account-wide giving tally, read-only here. Item Levels counts equippable gear only.

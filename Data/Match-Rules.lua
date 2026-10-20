@@ -17,7 +17,7 @@ local _, ns = ...
 	requires   every one of these stats must be on the item
 	exclusive  and nothing else any class ranks may be
 	armor      the item is body armor of one of these materials; never a cloak, ring or neck
-	form       "POTION", "FOOD" or "SCROLL", for a consumable rule
+	form       "POTION", "FOOD", "SCROLL" or "OIL_STONE", for a consumable rule
 	restores   any one of these, for a consumable rule
 	weapon     any one of these weapon keys, for a weapon rule
 	unclaimed  only when no eligible class had a stat claim on the item. Pairs with prefer or

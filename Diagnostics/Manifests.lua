@@ -437,6 +437,29 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
+		The refusals Features/Mail-Sender.lua stops a send on, collected from the client's own
+		ERR_MAIL strings. With none recognized, every refused mail sits out the full result timeout
+		and is blamed on a confirm nobody was shown. Asked through the live check, so the count is
+		the one the mailer and the event log filter use.
+	]]
+	{
+		"Mail refusals recognized from the client's ERR_MAIL strings",
+		function()
+			local total, recognized = 0, 0
+			for name, value in pairs(_G) do
+				if type(name) == "string" and type(value) == "string" and name:find("^ERR_MAIL") then
+					if not value:find("%%") then
+						total = total + 1
+						if ns.Distributor:IsMailError(value) then
+							recognized = recognized + 1
+						end
+					end
+				end
+			end
+			return recognized > 0, string.format("%d of %d recognized", recognized, total)
+		end,
+	},
+	--[[
 		The Given Away broadcast in Features/Generosity-Broadcast.lua. Every target ships
 		C_ChatInfo, so a FAIL means sharing cannot register or send at all.
 	]]
@@ -621,6 +644,18 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		"Settings.OpenToCategory",
 		function()
 			return type(Settings) == "table" and type(Settings.OpenToCategory) == "function"
+		end,
+	},
+	--[[
+		Decides what the category ID /pif opens by means: AceConfigDialog keeps a generated ID where
+		this exists and swaps in the display name where it does not. A FAIL is a route, not a fault;
+		Classic Era lacks it.
+	]]
+	{
+		"C_SettingsUtil.OpenSettingsPanel",
+		function()
+			local settingsUtil = _G.C_SettingsUtil
+			return type(settingsUtil) == "table" and type(settingsUtil.OpenSettingsPanel) == "function"
 		end,
 	},
 	--[[
@@ -1005,6 +1040,8 @@ function ns:BuildMailboxReport()
 	lines[#lines + 1] = "items holding a recipient = " .. holding
 	lines[#lines + 1] = "items ticked to send = " .. ticked
 	lines[#lines + 1] = "list is stale, rescans at the next mailbox = " .. tostring(ns.MatchList:IsStale() == true)
+	-- False while a mail run is busy or the window is shut: a loot or a late item load then waits for the next mailbox.
+	lines[#lines + 1] = "bag changes rescan the open window now = " .. tostring(ns.MatchList:WouldRescan())
 	lines[#lines + 1] = ""
 
 	local mailer = ns.Distributor
@@ -1041,12 +1078,67 @@ function ns:BuildMailboxReport()
 		tostring(ns.Data.MIN_RARITY),
 		tostring(UnitLevel("player"))
 	)
+	-- The one combat gate: ns:OpenOptionsPanel refuses /pif in a fight and says so in chat.
+	lines[#lines + 1] = "in combat, /pif refuses to open = " .. tostring(InCombatLockdown() == true)
 	return table.concat(lines, "\n")
 end
 
 --------------------------------------------------------------------------------
 -- Bag Scan Export
 --------------------------------------------------------------------------------
+
+--[[
+	The data row a scanned id comes from, searched across the item tables Validate Data checks, so
+	a rejected potion can show the use level it was held to. Nil for an id no table lists.
+]]
+local function ListedRow(itemID)
+	for _, entry in ipairs(ns.DIAGNOSTIC_DATA_SOURCES) do
+		for _, source in ipairs(entry.sources) do
+			if source.kind == "item" then
+				for _, row in ipairs(ns.Data[source.table] or {}) do
+					if row[1] == itemID then
+						return source.table, row
+					end
+				end
+			end
+		end
+	end
+	return nil
+end
+
+local function FormatRow(row)
+	local parts = {}
+	for index, value in ipairs(row) do
+		parts[index] = tostring(value)
+	end
+	return "{ " .. table.concat(parts, ", ") .. " }"
+end
+
+--[[
+	Who a consumable can reach, from the same verdict the window acts on. Its fourth data field
+	(what it restores, the stat it buffs, or who an oil or stone enhances for) picks the classes,
+	so a wizard oil kept for nobody is a class list this client or faction left empty.
+]]
+local function AppendConsumable(lines, item, indent)
+	local def = item.def or {}
+	local verdict = ns.Matcher:VerdictFor(item)
+	lines[#lines + 1] = string.format(
+		"%sconsumable: form %s, use level %s, for %s, switches %s",
+		indent,
+		tostring(def.form),
+		tostring(def.useLevel),
+		tostring(def.restores or def.buffs or def.enhances),
+		table.concat(def.kinds or {}, ",")
+	)
+	lines[#lines + 1] = indent
+		.. "eligible: "
+		.. ((#verdict.eligible > 0) and table.concat(verdict.eligible, ", ") or "none, so nobody can receive it")
+	if #(verdict.contenders or {}) > 0 and #verdict.contenders < #verdict.eligible then
+		lines[#lines + 1] = indent .. "in contention: " .. table.concat(verdict.contenders, ", ")
+	end
+	local lo, hi = ns.Matcher:LevelBand(item)
+	lines[#lines + 1] = string.format("%srecipient levels %s to %s", indent, tostring(lo), tostring(hi))
+end
 
 --[[
 	The rejected rows are the point: "why is this green not in the list" is answered here and
@@ -1092,13 +1184,26 @@ function ns:BuildBagScanReport()
 			if row.item.kind == "gear" then
 				AppendVerdict(lines, row.item, "    ")
 			else
-				local lo, hi = ns.Matcher:LevelBand(row.item)
-				lines[#lines + 1] =
-					string.format("    consumable, recipient levels %s to %s", tostring(lo), tostring(hi))
+				AppendConsumable(lines, row.item, "    ")
 			end
 		else
 			byReason[row.reason] = (byReason[row.reason] or 0) + 1
 			lines[#lines + 1] = "    REJECTED: " .. tostring(row.reason)
+			-- A consumable's rejection is decided against its data row, which the client's own req column does not show.
+			local listedIn, listed = ListedRow(ns.GetInfoInstant(row.link))
+			if listedIn then
+				lines[#lines + 1] = string.format("    listed in ns.Data.%s as %s", listedIn, FormatRow(listed))
+				if row.reason == ns.Scanner.REJECT.LEVEL_GAP then
+					local level = UnitLevel("player") or 1
+					lines[#lines + 1] = string.format(
+						"    you are level %d, %d past its use level of %s; the Consumable Level Gap asks for %s",
+						level,
+						level - (listed[3] or 0),
+						tostring(listed[3]),
+						tostring(ns.db and ns.db.profile.consumableLevelGap)
+					)
+				end
+			end
 		end
 		lines[#lines + 1] = ""
 	end
@@ -1539,6 +1644,10 @@ function ns:BuildGenerosityReport()
 		math.max(0, math.ceil(ns.Generosity.BROADCAST_MIN_INTERVAL - (now - lastBroadcast)))
 	)
 	lines[#lines + 1] = "last ping answered = " .. Since(lastPingAnswer)
+	lines[#lines + 1] = string.format(
+		"next ping answer allowed in = %ds",
+		math.max(0, math.ceil(ns.Generosity.PING_ANSWER_INTERVAL - (now - lastPingAnswer)))
+	)
 	lines[#lines + 1] = "last hover ping sent = " .. Since(ns.Generosity:LastHoverPing())
 	--[[
 		What the client said to the last send, broadcast or ping. A refused channel comes back here
@@ -1682,9 +1791,9 @@ end
 
 --[[
 	One entry per flavor-folder file, and one report row per entry on the Data tab. The label is the table-name part of the file name, so
-	ns.DataSourceFileName names the file this client's folder built. Food, potions and scrolls
-	are positional rows, { itemId, quality, useLevel, restores or buffs }, so the id is the first
-	field. Recipients-Zones rows are { areaId, min level, max level, faction }, checked by the
+	ns.DataSourceFileName names the file this client's folder built. Food, potions, scrolls and
+	oils and stones are positional rows, { itemId, quality, useLevel, restores, buffs or
+	enhances }, so the id is the first field. Recipients-Zones rows are { areaId, min level, max level, faction }, checked by the
 	name C_Map.GetAreaInfo gives each one, since that name is what the /who zone filter sends.
 
 	Match-Stat-Budget, Match-Weapons, Match-Armor and Match-Classes are keyed by tokens and
@@ -1711,6 +1820,12 @@ local SCROLL_COLUMNS = {
 	{ "DATA_QUALITY", RowField(2) },
 	{ "DATA_USE_LEVEL", RowField(3) },
 	{ "DATA_BUFFS", RowField(4) },
+}
+
+local OIL_STONE_COLUMNS = {
+	{ "DATA_QUALITY", RowField(2) },
+	{ "DATA_USE_LEVEL", RowField(3) },
+	{ "DATA_ENHANCES", RowField(4) },
 }
 
 -- A zone with no faction is searched by both, so its cell says so rather than printing blank.
@@ -1743,6 +1858,12 @@ ns.DIAGNOSTIC_DATA_SOURCES = {
 		label = "Scan-Scrolls",
 		sources = {
 			{ table = "SCROLLS", kind = "item", rowId = FirstField, dataColumns = SCROLL_COLUMNS },
+		},
+	},
+	{
+		label = "Scan-Oils-Stones",
+		sources = {
+			{ table = "OILS_AND_STONES", kind = "item", rowId = FirstField, dataColumns = OIL_STONE_COLUMNS },
 		},
 	},
 	{

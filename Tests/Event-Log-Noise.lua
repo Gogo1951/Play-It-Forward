@@ -108,7 +108,7 @@ end)
 
 test("a bag update that rescans the open window is logged in full", function()
 	local ns = load()
-	ns.UI:_buildFrame()
+	ns.UI:BuildFrame()
 	ns.UI.frame:Show()
 	ns:StartEventLog()
 

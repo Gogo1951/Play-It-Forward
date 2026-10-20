@@ -17,9 +17,10 @@ L["CHAT_OPTIONS_IN_COMBAT"] = "Por precaução, a interface de opções não pod
 --------------------------------------------------------------------------------
 
 --[[
-	Captions on the window's two top-bar ticks, the window's twins of Include Gear and Include
-	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips and the
-	dropdown values are the panel's own strings, so a setting is never explained two ways.
+	Captions on the window's Gear and Consumables ticks, the twins of Include Gear and Include
+	Consumables. Shorter than the panel's labels because the bar is narrow; the tooltips, the kind
+	ticks and the dropdown values are the panel's own strings, so a setting is never explained two
+	ways.
 ]]
 L["WINDOW_GEAR_LABEL"] = "Equipamento"
 L["WINDOW_CONSUMABLES_LABEL"] = "Consumíveis"
@@ -46,9 +47,9 @@ L["BUTTON_NEEDS_MAILBOX"] = "Requer caixa de correio aberta"
 L["WHO_BLOCKED"] =
 	"Pressione Buscar destinatários de novo. A Blizzard só permite essa busca diretamente ao pressionar um botão, e algo interrompeu esta."
 
--- In the list while it is empty. The hint names the two top-bar captions: rename one, reread it.
+-- In the list while it is empty.
 L["WINDOW_EMPTY"] = "Nada mais para doar."
-L["WINDOW_EMPTY_HINT"] = "Altere Equipamento ou Consumíveis acima para listar mais."
+L["WINDOW_EMPTY_HINT"] = "Altere as configurações acima para listar mais."
 
 L["SECTION_MATCHED"] = "Atribuídos"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
@@ -159,7 +160,8 @@ L["MAIL_BODY_TOO_LONG"] = "O corpo tem %d caracteres e o correio só aceita %d, 
 
 	LENGTH: 500 characters, confirmed against a live mailbox. Past it the mail is cut short,
 	sign-off first, and Tests/Mail-Contents.lua fails on it. The runtime warning in
-	Features/Mail-Sender.lua stays even so, because the test only measures this locale.
+	Features/Mail-Sender.lua stays even so: the other locale files keep their own copies of this
+	English text, and the test does not read them.
 ]]
 L["MAIL_SUBJECT"] = "Play It Forward!"
 
@@ -175,7 +177,7 @@ L["MAIL_BODY"] = "Just a little something to help you level. (=\n\n"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Envie o equipamento e os consumíveis que você já superou para colegas de guilda ou desconhecidos que vão gostar deles. Cada item é atribuído à classe que mais combina com ele, transformando a bagunça esquecida das suas bolsas na próxima melhoria de outra pessoa. Passe adiante, um item verde de cada vez."
+	"Envie pelo correio o equipamento vinculado ao equipar, a comida, as poções e os pergaminhos que você já superou para jogadores que estão subindo de nível, na sua guilda ou pelo mundo afora. Cada item vai para a classe que mais combina com ele, transformando a bagunça das suas bolsas na próxima melhoria de outra pessoa. Passe adiante, um item verde de cada vez."
 L["OPTIONS_WELCOME"] = "Ativar mensagem de boas-vindas"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "Exibe a versão e o lembrete de configurações ao entrar no jogo."
 
@@ -190,7 +192,7 @@ L["OPTIONS_INCLUDE_GEAR"] = "Incluir equipamento"
 L["OPTIONS_INCLUDE_GEAR_DESCRIPTION"] = "Oferecer armas e armaduras vinculadas ao equipar."
 L["OPTIONS_INCLUDE_CONSUMABLES"] = "Incluir consumíveis"
 L["OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION"] =
-	"Oferecer comida, bebida, poções e pergaminhos de nível baixo que você já superou."
+	"Oferecer comida, bebida, poções, pergaminhos, óleos e pedras de nível baixo que você já superou."
 --[[
 	Self-describing: a bare "20" says nothing.
 	"%d+" rather than ">%d" because the scan admits an item at exactly that many levels past it,
@@ -217,6 +219,9 @@ L["OPTIONS_KIND_POTIONS_DESCRIPTION"] = "Oferecer poções de cura, mana e rejuv
 L["OPTIONS_KIND_SCROLLS"] = "Pergaminhos"
 L["OPTIONS_KIND_SCROLLS_DESCRIPTION"] =
 	"Oferecer pergaminhos de atributo que você já superou. Cada um vai para as classes que usam o atributo dele."
+L["OPTIONS_KIND_OILS_STONES"] = "Óleos e pedras"
+L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
+	"Oferecer óleos para armas, pedras de amolar e pedras de peso que você já superou. Os óleos de mago vão para os conjuradores, os óleos de mana para quem usa mana, e as pedras e os demais óleos para quem luta corpo a corpo."
 
 --[[
 	Account-wide giving tally, read-only here. Item Levels counts equippable gear only.

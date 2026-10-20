@@ -24,7 +24,7 @@ ns.DATABASE_DEFAULTS = {
 		includeGear = true,
 		includeConsumables = true,
 		-- One switch per kind in ns.CONSUMABLE_KIND_ORDER, read only while includeConsumables is on.
-		consumableKinds = { FOOD = true, DRINK = true, POTION = true, SCROLL = true },
+		consumableKinds = { FOOD = true, DRINK = true, POTION = true, SCROLL = true, OIL_STONE = true },
 
 		--[[
 			Only offer a consumable once the player is at least this far past its level. Twenty

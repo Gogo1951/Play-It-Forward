@@ -9,19 +9,19 @@ local UI = ns.UI
 local MatchList = ns.MatchList
 local Picker = ns.Picker
 
-local ROW_H = 24
-local FRAME_W = 600
-local FRAME_H = 470
+local ROW_HEIGHT = 24
+local FRAME_WIDTH = 600
+local FRAME_HEIGHT = 470
 --[[
 	The item column gets the room: a random suffix ("of the Monkey") ends the name and is what says
 	who the item is for. The widest recipient label is a cross-realm name with its level,
 	"Bubbafrances-Ashkandi (26)" shaped, which fits in 200. The two plus the box and gaps stay
-	inside f.rowWidth, clear of the scrollbar.
+	inside window.rowWidth, clear of the scrollbar.
 ]]
-local ITEM_W = 300
-local RECIP_W = 200
+local ITEM_WIDTH = 300
+local RECIPIENT_WIDTH = 200
 -- A floor, not the width: both buttons are sized to the widest label either can show.
-local BUTTON_W = 150
+local BUTTON_WIDTH = 150
 local BUTTON_PAD = 24 -- room around the label, matching the picker's ruler allowance
 -- Neither button may pass half the space between the margins. A too-long label is clipped instead.
 local BUTTON_GAP = 20
@@ -51,7 +51,7 @@ local GAP_WIDTH = 200
 	The caller anchors it. The value text is anchored on both sides and ellipsized, or a long one
 	runs under the arrow.
 ]]
-local function buildDropdown(parent, width)
+local function BuildDropdown(parent, width)
 	local button = CreateFrame("Button", nil, parent)
 	button:SetSize(width, 18)
 
@@ -78,7 +78,7 @@ end
 	tooltip is the options panel's own description for the same setting, so the window and the
 	panel never explain one switch two ways. The caller anchors it and sets its OnClick.
 ]]
-local function buildToggle(parent, text, colorKey, tooltipKey)
+local function BuildToggle(parent, text, colorKey, tooltipKey)
 	local check = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
 	check:SetSize(20, 20)
 	check.colorKey = colorKey
@@ -106,28 +106,28 @@ end
 	does, so an open panel is told to redraw as well as the bags being re-read against it. The
 	/who pool already found is kept.
 ]]
-local function afterToggle()
-	UI:_syncControls()
+local function AfterToggle()
+	UI:SyncControls()
 	UI:Rescan()
 	LibStub("AceConfigRegistry-3.0"):NotifyChange(ns.OPTIONS_REGISTRY.General)
 end
 
-function UI:_buildFrame()
+function UI:BuildFrame()
 	if UI.frame then
 		return UI.frame
 	end
 
 	-- BasicFrameTemplate brings the chrome and, the point of using it, gets restyled by ElvUI.
-	local f = CreateFrame("Frame", "PlayItForwardMailFrame", UIParent, FRAME_TEMPLATE)
-	f:SetSize(FRAME_W, FRAME_H)
+	local window = CreateFrame("Frame", "PlayItForwardMailFrame", UIParent, FRAME_TEMPLATE)
+	window:SetSize(FRAME_WIDTH, FRAME_HEIGHT)
 
 	-- A mailbox right of center would put a wide window off-screen, so it is clamped and draggable.
-	f:SetClampedToScreen(true)
-	f:SetMovable(true)
-	f:EnableMouse(true)
-	f:RegisterForDrag("LeftButton")
-	f:SetScript("OnDragStart", f.StartMoving)
-	f:SetScript("OnDragStop", function(frame)
+	window:SetClampedToScreen(true)
+	window:SetMovable(true)
+	window:EnableMouse(true)
+	window:RegisterForDrag("LeftButton")
+	window:SetScript("OnDragStart", window.StartMoving)
+	window:SetScript("OnDragStop", function(frame)
 		frame:StopMovingOrSizing()
 		local point, _, relativePoint, x, y = frame:GetPoint()
 		ns.db.profile.windowPos = { point = point, relativePoint = relativePoint, x = x, y = y }
@@ -136,15 +136,15 @@ function UI:_buildFrame()
 	-- AceDB materializes windowPos per profile, so .point is what says the window was ever dragged.
 	local pos = ns.db.profile.windowPos
 	if pos.point then
-		f:SetPoint(pos.point, UIParent, pos.relativePoint or "CENTER", pos.x or 0, pos.y or 0)
+		window:SetPoint(pos.point, UIParent, pos.relativePoint or "CENTER", pos.x or 0, pos.y or 0)
 	elseif MailFrame then
-		f:SetPoint("TOPLEFT", MailFrame, "TOPRIGHT", 4, 0)
+		window:SetPoint("TOPLEFT", MailFrame, "TOPRIGHT", 4, 0)
 	else
-		f:SetPoint("CENTER", UIParent, "CENTER", 220, 0)
+		window:SetPoint("CENTER", UIParent, "CENTER", 220, 0)
 	end
 	-- Only draw our own backdrop if this client lacked BasicFrameTemplate.
-	if FRAME_TEMPLATE == "BackdropTemplate" and f.SetBackdrop then
-		f:SetBackdrop({
+	if FRAME_TEMPLATE == "BackdropTemplate" and window.SetBackdrop then
+		window:SetBackdrop({
 			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
 			edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
 			tile = true,
@@ -153,11 +153,11 @@ function UI:_buildFrame()
 			insets = { left = 6, right = 6, top = 6, bottom = 6 },
 		})
 	end
-	f:Hide()
+	window:Hide()
 
-	local title = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-	if f.TitleBg then
-		title:SetPoint("CENTER", f.TitleBg, "CENTER", 0, 0)
+	local title = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+	if window.TitleBg then
+		title:SetPoint("CENTER", window.TitleBg, "CENTER", 0, 0)
 	else
 		title:SetPoint("TOP", 0, -10)
 	end
@@ -166,9 +166,9 @@ function UI:_buildFrame()
 	title:SetTextColor(ns.GetColorRGB("TITLE"))
 
 	-- BasicFrameTemplate supplies CloseButton, so only build one when it did not.
-	local close = f.CloseButton
+	local close = window.CloseButton
 	if not close then
-		close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+		close = CreateFrame("Button", nil, window, "UIPanelCloseButton")
 		close:SetPoint("TOPRIGHT", -4, -4)
 	end
 	close:SetScript("OnClick", function()
@@ -177,52 +177,52 @@ function UI:_buildFrame()
 
 	--[[
 		The giftability controls, the same set the options panel carries and drawing the same
-		locale strings. Consumables leads on the left with its level rule beside it and its four
+		locale strings. Consumables leads on the left with its level rule beside it and its five
 		kind ticks beneath; Gear sits on the right with its rarity cap. Each
 		dropdown value states what it means ("Rare & Lower", "Outgrown by 20+ Levels"), so the
 		window cannot word a setting differently to the panel. A dropdown hides while its tick is
 		off, as its select does in the panel.
 	]]
 	local consumables =
-		buildToggle(f, L["WINDOW_CONSUMABLES_LABEL"], "TITLE", "OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION")
+		BuildToggle(window, L["WINDOW_CONSUMABLES_LABEL"], "TITLE", "OPTIONS_INCLUDE_CONSUMABLES_DESCRIPTION")
 	consumables:SetPoint("TOPLEFT", 12, -28)
 	consumables:SetScript("OnClick", function(check)
 		ns.db.profile.includeConsumables = check:GetChecked() and true or false
-		afterToggle()
+		AfterToggle()
 	end)
-	f.consumablesToggle = consumables
+	window.consumablesToggle = consumables
 
-	local gap = buildDropdown(f, GAP_WIDTH)
+	local gap = BuildDropdown(window, GAP_WIDTH)
 	gap:SetPoint("LEFT", consumables.label, "RIGHT", 6, 0)
 	gap:SetScript("OnClick", function(button)
-		UI:_openGapPicker(button)
+		UI:OpenGapPicker(button)
 	end)
-	f.gapButton = gap
+	window.gapButton = gap
 
 	-- Vertically centered on the ticks' line: a tick is 20 tall from -28, so its middle is -38.
-	local rarity = buildDropdown(f, RARITY_WIDTH)
-	rarity:SetPoint("RIGHT", f, "TOPRIGHT", -12, -38)
+	local rarity = BuildDropdown(window, RARITY_WIDTH)
+	rarity:SetPoint("RIGHT", window, "TOPRIGHT", -12, -38)
 	rarity:SetScript("OnClick", function(button)
-		UI:_openRarityPicker(button)
+		UI:OpenRarityPicker(button)
 	end)
-	f.rarityButton = rarity
+	window.rarityButton = rarity
 
 	-- Right to left from the dropdown: caption, then its box.
-	local gear = buildToggle(f, L["WINDOW_GEAR_LABEL"], "TITLE", "OPTIONS_INCLUDE_GEAR_DESCRIPTION")
+	local gear = BuildToggle(window, L["WINDOW_GEAR_LABEL"], "TITLE", "OPTIONS_INCLUDE_GEAR_DESCRIPTION")
 	gear.label:ClearAllPoints()
 	gear.label:SetPoint("RIGHT", rarity, "LEFT", -6, 0)
 	gear:SetPoint("RIGHT", gear.label, "LEFT", -2, 0)
 	gear:SetScript("OnClick", function(check)
 		ns.db.profile.includeGear = check:GetChecked() and true or false
-		afterToggle()
+		AfterToggle()
 	end)
-	f.gearToggle = gear
+	window.gearToggle = gear
 
-	f.kindToggles = {}
+	window.kindToggles = {}
 	local previous
 	for _, kind in ipairs(ns.CONSUMABLE_KIND_ORDER) do
 		local strings = ns.CONSUMABLE_KIND_STRINGS[kind]
-		local toggle = buildToggle(f, L[strings.label], "TEXT", strings.description)
+		local toggle = BuildToggle(window, L[strings.label], "TEXT", strings.description)
 		if previous then
 			toggle:SetPoint("LEFT", previous.label, "RIGHT", 10, 0)
 		else
@@ -230,24 +230,24 @@ function UI:_buildFrame()
 		end
 		toggle:SetScript("OnClick", function(check)
 			ns.db.profile.consumableKinds[kind] = check:GetChecked() and true or false
-			afterToggle()
+			AfterToggle()
 		end)
-		f.kindToggles[kind] = toggle
+		window.kindToggles[kind] = toggle
 		previous = toggle
 	end
 
-	local inset = CreateFrame("Frame", nil, f, INSET_TEMPLATE)
+	local inset = CreateFrame("Frame", nil, window, INSET_TEMPLATE)
 	inset:SetPoint("TOPLEFT", 6, -74)
 	inset:SetPoint("BOTTOMRIGHT", -6, 36)
 
-	local scroll = CreateFrame("ScrollFrame", "PlayItForwardScroll", f, "UIPanelScrollFrameTemplate")
+	local scroll = CreateFrame("ScrollFrame", "PlayItForwardScroll", window, "UIPanelScrollFrameTemplate")
 	scroll:SetPoint("TOPLEFT", inset, "TOPLEFT", 6, -6)
 	scroll:SetPoint("BOTTOMRIGHT", inset, "BOTTOMRIGHT", -26, 6)
 	local content = CreateFrame("Frame", nil, scroll)
 	content:SetSize(1, 1)
 	scroll:SetScrollChild(content)
-	f.content = content
-	f.rowWidth = FRAME_W - 12 - 32
+	window.content = content
+	window.rowWidth = FRAME_WIDTH - 12 - 32
 
 	--[[
 		An empty list says so, or a window with nothing left reads as broken or still working.
@@ -258,41 +258,41 @@ function UI:_buildFrame()
 	emptyText:SetText(L["WINDOW_EMPTY"])
 	emptyText:SetTextColor(ns.GetColorRGB("TEXT"))
 	emptyText:Hide()
-	f.emptyText = emptyText
+	window.emptyText = emptyText
 
 	local emptyHint = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	emptyHint:SetPoint("TOP", emptyText, "BOTTOM", 0, -4)
 	emptyHint:SetText(L["WINDOW_EMPTY_HINT"])
 	emptyHint:SetTextColor(ns.GetColorRGB("HELP"))
 	emptyHint:Hide()
-	f.emptyHint = emptyHint
+	window.emptyHint = emptyHint
 
-	local find = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-	find:SetSize(BUTTON_W, 22)
+	local find = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
+	find:SetSize(BUTTON_WIDTH, 22)
 	find:SetPoint("BOTTOMLEFT", 10, 10)
 	find:SetText(L["BUTTON_FIND_RECIPIENTS"])
 	find:SetScript("OnClick", function()
 		UI:FindRecipients()
 	end)
-	f.findButton = find
+	window.findButton = find
 
-	local dist = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-	dist:SetSize(BUTTON_W, 22)
+	local dist = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
+	dist:SetSize(BUTTON_WIDTH, 22)
 	dist:SetPoint("BOTTOMRIGHT", -10, 10)
 	dist:SetText(L["BUTTON_DISTRIBUTE"])
 	dist:SetScript("OnClick", function()
 		UI:Distribute()
 	end)
-	f.distributeButton = dist
+	window.distributeButton = dist
 
 	--[[
 		A loose ruler, because a font string with both anchors set reports the width it was given
 		rather than the width it wants. Both buttons take the one width: sized to their own current
 		labels they would sit mismatched and resize underfoot as the labels change.
 	]]
-	local ruler = f:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+	local ruler = window:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 	ruler:Hide()
-	local widest = BUTTON_W
+	local widest = BUTTON_WIDTH
 	for _, text in ipairs({
 		L["BUTTON_FIND_RECIPIENTS"],
 		L["BUTTON_SEARCHING"],
@@ -302,7 +302,7 @@ function UI:_buildFrame()
 		ruler:SetText(text)
 		widest = math.max(widest, ruler:GetStringWidth() + BUTTON_PAD)
 	end
-	widest = math.min(math.floor((FRAME_W - 20 - BUTTON_GAP) / 2), widest)
+	widest = math.min(math.floor((FRAME_WIDTH - 20 - BUTTON_GAP) / 2), widest)
 	find:SetSize(widest, 22)
 	dist:SetSize(widest, 22)
 
@@ -313,16 +313,16 @@ function UI:_buildFrame()
 		THE CLOSING WORK LIVES ON OnHide, not on the X. UISpecialFrames only calls Hide, so
 		anything hung off the button alone would be skipped by Escape and the pairings, the query
 		plan and a half-finished mail run would all outlive the window. Registered after the
-		f:Hide() above, or building the frame would fire this before UI.frame exists.
+		window:Hide() above, or building the frame would fire this before UI.frame exists.
 	]]
 	tinsert(UISpecialFrames, "PlayItForwardMailFrame")
-	f:SetScript("OnHide", function()
-		UI:_onClosed()
+	window:SetScript("OnHide", function()
+		UI:OnClosed()
 	end)
 
-	UI.frame = f
-	UI:_syncControls()
-	return f
+	UI.frame = window
+	UI:SyncControls()
+	return window
 end
 
 --[[
@@ -330,34 +330,34 @@ end
 	refresh half the bar: Features/Core.lua's profile hook, the options panel's own setters and
 	the window's ticks all come through here.
 ]]
-function UI:_syncControls()
-	self:_syncToggles()
-	self:_syncRarityButton()
-	self:_syncGapButton()
+function UI:SyncControls()
+	self:SyncToggles()
+	self:SyncRarityButton()
+	self:SyncGapButton()
 end
 
 --[[
 	The kind ticks are disabled and dimmed, never hidden, while Consumables is off, so the row
 	keeps its shape and the player can see what will come back with it.
 ]]
-function UI:_syncToggles()
-	local f = self.frame
-	if not f or not f.gearToggle then
+function UI:SyncToggles()
+	local window = self.frame
+	if not window or not window.gearToggle then
 		return
 	end
 	local profile = ns.db.profile
-	f.gearToggle:SetChecked(profile.includeGear)
-	f.rarityButton:SetShown(profile.includeGear)
-	f.consumablesToggle:SetChecked(profile.includeConsumables)
-	f.gapButton:SetShown(profile.includeConsumables)
-	for kind, toggle in pairs(f.kindToggles) do
+	window.gearToggle:SetChecked(profile.includeGear)
+	window.rarityButton:SetShown(profile.includeGear)
+	window.consumablesToggle:SetChecked(profile.includeConsumables)
+	window.gapButton:SetShown(profile.includeConsumables)
+	for kind, toggle in pairs(window.kindToggles) do
 		toggle:SetChecked(profile.consumableKinds[kind])
 		toggle:SetEnabled(profile.includeConsumables)
 		toggle.label:SetTextColor(ns.GetColorRGB(profile.includeConsumables and toggle.colorKey or "MUTED"))
 	end
 end
 
-function UI:_syncRarityButton()
+function UI:SyncRarityButton()
 	if not self.frame or not self.frame.rarityButton then
 		return
 	end
@@ -369,7 +369,7 @@ end
 	Snapped for display the same way the panel's dropdown is, so a stored value between stops
 	shows the stop it reads as rather than blank. The stored number is left alone.
 ]]
-function UI:_syncGapButton()
+function UI:SyncGapButton()
 	if not self.frame or not self.frame.gapButton then
 		return
 	end
@@ -382,7 +382,7 @@ end
 	without a frame, the same split Tests/Manual-Assignment.lua relies on for the recipient list.
 	Both draw the panel's own strings rather than wording anything a second time.
 ]]
-function UI:_rarityPickerOptions()
+function UI:RarityPickerOptions()
 	local options = {}
 	for _, quality in ipairs({ 2, 3, 4 }) do
 		options[#options + 1] = {
@@ -393,7 +393,7 @@ function UI:_rarityPickerOptions()
 	return options
 end
 
-function UI:_gapPickerOptions()
+function UI:GapPickerOptions()
 	local options = {}
 	for _, gap in ipairs(ns.CONSUMABLE_GAP_ORDER) do
 		options[#options + 1] = {
@@ -404,24 +404,24 @@ function UI:_gapPickerOptions()
 	return options
 end
 
-function UI:_openRarityPicker(anchor)
-	Picker:Open(anchor, self:_rarityPickerOptions(), function(opt)
-		if not opt.quality then
+function UI:OpenRarityPicker(anchor)
+	Picker:Open(anchor, self:RarityPickerOptions(), function(option)
+		if not option.quality then
 			return
 		end
-		ns.db.profile.maxRarity = opt.quality
-		afterToggle()
+		ns.db.profile.maxRarity = option.quality
+		AfterToggle()
 	end)
 end
 
-function UI:_openGapPicker(anchor)
-	Picker:Open(anchor, self:_gapPickerOptions(), function(opt)
+function UI:OpenGapPicker(anchor)
+	Picker:Open(anchor, self:GapPickerOptions(), function(option)
 		-- Compared against nil, never truthiness: the All Consumables stop is a zero.
-		if opt.gap == nil then
+		if option.gap == nil then
 			return
 		end
-		ns.db.profile.consumableLevelGap = opt.gap
-		afterToggle()
+		ns.db.profile.consumableLevelGap = option.gap
+		AfterToggle()
 	end)
 end
 
@@ -432,40 +432,40 @@ end
 -- Section bands, styled like Connoisseur's: a subtle gold wash and gold caption.
 local headers = {}
 
-local function getHeader(i)
+local function GetHeader(i)
 	if headers[i] then
 		return headers[i]
 	end
-	local h = CreateFrame("Frame", nil, UI.frame.content)
-	h:SetSize(UI.frame.rowWidth or 460, ROW_H)
+	local header = CreateFrame("Frame", nil, UI.frame.content)
+	header:SetSize(UI.frame.rowWidth or 460, ROW_HEIGHT)
 
-	local bg = h:CreateTexture(nil, "BACKGROUND")
+	local bg = header:CreateTexture(nil, "BACKGROUND")
 	bg:SetPoint("TOPLEFT", 0, -2)
 	bg:SetPoint("BOTTOMRIGHT", 0, 2)
 	local red, green, blue = ns.GetColorRGB("TITLE")
 	bg:SetColorTexture(red, green, blue, 0.10)
 
-	h.text = h:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	h.text:SetTextColor(ns.GetColorRGB("TITLE"))
-	h.text:SetPoint("LEFT", 8, 0)
+	header.text = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	header.text:SetTextColor(ns.GetColorRGB("TITLE"))
+	header.text:SetPoint("LEFT", 8, 0)
 
-	headers[i] = h
-	return h
+	headers[i] = header
+	return header
 end
 
-local function getRow(i)
+local function GetRow(i)
 	if rows[i] then
 		return rows[i]
 	end
 	local content = UI.frame.content
 	local row = CreateFrame("Frame", nil, content)
-	row:SetSize(UI.frame.rowWidth or 460, ROW_H)
+	row:SetSize(UI.frame.rowWidth or 460, ROW_HEIGHT)
 
 	row.check = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
 	row.check:SetPoint("LEFT", 0, 0)
 	row.check:SetSize(20, 20)
 	row.check:SetScript("OnClick", function(self)
-		UI:_toggleRow(row._item, self:GetChecked() and true or false)
+		UI:ToggleRow(row._item, self:GetChecked() and true or false)
 	end)
 	--[[
 		Says what the tick does, which a row cannot show: on a bare row it decides whether the
@@ -493,14 +493,14 @@ local function getRow(i)
 
 	row.itemText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	row.itemText:SetPoint("LEFT", row.check, "RIGHT", 2, 0)
-	row.itemText:SetWidth(ITEM_W)
+	row.itemText:SetWidth(ITEM_WIDTH)
 	row.itemText:SetJustifyH("LEFT")
-	-- Rows sit a fixed ROW_H apart: a wrapped name would draw over the row below, not push it down.
+	-- Rows sit a fixed ROW_HEIGHT apart: a wrapped name would draw over the row below, not push it down.
 	row.itemText:SetWordWrap(false)
 
 	local button = CreateFrame("Button", nil, row)
 	button:SetPoint("LEFT", row.itemText, "RIGHT", 4, 0)
-	button:SetSize(RECIP_W, ROW_H - 4)
+	button:SetSize(RECIPIENT_WIDTH, ROW_HEIGHT - 4)
 	button.text = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	button.text:SetPoint("LEFT", 3, 0)
 	button.text:SetPoint("RIGHT", -14, 0)
@@ -518,7 +518,7 @@ local function getRow(i)
 	highlight:SetColorTexture(1, 1, 1, 0.10)
 
 	button:SetScript("OnClick", function(self)
-		UI:_openPicker(self:GetParent())
+		UI:OpenPicker(self:GetParent())
 	end)
 	button:SetScript("OnEnter", function(self)
 		local item = self:GetParent()._item
@@ -544,7 +544,7 @@ local function getRow(i)
 			return
 		end
 		GameTooltip:AddLine(
-			L["TOOLTIP_RECIPIENT_CANDIDATES"]:format(#UI:_candidates(item), item.bandLo or 0, item.bandHi or 0),
+			L["TOOLTIP_RECIPIENT_CANDIDATES"]:format(#UI:Candidates(item), item.bandLo or 0, item.bandHi or 0),
 			BODY_R,
 			BODY_G,
 			BODY_B
@@ -577,7 +577,7 @@ end
 	Matched, then still-matchable, then unreadable, then kept: the list outruns the window, so
 	rows worth acting on must not fall below the fold. Unreadable outranks kept: it wants a look.
 ]]
-local function displayRank(item)
+local function DisplayRank(item)
 	if item.recipient then
 		return 1
 	end
@@ -590,13 +590,13 @@ local function displayRank(item)
 	return 4
 end
 
-local function displayOrder()
+local function DisplayOrder()
 	local order = {}
 	for index, item in ipairs(MatchList:Items()) do
 		order[#order + 1] = { item = item, index = index }
 	end
 	table.sort(order, function(a, b)
-		local ra, rb = displayRank(a.item), displayRank(b.item)
+		local ra, rb = DisplayRank(a.item), DisplayRank(b.item)
 		if ra ~= rb then
 			return ra < rb
 		end
@@ -620,17 +620,17 @@ local SECTION = {
 	Each band carries its row count, so a list running past the fold says how much waits below.
 	Counted first, since a band's header is placed before its rows.
 ]]
-local function renderList()
-	local order = displayOrder()
+local function RenderList()
+	local order = DisplayOrder()
 	local counts = {}
 	for _, entry in ipairs(order) do
-		local rank = displayRank(entry.item)
+		local rank = DisplayRank(entry.item)
 		counts[rank] = (counts[rank] or 0) + 1
 	end
 
 	local out, lastRank = {}, nil
 	for _, entry in ipairs(order) do
-		local rank = displayRank(entry.item)
+		local rank = DisplayRank(entry.item)
 		if rank ~= lastRank then
 			out[#out + 1] = { header = SECTION[rank], count = counts[rank] }
 			lastRank = rank
@@ -641,30 +641,30 @@ local function renderList()
 end
 
 function UI:Refresh()
-	local f = self:_buildFrame()
+	local window = self:BuildFrame()
 	for _, row in ipairs(rows) do
 		row:Hide()
 	end
-	for _, h in ipairs(headers) do
-		h:Hide()
+	for _, header in ipairs(headers) do
+		header:Hide()
 	end
 
-	local list = renderList()
+	local list = RenderList()
 	local rowIndex, headerIndex = 0, 0
 
 	for position, entry in ipairs(list) do
-		local y = -((position - 1) * ROW_H)
+		local y = -((position - 1) * ROW_HEIGHT)
 
 		if entry.header then
 			headerIndex = headerIndex + 1
-			local header = getHeader(headerIndex)
+			local header = GetHeader(headerIndex)
 			header:SetPoint("TOPLEFT", 0, y)
 			header.text:SetText(("%s " .. GetColor("MUTED") .. "(%d)|r"):format(entry.header, entry.count))
 			header:Show()
 		else
 			local item = entry.item
 			rowIndex = rowIndex + 1
-			local row = getRow(rowIndex)
+			local row = GetRow(rowIndex)
 			row:SetPoint("TOPLEFT", 0, y)
 			row:Show()
 			row._link = item.link
@@ -699,10 +699,10 @@ function UI:Refresh()
 		end
 	end
 
-	f.content:SetSize(f.rowWidth or 460, math.max(1, #list * ROW_H))
-	f.emptyText:SetShown(#list == 0)
-	f.emptyHint:SetShown(#list == 0)
-	self:_syncDistributeButton()
+	window.content:SetSize(window.rowWidth or 460, math.max(1, #list * ROW_HEIGHT))
+	window.emptyText:SetShown(#list == 0)
+	window.emptyHint:SetShown(#list == 0)
+	self:SyncDistributeButton()
 end
 
 --[[
@@ -713,7 +713,7 @@ end
 	Reads ns.AtMailbox, never ns.mailboxOpen: MAIL_CLOSED does not fire on every way out, and a
 	stale flag here is exactly the live button on a closed mailbox this guards against.
 ]]
-function UI:_syncDistributeButton()
+function UI:SyncDistributeButton()
 	if not (self.frame and self.frame.distributeButton) then
 		return
 	end
@@ -753,6 +753,6 @@ function UI:Pools()
 	return MatchList:Pools()
 end
 
-function UI:_candidates(item)
+function UI:Candidates(item)
 	return MatchList:Candidates(item)
 end

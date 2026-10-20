@@ -22,7 +22,7 @@ local tooLow = 0
 --[[
 	Bumped whenever the pools change, which is what makes the candidate cache below safe to hand
 	out. A counter rather than a walk of every item: one increment per query, where clearing a
-	field per item costs the scan it was meant to save. rescanBags deliberately has no bump -- it
+	field per item costs the scan it was meant to save. RescanBags deliberately has no bump -- it
 	replaces every item table outright, so no cache survives it anyway.
 ]]
 local poolsGeneration = 0
@@ -33,7 +33,7 @@ local poolsGeneration = 0
 	Anything that moved slots loses its pairing deliberately -- the Distributor would refuse to
 	send it. Read off the record rather than rebuilt, so the uid format has one home.
 ]]
-local function slotKey(item)
+local function SlotKey(item)
 	return item.uid or ("%d:%d:%s"):format(item.bag or -1, item.slot or -1, item.link or "")
 end
 
@@ -48,9 +48,9 @@ local bagsDirty = true
 local SCAN_DEBOUNCE = 2
 
 local scanTimer
-local ensureScan -- defined below, once rescanBags exists
+local EnsureScan -- defined below, once RescanBags exists
 
-local function windowIsShown()
+local function WindowIsShown()
 	return ns.UI and ns.UI.frame and ns.UI.frame:IsShown()
 end
 
@@ -59,20 +59,20 @@ end
 	mid-mail-run: the Distributor's slots stay full until each send is confirmed, and the
 	BAG_UPDATE the deliveries raise brings the scan back round anyway. The dirty flag makes
 	skipping a closed window safe -- nothing reads the answer away from a mailbox, so the next
-	mailboxOpened pays for one scan. Tested in scanSoon and not only in the timer: BAG_UPDATE and
+	mailboxOpened pays for one scan. Tested in ScanSoon and not only in the timer: BAG_UPDATE and
 	GET_ITEM_INFO_RECEIVED are the noisy events, and arming a timer that will find the window
 	closed is work for nothing on nearly every one.
 
 	One function, because the diagnostics event log classifies both events with it: a firing
 	this answers true for is one that armed a rescan, and the log keeps it in full.
 ]]
-local function wouldRescan()
-	return (ns.db and not ns.Distributor.busy and windowIsShown()) and true or false
+local function WouldRescan()
+	return (ns.db and not ns.Distributor.busy and WindowIsShown()) and true or false
 end
 
-local function scanSoon()
+local function ScanSoon()
 	bagsDirty = true
-	if not wouldRescan() then
+	if not WouldRescan() then
 		return
 	end
 	if scanTimer then
@@ -81,29 +81,30 @@ local function scanSoon()
 	scanTimer = C_Timer.NewTimer(SCAN_DEBOUNCE, function()
 		scanTimer = nil
 		--[[
-			Asked again: the window can be closed inside the debounce. Never opens it either -- a
-			panel appearing because the player looted a green is the add-on talking over the game.
+			The whole test is asked again: the window can close and a mail run can start inside
+			the debounce. Never opens the window either -- a panel appearing because the player
+			looted a green is the add-on talking over the game.
 		]]
-		if windowIsShown() then
-			ensureScan()
+		if WouldRescan() then
+			EnsureScan()
 			ns.UI:Refresh()
 		end
 	end)
 end
 
 local function OnBagUpdate()
-	scanSoon()
+	ScanSoon()
 end
-ns.on("BAG_UPDATE", OnBagUpdate)
+ns.On("BAG_UPDATE", OnBagUpdate)
 
 --[[
 	An unresolved item is rejected as NOT_CACHED, so a cold-cache scan reports a bag emptier than
 	it is -- and that decides whether the window opens at all.
 ]]
 local function OnGetItemInfoReceived()
-	scanSoon()
+	ScanSoon()
 end
-ns.on("GET_ITEM_INFO_RECEIVED", OnGetItemInfoReceived)
+ns.On("GET_ITEM_INFO_RECEIVED", OnGetItemInfoReceived)
 
 --[[
 	Clusters, not one span: bags routinely hold low-level gear and high-level consumables and
@@ -114,7 +115,7 @@ ns.on("GET_ITEM_INFO_RECEIVED", OnGetItemInfoReceived)
 	query, which has to ask for everybody either of them can go to. Shared by the scan bands and
 	the unmatched bands below, so Who:Prune matches attempts against bands built the same way.
 ]]
-local function mergeBands(bands)
+local function MergeBands(bands)
 	table.sort(bands, function(a, b)
 		return a.lo < b.lo
 	end)
@@ -145,7 +146,7 @@ local function mergeBands(bands)
 end
 
 -- Whether this class is one the verdict put in contention, not merely admitted behind them.
-local function inContention(item, classToken)
+local function InContention(item, classToken)
 	for _, class in ipairs((item.verdict and item.verdict.contenders) or {}) do
 		if class == classToken then
 			return true
@@ -163,14 +164,14 @@ end
 	unreadables are excluded, or the plan never empties and every press of Find Recipients goes
 	on spending the /who throttle for the whole session.
 ]]
-local function stillSearching(item)
+local function StillSearching(item)
 	if item.state ~= ns.Matcher.GIFT or item.pinned then
 		return false
 	end
 	if not item.recipient then
 		return true
 	end
-	return not inContention(item, item.recipient.class)
+	return not InContention(item, item.recipient.class)
 end
 
 --[[
@@ -179,14 +180,14 @@ end
 	unheld one asks for everybody admitted, since there a fallback beats nobody. Admitted, or
 	eligible when nothing was admitted: narrowing on an empty set asks for no classes at all.
 ]]
-local function bandClasses(item, verdict)
-	if item.recipient and not item.pinned and not inContention(item, item.recipient.class) then
+local function BandClasses(item, verdict)
+	if item.recipient and not item.pinned and not InContention(item, item.recipient.class) then
 		return verdict.contenders
 	end
 	return (#verdict.admitted > 0) and verdict.admitted or verdict.eligible
 end
 
-local function rescanBags()
+local function RescanBags()
 	--[[
 		Carried across the rescan: the pairing, the tick, and whether the player set them. A
 		pinned row with no recipient is a deliberate keep, so the pin is what must survive.
@@ -194,7 +195,7 @@ local function rescanBags()
 	local previous = {}
 	for _, item in ipairs(items) do
 		if item.recipient or item.pinned then
-			previous[slotKey(item)] = { recipient = item.recipient, send = item.send, pinned = item.pinned }
+			previous[SlotKey(item)] = { recipient = item.recipient, send = item.send, pinned = item.pinned }
 		end
 	end
 
@@ -221,7 +222,7 @@ local function rescanBags()
 			a row still ticked that loses its name goes back to auto-assignment, or it would sit
 			pinned to nobody. A row with nothing remembered starts ticked, like every row.
 		]]
-		local kept = previous[slotKey(item)]
+		local kept = previous[SlotKey(item)]
 		if kept then
 			item.send, item.pinned = kept.send, kept.pinned
 			if kept.recipient and not assignedTo[kept.recipient.name] then
@@ -243,40 +244,40 @@ local function rescanBags()
 			kept fallback pairing narrows its band to the contenders, same as the prune path.
 		]]
 		if #eligible > 0 then
-			for _, group in ipairs(ns.Matcher:BandGroups(item, bandClasses(item, verdict))) do
+			for _, group in ipairs(ns.Matcher:BandGroups(item, BandClasses(item, verdict))) do
 				bands[#bands + 1] = group
 			end
 		end
 	end
 
 	bagsDirty = false
-	return mergeBands(bands)
+	return MergeBands(bands)
 end
 
 --[[
 	Run only if the bags have moved; bagsDirty starts true so the first mailbox always scans.
-	Assigned rather than declared, because scanSoon schedules this before rescanBags exists.
+	Assigned rather than declared, because ScanSoon schedules this before RescanBags exists.
 ]]
-function ensureScan()
+function EnsureScan()
 	if bagsDirty then
-		rescanBags()
+		RescanBags()
 	end
 end
 
 --[[
-	The row a targeted search is looking for, by slot key: rescanBags replaces every item table,
+	The row a targeted search is looking for, by slot key: RescanBags replaces every item table,
 	so a reference would go stale under it. Read only while Who.targeted says the plan is still
 	that search's; a fresh plan or a Clear ends it without this having to be told.
 ]]
 local targetKey
 
 -- The row itself, or nil once it has left the bags.
-local function targetItem()
+local function TargetItem()
 	if not targetKey then
 		return nil
 	end
 	for _, item in ipairs(items) do
-		if slotKey(item) == targetKey then
+		if SlotKey(item) == targetKey then
 			return item
 		end
 	end
@@ -289,8 +290,8 @@ end
 	decided it by hand. An attempt with no class filter (a consumable's zones) asks for everybody,
 	so it stays while any admitted class could.
 ]]
-local function narrowTargeted()
-	local item = targetItem()
+local function NarrowTargeted()
+	local item = TargetItem()
 	if not item or item.pinned then
 		ns.Who:Clear()
 		return
@@ -313,10 +314,10 @@ local function narrowTargeted()
 	end
 end
 
-local function searchingGifts()
+local function SearchingGifts()
 	local waiting = 0
 	for _, item in ipairs(items) do
-		if stillSearching(item) then
+		if StillSearching(item) then
 			waiting = waiting + 1
 		end
 	end
@@ -327,36 +328,36 @@ end
 	The bands a search still has something to find for. Leftovers are left out here, where the
 	scan bands keep them: the plan is dropped whole the moment no gift is searching, so a band
 	held open for a leftover would spend presses on a row the search was never going to finish.
-	Reads the verdict rescanBags cached rather than asking the matcher again -- a second opinion
+	Reads the verdict RescanBags cached rather than asking the matcher again -- a second opinion
 	here could prune a band the list still shows as waiting.
 ]]
-local function searchingBands()
+local function SearchingBands()
 	local bands = {}
 	for _, item in ipairs(items) do
-		if stillSearching(item) then
+		if StillSearching(item) then
 			local verdict = item.verdict
 			local eligible = (verdict and verdict.eligible) or {}
 			if #eligible > 0 then
-				for _, group in ipairs(ns.Matcher:BandGroups(item, bandClasses(item, verdict))) do
+				for _, group in ipairs(ns.Matcher:BandGroups(item, BandClasses(item, verdict))) do
 					bands[#bands + 1] = group
 				end
 			end
 		end
 	end
-	return mergeBands(bands)
+	return MergeBands(bands)
 end
 
 --[[
 	For a setting that changes what counts as giftable. Never after a distribution run: the client
 	has not finished emptying the sent slots, so this would find delivered items still in the bags
-	and put them back on the list. UI:_afterDelivery is that path, and it does not scan.
+	and put them back on the list. UI:AfterDelivery is that path, and it does not scan.
 ]]
 function MatchList:RescanBags()
-	return rescanBags()
+	return RescanBags()
 end
 
 function MatchList:EnsureScan()
-	ensureScan()
+	EnsureScan()
 end
 
 -- Whether the next mailbox rescans the bags, for the Mailbox report. Reads the flag only.
@@ -366,11 +367,11 @@ end
 
 -- Whether a bag or item-info event right now would arm a rescan. Read by the event log filter.
 function MatchList:WouldRescan()
-	return wouldRescan()
+	return WouldRescan()
 end
 
 function MatchList:SlotKey(item)
-	return slotKey(item)
+	return SlotKey(item)
 end
 
 -- Assigns each item a recipient, one item per person per pass.
@@ -398,7 +399,7 @@ function MatchList:Assign()
 	--[[
 		Every item, not just the ones that scored: a leftover showing candidates but holding no
 		assignment reads as broken. Ranked once here, or the sort calls RankCandidates O(n log
-		n) times for an answer that cannot change; who is still free does move, hence isTaken.
+		n) times for an answer that cannot change; who is still free does move, hence IsTaken.
 	]]
 	local order = {}
 	for _, item in ipairs(items) do
@@ -426,12 +427,12 @@ function MatchList:Assign()
 		return (a.item.score or 0) > (b.item.score or 0)
 	end)
 
-	local function isTaken(person)
+	local function IsTaken(person)
 		return assignedTo[person.name] ~= nil
 	end
 
 	for _, entry in ipairs(order) do
-		local pick = ns.Fairness:PickFrom(entry.ranked, isTaken)
+		local pick = ns.Fairness:PickFrom(entry.ranked, IsTaken)
 		if pick then
 			--[[
 				EVERY ROW IS TICKED UNTIL THE PLAYER SAYS OTHERWISE, so a match arrives ticked, a
@@ -457,17 +458,17 @@ function MatchList:Assign()
 		It is narrowed against its one row's holder instead, and the bands below never touch it.
 	]]
 	if ns.Who.targeted then
-		narrowTargeted()
-	elseif searchingGifts() == 0 then
+		NarrowTargeted()
+	elseif SearchingGifts() == 0 then
 		ns.Who:Clear()
 	else
-		ns.Who:Prune(searchingBands())
+		ns.Who:Prune(SearchingBands())
 	end
 end
 
 -- Marks the row a targeted search is for; Assign narrows and ends that search against it.
 function MatchList:Target(item)
-	targetKey = item and slotKey(item) or nil
+	targetKey = item and SlotKey(item) or nil
 end
 
 --------------------------------------------------------------------------------
@@ -475,7 +476,7 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	items is REASSIGNED by rescanBags, so a caller holding the table would keep rendering the
+	items is REASSIGNED by RescanBags, so a caller holding the table would keep rendering the
 	pre-scan list. pools and assignedTo are only ever wiped in place, so handing those out is
 	safe.
 ]]

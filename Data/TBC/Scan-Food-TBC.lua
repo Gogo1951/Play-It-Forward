@@ -223,7 +223,7 @@ ns.Data.FOOD_AND_WATER = {
 How We Got the Data
 
 Last Validated
-	2026-10-09, TBC Anniversary 2.5.6.69795
+	2026-10-20, TBC Anniversary 2.5.6.70006
 
 Notes
 	- Food and drink a player can give away: Food & Drink consumables that restore health, mana
@@ -245,6 +245,9 @@ Notes
 	- Every row is Food & Drink (class 0, subclass 5) on this client. The Brewfest and holiday
 	  sausages, ales and brews in the wago.tools tables are filed as plain Consumable
 	  (subclass 0), so they stay out, as does 29402 Jessen's Special Slop OLD, a retired copy.
+	- 4696 Lapidis Tankard of Tidesippe drinks like water but is an off-hand (Armor), so it
+	  stays out, as does 7676 Thistle Tea, which restores only energy. Raw fish, 35285 Giant
+	  Sunfish among them, are cooking meat (Trade Goods) and stay out.
 
 SQL (CMaNGOS)
 	Database not recorded. It returned Wrath items, so it ran against a Wrath-era database,
@@ -300,4 +303,12 @@ wago.tools
 	https://wago.tools/db2/ItemSparse?build=2.5.6.69795
 	https://wago.tools/db2/ItemEffect?build=2.5.6.69795
 	https://wago.tools/db2/Spell?build=2.5.6.69795
+	https://wago.tools/db2/Item?build=2.5.6.70006
+	https://wago.tools/db2/ItemSparse?build=2.5.6.70006
+	https://wago.tools/db2/ItemEffect?build=2.5.6.70006
+	https://wago.tools/db2/Spell?build=2.5.6.70006
+	https://wago.tools/db2/SpellCategories?build=2.5.6.70006
+
+QuestieDB
+	None.
 ]]
