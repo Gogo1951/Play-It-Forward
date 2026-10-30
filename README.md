@@ -30,7 +30,7 @@ Mail outgrown BoE gear, food, potions, scrolls, oils, and stones to your alts, g
 
 ### At the Mailbox
 
-<img width="800" src="https://github.com/user-attachments/assets/4bf9354a-5c3a-4540-a2ba-96976415e377" />
+<img width="600" src="https://github.com/user-attachments/assets/4b66357f-fce7-40b0-b84b-99111a4e0dd5" />
 
 * Click any recipient to pick someone else, search for just that item, or keep it.
 * Closed the window? The button beside Blizzard's mail frame brings it back.
