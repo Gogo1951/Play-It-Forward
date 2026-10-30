@@ -36,12 +36,69 @@ ns.DATABASE_DEFAULTS = {
 		consumableLevelGap = 20,
 
 		--[[
-			Everything else is a constant, not a setting: Data/Data.lua, Data/Match-Stats.lua,
-			Features/Recipients-Who.lua, and the mail text in Locales/enUS.lua.
+			Mail gear nobody matched -- the Kept rows -- to one of your own characters to
+			disenchant. Which character is chosen per realm cluster and faction, on its
+			ns.db.global.characters entry (Alts:SetDisenchanter), since this profile may be shared
+			by characters it cannot mail.
+		]]
+		disenchantUnmatched = false,
+
+		--[[
+			Mail your own characters at all, among the classes an item suits best. Which alts, for
+			which specs, and the gear levels each is mailed, is set per alt on the
+			My Alts panel and saved on its ns.db.global.characters entry.
+		]]
+		sendToAlts = true,
+
+		--[[
+			Leave out guildmates offline longer than this, counted to today: a key of
+			ns.Guild.OFFLINE_DAYS, in ns.GUILD_OFFLINE_ORDER. Applies to the guild the current
+			character is in and to every saved one.
+		]]
+		guildOfflineLimit = "WEEK",
+
+		--[[
+			The Recipients panel's ordering switches, read by Matcher:SourceRank and Who:PlacementRank
+			in the candidate sort. Off, a key drops out of the sort rather than reversing: an alt with
+			prioritizeAlts off competes with guildmates and strangers on fit, level and placement.
+		]]
+		prioritizeAlts = true,
+		prioritizeGuilds = true,
+		prioritizeLevelingZones = true,
+		prioritizeOutsideInstances = true,
+
+		--[[
+			Skip strangers who are warlocks in ns.Data.SUMMONER_MIN_LEVEL to SUMMONER_MAX_LEVEL, the
+			band summoning alts park in. Off by default: /who cannot tell a parked alt from a real
+			one, and most warlocks there are levelling. The guild roster's own summoner rule is
+			separate and always on (Features/Recipients-Guild.lua).
+		]]
+		ignoreSummonerWarlocks = false,
+
+		--[[
+			[class][spec key] = true or false, only where the player changed a spec from its default
+			on the Recipients panel. Unset means the flavor folder's Match-Specs default, so a
+			default that changes in a release reaches everyone who never touched it.
+		]]
+		specs = {},
+
+		--[[
+			The player's own mail copy, edited on the Mail Message Text panel. Empty sends the stock
+			L["MAIL_SUBJECT"] and L["MAIL_BODY"]; a custom body goes out with
+			L["MAIL_POWERED_BY"] after it (Features/Mail-Copy.lua).
+		]]
+		mailSubject = "",
+		mailBody = "",
+
+		--[[
+			Everything else is a constant, not a setting: Data/Data.lua, the flavor folders and
+			Features/Recipients-Who.lua.
 		]]
 
 		-- Empty until the player drags the window. Read via its point field.
 		windowPos = {},
+		-- Empty until the player resizes the window from its corner grip. Read via its width field.
+		windowSize = {},
 	},
 
 	--[[
@@ -52,6 +109,18 @@ ns.DATABASE_DEFAULTS = {
 		Features/Generosity.lua.
 	]]
 	global = {
+		--[[
+			Every character that has logged in with the add-on, keyed by qualified name: { name,
+			realm, class, level, faction }. Written by Features/Recipients-Alts.lua at login and
+			level up, the only way to offer an alt that is logged out.
+		]]
+		characters = {},
+		--[[
+			Every guild any character is in, keyed by ns.Guild:Key: { name, realm, faction, scanned,
+			scannedBy, members = { { name, level, class, area, days } }, include }. Written by
+			Features/Recipients-Guild.lua at login and at each live roster read.
+		]]
+		guilds = {},
 		stats = {
 			gifts = 0, -- one per successful mailing
 			items = 0, -- total quantity sent; a stack of 20 waters counts as 20

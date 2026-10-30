@@ -135,6 +135,7 @@ test("a cold item cache is not mistaken for an empty bag", function()
 
 	robe.cached = true
 	ns.fire("GET_ITEM_INFO_RECEIVED", robe.id)
+	ns.fire("MAIL_CLOSED")
 	ns.fire("MAIL_SHOW")
 
 	check(windowShown(ns), "the next mailbox re-reads the bags and opens")
@@ -160,4 +161,180 @@ test("opening a mailbox is decided the same way twice", function()
 
 	check(windowShown(ns), "window still open")
 	equal(#ns.UI:Items(), 1, "the list did not grow a duplicate")
+end)
+
+--[[
+	The same cold cache, answered without walking away. The mailbox that opened on nothing
+	waits for the item to resolve, and the debounced rescan opens the window then -- the
+	delay a player saw was the walk back to a mailbox they were already standing at.
+]]
+test("an item resolving at the mailbox opens the window there", function()
+	local ns = load()
+	local robe = casterCloth()
+	robe.cached = false
+	Stub.SetBackpack({ robe })
+
+	ns.fire("MAIL_SHOW")
+	check(not windowShown(ns), "nothing to show while the item is unresolved")
+	check(ns.UI:WaitingToOpen(), "the mailbox waits on it")
+
+	robe.cached = true
+	ns.fire("GET_ITEM_INFO_RECEIVED", robe.id)
+	Stub.FireTimers()
+
+	check(windowShown(ns), "opened without leaving the mailbox")
+	check(not ns.UI:WaitingToOpen(), "and the wait is over")
+end)
+
+test("an item resolving after the mailbox closed leaves the window shut", function()
+	local ns = load()
+	local robe = casterCloth()
+	robe.cached = false
+	Stub.SetBackpack({ robe })
+
+	ns.fire("MAIL_SHOW")
+	ns.fire("MAIL_CLOSED")
+
+	robe.cached = true
+	ns.fire("GET_ITEM_INFO_RECEIVED", robe.id)
+	Stub.FireTimers()
+
+	check(not windowShown(ns), "no window out in the world")
+end)
+
+-- Closing it at the mailbox is an answer, and a bag change is not a reason to ask again.
+test("a window closed at the mailbox stays closed through a bag change", function()
+	local ns = load()
+	Stub.SetBackpack({ casterCloth() })
+
+	ns.fire("MAIL_SHOW")
+	check(windowShown(ns), "window opened")
+	ns.UI:Close()
+
+	ns.fire("BAG_UPDATE", 0)
+	Stub.FireTimers()
+
+	check(not windowShown(ns), "and stayed closed")
+end)
+
+--[[
+	A setting changed with no window built used to change nothing until the bags moved: the
+	next mailbox reused the scan judged under the old setting and opened on nothing.
+]]
+test("a setting changed with no window is read at the next mailbox", function()
+	local ns = load()
+	ns.db.profile.includeGear = false
+	Stub.SetBackpack({ casterCloth() })
+
+	ns.fire("MAIL_SHOW")
+	ns.fire("MAIL_CLOSED")
+	check(not windowShown(ns), "gear off, nothing to give")
+
+	-- What the options panel's toggle does.
+	ns.db.profile.includeGear = true
+	ns.UI:Rescan()
+
+	ns.fire("MAIL_SHOW")
+	check(windowShown(ns), "the next mailbox reads the bags against the new setting")
+end)
+
+test("a setting changed while the mailbox waits opens the window there", function()
+	local ns = load()
+	ns.db.profile.includeGear = false
+	Stub.SetBackpack({ casterCloth() })
+
+	ns.fire("MAIL_SHOW")
+	check(not windowShown(ns), "gear off, nothing to give")
+
+	ns.db.profile.includeGear = true
+	ns.UI:Rescan()
+
+	check(windowShown(ns), "opened on the setting change")
+end)
+
+--[[
+	One mailbox reports itself up to three times -- MAIL_SHOW, MailFrame's OnShow, and the
+	interaction manager where it is registered -- and each report used to re-run the open,
+	asking the guild roster again every time.
+]]
+test("one mailbox visit asks for the guild roster once", function()
+	local ns = load()
+	Stub.guild = { { name = "Guildie-Realm", level = 19, class = "MAGE", online = true } }
+	Stub.SetBackpack({ casterCloth() })
+
+	ns.fire("PLAYER_LOGIN")
+	ns.fire("MAIL_SHOW")
+	MailFrame.hooks.OnShow()
+	ns.fire("MAIL_SHOW")
+
+	equal(Stub.guildRosterRequests, 1, "one roster request for one visit")
+
+	ns.fire("MAIL_CLOSED")
+	ns.fire("MAIL_SHOW")
+	equal(Stub.guildRosterRequests, 2, "and one more at the next visit")
+end)
+
+--[[
+	GET_ITEM_INFO_RECEIVED fires for every item the client loads, from any source. Only an item
+	the scan is waiting on can change what it returns, so only that one re-reads the bags.
+]]
+test("only the item the scan waits on re-reads the bags", function()
+	local ns = load()
+	local robe = casterCloth()
+	robe.cached = false
+	Stub.SetBackpack({ robe })
+	ns.fire("MAIL_SHOW")
+	check(ns.UI:WaitingToOpen(), "the mailbox waits on the robe")
+
+	robe.cached = true
+	ns.fire("GET_ITEM_INFO_RECEIVED", robe.id + 1, true)
+	Stub.FireTimers()
+	check(not windowShown(ns), "an unrelated item answering re-reads nothing")
+
+	ns.fire("GET_ITEM_INFO_RECEIVED", robe.id, true)
+	Stub.FireTimers()
+	check(windowShown(ns), "the robe answering opens the window")
+end)
+
+--------------------------------------------------------------------------------
+-- The reopen button beside Blizzard's mail frame
+--------------------------------------------------------------------------------
+
+test("closing the window at a mailbox offers the way back", function()
+	local ns = load()
+	Stub.SetBackpack({ casterCloth() })
+	MailFrame:Show()
+	ns.fire("MAIL_SHOW")
+	check(windowShown(ns), "window opened")
+	equal(ns.UI:ReopenButtonShown(), false, "no button while the window is up")
+
+	ns.UI:Close()
+	equal(ns.UI:ReopenButtonShown(), true, "the button appears once it closes")
+
+	PlayItForwardReopenButton:GetScript("OnClick")(PlayItForwardReopenButton)
+	check(windowShown(ns), "and clicking it opens the window again")
+	equal(ns.UI:ReopenButtonShown(), false, "and hides the button")
+end)
+
+test("a mailbox that listed nothing still offers the window", function()
+	local ns = load()
+	Stub.SetBackpack({})
+	MailFrame:Show()
+	ns.fire("MAIL_SHOW")
+	check(not windowShown(ns), "nothing to give, so no window")
+	equal(ns.UI:ReopenButtonShown(), true, "but the button is there")
+end)
+
+test("the button goes when the mailbox does", function()
+	local ns = load()
+	Stub.SetBackpack({ casterCloth() })
+	MailFrame:Show()
+	ns.fire("MAIL_SHOW")
+	ns.UI:Close()
+	equal(ns.UI:ReopenButtonShown(), true, "shown at the mailbox")
+
+	MailFrame:Hide()
+	ns.fire("MAIL_CLOSED")
+	Stub.FireTimers()
+	equal(ns.UI:ReopenButtonShown(), false, "gone with it")
 end)

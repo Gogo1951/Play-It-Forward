@@ -19,8 +19,9 @@ local Harness = require("Harness")
 local Stub = Harness.Stub
 local test, check, equal = Harness.test, Harness.check, Harness.equal
 
+-- Every spec on: these cases are about armor training, and lean on a paladin or a druid as the fallback.
 local function load()
-	return Harness.LoadAddon(ADDON_ROOT)
+	return Harness.AllSpecs(Harness.LoadAddon(ADDON_ROOT))
 end
 
 local CLOTH, LEATHER, MAIL, PLATE = 1, 2, 3, 4
@@ -224,7 +225,7 @@ end)
 	"Find Recipients for This Item" is meant to answer "who would be best for this", and
 	the only shape /who can be filtered on is one class at a time. So every class gets a
 	group of its own, the contender first, over its own band -- which is what turns the
-	first press into `38-39 c-"Hunter"`, asked anywhere rather than zone by zone.
+	first press into his zones under `38-39 c-"Hunter"`, and asks for him anywhere after.
 ]]
 test("a targeted search asks for the contender first, by name and in its own band", function()
 	local ns = load()
@@ -247,7 +248,9 @@ test("a targeted search asks for the contender first, by name and in its own ban
 	local query = Stub.whoQueries[1]
 	check(query:find('c%-"Hunter"'), "the query names the hunter: " .. query)
 	check(query:find("38%-39"), "over his band, not the item's: " .. query)
-	check(not query:find('z%-"'), "asked by class before any zone: " .. query)
+	check(query:find('z%-"'), "out in his levelling zones first: " .. query)
+	local last = ns.Who.plan[#ns.Who.plan]
+	check(#(last.zones or {}) == 0 and last.classes[1] ~= nil, "and some class asked anywhere last: " .. last.label)
 end)
 
 --[[
@@ -273,7 +276,7 @@ end)
 
 --[[
 	Pressed from the belt's own dropdown, answered with the given roster. Capped, so the
-	hunter's zones stay on the plan behind his class query.
+	rest of the hunter's zones, and his class asked anywhere, stay on the plan.
 ]]
 local function targetedSearch(ns, results)
 	Stub.SetBackpack({
@@ -323,10 +326,19 @@ end)
 
 test("a best-fit contender at his anchor ends the search", function()
 	local ns = load()
-	local item = targetedSearch(ns, { { name = "Ready", level = 39, class = "HUNTER" } })
+	local item = targetedSearch(ns, { { name = "Ready", level = 39, class = "HUNTER", area = "Desolace" } })
 
 	equal(item.recipient and item.recipient.name, "Ready", "the hunter holds the belt")
 	equal(ns.Who:Remaining(), 0, "nobody left to find could outrank him")
+end)
+
+-- The same hunter in a capital: somebody out levelling would still rank above him.
+test("a best-fit contender in a capital keeps the search going", function()
+	local ns = load()
+	local item = targetedSearch(ns, { { name = "Ready", level = 39, class = "HUNTER", area = "Orgrimmar" } })
+
+	equal(item.recipient and item.recipient.name, "Ready", "the hunter holds the belt meanwhile")
+	check(ns.Who:Remaining() > 0, "and the search goes on for a hunter out in the world")
 end)
 
 test("an unheld row keeps every attempt", function()

@@ -67,3 +67,53 @@ ns.Data.WEAPON_SPECS = {
 	["IDOL"] = { 0, 0, 0, 0, 0, 0, 0, 0, 3, 0 },
 	["TOTEM"] = { 0, 0, 0, 0, 0, 3, 0, 0, 0, 0 },
 }
+
+--[[
+How We Got the Data
+
+Last Validated
+	2026-10-29, Season of Discovery 1.15.9.70576
+
+Notes
+	- WEAPON_SUBCLASS turns the weapon subclass the client reports for an item into the add-on's
+	  weapon key. Features/Match-Derivations.lua reads it in ns.Data.WeaponKey, then settles one-
+	  or two-handed from the item's equip slot (ns.Data.ResolveHandedness).
+	- Weapon subclasses with no row reach no class: 9, 11 and 12 (obsolete and exotic, a handful
+	  of internal items), 14 Miscellaneous, 17 Spear and 20 Fishing Pole. No talent spec builds
+	  around them, so they have no key here and no WEAPON_SPECS row.
+	- RELIC_SUBCLASS gives the relic armor subclasses (7 Libram, 8 Idol, 9 Totem) a weapon key,
+	  so ns.Data.WeaponKey sends relics through WEAPON_SPECS the way it sends shields and held
+	  off-hands. Each relic row names the one class that can equip it: a libram the paladin, an
+	  idol the druid, a totem the shaman. Without them a relic went to whoever its stats suited,
+	  a Stamina idol to a warlock.
+	- WEAPON_CLASS_ORDER is the column order of every WEAPON_SPECS row and nothing else. Which
+	  classes the matcher offers an item to is FACTION_CLASSES, in Match-Classes; the
+	  DEATHKNIGHT column keeps every row the same width on every flavor.
+	- WEAPON_SPECS says how many of a class's three talent trees build around each weapon key: 3
+	  every spec wants it (priest and one-handed mace, hunter and bow), 2 two of three (paladin
+	  and one-handed sword: holy and protection), 1 one spec only (paladin and two-handed sword:
+	  retribution), 0 no proficiency, or proficient but no spec uses it.
+	- Eligibility comes from the same count, so there is no second table to keep in step: 0
+	  means the class cannot receive the weapon at all. The priority group is 4 minus the count,
+	  so a weapon every spec wants is group 1, its natural home, as native armor is. Read by
+	  ns.Data.WeaponPriorityFor in Features/Match-Derivations.lua.
+	- Each row's ten values follow WEAPON_CLASS_ORDER. Count a column against that list only:
+	  StyLua normalizes the rows but not a padded legend, so the two would drift.
+	- SHIELD (armor subclass 6) and HELD (held off-hand items) are rows here because they
+	  compete for a hand rather than a material (ns.Data.UsesWeaponMatrix).
+	- Druids never train polearms on this client, so their POLEARM column is 0.
+	- Hand-set by the author as matching policy, not pulled from game data. Validate Data counts
+	  the rows only, since no client API looks up a weapon key.
+
+SQL (CMaNGOS)
+	TODO: Add SQL Query
+
+Wowhead
+	None.
+
+wago.tools
+	None.
+
+QuestieDB
+	None.
+]]

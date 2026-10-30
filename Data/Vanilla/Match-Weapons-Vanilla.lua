@@ -72,7 +72,7 @@ ns.Data.WEAPON_SPECS = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, Classic Era 1.15.9.70003
+	2026-10-29, Classic Era 1.15.9.70576
 
 Notes
 	- WEAPON_SUBCLASS turns the weapon subclass the client reports for an item into the add-on's
@@ -85,7 +85,7 @@ Notes
 	  so ns.Data.WeaponKey sends relics through WEAPON_SPECS the way it sends shields and held
 	  off-hands. Each relic row names the one class that can equip it: a libram the paladin, an
 	  idol the druid, a totem the shaman. Without them a relic went to whoever its stats suited,
-	  a Stamina idol to a warlock. Added after this client's last Validate Data run.
+	  a Stamina idol to a warlock.
 	- WEAPON_CLASS_ORDER is the column order of every WEAPON_SPECS row and nothing else. Which
 	  classes the matcher offers an item to is FACTION_CLASSES, in Match-Classes; the
 	  DEATHKNIGHT column keeps every row the same width on every flavor.

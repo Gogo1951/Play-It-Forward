@@ -55,7 +55,7 @@ Notes
 	  that teach, teleport, deal damage or imbue a weapon are one class's business, or nobody's
 	  once read.
 	- buffs is the stat the scroll raises, with Protection's armor as ARMOR. It decides who can
-	  receive the scroll through ns.Data.CONSUMABLE_CLASSES in Data/Data.lua, so there is no
+	  receive the scroll through ns.Data.CONSUMABLE_CLASSES in this folder's Match-Classes file, so there is no
 	  per-item class list.
 	- 1181 Scroll of Spirit, 3013 Scroll of Protection are held out by hand. Both need only level 1, so their recipient band tops
 	  out below ns.Data.MIN_RECIPIENT_LEVEL and they would reach nobody.

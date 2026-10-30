@@ -39,7 +39,7 @@ Notes
 	  (TFTB/Data/Camelot/Buff-Window-Spells-Camelot.lua), with quality, required level and binding
 	  read from ItemSparse.
 	- enhances is who the item helps, and it decides who can receive it through
-	  ns.Data.CONSUMABLE_CLASSES in Data/Data.lua, so there is no per-item class list. MELEE
+	  ns.Data.CONSUMABLE_CLASSES in this folder's Match-Classes file, so there is no per-item class list. MELEE
 	  for the stones; SPELL_DAMAGE for the wizard oils; MANA for the mana oils, which restore
 	  mana and, from Brilliant up, add healing.
 	- A sharpening stone only takes a bladed weapon and a weightstone only a blunt one. Every

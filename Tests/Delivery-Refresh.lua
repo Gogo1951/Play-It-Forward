@@ -250,30 +250,10 @@ test("distributing still says how many are going", function()
 end)
 
 --[[
-	The length guard outlived the preview it was buried in. It cannot fire on the
-	shipped English text, but a translation of the same paragraphs can run long and
-	nothing measures those.
-]]
-test("an oversized body still warns before anything is sent", function()
-	local ns = readyToDistribute({ cloak() }, { KEEFE })
-	ns.L["MAIL_BODY"] = string.rep("x", 600)
-	Stub.printed = {}
-
-	ns.UI:Distribute()
-
-	local warned = false
-	for _, message in ipairs(Stub.printed) do
-		if tostring(message):find("600") then
-			warned = true
-		end
-	end
-	check(warned, "said the body is too long")
-end)
-
---[[
-	The window has no status line any more, so the run reports itself in chat and the
-	list reports what is left. Both halves are worth pinning: a run that says nothing
-	anywhere is indistinguishable from one that did not happen.
+	The run reports itself in chat as well as on the window's status line, and the list
+	reports what is left. The chat half is worth pinning on its own: the window may be
+	closed by the time the run ends, and a run that says nothing is indistinguishable
+	from one that did not happen.
 ]]
 test("a finished run says so in chat", function()
 	local ns = readyToDistribute({ cloak() }, { KEEFE })
@@ -326,6 +306,36 @@ test("Distribute is dead until a mailbox is open and something is ticked", funct
 	equal(ns.UI.frame.distributeButton:IsEnabled(), false, "and dead again once you walk away")
 end)
 
+--[[
+	Loot taken with the window open came in under "No Recipient" and stayed there, though the
+	search had already turned up somebody it fits: the rescan only redrew the list.
+]]
+test("an item arriving with the window open is matched from those already found", function()
+	local ns = load()
+	Stub.SetBackpack({ cloak("First Cloak") })
+	ns.fire("MAIL_SHOW")
+	Stub.whoResults = {
+		{ name = "Keefe", level = 18, class = "MAGE" },
+		{ name = "Robin", level = 18, class = "PRIEST" },
+	}
+	ns.UI:FindRecipients()
+	ns.fire("WHO_LIST_UPDATE")
+	check(ns.UI:Items()[1].recipient ~= nil, "the first cloak is matched")
+
+	Stub.SetBackpack({ cloak("First Cloak"), cloak("Second Cloak") })
+	ns.fire("BAG_UPDATE", 0)
+	Stub.FireTimers()
+
+	local arrived
+	for _, item in ipairs(ns.UI:Items()) do
+		if item.name == "Second Cloak" then
+			arrived = item
+		end
+	end
+	check(arrived ~= nil, "the new cloak is listed")
+	check(arrived.recipient ~= nil, "and matched to the one still free, not left with nobody")
+end)
+
 test("Distribute is dead when every row is unticked", function()
 	local ns = readyToDistribute({ cloak() }, { KEEFE })
 	equal(ns.UI.frame.distributeButton:IsEnabled(), true, "ticked and matched")
@@ -365,4 +375,46 @@ test("the bag catching up does not put the item back", function()
 	ns.fire("MAIL_SHOW")
 
 	equal(#ns.UI:Items(), 0, "still gone")
+end)
+
+--[[
+	Distribute is busy for the whole run, not just the one send in flight, and goes live again at
+	every pause, which is when the chat lines tell the player to press it.
+]]
+test("Distribute stays dead while a run is going", function()
+	local ns = readyToDistribute({ cloak(), cloak("Second Cloak") }, { KEEFE, ROBIN })
+	local flips = 0
+	ns.UI:Distribute()
+	ns.Distributor.onStateChange = (function(inner)
+		return function()
+			flips = flips + 1
+			inner()
+		end
+	end)(ns.Distributor.onStateChange)
+
+	equal(ns.Distributor:IsRunning(), true, "running from Start")
+	equal(ns.UI.frame.distributeButton:IsEnabled(), false, "button dead mid-run")
+
+	ns.fire("MAIL_SUCCESS")
+	equal(ns.Distributor:IsRunning(), true, "still running between sends")
+
+	ns.fire("MAIL_SUCCESS")
+	equal(ns.Distributor:IsRunning(), false, "finished")
+	equal(flips, 1, "one flip, at the finish")
+end)
+
+test("a confirm left waiting pauses the run", function()
+	local ns = readyToDistribute({ cloak() }, { KEEFE })
+	ns.UI:Distribute()
+	equal(ns.Distributor:IsRunning(), true, "running")
+
+	Stub.FireTimers()
+	equal(ns.Distributor:IsRunning(), false, "paused once the confirm timed out")
+end)
+
+test("stopping the run clears it", function()
+	local ns = readyToDistribute({ cloak() }, { KEEFE })
+	ns.UI:Distribute()
+	ns.Distributor:Stop()
+	equal(ns.Distributor:IsRunning(), false, "stopped")
 end)

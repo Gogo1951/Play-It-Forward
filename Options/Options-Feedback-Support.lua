@@ -45,10 +45,10 @@ function ns.BuildFeedbackSupportOptions()
 	order = order + 2
 
 	--[[
-		A full-width spacer is what ends a label-beside-value row, so one sits between pairs.
-		None after the last: the caption below is full width and ends the row itself.
+		A full-width spacer is what ends a label-beside-value row, so one follows every pair,
+		the last included: it is also the blank line above the copy hint.
 	]]
-	for index, link in ipairs(LINKS) do
+	for _, link in ipairs(LINKS) do
 		local captionKey, linkKey = link[1], link[2]
 		args["label" .. linkKey] =
 			ns.OptionsRowLabel(GetColor("TITLE") .. L[captionKey] .. "|r", order, LINK_LABEL_WIDTH)
@@ -62,11 +62,8 @@ function ns.BuildFeedbackSupportOptions()
 			end,
 			set = function() end,
 		}
-		order = order + 2
-		if index < #LINKS then
-			args["spacer" .. linkKey] = ns.OptionsSpacer(order)
-			order = order + 1
-		end
+		args["spacer" .. linkKey] = ns.OptionsSpacer(order + 2)
+		order = order + 3
 	end
 
 	args.copyHint = ns.OptionsDesc(GetColor("HELP") .. L["OPTIONS_COPY_LINK"] .. "|r", order)

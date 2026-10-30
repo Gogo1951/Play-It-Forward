@@ -1,0 +1,75 @@
+local _, ns = ...
+
+--[[
+	GetItemStats keys -> internal stat tokens. The key set differs between clients, so a stat
+	that scores on one and not another means a row is missing here, not a broken scorer.
+]]
+ns.Data.STAT_MAP = {
+	ITEM_MOD_STRENGTH_SHORT = "STRENGTH",
+	ITEM_MOD_AGILITY_SHORT = "AGILITY",
+	ITEM_MOD_INTELLECT_SHORT = "INTELLECT",
+	ITEM_MOD_SPIRIT_SHORT = "SPIRIT",
+	ITEM_MOD_STAMINA_SHORT = "STAMINA",
+
+	ITEM_MOD_ATTACK_POWER_SHORT = "ATTACK_POWER",
+	ITEM_MOD_RANGED_ATTACK_POWER_SHORT = "RANGED_AP",
+	-- "In Cat, Bear, Dire Bear, and Moonkin forms only": a druid's, never plain Attack Power.
+	ITEM_MOD_FERAL_ATTACK_POWER_SHORT = "FERAL_AP",
+
+	-- Pre-Wrath these are three separate stats the weight tables rank differently: never fold them together.
+	ITEM_MOD_SPELL_POWER_SHORT = "SPELL_POWER", -- unified damage+healing
+	ITEM_MOD_SPELL_DAMAGE_DONE_SHORT = "SPELL_DAMAGE",
+	ITEM_MOD_SPELL_HEALING_DONE_SHORT = "HEALING",
+	ITEM_MOD_HEALING_DONE_SHORT = "HEALING",
+	-- TBC Anniversary's GetItemStats answers with the long keys, not the _SHORT ones.
+	ITEM_MOD_SPELL_DAMAGE_DONE = "SPELL_DAMAGE",
+	ITEM_MOD_SPELL_HEALING_DONE = "HEALING",
+	--[[
+		Per-school damage (ARCANE, FIRE, FROST, NATURE, SHADOW, HOLY) has no GetItemStats key
+		in Vanilla: tooltip text only, which is why Features/Scan-Tooltip.lua is not optional.
+	]]
+
+	ITEM_MOD_HIT_RATING_SHORT = "HIT",
+	ITEM_MOD_HIT_SPELL_RATING_SHORT = "SPELL_HIT",
+	ITEM_MOD_CRIT_RATING_SHORT = "CRIT",
+	ITEM_MOD_CRIT_SPELL_RATING_SHORT = "SPELL_CRIT",
+	ITEM_MOD_DEFENSE_SKILL_RATING_SHORT = "DEFENSE",
+	ITEM_MOD_DODGE_RATING_SHORT = "DODGE",
+	ITEM_MOD_BLOCK_RATING_SHORT = "BLOCK",
+	ITEM_MOD_MANA_REGENERATION_SHORT = "MP5",
+
+	--[[
+		The ratings Mists gear is made of. TBC items carry haste, expertise and resilience as well:
+		read and reported there, weighted for nobody, because only the Mists specs list them.
+	]]
+	ITEM_MOD_HASTE_RATING_SHORT = "HASTE",
+	ITEM_MOD_EXPERTISE_RATING_SHORT = "EXPERTISE",
+	ITEM_MOD_MASTERY_RATING_SHORT = "MASTERY",
+	ITEM_MOD_PARRY_RATING_SHORT = "PARRY",
+	ITEM_MOD_RESILIENCE_RATING_SHORT = "RESILIENCE",
+	ITEM_MOD_PVP_POWER_SHORT = "PVP_POWER",
+	-- RESISTANCE0_NAME (armor) and RESISTANCE1..7 (schools) intentionally omitted.
+}
+
+--[[
+How We Got the Data
+
+Last Validated
+	Never. Copied from Data/Scan-Stats.lua.
+
+Notes
+	- GetItemStats keys this client can answer with, mapped to the add-on's stat tokens.
+	-   Features/Scan-Bags.lua and Features/Scan-Tooltip.lua read it. No IDs.
+
+SQL (CMaNGOS)
+	None.
+
+Wowhead
+	None.
+
+wago.tools
+	None.
+
+QuestieDB
+	None.
+]]

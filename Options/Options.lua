@@ -9,11 +9,47 @@ local DiagnosticsStrings = ns.DiagnosticsStrings
 
 --[[
 	Called from the saved-variables init point in Core rather than at file scope, because the
-	Profiles builder reads ns.db and registering at load would error. Child order is the display
-	order, and each child passes ns.ADDON_TITLE as the third argument so it nests under the root.
+	Profiles builder reads ns.db and registering at load would error. The tree:
+
+	  Play It Forward (General, the root)
+	    What to Give Away
+	    Recipients
+	      My Alts
+	      My Guilds
+	    Mail Message Text
+	    Badge of Generosity
+	    Profiles
+	    Feedback & Support
+	    Diagnostic Tools
+
+	Registration order is tree order within each level. A top-level child passes ns.ADDON_TITLE as
+	the third argument; My Alts and My Guilds pass the category ID Recipients' own AddToBlizOptions
+	returned instead, because AceConfigDialog maps only a root's display name to its ID, while the
+	Settings panel finds a category at any depth by ID.
 ]]
 local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
+
+--[[
+	Seeds a list panel's tree before it is first drawn, as Magic Eraser does:
+	  - treewidth sizes the tree (ns.OPTIONS_TREE_WIDTH). AceGUI fills it in only when the key is
+	    absent, so seeding it here wins, while a player dragging the splitter still overwrites it.
+	  - selected opens the tree on Home(): the character being played, or the guild it is in. Set
+	    again every time the panel hides, so each visit starts there. A key the tree no longer has
+	    falls back to its first row (AceConfigDialog checks GroupExists).
+]]
+local function PrepareListTree(registryName, panel, Home)
+	local status = AceConfigDialog:GetStatusTable(registryName)
+	status.groups = status.groups or {}
+	status.groups.treewidth = ns.OPTIONS_TREE_WIDTH
+	status.groups.selected = Home()
+
+	if panel and panel.HookScript then
+		panel:HookScript("OnHide", function()
+			status.groups.selected = Home()
+		end)
+	end
+end
 
 function ns:RegisterOptionsPanels()
 	AceConfig:RegisterOptionsTable(ns.OPTIONS_REGISTRY.General, ns.BuildGeneralOptions())
@@ -26,6 +62,33 @@ function ns:RegisterOptionsPanels()
 	]]
 	ns.GeneralPanel, ns.GeneralCategoryID =
 		AceConfigDialog:AddToBlizOptions(ns.OPTIONS_REGISTRY.General, ns.ADDON_TITLE)
+
+	AceConfig:RegisterOptionsTable(ns.OPTIONS_REGISTRY.GiveAway, ns.BuildGiveAwayOptions())
+	AceConfigDialog:AddToBlizOptions(ns.OPTIONS_REGISTRY.GiveAway, L["TAB_GIVE_AWAY"], ns.ADDON_TITLE)
+
+	AceConfig:RegisterOptionsTable(ns.OPTIONS_REGISTRY.Recipients, ns.BuildRecipientsOptions())
+	local _, recipientsCategoryID =
+		AceConfigDialog:AddToBlizOptions(ns.OPTIONS_REGISTRY.Recipients, L["TAB_RECIPIENTS"], ns.ADDON_TITLE)
+
+	-- Builder functions: the rows are the saved characters and guilds, read each time one is drawn.
+	AceConfig:RegisterOptionsTable(ns.OPTIONS_REGISTRY.Alts, ns.BuildAltsOptions)
+	local altsPanel = AceConfigDialog:AddToBlizOptions(ns.OPTIONS_REGISTRY.Alts, L["TAB_ALTS"], recipientsCategoryID)
+	PrepareListTree(ns.OPTIONS_REGISTRY.Alts, altsPanel, function()
+		return ns.QualifyPlayerName(UnitName("player"))
+	end)
+
+	AceConfig:RegisterOptionsTable(ns.OPTIONS_REGISTRY.Guilds, ns.BuildGuildsOptions)
+	local guildsPanel =
+		AceConfigDialog:AddToBlizOptions(ns.OPTIONS_REGISTRY.Guilds, L["TAB_GUILDS"], recipientsCategoryID)
+	PrepareListTree(ns.OPTIONS_REGISTRY.Guilds, guildsPanel, function()
+		return ns.Guild:CurrentKey()
+	end)
+
+	AceConfig:RegisterOptionsTable(ns.OPTIONS_REGISTRY.Mail, ns.BuildMailOptions())
+	AceConfigDialog:AddToBlizOptions(ns.OPTIONS_REGISTRY.Mail, L["TAB_MAIL_MESSAGE"], ns.ADDON_TITLE)
+
+	AceConfig:RegisterOptionsTable(ns.OPTIONS_REGISTRY.Generosity, ns.BuildGenerosityOptions())
+	AceConfigDialog:AddToBlizOptions(ns.OPTIONS_REGISTRY.Generosity, L["TAB_GENEROSITY"], ns.ADDON_TITLE)
 
 	local profilesOptions = ns.BuildProfilesOptions()
 	AceConfig:RegisterOptionsTable(ns.OPTIONS_REGISTRY.Profiles, profilesOptions)

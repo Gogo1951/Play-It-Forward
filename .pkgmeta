@@ -28,7 +28,6 @@ ignore:
   - .pkgmeta
   - .vscode
   - Data/Mainline
-  - Data/Mists
   - Data/Wrath
   - LICENSE
   - README-Notes.md

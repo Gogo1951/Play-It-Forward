@@ -33,11 +33,11 @@ ns.Data.STAT_BUDGET = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, Classic Era 1.15.9.70003
+	2026-10-29, Classic Era 1.15.9.70576
 
 Notes
 	- What one point of each stat costs on an item, in primary-stat points, so a weight
-	  multiplies something comparable. Data/Match-Stats.lua says who wants a stat; this says
+	  multiplies something comparable. The Match-Specs file says who wants a stat; this says
 	  how much of the item it is. A stat not listed here costs 1. Read by
 	  Features/Match-Derivations.lua.
 	- Classic writes percentages. "Improves your chance to hit by 1%" reads as 1, and that 1%

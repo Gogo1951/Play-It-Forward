@@ -223,7 +223,7 @@ ns.Data.FOOD_AND_WATER = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, TBC Anniversary 2.5.6.70006
+	2026-10-29, TBC Anniversary 2.5.6.70577
 
 Notes
 	- Food and drink a player can give away: Food & Drink consumables that restore health, mana
@@ -234,9 +234,9 @@ Notes
 	- Alcohol and drinks that only buff are out; the query drops the drunk-making spells by ID.
 	- useLevel is the level the item requires and quality its quality. restores is HEALTH, MANA
 	  or BOTH, from what the item's use text says it restores, never from a well-fed buff after
-	  it. It decides who can receive the food through ns.Data.CONSUMABLE_CLASSES in
-	  Data/Data.lua, so there is no per-item class list. Features/Scan-Bags.lua reads every
-	  field.
+	  it. It decides who can receive the food through ns.Data.CONSUMABLE_CLASSES in this
+	  folder's Match-Classes file, so there is no per-item class list. Features/Scan-Bags.lua
+	  reads every field.
 	- 12217 Dragonbreath Chili restores nothing: its use is a melee fire buff. It is filed as
 	  HEALTH, which every class receives.
 	- 27656 Sporeling Snack and 33874 Kibler's Bits feed a hunter's pet, so they are filed as
@@ -248,6 +248,10 @@ Notes
 	- 4696 Lapidis Tankard of Tidesippe drinks like water but is an off-hand (Armor), so it
 	  stays out, as does 7676 Thistle Tea, which restores only energy. Raw fish, 35285 Giant
 	  Sunfish among them, are cooking meat (Trade Goods) and stay out.
+	- Rechecked against this client's tables at 2.5.6.70577: Food & Drink, tradeable, not
+	  conjured, level 5 or more, and an eat or drink effect that restores health or mana.
+	  Nothing is missing but 4418 Deprecated Creeper Cakes and 29402 Jessen's Special Slop
+	  OLD, both retired items.
 
 SQL (CMaNGOS)
 	Database not recorded. It returned Wrath items, so it ran against a Wrath-era database,
@@ -299,15 +303,13 @@ Wowhead
 	None.
 
 wago.tools
-	https://wago.tools/db2/Item?build=2.5.6.69795
-	https://wago.tools/db2/ItemSparse?build=2.5.6.69795
-	https://wago.tools/db2/ItemEffect?build=2.5.6.69795
 	https://wago.tools/db2/Spell?build=2.5.6.69795
-	https://wago.tools/db2/Item?build=2.5.6.70006
-	https://wago.tools/db2/ItemSparse?build=2.5.6.70006
-	https://wago.tools/db2/ItemEffect?build=2.5.6.70006
 	https://wago.tools/db2/Spell?build=2.5.6.70006
 	https://wago.tools/db2/SpellCategories?build=2.5.6.70006
+	https://wago.tools/db2/Item?build=2.5.6.70577
+	https://wago.tools/db2/ItemSparse?build=2.5.6.70577
+	https://wago.tools/db2/ItemEffect?build=2.5.6.70577
+	https://wago.tools/db2/SpellEffect?build=2.5.6.70577
 
 QuestieDB
 	None.

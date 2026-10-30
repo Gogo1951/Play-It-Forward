@@ -81,9 +81,22 @@ test("the surviving hunt asks only for the classes in contention", function()
 
 	search(ns, { PALADIN })
 
-	local label = tostring(ns.Who:Peek())
-	check(label:find("Warrior", 1, true) ~= nil, "the next attempt names the warrior: " .. label)
-	check(label:find("Paladin", 1, true) == nil, "and no longer asks for the class already holding it")
+	--[[
+		The bare fallback is classless and survives as it is; the per-class queries behind it
+		are what the narrowing reaches.
+	]]
+	local named = {}
+	for _, attempt in ipairs(ns.Who.plan) do
+		if #attempt.classes > 0 then
+			named[#named + 1] = attempt.label
+		end
+	end
+	local warrior = false
+	for _, label in ipairs(named) do
+		warrior = warrior or label:find("Warrior", 1, true) ~= nil
+		check(label:find("Paladin", 1, true) == nil, "no longer asks for the class already holding it: " .. label)
+	end
+	check(warrior, "and the warrior is still asked for by name")
 end)
 
 test("a contender pairing still ends the search", function()
@@ -177,4 +190,30 @@ test("the verdict report reads a pasted item id", function()
 
 	check(report:find("Could not read") == nil, "the id resolved")
 	check(report:find("STRENGTH 3", 1, true) ~= nil, "and its stats were read")
+end)
+
+--[[
+	Find Recipients for This Item pressed inside the throttle cannot send, so it must not
+	retask the plan or cancel the query already out: it says how long to wait instead.
+]]
+test("a too-early targeted press leaves the plan standing", function()
+	local ns = load()
+	mainHandSword(ns)
+	search(ns, { PALADIN })
+	local before = ns.Who:Remaining()
+	check(before > 0, "the first search left a plan")
+
+	Stub.whoResults = { WARRIOR }
+	ns.UI:FindRecipients()
+	local item = ns.UI:Items()[1]
+	ns.UI:FindRecipientsForItem(item)
+
+	local told = false
+	for _, message in ipairs(Stub.printed) do
+		if tostring(message):find("Searching again in", 1, true) then
+			told = true
+		end
+	end
+	check(told, "the player is told to wait")
+	equal(ns.Who.targeted, false, "and the plan was not retasked")
 end)

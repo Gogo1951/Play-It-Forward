@@ -14,9 +14,10 @@
 	  demote  names who must not lead, and leaves them as fallbacks. Intellect against
 	          warriors and rogues: a Strength-and-Intellect chest is not theirs, but a
 	          sub-40 mail one has nobody else in heavy armor and a vendor helps less.
-	  veto    removes outright. Spirit against warlocks, and only that, because a
-	          warlock gets nothing whatsoever from Spirit -- being his last resort is not
-	          a fallback, it is a wrong answer arriving later.
+	  veto    removes outright. Healing against every class without a healing tree, and
+	          Spirit against warlocks, shamans and paladins, because they get nothing
+	          whatsoever from it -- being their last resort is not a fallback, it is a
+	          wrong answer arriving later.
 ]]
 
 local Harness = require("Harness")
@@ -90,20 +91,39 @@ test("an owl staff is for priests, mages and druids", function()
 	check(not contains(verdict.contenders, "SHAMAN"), "nor a shaman")
 end)
 
-test("a hunter can still receive an owl staff when nobody better is in range", function()
+--[[
+	Owl cloth armor is a priest's alone (maintainer ruling, 2026-10-29): the robe the staff rule
+	above would also hand to a mage and a druid. They stay admitted, as fallbacks.
+]]
+test("owl cloth armor is for priests", function()
+	local ns = load()
+	local item = cloth(ns, { ITEM_MOD_INTELLECT_SHORT = 6, ITEM_MOD_SPIRIT_SHORT = 6 })
+	local verdict = ns.Matcher:Verdict(item)
+
+	equal(sorted(verdict.contenders), "PRIEST", "only the priest in contention")
+	equal(verdict.best, "PRIEST", "and he is the best fit")
+	check(contains(verdict.admitted, "MAGE"), "a mage can still receive it when no priest is in range")
+
+	item.verdict = verdict
+	local line = ns.UI:BestFitLine(item)
+	check(line and line:find(LOCALIZED_CLASS_NAMES_MALE.PRIEST, 1, true), "the tooltip names the priest")
+	check(line and not line:find(LOCALIZED_CLASS_NAMES_MALE.MAGE, 1, true), "and not the mage")
+end)
+
+--[[
+	Not even as a last resort (maintainer ruling, 2026-10-29): Intellect without Agility is a
+	pass for a hunter, and a staff left in the bag beats one mailed to somebody who vendors it.
+]]
+test("a hunter never receives an owl staff, even with nobody else in range", function()
 	local ns = load()
 	local item = staff(ns, { ITEM_MOD_INTELLECT_SHORT = 3, ITEM_MOD_SPIRIT_SHORT = 3 })
 	item.verdict = ns.Matcher:Verdict(item)
 	item.bandLo, item.bandHi = ns.Matcher:LevelBand(item)
 
-	--[[
-		The soft half of the choice: last resort, not exclusion. A staff sitting in a bag
-		helps nobody.
-	]]
-	check(contains(item.verdict.admitted, "HUNTER"), "still admitted")
+	check(not contains(item.verdict.admitted, "HUNTER"), "not admitted")
 
 	local pools = { HUNTER = { { name = "Hunty", level = 18, class = "HUNTER", shuffle = 0.1 } } }
-	equal(#ns.Matcher:RankCandidates(item, pools), 1, "and reachable when he is all there is")
+	equal(#ns.Matcher:RankCandidates(item, pools), 0, "and not reachable when he is all there is")
 end)
 
 test("a priest outranks a hunter for the same staff", function()
@@ -163,6 +183,64 @@ test("the spirit veto beats the intellect the warlock does want", function()
 	check(not contains(owl.admitted, "WARLOCK"), "the intellect does not buy him back in")
 end)
 
+test("spirit never reaches a shaman or a paladin", function()
+	local ns = load()
+	local mail = Stub.Item({
+		name = "Test Hauberk",
+		quality = 2,
+		reqLevel = 45,
+		itemLevel = 50,
+		equipLoc = "INVTYPE_CHEST",
+		classID = 4,
+		subclassID = 3,
+		bindType = 2,
+		stats = { ITEM_MOD_INTELLECT_SHORT = 8, ITEM_MOD_SPIRIT_SHORT = 8 },
+	})
+	local verdict = ns.Matcher:Verdict(ns.Scanner:Describe(mail.link))
+
+	check(not contains(verdict.eligible, "SHAMAN"), "no shaman")
+	check(not contains(verdict.eligible, "PALADIN"), "no paladin")
+end)
+
+--[[
+	Darkmist Pants of Healing went to a mage: the spell damage riding on a healing roll gave
+	him a claim, and with no priest in range the soft cloth-healing rule had nobody to name.
+]]
+test("healing gear never reaches a mage or a warlock", function()
+	local ns = load()
+	local verdict = ns.Matcher:Verdict(cloth(ns, {
+		ITEM_MOD_SPELL_HEALING_DONE_SHORT = 20,
+		ITEM_MOD_SPELL_DAMAGE_DONE_SHORT = 7,
+	}))
+
+	check(not contains(verdict.eligible, "MAGE"), "no mage")
+	check(not contains(verdict.eligible, "WARLOCK"), "no warlock")
+	check(contains(verdict.contenders, "PRIEST"), "the priest leads")
+	check(contains(verdict.admitted, "DRUID"), "a druid is still a fallback")
+end)
+
+-- Imposing Gloves of the Eagle went to a level 39 hunter on the Intellect alone.
+test("intellect without agility never reaches a hunter", function()
+	local ns = load()
+	local leather = Stub.Item({
+		name = "Test Gloves",
+		quality = 2,
+		reqLevel = 34,
+		itemLevel = 39,
+		equipLoc = "INVTYPE_HAND",
+		classID = 4,
+		subclassID = 2,
+		bindType = 2,
+		stats = { ITEM_MOD_INTELLECT_SHORT = 7, ITEM_MOD_STAMINA_SHORT = 7 },
+	})
+	local eagle = ns.Matcher:Verdict(ns.Scanner:Describe(leather.link))
+	check(not contains(eagle.eligible, "HUNTER"), "of the Eagle is not his")
+	check(contains(eagle.contenders, "DRUID"), "the druid takes it")
+
+	local monkey = ns.Matcher:Verdict(cloth(ns, { ITEM_MOD_AGILITY_SHORT = 6, ITEM_MOD_INTELLECT_SHORT = 6 }))
+	check(contains(monkey.contenders, "HUNTER"), "with the agility it is his again")
+end)
+
 test("a warlock still receives intellect gear with no spirit on it", function()
 	local ns = load()
 	local plain = ns.Matcher:Verdict(cloth(ns, { ITEM_MOD_INTELLECT_SHORT = 9 }))
@@ -175,20 +253,21 @@ end)
 
 --[[
 	A rule that cannot reach anybody must not strand the item. Mail at this level is
-	worn by warriors and paladins, none of whom the caster rule names.
+	worn by warriors and paladins, and the hunter the Agility-and-Intellect rule names is
+	still too far from training it.
 ]]
 test("a rule that names nobody eligible leaves the weights alone", function()
 	local ns = load()
 	local def = Stub.Item({
 		name = "Chain Vest",
 		quality = 2,
-		reqLevel = 45,
-		itemLevel = 50,
+		reqLevel = 30,
+		itemLevel = 35,
 		equipLoc = "INVTYPE_CHEST",
 		classID = 4,
 		subclassID = 3, -- MAIL
 		bindType = 2,
-		stats = { ITEM_MOD_INTELLECT_SHORT = 6, ITEM_MOD_SPIRIT_SHORT = 6 },
+		stats = { ITEM_MOD_AGILITY_SHORT = 6, ITEM_MOD_INTELLECT_SHORT = 6 },
 	})
 	local verdict = ns.Matcher:Verdict(ns.Scanner:Describe(def.link))
 
@@ -232,7 +311,7 @@ end)
 	the same wrong answer arriving later.
 ]]
 test("a warrior and a rogue never lead on anything carrying intellect", function()
-	local ns = load()
+	local ns = Harness.AllSpecs(load())
 	local gorilla = ns.Matcher:Verdict(cloth(ns, {
 		ITEM_MOD_STRENGTH_SHORT = 6,
 		ITEM_MOD_INTELLECT_SHORT = 6,
@@ -241,7 +320,12 @@ test("a warrior and a rogue never lead on anything carrying intellect", function
 	check(not contains(gorilla.contenders, "WARRIOR"), "the warrior does not lead")
 	check(not contains(gorilla.contenders, "ROGUE"), "nor the rogue")
 	check(contains(gorilla.admitted, "WARRIOR"), "but he is still a fallback for the strength")
-	check(contains(gorilla.contenders, "PALADIN"), "and the paladin, who uses both halves, leads")
+	--[[
+		A hybrid who uses both halves leads, and on cloth that is whichever of them wears the
+		lightest armor: the paladin is behind them in mail.
+	]]
+	check(contains(gorilla.contenders, "DRUID"), "and the druid, who uses both halves, leads")
+	check(contains(gorilla.admitted, "PALADIN"), "with the paladin behind him")
 end)
 
 test("the melee half keeps them as fallbacks, not leaders", function()
@@ -361,7 +445,7 @@ test("gear with no intellect on it is untouched", function()
 		ITEM_MOD_STAMINA_SHORT = 6,
 	}, "Robe of the Bear"))
 
-	check(contains(bear.contenders, "WARRIOR"), "a strength roll is still a warrior's")
+	check(contains(bear.contenders, "DRUID"), "a strength roll still goes to a strength wearer")
 end)
 
 test("a statless weapon is still theirs", function()
@@ -392,7 +476,7 @@ end)
 	had just demoted, promoted by the step meant to demote somebody else.
 ]]
 test("demoting a class does not promote the ones scoring already ruled out", function()
-	local ns = load()
+	local ns = Harness.AllSpecs(load())
 	local def = Stub.Item({
 		name = "Mace of the Gorilla",
 		quality = 2,
@@ -414,11 +498,11 @@ end)
 --[[
 	Same shape on a dagger, where no paladin can hold one. The dagger rule names the rogue
 	and the Intellect rule demotes him, so the fallback is the scoring's own answer: the
-	druid, the one class left using both halves. The hunter is below the class-share line
-	and the mage uses half; reaching for the admitted list put either of them in the lead.
+	druid, the one class left using both halves. The hunter is vetoed and the mage uses
+	half; reaching for the admitted list put either of them in the lead.
 ]]
 test("the fallback keeps the class-share line", function()
-	local ns = load()
+	local ns = Harness.AllSpecs(load())
 	local def = Stub.Item({
 		name = "Dagger of the Gorilla",
 		quality = 2,
@@ -432,8 +516,7 @@ test("the fallback keeps the class-share line", function()
 	})
 	local verdict = ns.Matcher:Verdict(ns.Scanner:Describe(def.link))
 
-	check(not contains(verdict.contenders, "HUNTER"), "the hunter never cleared the share line")
-	check(contains(verdict.admitted, "HUNTER"), "though he is admitted")
+	check(not contains(verdict.admitted, "HUNTER"), "the hunter is vetoed: Intellect without Agility")
 	equal(sorted(verdict.contenders), "DRUID", "the class that uses all of it leads")
 	check(contains(verdict.admitted, "MAGE"), "and the mage is still a fallback")
 end)

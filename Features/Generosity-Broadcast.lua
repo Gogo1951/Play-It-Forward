@@ -25,12 +25,11 @@ local PAYLOAD_VERSION = "1"
 local CHANNEL = "YELL"
 
 --[[
-	Three throttles, all seconds against GetTime(). BROADCAST_MIN_INTERVAL caps how often our own
-	totals go out; PING_ANSWER_INTERVAL caps how often we answer a ping, so a crowd cannot make us
-	storm the channel. The hover-ping throttle is the tooltip's, since that is where a hover happens.
+	Two throttles, both seconds against GetTime(). BROADCAST_MIN_INTERVAL caps how often our own
+	totals go out, a ping's answer included, so a crowd of pings cannot make us storm the channel.
+	The hover-ping throttle is the tooltip's, since that is where a hover happens.
 ]]
 local BROADCAST_MIN_INTERVAL = 60
-local PING_ANSWER_INTERVAL = 30
 
 --[[
 	How long a cached peer stays good, seconds like the throttles above. Generous rather than tight:
@@ -43,7 +42,6 @@ local PEER_MAX_AGE = 1800
 
 -- Exposed so the diagnostics sharing report measures against the same numbers this file does.
 Generosity.BROADCAST_MIN_INTERVAL = BROADCAST_MIN_INTERVAL
-Generosity.PING_ANSWER_INTERVAL = PING_ANSWER_INTERVAL
 Generosity.PEER_MAX_AGE = PEER_MAX_AGE
 
 --[[
@@ -89,11 +87,10 @@ function Generosity:AllPeers()
 end
 
 local lastBroadcast = 0
-local lastPingAnswer = 0
 
--- When our totals last went out and when we last answered a ping, GetTime() or 0 for never. For the diagnostics report.
+-- When our totals last went out, a ping's answer included, GetTime() or 0 for never. For the diagnostics report.
 function Generosity:LastSends()
-	return lastBroadcast, lastPingAnswer
+	return lastBroadcast
 end
 
 --[[
@@ -151,25 +148,6 @@ function Generosity:Ping()
 end
 
 --[[
-	An answer that cannot go out must not spend the window, so the town gate is read before the
-	clock is stamped -- the same ordering Broadcast uses. Receiving is ungated, so this runs out in
-	the world too, where a ping heard just outside an inn would otherwise leave the next one
-	unanswered once the player stepped inside. Rate-limited on its own clock past that, so a crowd
-	of pings draws one answer.
-]]
-local function AnswerPing()
-	if not ns.AtRest() then
-		return
-	end
-	local now = GetTime()
-	if now - lastPingAnswer < PING_ANSWER_INTERVAL then
-		return
-	end
-	lastPingAnswer = now
-	Generosity:Broadcast()
-end
-
---[[
 	Split "a|b|c" into fields. A trailing separator is appended so gmatch yields the last field, and
 	an empty field comes back as "" rather than being skipped, so positions stay aligned.
 ]]
@@ -217,7 +195,12 @@ local function OnChatMsgAddon(prefix, message, _, sender)
 			}
 		end
 	elseif kind == "?" then
-		AnswerPing()
+		--[[
+			Answered through Broadcast, whose own interval, town gate and Share switch decide whether
+			the answer goes out: a crowd of pings draws at most one broadcast a minute, and a ping
+			heard out in the world is not answered from there.
+		]]
+		Generosity:Broadcast()
 	end
 end
 ns.On("CHAT_MSG_ADDON", OnChatMsgAddon)

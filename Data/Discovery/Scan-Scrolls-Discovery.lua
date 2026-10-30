@@ -45,7 +45,7 @@ ns.Data.SCROLLS = {
 How We Got the Data
 
 Last Validated
-	Never. Copied from Data/Vanilla/.
+	2026-10-29, Season of Discovery 1.15.9.70576
 
 Notes
 	- The six stat scroll lines: Strength, Agility, Stamina, Intellect, Spirit and Protection.
@@ -53,12 +53,15 @@ Notes
 	  that teach, teleport, deal damage or imbue a weapon are one class's business, or nobody's
 	  once read.
 	- buffs is the stat the scroll raises, with Protection's armor as ARMOR. It decides who can
-	  receive the scroll through ns.Data.CONSUMABLE_CLASSES in Data/Data.lua, so there is no
-	  per-item class list.
-	- 1181 Scroll of Spirit, 3013 Scroll of Protection are held out by hand. Both need only level 1, so their recipient band tops
-	  out below ns.Data.MIN_RECIPIENT_LEVEL and they would reach nobody.
+	  receive the scroll through ns.Data.CONSUMABLE_CLASSES in this folder's Match-Classes
+	  file, so there is no per-item class list.
+	- 1181 Scroll of Spirit and 3013 Scroll of Protection are held out by hand. Both need only
+	  level 1, so their recipient band tops out below ns.Data.MIN_RECIPIENT_LEVEL and they
+	  would reach nobody.
 	- Hand-picked from the maintainer's Wowhead list and a Validate Data run of it, not from a
 	  query.
+	- Rechecked against this client's tables at 1.15.9.70576: every rank of the six lines is
+	  here but the two level 1 scrolls above.
 
 SQL (CMaNGOS)
 	TODO: Add SQL Query
@@ -67,5 +70,8 @@ Wowhead
 	The maintainer's Wowhead item listing of scrolls. URL not recorded.
 
 wago.tools
+	https://wago.tools/db2/ItemSparse?build=1.15.9.70576
+
+QuestieDB
 	None.
 ]]

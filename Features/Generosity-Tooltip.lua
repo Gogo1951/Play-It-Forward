@@ -6,7 +6,8 @@ local GetColor = ns.GetColor
 --[[
 	Renders a player's Given Away totals at the bottom of their unit tooltip: your own live tally on
 	your own tooltip, and a nearby peer's cached totals on theirs. The block is added from a
-	TooltipDataProcessor unit post-call; WoW Forever's client has no OnTooltipSetUnit script to hook.
+	TooltipDataProcessor unit post-call where GameTooltip runs on tooltip data (WoW Forever has no
+	OnTooltipSetUnit script to hook), and from OnTooltipSetUnit on the Classic clients.
 
 	PROXIMITY MODEL, WITH ACCEPTED LATENCY. A player you have never heard from shows nothing on the
 	first hover; that hover fires a throttled ping, nearby clients answer, and the block is present
@@ -39,9 +40,7 @@ local function HoverPing()
 		return
 	end
 	lastPing = now
-	if Generosity.Ping then
-		Generosity:Ping()
-	end
+	Generosity:Ping()
 end
 
 --[[
@@ -63,19 +62,33 @@ end
 ]]
 local ROW_INDENT = " "
 
-local function AppendBlock(tooltip, gifts, items, itemLevels, value)
+--[[
+	The block's header and its four rows, colored and ready to draw, each row a left and right
+	string. The Badge of Generosity panel draws its preview from this too, so the panel and the tooltip
+	cannot show the totals two ways.
+]]
+function Generosity:BlockLines(gifts, items, itemLevels, value)
 	local labelColor, valueColor = GetColor("HELP"), GetColor("TEXT")
 	local function Row(label, shown)
-		tooltip:AddDoubleLine(ROW_INDENT .. labelColor .. label .. "|r", valueColor .. shown .. "|r")
+		return { ROW_INDENT .. labelColor .. label .. "|r", valueColor .. shown .. "|r" }
 	end
-
-	tooltip:AddLine(" ")
 	-- The same branded line a chat print carries: blue name, gray separator, white body.
-	tooltip:AddLine(ns:BuildBrandedLine(L["OPTIONS_GENEROSITY_HEADER"]))
-	Row(L["OPTIONS_GENEROSITY_GIFTS"], ns.CommaNumber(gifts))
-	Row(L["OPTIONS_GENEROSITY_ITEMS"], ns.CommaNumber(items))
-	Row(L["OPTIONS_GENEROSITY_ITEM_LEVELS"], ns.CommaNumber(itemLevels))
-	Row(L["OPTIONS_GENEROSITY_VALUE"], ns.MoneyString(value))
+	return ns:BuildBrandedLine(L["OPTIONS_GENEROSITY_HEADER"], "ADDON_SHORT_NAME"),
+		{
+			Row(L["OPTIONS_GENEROSITY_GIFTS"], ns.CommaNumber(gifts)),
+			Row(L["OPTIONS_GENEROSITY_ITEMS"], ns.CommaNumber(items)),
+			Row(L["OPTIONS_GENEROSITY_ITEM_LEVELS"], ns.CommaNumber(itemLevels)),
+			Row(L["OPTIONS_GENEROSITY_VALUE"], ns.MoneyString(value)),
+		}
+end
+
+local function AppendBlock(tooltip, gifts, items, itemLevels, value)
+	local header, rows = Generosity:BlockLines(gifts, items, itemLevels, value)
+	tooltip:AddLine(" ")
+	tooltip:AddLine(header)
+	for _, row in ipairs(rows) do
+		tooltip:AddDoubleLine(row[1], row[2])
+	end
 	tooltip:Show()
 end
 
@@ -128,9 +141,19 @@ local function OnTooltipSetUnit(tooltip)
 	AppendBlock(tooltip, gifts, items, itemLevels, value)
 end
 
--- Picked by availability. The post-call fires for every tooltip showing a unit, so only GameTooltip is drawn on.
--- Which one this client took is recorded for the diagnostics sharing report.
-if TooltipDataProcessor then
+--[[
+	Picked by which pipeline GameTooltip actually runs on. The Classic clients (TBC Anniversary
+	among them) expose TooltipDataProcessor, but their native tooltips still fire only the legacy
+	scripts, so a post-call registered there never runs. GetPrimaryTooltipData on the frame is the
+	tell that it is driven by tooltip data. The post-call fires for every tooltip showing a unit,
+	so only GameTooltip is drawn on. Which one this client took is recorded for the diagnostics
+	sharing report.
+]]
+local usesTooltipData = type(GameTooltip.GetPrimaryTooltipData) == "function"
+	and type(TooltipDataProcessor) == "table"
+	and type(TooltipDataProcessor.AddTooltipPostCall) == "function"
+
+if usesTooltipData then
 	TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip)
 		if tooltip == GameTooltip then
 			OnTooltipSetUnit(tooltip)

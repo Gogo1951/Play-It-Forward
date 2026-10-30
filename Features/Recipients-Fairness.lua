@@ -44,7 +44,9 @@ end
 ]]
 function Fairness:PickFrom(ranked, isTaken)
 	for _, person in ipairs(ranked) do
-		if not isTaken(person) and self:IsReachable(person.name) and self:IsFresh(person.name, person.level) then
+		-- Your own alt is never on cooldown: a second item for them is not a stranger's second parcel.
+		local fresh = person.alt or self:IsFresh(person.name, person.level)
+		if not isTaken(person) and self:IsReachable(person.name) and fresh then
 			return person
 		end
 	end

@@ -61,6 +61,20 @@ test("an alt that has run the add-on is filtered under a bare roster name", func
 end)
 
 --[[
+	The roster suffixes a connected realm the way GetNormalizedRealmName spells it, hyphen gone
+	as well as spaces, while AceDB's profileKeys keep the realm as the player reads it.
+]]
+test("an alt on a hyphenated realm is filtered under its normalized suffix", function()
+	local ns = load()
+	ns.db.sv.profileKeys["Gogowarrior - Azjol-Nerub"] = true
+	Stub.guild = { member("Gogowarrior-AzjolNerub") }
+
+	local found = ns.Guild:Read()
+	equal(#found, 0, "your own alt is not a stranger to mail gear to, got: " .. namesFrom(found))
+	equal(ns.Guild:Stats().ownAlts, 1, "counted as your own")
+end)
+
+--[[
 	The other half of the rule: over-matching would empty the roster, which reads as an
 	inactive guild rather than as a broken filter.
 ]]

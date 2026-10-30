@@ -28,6 +28,13 @@ function ns:BuildDisplayContextReport()
 	else
 		lines[#lines + 1] = "Saved window position: none, the window anchors to the mailbox"
 	end
+	local savedSize = ns.db and ns.db.profile.windowSize
+	if savedSize and savedSize.width then
+		lines[#lines + 1] =
+			string.format("Saved window size: %d x %d", math.floor(savedSize.width), math.floor(savedSize.height or 0))
+	else
+		lines[#lines + 1] = "Saved window size: none, the window opens at its default size"
+	end
 
 	local frame = ns.UI and ns.UI.frame
 	if frame then
@@ -90,7 +97,8 @@ end
 --[[
     Dumps the single AceDB-managed table (profiles, profileKeys, global) so a
     player can paste their exact configuration: every setting in each profile,
-    and the account-wide giving tally.
+    every recorded character and saved guild with its ticks and ignores, and the
+    account-wide giving tally.
 ]]
 function ns:BuildSavedVariablesReport()
 	local lines = { GetClientHeader(), "", ns.SAVED_VARIABLES_NAME .. " = {" }

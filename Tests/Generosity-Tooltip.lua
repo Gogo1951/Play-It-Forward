@@ -48,7 +48,7 @@ test("a hovered peer with cached totals gets a Generosity block", function()
 	equal(#rows, 6, "a blank line, the header, then four rows")
 	-- The block sits under whatever the client and other add-ons wrote above it, never against it.
 	equal(rows[1].line, " ", "a blank line opens the block")
-	check(rows[2].line ~= nil and rows[2].line:find("Generosity") ~= nil, "the header names the block")
+	check(rows[2].line ~= nil and rows[2].line:find("Badge of Generosity") ~= nil, "the header names the block")
 	check(rows[3].left ~= nil and rows[3].left:find("^ ") ~= nil, "rows are indented under the header")
 	check(rows[3].right:find("7") ~= nil, "gifts value on the first row")
 end)
@@ -149,6 +149,28 @@ test("with TooltipDataProcessor the block comes from the unit post-call", functi
 	equal(#rows, 6, "GameTooltip gets the block")
 end)
 
+--[[
+	The Classic clients (TBC Anniversary among them) expose TooltipDataProcessor, but GameTooltip
+	there still fires only OnTooltipSetUnit, so a post-call would never run and even your own
+	tooltip stayed bare. Without the data pipeline on the frame the script is hooked instead.
+]]
+test("a processor without tooltip-data frames still hooks OnTooltipSetUnit", function()
+	Stub.useTooltipProcessor = true
+	Stub.legacyTooltipFrames = true
+	local ok, ns = pcall(load)
+	Stub.useTooltipProcessor = nil
+	Stub.legacyTooltipFrames = nil
+	assert(ok, ns)
+
+	local handler, rows = rig("player", "Tester", "Test")
+	check(handler ~= nil, "the script is hooked")
+	check(Stub.tooltipPostCalls[Enum.TooltipDataType.Unit] == nil, "no post-call is registered")
+	equal(ns.Generosity.tooltipHook, "GameTooltip OnTooltipSetUnit", "the diagnostics report the script")
+
+	handler(GameTooltip)
+	equal(#rows, 6, "your own tooltip gets the block")
+end)
+
 -- On Forever a unit's name reads as secret in combat: nothing renders and nothing is sent.
 test("a unit whose identity is secret is left alone", function()
 	load()
@@ -160,4 +182,18 @@ test("a unit whose identity is secret is left alone", function()
 
 	equal(#rows, 0, "no block while identity is secret")
 	equal(#Stub.addonMessages, 0, "and no ping")
+end)
+
+--[[
+	The Badge of Generosity panel draws its preview from these same lines, so the two show the same
+	header, labels and figures. The panel file itself stays out of the harness, like the other
+	panels whose libraries are only stubbed.
+]]
+test("the tooltip's lines, which the panel's preview draws too", function()
+	local ns = load()
+	ns.db.global.stats.gifts = 338
+	local header, lines = ns.Generosity:BlockLines(ns.Generosity:Get())
+	check(header:find("Badge of Generosity", 1, true), "the branded header")
+	equal(#lines, 4, "four rows")
+	check(lines[1][2]:find("338", 1, true), "gifts on the right")
 end)

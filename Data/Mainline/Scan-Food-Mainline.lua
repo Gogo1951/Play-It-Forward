@@ -2,7 +2,7 @@ local _, ns = ...
 
 --[[
 	Food and drink a player can be given. What a row restores decides who is eligible, per
-	ns.Data.CONSUMABLE_CLASSES in Data/Data.lua, so there is no per-item class list.
+	ns.Data.CONSUMABLE_CLASSES in this folder's Match-Classes file, so there is no per-item class list.
 ]]
 
 --[[
@@ -56,7 +56,7 @@ ns.Data.FOOD_AND_WATER = {
 	{ 27636, 1, 5, "HEALTH" }, -- Bat Bites
 	{ 3220, 1, 5, "HEALTH" }, -- Blood Sausage
 	{ 5525, 1, 5, "HEALTH" }, -- Boiled Clams
-	{ 2682, 1, 5, "HEALTH" }, -- Cooked Crab Claw
+	{ 2682, 1, 5, "BOTH" }, -- Cooked Crab Claw
 	{ 2684, 1, 5, "HEALTH" }, -- Coyote Steak
 	{ 2683, 1, 5, "HEALTH" }, -- Crab Cake
 	{ 3662, 1, 5, "HEALTH" }, -- Crocolisk Steak
@@ -85,7 +85,7 @@ ns.Data.FOOD_AND_WATER = {
 	{ 5526, 1, 10, "HEALTH" }, -- Clam Chowder
 	{ 5478, 1, 10, "HEALTH" }, -- Dig Rat Stew
 	{ 1082, 1, 10, "HEALTH" }, -- Redridge Goulash
-	{ 21072, 1, 10, "HEALTH" }, -- Smoked Sagefish
+	{ 21072, 1, 10, "BOTH" }, -- Smoked Sagefish
 	{ 2685, 1, 10, "HEALTH" }, -- Succulent Pork Ribs
 	{ 5479, 1, 12, "HEALTH" }, -- Crispy Lizard Tail
 	{ 3726, 1, 15, "HEALTH" }, -- Big Bear Steak
@@ -131,7 +131,7 @@ ns.Data.FOOD_AND_WATER = {
 	{ 8543, 1, 25, "HEALTH" }, -- Underwater Mushroom Cap
 	{ 3771, 1, 25, "HEALTH" }, -- Wild Hog Shank
 	{ 16169, 1, 25, "HEALTH" }, -- Wild Ricecake
-	{ 21217, 1, 30, "HEALTH" }, -- Sagefish Delight
+	{ 21217, 1, 30, "BOTH" }, -- Sagefish Delight
 	{ 18635, 1, 35, "HEALTH" }, -- Bellara's Nutterbar
 	{ 13927, 1, 35, "HEALTH" }, -- Cooked Glossy Mightfish
 	{ 19306, 1, 35, "HEALTH" }, -- Crunchy Frog
@@ -167,7 +167,7 @@ ns.Data.FOOD_AND_WATER = {
 	{ 19225, 1, 45, "HEALTH" }, -- Deep Fried Candybar
 	{ 8953, 1, 45, "HEALTH" }, -- Deep Fried Plantains
 	{ 8948, 1, 45, "HEALTH" }, -- Dried King Bolete
-	{ 13724, 1, 45, "HEALTH" }, -- Enriched Manna Biscuit
+	{ 13724, 1, 45, "BOTH" }, -- Enriched Manna Biscuit
 	{ 11444, 1, 45, "HEALTH" }, -- Grim Guzzler Boar
 	{ 8950, 1, 45, "HEALTH" }, -- Homemade Cherry Pie
 	{ 35565, 1, 45, "HEALTH" }, -- Juicy Bear Burger
@@ -202,7 +202,7 @@ ns.Data.FOOD_AND_WATER = {
 	{ 29292, 1, 55, "HEALTH" }, -- Helboar Bacon
 	{ 24338, 1, 55, "HEALTH" }, -- Hellfire Spineleaf
 	{ 29412, 1, 55, "HEALTH" }, -- Jessen's Special Slop
-	{ 33874, 1, 55, "HEALTH" }, -- Kibler's Bits
+	{ 33874, 1, 55, "PET" }, -- Kibler's Bits
 	{ 27855, 1, 55, "HEALTH" }, -- Mag'har Grainbread
 	{ 24539, 1, 55, "HEALTH" }, -- Marsh Lichen
 	{ 31672, 1, 55, "HEALTH" }, -- Mok'Nathal Shortribs
@@ -216,7 +216,7 @@ ns.Data.FOOD_AND_WATER = {
 	{ 30610, 1, 55, "HEALTH" }, -- Smoked Black Bear Meat
 	{ 27854, 1, 55, "HEALTH" }, -- Smoked Talbuk Venison
 	{ 27667, 1, 55, "HEALTH" }, -- Spicy Crawdad
-	{ 27656, 1, 55, "HEALTH" }, -- Sporeling Snack
+	{ 27656, 1, 55, "PET" }, -- Sporeling Snack
 	{ 33866, 1, 55, "HEALTH" }, -- Stormchops
 	{ 30458, 1, 55, "HEALTH" }, -- Stromgarde Muenster
 	{ 27858, 1, 55, "HEALTH" }, -- Sunspring Carp
@@ -228,7 +228,7 @@ ns.Data.FOOD_AND_WATER = {
 	{ 33449, 1, 65, "HEALTH" }, -- Crusty Flatbread
 	{ 44608, 1, 65, "HEALTH" }, -- Dalaran Swiss
 	{ 35710, 1, 65, "HEALTH" }, -- Delicious Baked Ham
-	{ 32722, 1, 65, "HEALTH" }, -- Enriched Terocone Juice
+	{ 32722, 1, 65, "BOTH" }, -- Enriched Terocone Juice
 	{ 37452, 1, 65, "HEALTH" }, -- Fatty Bluefin
 	{ 33451, 1, 65, "HEALTH" }, -- Fillet of Icefin
 	{ 33052, 1, 65, "HEALTH" }, -- Fisherman's Feast
@@ -238,7 +238,7 @@ ns.Data.FOOD_AND_WATER = {
 	{ 30355, 1, 65, "HEALTH" }, -- Grilled Shadowmoon Tuber
 	{ 40356, 1, 65, "HEALTH" }, -- Grizzleberries
 	{ 33452, 1, 65, "HEALTH" }, -- Honey-Spiced Lichen
-	{ 33053, 1, 65, "HEALTH" }, -- Hot Buttered Trout
+	{ 33053, 1, 65, "BOTH" }, -- Hot Buttered Trout
 	{ 29394, 1, 65, "HEALTH" }, -- Lyribread
 	{ 29448, 1, 65, "HEALTH" }, -- Mag'har Mild Cheese
 	{ 32686, 1, 65, "HEALTH" }, -- Mingo's Fortune Giblets
@@ -247,7 +247,7 @@ ns.Data.FOOD_AND_WATER = {
 	{ 38428, 1, 65, "HEALTH" }, -- Rock-Salted Pretzel
 	{ 33454, 1, 65, "HEALTH" }, -- Salted Venison
 	{ 44749, 1, 65, "HEALTH" }, -- Salted Yeti Cheese
-	{ 33825, 1, 65, "HEALTH" }, -- Skullfish Soup
+	{ 33825, 1, 65, "MANA" }, -- Skullfish Soup
 	{ 33443, 1, 65, "HEALTH" }, -- Sour Goat Cheese
 	{ 33872, 1, 65, "HEALTH" }, -- Spicy Hot Talbuk
 	{ 29453, 1, 65, "HEALTH" }, -- Sporeggar Mushroom
@@ -256,57 +256,57 @@ ns.Data.FOOD_AND_WATER = {
 	{ 29450, 1, 65, "HEALTH" }, -- Telaari Grapes
 	{ 35949, 1, 65, "HEALTH" }, -- Tundra Berries
 	{ 29452, 1, 65, "HEALTH" }, -- Zangar Trout
-	{ 42942, 1, 70, "HEALTH" }, -- Baked Manta Ray
+	{ 42942, 1, 70, "BOTH" }, -- Baked Manta Ray
 	{ 42432, 1, 70, "HEALTH" }, -- Berry Pie Slice
-	{ 42999, 1, 70, "HEALTH" }, -- Blackened Dragonfin
+	{ 42999, 1, 70, "BOTH" }, -- Blackened Dragonfin
 	{ 42997, 1, 70, "HEALTH" }, -- Blackened Worg Steak
 	{ 42428, 1, 70, "HEALTH" }, -- Carrot Cupcake
 	{ 42433, 1, 70, "HEALTH" }, -- Chocolate Cake Slice
 	{ 34770, 1, 70, "HEALTH" }, -- Cooked Northrend Fish 12
 	{ 43004, 1, 70, "HEALTH" }, -- Critter Bites
-	{ 42998, 1, 70, "HEALTH" }, -- Cuttlesteak
-	{ 43268, 1, 70, "HEALTH" }, -- Dalaran Clam Chowder
+	{ 42998, 1, 70, "BOTH" }, -- Cuttlesteak
+	{ 43268, 1, 70, "BOTH" }, -- Dalaran Clam Chowder
 	{ 42430, 1, 70, "HEALTH" }, -- Dalaran Doughnut
-	{ 43000, 1, 70, "HEALTH" }, -- Dragonfin Filet
-	{ 34767, 1, 70, "HEALTH" }, -- Firecracker Salmon
-	{ 43015, 1, 70, "HEALTH" }, -- Fish Feast
-	{ 43478, 1, 70, "HEALTH" }, -- Gigantic Feast
-	{ 34753, 1, 70, "HEALTH" }, -- Great Feast
-	{ 34760, 1, 70, "HEALTH" }, -- Grilled Bonescale
-	{ 34762, 1, 70, "HEALTH" }, -- Grilled Sculpin
+	{ 43000, 1, 70, "BOTH" }, -- Dragonfin Filet
+	{ 34767, 1, 70, "BOTH" }, -- Firecracker Salmon
+	{ 43015, 1, 70, "BOTH" }, -- Fish Feast
+	{ 43478, 1, 70, "BOTH" }, -- Gigantic Feast
+	{ 34753, 1, 70, "BOTH" }, -- Great Feast
+	{ 34760, 1, 70, "BOTH" }, -- Grilled Bonescale
+	{ 34762, 1, 70, "BOTH" }, -- Grilled Sculpin
 	{ 42995, 1, 70, "HEALTH" }, -- Hearty Rhino
 	{ 45901, 1, 70, "HEALTH" }, -- Homemade Fish Fry
-	{ 34769, 1, 70, "HEALTH" }, -- Imperial Manta Steak
+	{ 34769, 1, 70, "BOTH" }, -- Imperial Manta Steak
 	{ 34748, 1, 70, "HEALTH" }, -- Mammoth Meal
 	{ 34754, 1, 70, "HEALTH" }, -- Mega Mammoth Meal
 	{ 34758, 1, 70, "HEALTH" }, -- Mighty Rhino Dogs
 	{ 34747, 1, 70, "HEALTH" }, -- Northern Stew
-	{ 34765, 1, 70, "HEALTH" }, -- Pickled Fangtooth
-	{ 34764, 1, 70, "HEALTH" }, -- Poached Nettlefish
-	{ 34766, 1, 70, "HEALTH" }, -- Poached Northern Sculpin
+	{ 34765, 1, 70, "BOTH" }, -- Pickled Fangtooth
+	{ 34764, 1, 70, "BOTH" }, -- Poached Nettlefish
+	{ 34766, 1, 70, "BOTH" }, -- Poached Northern Sculpin
 	{ 34752, 1, 70, "HEALTH" }, -- Rhino Dogs
 	{ 42994, 1, 70, "HEALTH" }, -- Rhinolicious Wormsteak
 	{ 34751, 1, 70, "HEALTH" }, -- Roasted Worg
-	{ 34761, 1, 70, "HEALTH" }, -- Sauteed Goby
+	{ 34761, 1, 70, "BOTH" }, -- Sauteed Goby
 	{ 34125, 1, 70, "HEALTH" }, -- Shoveltusk Soup
 	{ 34749, 1, 70, "HEALTH" }, -- Shoveltusk Steak
-	{ 43480, 1, 70, "HEALTH" }, -- Small Feast
-	{ 34759, 1, 70, "HEALTH" }, -- Smoked Rockfin
-	{ 34763, 1, 70, "HEALTH" }, -- Smoked Salmon
-	{ 42996, 1, 70, "HEALTH" }, -- Snapper Extreme
-	{ 43005, 1, 70, "HEALTH" }, -- Spiced Mammoth Treats
+	{ 43480, 1, 70, "BOTH" }, -- Small Feast
+	{ 34759, 1, 70, "BOTH" }, -- Smoked Rockfin
+	{ 34763, 1, 70, "BOTH" }, -- Smoked Salmon
+	{ 42996, 1, 70, "BOTH" }, -- Snapper Extreme
+	{ 43005, 1, 70, "PET" }, -- Spiced Mammoth Treats
 	{ 34756, 1, 70, "HEALTH" }, -- Spiced Worm Burger
-	{ 34768, 1, 70, "HEALTH" }, -- Spicy Blue Nettlefish
-	{ 42993, 1, 70, "HEALTH" }, -- Spicy Fried Herring
+	{ 34768, 1, 70, "BOTH" }, -- Spicy Blue Nettlefish
+	{ 42993, 1, 70, "BOTH" }, -- Spicy Fried Herring
 	{ 39691, 1, 70, "HEALTH" }, -- Succulent Orca Stew
 	{ 34755, 1, 70, "HEALTH" }, -- Tender Shoveltusk Steak
 	{ 43001, 1, 70, "HEALTH" }, -- Tracker Snacks
 	{ 34757, 1, 70, "HEALTH" }, -- Very Burnt Worg
-	{ 44953, 1, 70, "HEALTH" }, -- Worg Tartare
+	{ 44953, 1, 70, "BOTH" }, -- Worg Tartare
 	{ 34750, 1, 70, "HEALTH" }, -- Worm Delight
 	{ 44607, 1, 75, "HEALTH" }, -- Aged Dalaran Sharp
 	{ 44722, 1, 75, "HEALTH" }, -- Aged Yolk
-	{ 45932, 1, 75, "HEALTH" }, -- Black Jelly
+	{ 45932, 1, 75, "BOTH" }, -- Black Jelly
 	{ 38706, 1, 75, "HEALTH" }, -- Bowels 'n' Brains
 	{ 35952, 1, 75, "HEALTH" }, -- Briny Hardcheese
 	{ 44940, 1, 75, "HEALTH" }, -- Corn-Breaded Sausage
@@ -363,3 +363,35 @@ ns.Data.FOOD_AND_WATER = {
 	{ 43236, 1, 75, "MANA" }, -- Star's Sorrow
 	{ 41731, 1, 75, "MANA" }, -- Yeti Milk
 }
+
+--[[
+How We Got the Data
+
+Last Validated
+	Never on this client. A copy of the Mists list, from a query against a Wrath-era database.
+
+Notes
+	- useLevel and quality are the query's and have not been checked against this client.
+	- restores is HEALTH, MANA or BOTH, from what the item's use text says it restores, never
+	  from a well-fed buff after it. It decides who can receive the food through
+	  ns.Data.CONSUMABLE_CLASSES in this folder's Match-Classes file. The query's spell
+	  categories filed every food that restores health and mana as HEALTH, so restores was
+	  corrected by hand from the Mists client's use text (5.5.4.70631): 33825 Skullfish Soup
+	  restores only mana, and the Sagefish, Crab Claw, Manna Biscuit, Terocone Juice, Buttered
+	  Trout, Northrend fish and feast rows restore both.
+	- 27656 Sporeling Snack, 33874 Kibler's Bits and 43005 Spiced Mammoth Treats feed a hunter's
+	  pet, so they are filed as PET and reach only hunters.
+	- 12217 Dragonbreath Chili and 33866 Stormchops restore nothing: their use is a melee buff.
+	  Both are filed as HEALTH, which every class receives. 43004 Critter Bites restores nothing
+	  either and is Miscellaneous on Mists, and 34770 Cooked Northrend Fish 12 is not on the
+	  Mists client; both stay until a Validate Data run here says otherwise.
+
+SQL (CMaNGOS)
+	At the top of this file. Database not recorded.
+
+Wowhead
+	None.
+
+wago.tools
+	None.
+]]

@@ -9,13 +9,98 @@ local Matcher = ns.Matcher
 --------------------------------------------------------------------------------
 
 --[[
+	Where a candidate came from: 1 your alts, 2 your guild, 3 strangers from /who. The picker's
+	sections, which name the source whatever the Recipients panel says about ranking it.
+]]
+function Matcher:Source(person)
+	if person.alt then
+		return 1
+	end
+	if person.guild then
+		return 2
+	end
+	return 3
+end
+
+--[[
+	The same three, as the sort and the targeted search's stopping rule weigh them: a source whose
+	Prioritize switch on the Recipients panel is off ranks as a stranger, so it competes on fit,
+	placement and level instead of jumping the queue. An alt who is also a guildmate falls back to
+	the guild's rank when only the alts switch is off.
+]]
+function Matcher:SourceRank(person)
+	local profile = ns.db and ns.db.profile or {}
+	if person.alt and profile.prioritizeAlts ~= false then
+		return 1
+	end
+	if person.guild and profile.prioritizeGuilds ~= false then
+		return 2
+	end
+	return 3
+end
+
+--[[
+	A stranger warlock in the band summoning alts park in, while the Recipients panel's Ignore
+	Warlocks switch is on. Strangers only: an alt is yours, and the guild roster has its own rule.
+]]
+local function SkippedSummoner(person)
+	local profile = ns.db and ns.db.profile
+	if not (profile and profile.ignoreSummonerWarlocks) or person.alt or person.guild then
+		return false
+	end
+	local level = person.level or 0
+	return person.class == "WARLOCK" and level >= ns.Data.SUMMONER_MIN_LEVEL and level <= ns.Data.SUMMONER_MAX_LEVEL
+end
+
+--[[
+	Whether one of your alts may receive this item, by its row on the My Alts panel, and
+	its fit when it may. Only where the item suits the alt best, JUDGED BY THE ALT'S OWN SPECS: a
+	retribution paladin alt holds strength plate though paladins default to Holy, and a mage alt
+	never holds healing cloth meant for a priest. A consumable asks only the class.
+
+	Gear is judged against the alt's own Lowest and Highest Gear Level (Alts:LevelRange), by the
+	level its class equips it at: at the defaults, anything from its own level up, so a level 1
+	hunter holds a level 50 bow. A consumable puts the alt in the same band as anyone else.
+]]
+local function AltWants(matcher, item, verdict, person, classToken, lo, hi)
+	local profile = ns.db and ns.db.profile
+	local entry = ns.Alts:Entry(person)
+	if not (profile and profile.sendToAlts) or (entry and not ns.Alts:Included(entry)) then
+		return false
+	end
+	local judged = verdict
+	if item.kind ~= "consumable" and entry then
+		judged = matcher:VerdictForSpecs(item, classToken, ns.Alts:SpecsFor(entry))
+	end
+	local contender = false
+	for _, class in ipairs(judged.contenders or {}) do
+		if class == classToken then
+			contender = true
+		end
+	end
+	if not contender then
+		return false
+	end
+	local fit = judged.fits and judged.fits[classToken] or 0
+	if item.kind ~= "consumable" then
+		local equip = ns.Data.EquipLevelFor(item, classToken)
+		local low, high = ns.Alts:LevelRange(entry, person.level)
+		return equip >= low and equip <= high, fit
+	end
+	return person.level >= lo and person.level <= hi, fit
+end
+
+--[[
 	Everyone in pools (classToken -> players) who can use this item and sits in its level band, in
 	the order it would be handed out:
 
-	  fit bucket -> level proximity -> armor/weapon group -> class fit -> guild -> random
+	  fit bucket -> source -> placement -> level proximity -> armor/weapon group -> class fit -> random
 
 	Bucket leads, so a class that genuinely wants the item beats one that barely does however
-	close to equipping it they are. Level comes next, ahead of group, so a druid one level off
+	close to equipping it they are. Source follows, among equally good fits only: your alts, then
+	your guild, then strangers (Matcher:SourceRank). Placement follows: somebody out in a zone made
+	for their level beats somebody in a capital, and anybody beats somebody in a dungeon
+	(Who:PlacementRank). Both follow the Recipients panel's switches. Level comes next, ahead of group, so a druid one level off
 	beats a mage two off for cloth. Random tail, or every spare green goes to whoever is early in
 	the alphabet.
 ]]
@@ -30,8 +115,8 @@ function Matcher:RankCandidates(item, pools)
 	local verdict = self:VerdictFor(item)
 
 	--[[
-		Read from Verdict, never recomputed: it buckets on claim, and fit would let a universal
-		weight compress the ratio and lift a druid past a rogue on proximity.
+		Read from Verdict, never recomputed: it buckets on claim, and fit adds the weapon baseline,
+		which would compress the ratio and lift a weaker class past a stronger one on proximity.
 	]]
 	local topBucket = {}
 	for _, class in ipairs(verdict.contenders or {}) do
@@ -44,7 +129,30 @@ function Matcher:RankCandidates(item, pools)
 		six levels or never look for him at all. Matcher:LevelBand answers the item's own band for
 		everything else, so this is the same numbers for nearly every item.
 	]]
+	--[[
+		Every admitted class, plus any class one of your alts plays: an alt is judged by its own
+		specs, so it can want an item the class's defaults never admitted.
+	]]
+	local classes, seen = {}, {}
 	for _, class in ipairs(verdict.admitted) do
+		classes[#classes + 1], seen[class] = class, true
+	end
+	for class, people in pairs(pools) do
+		if not seen[class] then
+			for _, person in ipairs(people) do
+				if person.alt then
+					classes[#classes + 1], seen[class] = class, true
+					break
+				end
+			end
+		end
+	end
+	local admitted = {}
+	for _, class in ipairs(verdict.admitted) do
+		admitted[class] = true
+	end
+
+	for _, class in ipairs(classes) do
 		local fit, tier = verdict.fits[class] or 0, self:Priority(item, class)
 		local lo, hi = self:LevelBand(item, class)
 		--[[
@@ -61,9 +169,25 @@ function Matcher:RankCandidates(item, pools)
 		]]
 		local bucket = topBucket[class] and 1 or 2
 		for _, person in ipairs(pools[class] or {}) do
-			if person.level >= lo and person.level <= hi then
+			local inRange, personFit, personBucket = false, fit, bucket
+			if SkippedSummoner(person) then
+				inRange = false
+			elseif person.alt then
+				local altFit
+				inRange, altFit = AltWants(self, item, verdict, person, class, lo, hi)
+				personFit, personBucket = altFit or fit, 1
+			elseif admitted[class] then
+				inRange = person.level >= lo and person.level <= hi
+			end
+			if inRange then
 				table.insert(out, person)
-				meta[person] = { tier = tier, fit = fit, bucket = bucket, anchor = anchor }
+				meta[person] = {
+					tier = tier,
+					fit = personFit,
+					bucket = personBucket,
+					anchor = anchor,
+					placement = ns.Who:PlacementRank(person),
+				}
 			end
 		end
 	end
@@ -72,6 +196,24 @@ function Matcher:RankCandidates(item, pools)
 		local ma, mb = meta[a], meta[b]
 		if ma.bucket ~= mb.bucket then
 			return ma.bucket < mb.bucket
+		end
+		--[[
+			Who they are to you, among equally good fits: an alt before a guildmate before a
+			stranger. Behind the bucket, never ahead of it, so a priest stranger still takes healing
+			cloth from a mage alt who only barely wants it.
+		]]
+		local aSource, bSource = self:SourceRank(a), self:SourceRank(b)
+		if aSource ~= bSource then
+			return aSource < bSource
+		end
+		--[[
+			Where they stand, right behind who the item is for: out in a zone made for their level
+			beats a capital, because that is the evidence they are levelling and will use it, and a
+			dungeon ranks last, where they may be getting boosted. Ahead of level, which only splits
+			a band two levels wide.
+		]]
+		if ma.placement ~= mb.placement then
+			return ma.placement < mb.placement
 		end
 		-- Each against its own class's anchor, which is the level that class equips the item at.
 		local aDist = math.abs((a.level or 0) - ma.anchor)
@@ -84,16 +226,6 @@ function Matcher:RankCandidates(item, pools)
 		end
 		if ma.fit ~= mb.fit then
 			return ma.fit > mb.fit
-		end
-		--[[
-			Soft priority for guildmates, last before the coin flip: everything above measures how
-			well the item suits the person, so a guildmate never takes something from somebody it
-			suits better. It still decides often -- tier and fit are per-class, so two candidates
-			of the same class at the same level reach this line with nothing between them.
-		]]
-		local aGuild, bGuild = a.guild or false, b.guild or false
-		if aGuild ~= bGuild then
-			return aGuild
 		end
 
 		--[[
@@ -263,8 +395,8 @@ end
 
 --[[
 	Whether somebody of this class, standing at that class's own anchor, would sort ahead of
-	person under RankCandidates: bucket, then distance from each one's own anchor, then group,
-	then fit. A tie never outranks -- past it only the guild flag and the coin flip are left. A
+	person under RankCandidates: bucket, then source, then placement, then distance from each one's
+	own anchor, then group, then fit. A tie never outranks -- past it only the coin flip is left. A
 	class the verdict did not admit never ranks at all; nobody holding the row is outranked by
 	every class that did.
 
@@ -294,6 +426,16 @@ function Matcher:CouldOutrank(item, person, classToken)
 	local heldBucket = contenders[person.class] and 1 or 2
 	if bucket ~= heldBucket then
 		return bucket < heldBucket
+	end
+
+	-- A search turns up strangers, and a stranger never outranks an alt or a guildmate in the same bucket.
+	if self:SourceRank(person) < 3 then
+		return false
+	end
+
+	-- Placement is the next key, and any class can turn up somebody better placed.
+	if ns.Who:PlacementRank(person) > 0 then
+		return true
 	end
 
 	if person.level ~= AnchorFor(self, item, person.class) then

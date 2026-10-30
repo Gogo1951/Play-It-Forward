@@ -23,3 +23,20 @@ ns.Data.NATIVE_ARMOR = {
 	DRUID = { { 1, "LEATHER" } },
 	DEATHKNIGHT = { { 1, "PLATE" } },
 }
+
+-- ns.Data.ArmorPriorityFor derives the priority groups by subtracting one weight from another.
+ns.Data.ARMOR_WEIGHT = { CLOTH = 1, LEATHER = 2, MAIL = 3, PLATE = 4 }
+
+--[[
+	Equip slots any class can use regardless of armor material: stats alone decide them.
+
+	INVTYPE_HOLDABLE must never be added. Held off-hands look universal but turn on whether a
+	class has the off-hand slot free, and adding them here makes an Intellect orb eligible for
+	a warrior. They route through the weapon matrix as "HELD", in the flavor folder's WEAPON_SPECS.
+]]
+ns.Data.UNIVERSAL_EQUIP_LOC = {
+	INVTYPE_CLOAK = true,
+	INVTYPE_FINGER = true,
+	INVTYPE_NECK = true,
+	INVTYPE_TRINKET = true,
+}

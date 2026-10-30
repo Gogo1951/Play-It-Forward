@@ -148,16 +148,36 @@ local function newFrame()
 	]]
 	local registered = {}
 	rawset(f, "RegisterEvent", function(_, event)
+		if not registered[event] then
+			Stub.listeners[event] = Stub.listeners[event] or {}
+			table.insert(Stub.listeners[event], f)
+		end
 		registered[event] = true
 	end)
 	rawset(f, "UnregisterEvent", function(_, event)
 		registered[event] = nil
+		for index, frame in ipairs(Stub.listeners[event] or {}) do
+			if frame == f then
+				table.remove(Stub.listeners[event], index)
+				break
+			end
+		end
 	end)
 	rawset(f, "IsEventRegistered", function(_, event)
 		return registered[event] == true
 	end)
+	-- Real for the same reason: the catch-all would call every listener forbidden and every name a table.
+	rawset(f, "IsForbidden", function()
+		return false
+	end)
+	rawset(f, "GetName", function()
+		return rawget(f, "_name")
+	end)
 	return f
 end
+
+-- Every frame registered for an event, in registration order: what GetFramesRegisteredForEvent reads.
+Stub.listeners = {}
 
 Stub.NewFrame = newFrame
 
@@ -250,6 +270,10 @@ end
 
 function Stub.Install()
 	Stub.printed = {}
+	Stub.listeners = {}
+	GetFramesRegisteredForEvent = function(event)
+		return (table.unpack or unpack)(Stub.listeners[event] or {})
+	end
 
 	--[[
 		Bags start empty every load, so a case that never lays one out sees an empty
@@ -276,7 +300,11 @@ function Stub.Install()
 			return nil
 		end,
 	}
-	Enum = { SeasonID = { SeasonOfDiscovery = 2 }, TooltipDataType = { Unit = 2 } }
+	Enum = {
+		SeasonID = { SeasonOfDiscovery = 2 },
+		TooltipDataType = { Unit = 2 },
+		PlayerInteractionType = { MailInfo = 17 },
+	}
 
 	--[[
 		The unit tooltip has two hooks. With no processor the add-on hooks OnTooltipSetUnit, the
@@ -342,6 +370,7 @@ function Stub.Install()
 		WARLOCK = "Warlock",
 		DRUID = "Druid",
 		DEATHKNIGHT = "Death Knight",
+		MONK = "Monk",
 	}
 	LOCALIZED_CLASS_NAMES_FEMALE = LOCALIZED_CLASS_NAMES_MALE
 
@@ -379,6 +408,10 @@ function Stub.Install()
 		return "Test"
 	end
 	GetNormalizedRealmName = GetRealmName
+	-- The Americas, so the data files pick the US realm clusters. "Test" is in none of them.
+	GetCurrentRegion = function()
+		return 1
+	end
 
 	--[[
 		A named frame lands in _G, because that is how Features/Scan-Tooltip.lua reads
@@ -391,6 +424,7 @@ function Stub.Install()
 		local frame = newFrame()
 		if name then
 			_G[name] = frame
+			rawset(frame, "_name", name)
 		end
 		if kind == "GameTooltip" then
 			local rendered = {}
@@ -417,6 +451,15 @@ function Stub.Install()
 	UIParent = newFrame()
 	MailFrame = newFrame()
 	GameTooltip = newFrame()
+	--[[
+		WoW Forever's GameTooltip runs on tooltip data; the Classic clients expose the processor
+		but keep the legacy scripts. A case wanting the Classic shape sets Stub.legacyTooltipFrames.
+	]]
+	if Stub.useTooltipProcessor and not Stub.legacyTooltipFrames then
+		rawset(GameTooltip, "GetPrimaryTooltipData", function()
+			return {}
+		end)
+	end
 
 	GetLocale = function()
 		return "enUS"
@@ -430,7 +473,7 @@ function Stub.Install()
 		The client's own stat names. Features/Scan-Tooltip.lua reads a "+N Something"
 		line by looking Something up against these, which is what keeps it locale-safe,
 		so a stub that defined only a few would test a name table narrower than the real
-		one. Every key Data/Scan-Stats.lua uses is here.
+		one. Every key the Scan-Stats files use is here.
 	]]
 	-- The game's quality names, which the gear cap's dropdown reads.
 	ITEM_QUALITY2_DESC = "Uncommon"
@@ -456,6 +499,13 @@ function Stub.Install()
 	ITEM_MOD_DODGE_RATING_SHORT = "Dodge Rating"
 	ITEM_MOD_BLOCK_RATING_SHORT = "Block Rating"
 	ITEM_MOD_MANA_REGENERATION_SHORT = "Mana Regen"
+	-- Mists' own wording: the short names lost "Rating" in Cataclysm.
+	ITEM_MOD_HASTE_RATING_SHORT = "Haste"
+	ITEM_MOD_EXPERTISE_RATING_SHORT = "Expertise"
+	ITEM_MOD_MASTERY_RATING_SHORT = "Mastery"
+	ITEM_MOD_PARRY_RATING_SHORT = "Parry"
+	ITEM_MOD_RESILIENCE_RATING_SHORT = "PvP Resilience"
+	ITEM_MOD_PVP_POWER_SHORT = "PvP Power"
 
 	--[[
 		The client's mail refusals, as UI_ERROR_MESSAGE delivers them. Real strings, so
@@ -693,8 +743,15 @@ function Stub.Install()
 	Stub.whoResults = {}
 	Stub.whoTotal = nil
 	FriendsFrame = newFrame()
+	rawset(FriendsFrame, "_name", "FriendsFrame")
 	-- FrameXML's FriendsFrame_OnLoad registers this; opening on an answer is what the add-on suppresses.
 	FriendsFrame:RegisterEvent("WHO_LIST_UPDATE")
+	--[[
+		Forever's Retail-based UI: the panel opened over the mailbox with both named frames deaf, so
+		something else hears the answer there. Anonymous on purpose -- no name to look it up by.
+	]]
+	Stub.otherWhoListener = newFrame()
+	Stub.otherWhoListener:RegisterEvent("WHO_LIST_UPDATE")
 	HideUIPanel = function(panel)
 		panel:Hide()
 	end
@@ -808,6 +865,9 @@ function Stub.Install()
 		[16004] = "Mount Hyjal",
 		[16591] = "Riverglades",
 		[16593] = "Zephras Isle",
+		-- Two instances from the flavor folders' INSTANCE_AREAS, enough for Who:Placement to tell a dungeon from a capital.
+		[1581] = "The Deadmines",
+		[718] = "Wailing Caverns",
 	}
 	C_Map = {
 		GetAreaInfo = function(areaID)
@@ -834,7 +894,12 @@ function Stub.Install()
 				filename = person.class,
 				classStr = person.class,
 				raceStr = person.race,
-				area = person.area or "Somewhere",
+				--[[
+					Unset unless the case sets it: an area the zone table does not list ranks as a
+					capital or a dungeon (Who:PlacementRank), and keeps the search going for anybody
+					holding an item, which only the placement cases want.
+				]]
+				area = person.area,
 			}
 		end,
 	}
@@ -853,6 +918,14 @@ function Stub.Install()
 	IsInGuild = function()
 		return Stub.guild ~= nil
 	end
+	-- The guild's name, for the saved guild list; a case can rename it with Stub.guildName.
+	Stub.guildName = nil
+	GetGuildInfo = function(unit)
+		if unit ~= "player" or Stub.guild == nil then
+			return nil
+		end
+		return Stub.guildName or "Test Guild", "Member", 1
+	end
 	GetNumGuildMembers = function()
 		return Stub.guild and #Stub.guild or 0
 	end
@@ -866,7 +939,7 @@ function Stub.Install()
 			1,
 			member.level,
 			member.class and member.class:lower():gsub("^%l", string.upper) or "Warrior",
-			member.zone or "Somewhere",
+			member.zone, -- unset unless the case sets it, as /who's area above
 			"",
 			"",
 			member.online or false,

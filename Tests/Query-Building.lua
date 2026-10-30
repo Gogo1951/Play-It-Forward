@@ -100,6 +100,92 @@ test("each wanted class is asked for by name, one query apiece", function()
 end)
 
 --[[
+	In German, French, Spanish, Portuguese and Russian a woman's class name is its own word
+	("Kriegerin" beside "Krieger"). If /who matches the name a character displays, a filter in
+	the male form never finds her, so a single-class query is asked again in the female form,
+	straight after. Unverified in game: needs a /who on such a client.
+]]
+local function loadWithFemaleWarrior()
+	return Harness.LoadAddon(ADDON_ROOT, function()
+		local female = {}
+		for token, name in pairs(LOCALIZED_CLASS_NAMES_MALE) do
+			female[token] = name
+		end
+		female.WARRIOR = "Kriegerin"
+		LOCALIZED_CLASS_NAMES_FEMALE = female
+	end)
+end
+
+local function planned(ns)
+	local out = {}
+	for _, attempt in ipairs(ns.Who.plan) do
+		out[#out + 1] = attempt.query
+	end
+	return out
+end
+
+local function indexOf(queries, pattern)
+	for index, query in ipairs(queries) do
+		if query:find(pattern) then
+			return index
+		end
+	end
+end
+
+test("a class with its own female name is asked in both forms, one after the other", function()
+	local ns = loadWithFemaleWarrior()
+	ns.Who:Plan({ { lo = 16, hi = 19, classes = { "WARRIOR", "PALADIN" } } })
+	local queries = planned(ns)
+
+	local male = indexOf(queries, '^16%-19 c%-"Warrior"$')
+	check(male ~= nil, "the male form is asked")
+	equal(male and queries[male + 1], '16-19 c-"Kriegerin"', "and the female form straight after")
+	for _, query in ipairs(queries) do
+		check(countOf(query, 'c%-"') <= 1, "still one class filter per query: " .. query)
+	end
+	equal(countOf(table.concat(queries, "|"), 'c%-"Paladin"'), 1, "a class whose names match is asked once")
+end)
+
+test("a locale whose class names all match asks each class once", function()
+	local ns = load()
+	ns.Who:Plan({ { lo = 16, hi = 19, classes = { "WARRIOR", "PALADIN" } } })
+	local all = table.concat(planned(ns), "|")
+	equal(countOf(all, 'c%-"Warrior"'), 1, "warriors once")
+	equal(countOf(all, 'c%-"Paladin"'), 1, "paladins once")
+end)
+
+test("a warrior found under either form ends both", function()
+	local ns = loadWithFemaleWarrior()
+	ns.Who:Plan({ { lo = 16, hi = 19, classes = { "WARRIOR", "PALADIN" } } })
+	ns.Who:Prune({ { lo = 16, hi = 19, classes = { "PALADIN" } } })
+	local all = table.concat(planned(ns), "|")
+	check(not all:find('c%-"Warrior"'), "the male form is dropped: " .. all)
+	check(not all:find('c%-"Kriegerin"'), "and so is the female: " .. all)
+end)
+
+test("an answer under the cap for one form leaves the other form planned", function()
+	local ns = loadWithFemaleWarrior()
+	ns.Who:Plan({ { lo = 16, hi = 19, classes = { "WARRIOR", "PALADIN" } } })
+	local male
+	for _, attempt in ipairs(ns.Who.plan) do
+		if attempt.query == '16-19 c-"Warrior"' then
+			male = attempt
+		end
+	end
+	ns.Who:Exhausted(male)
+	check(indexOf(planned(ns), 'c%-"Kriegerin"') ~= nil, "the female form is still to be asked")
+
+	local bare
+	for _, attempt in ipairs(ns.Who.plan) do
+		if attempt.query == "16-19" then
+			bare = attempt
+		end
+	end
+	ns.Who:Exhausted(bare)
+	check(indexOf(planned(ns), 'c%-"Kriegerin"') == nil, "but an answer for everybody ends it")
+end)
+
+--[[
 	A filter naming every class the client has excludes nobody, so it is pure length --
 	and length is the one budget a query has.
 ]]
@@ -158,18 +244,28 @@ test("a single tight band is one zone query", function()
 end)
 
 --[[
-	The ladder, in order. Bare levels first because a press is worth up to 50 people and
-	nothing fills it like asking for everybody; then a class at a time, for a class the cap
-	crowded out; then the zones, a different slice of a population too big for one answer.
+	The ladder, in order. The levelling zones first, because somebody out there at their own
+	level is who a gift is for; then bare levels, the fallback that fills a press but reaches
+	the capitals and dungeons too; then a class at a time, for a class the cap crowded out.
 ]]
-test("the search narrows rather than repeating itself", function()
+test("the search asks the zones first, then falls back", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 16, hi = 19, classes = { "WARRIOR", "PALADIN" } } })
 
 	local queries = drain(ns)
-	equal(queries[1], "16-19", "starts with bare levels")
-	check(queries[2]:find('c%-"') and not queries[2]:find('z%-"'), "then a class by name: " .. queries[2])
-	check(queries[#queries]:find('z%-"'), "and ends in the zones: " .. queries[#queries])
+	check(queries[1]:find('z%-"') ~= nil, "starts in the zones: " .. queries[1])
+	local bare
+	for index, query in ipairs(queries) do
+		if query == "16-19" then
+			bare = index
+		end
+	end
+	check(bare ~= nil, "bare levels are asked")
+	for index = 1, (bare or 1) - 1 do
+		check(queries[index]:find('z%-"') ~= nil, "only zones before them: " .. queries[index])
+	end
+	local last = queries[#queries]
+	check(last:find('c%-"') and not last:find('z%-"'), "and it ends on a class by name: " .. last)
 end)
 
 test("bands still take turns", function()

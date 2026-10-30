@@ -26,7 +26,7 @@ ns.Data.POTIONS = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, Classic Era 1.15.9.70003
+	2026-10-29, Classic Era 1.15.9.70576
 
 Notes
 	- Healing, mana and rejuvenation potions a player can give away: Potion consumables that can
@@ -37,7 +37,7 @@ Notes
 	- useLevel is the level the potion requires and quality its quality. restores comes from
 	  the name: Rejuvenation and Restore are BOTH, Healing and Health are HEALTH, Mana is MANA.
 	  It decides who can receive the potion through ns.Data.CONSUMABLE_CLASSES in
-	  Data/Data.lua. Features/Scan-Bags.lua reads every field.
+	  this folder's Match-Classes file. Features/Scan-Bags.lua reads every field.
 	- 44728 Endless Rejuvenation Potion is held out by hand. It is the only quality 0 result
 	  the query returns, an internal item the name exclusions match nothing in, and it returns
 	  on every re-run: drop it again rather than reading it as new.
@@ -45,6 +45,9 @@ Notes
 	  the two Mishandled Healing Potions (241655, 241656) are in the Classic Era tables but are
 	  Season of Discovery's, which QuestieDB's Classic items don't hold. They belong in
 	  Data/Discovery/, never here.
+	- Rechecked against this client's tables at 1.15.9.70576 by the query's own test. The only
+	  potions missing are the four Season of Discovery ones above and bound or level 1
+	  potions.
 
 SQL (CMaNGOS)
 	Database not recorded. It returned Wrath items, so it ran against a Wrath-era database,
@@ -79,8 +82,8 @@ Wowhead
 	None.
 
 wago.tools
-	https://wago.tools/db2/Item?build=1.15.9.70003
-	https://wago.tools/db2/ItemSparse?build=1.15.9.70003
+	https://wago.tools/db2/ItemSparse?build=1.15.9.70576
+	https://wago.tools/db2/Item?build=2.5.6.70577
 
 QuestieDB
 	https://raw.githubusercontent.com/Questie/QuestieDB/master/data/Classic/classicItemDB.lua
