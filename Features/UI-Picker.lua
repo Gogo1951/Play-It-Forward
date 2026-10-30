@@ -10,6 +10,12 @@ local PICKER_MAX_WIDTH = 360
 
 local POPUP_TEMPLATE = ns.PickTemplate("TooltipBorderedFrameTemplate", "BackdropTemplate")
 
+-- The mail window's frame name, as Features/UI-Window.lua registers it in UISpecialFrames.
+local MAIN_WINDOW_NAME = "PlayItForwardMailFrame"
+
+-- An entry's tooltip color, unpacked once: GetColorRGB mid-argument-list would keep only its first value.
+local BODY_R, BODY_G, BODY_B = ns.GetColorRGB("BODY")
+
 --------------------------------------------------------------------------------
 -- Recipient Picker
 --------------------------------------------------------------------------------
@@ -63,6 +69,7 @@ function Picker:Build()
 	frame:Hide()
 
 	local scroll = CreateFrame("ScrollFrame", "PlayItForwardPickerScroll", frame, "UIPanelScrollFrameTemplate")
+	ns.SkinScrollFrame(scroll, "PlayItForwardPickerScroll")
 	scroll:SetPoint("TOPLEFT", 8, -8)
 	scroll:SetPoint("BOTTOMRIGHT", -26, 8)
 	local content = CreateFrame("Frame", nil, scroll)
@@ -70,9 +77,27 @@ function Picker:Build()
 	scroll:SetScrollChild(content)
 	frame.content = content
 
+	--[[
+		Escape hides every shown UISpecialFrames entry at once, so while the list is open the
+		window it drops from leaves the list and Escape closes the list alone. Closing the window
+		stops a mail run and drops the search plan, which one Escape meant for a dropdown must not do.
+	]]
 	tinsert(UISpecialFrames, "PlayItForwardRecipientPicker")
+	frame:SetScript("OnShow", function()
+		for index = #UISpecialFrames, 1, -1 do
+			if UISpecialFrames[index] == MAIN_WINDOW_NAME then
+				table.remove(UISpecialFrames, index)
+			end
+		end
+	end)
 	frame:SetScript("OnHide", function()
 		catcher:Hide()
+		for _, name in ipairs(UISpecialFrames) do
+			if name == MAIN_WINDOW_NAME then
+				return
+			end
+		end
+		tinsert(UISpecialFrames, MAIN_WINDOW_NAME)
 	end)
 
 	self.frame = frame
@@ -116,7 +141,10 @@ function Picker:GetEntry(i)
 	return entry
 end
 
--- options = { { text = "...", pick = candidate|nil, clear/disabled/separator/findForItem = bool }, ... }
+--[[
+	options = { { text = "...", tooltip = "..."|nil, pick = candidate|nil,
+	clear/disabled/separator/header/findForItem = bool }, ... }
+]]
 function Picker:Open(anchor, options, onSelect)
 	local frame = self:Build()
 	for _, entry in ipairs(self.entries) do
@@ -144,8 +172,8 @@ function Picker:Open(anchor, options, onSelect)
 		else
 			entry.line:Hide()
 		end
-		-- An entry that will not respond to a click has to look like it; a divider is furniture.
-		entry:SetAlpha((option.disabled and not option.separator) and 0.45 or 1)
+		-- An entry that will not respond to a click has to look like it; a divider or a section heading is furniture.
+		entry:SetAlpha((option.disabled and not option.separator and not option.header) and 0.45 or 1)
 		entry:SetScript("OnClick", function()
 			if option.disabled then
 				return
@@ -153,6 +181,20 @@ function Picker:Open(anchor, options, onSelect)
 			Picker:Close()
 			onSelect(option)
 		end)
+		-- Entries are pooled, so one without a tooltip clears the scripts the last list gave it.
+		if option.tooltip then
+			entry:SetScript("OnEnter", function(hovered)
+				GameTooltip:SetOwner(hovered, "ANCHOR_RIGHT")
+				GameTooltip:AddLine(option.tooltip, BODY_R, BODY_G, BODY_B, true)
+				GameTooltip:Show()
+			end)
+			entry:SetScript("OnLeave", function()
+				GameTooltip:Hide()
+			end)
+		else
+			entry:SetScript("OnEnter", nil)
+			entry:SetScript("OnLeave", nil)
+		end
 		entry:Show()
 	end
 

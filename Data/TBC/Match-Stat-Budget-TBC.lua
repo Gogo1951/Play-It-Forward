@@ -23,11 +23,11 @@ ns.Data.STAT_BUDGET = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, TBC Anniversary 2.5.6.70006
+	2026-10-29, TBC Anniversary 2.5.6.70577
 
 Notes
 	- What one point of each stat costs on an item, in primary-stat points, so a weight
-	  multiplies something comparable. Data/Match-Stats.lua says who wants a stat; this says
+	  multiplies something comparable. The Match-Specs file says who wants a stat; this says
 	  how much of the item it is. A stat not listed here costs 1. Read by
 	  Features/Match-Derivations.lua.
 	- TBC writes ratings, and a point of rating costs about a point of primary stat, so hit and

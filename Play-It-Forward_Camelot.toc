@@ -1,5 +1,5 @@
 ## Title: Play It Forward
-## Notes: Mail the BoE gear, food, potions, and scrolls you've outgrown to leveling players in your guild or out in the world. Every item goes to the class it suits best, turning bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
+## Notes: Mail outgrown BoE gear, food, potions, scrolls, oils, and stones to your alts, guildmates, and leveling players. Every item goes to the class it suits best, turning bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
 ## Author: Gogo1951
 
 ## IconTexture: Interface/AddOns/Play-It-Forward/Includes/Images/Play-It-Forward.tga
@@ -59,13 +59,13 @@ Data/Camelot/Scan-Potions-Camelot.lua
 Data/Camelot/Scan-Scrolls-Camelot.lua
 Data/Camelot/Scan-Oils-Stones-Camelot.lua
 Data/Camelot/Recipients-Zones-Camelot.lua
+Data/Camelot/Recipients-Realms-Camelot.lua
 Data/Camelot/Match-Weapons-Camelot.lua
 Data/Camelot/Match-Armor-Camelot.lua
 Data/Camelot/Match-Classes-Camelot.lua
-Data/Match-Stats.lua
-Data/Match-Armor.lua
-Data/Match-Rules.lua
-Data/Scan-Stats.lua
+Data/Camelot/Match-Specs-Camelot.lua
+Data/Camelot/Match-Rules-Camelot.lua
+Data/Camelot/Scan-Stats-Camelot.lua
 Data/Default-Settings.lua
 
 # Play It Forward
@@ -78,15 +78,21 @@ Features/Match-Derivations.lua
 Features/Match-Engine.lua
 Features/Match-Ranking.lua
 Features/Match-List.lua
+Features/Match-Roster.lua
+Features/Match-Search.lua
 Features/Recipients-Who-Plan.lua
+Features/Recipients-Zones.lua
 Features/Recipients-Who.lua
 Features/Recipients-Guild.lua
+Features/Recipients-Alts.lua
 Features/Recipients-Fairness.lua
 Features/Mail-Sender.lua
+Features/Mail-Copy.lua
 Features/UI-Picker.lua
 Features/UI-Window.lua
 Features/UI-Assignment.lua
 Features/UI-Mailbox.lua
+Features/UI-Reopen-Button.lua
 Features/Generosity.lua
 Features/Generosity-Broadcast.lua
 Features/Generosity-Tooltip.lua
@@ -104,6 +110,12 @@ Diagnostics/Report-Runner.lua
 # Options
 Options/Options-Utilities.lua
 Options/Options-General.lua
+Options/Options-Give-Away.lua
+Options/Options-Recipients.lua
+Options/Options-Alts.lua
+Options/Options-Guilds.lua
+Options/Options-Mail.lua
+Options/Options-Generosity.lua
 Options/Options-Profiles.lua
 Options/Options-Feedback-Support.lua
 Diagnostics/Options-Diagnostics.lua

@@ -32,6 +32,9 @@ local handlers = {}
 local registered = {}
 local frame = CreateFrame("Frame")
 
+-- The one frame Features/Recipients-Who.lua must never deafen: it is how the answer gets read.
+ns.eventFrame = frame
+
 ns.EVENT_NAMES = {}
 
 function ns.On(event, fn)
@@ -79,17 +82,23 @@ local function OnAddonLoaded(name)
 	-- MIGRATION (remove after 2026-11-05)
 	ns.db.profile.recipients = nil
 
+	-- The weights were built from the spec defaults at load; the player's own choices exist now.
+	ns.Data.RebuildStatWeights()
+
 	--[[
 		A reset or a profile switch replaces ns.db.profile wholesale. Settings read live off it
 		catch up on their own; the built window does not, so it is re-read here -- the same two
 		calls the options panel makes when a giftability setting changes.
 	]]
 	function ns:ApplyProfile()
-		if ns.UI and ns.UI.frame then
+		ns.Data.RebuildStatWeights()
+		if ns.UI.frame then
 			ns.UI:SyncControls()
-			ns.UI:Rescan()
 		end
-		LibStub("AceConfigRegistry-3.0"):NotifyChange(ns.OPTIONS_REGISTRY.General)
+		ns.UI:Rescan()
+		for _, registryName in pairs(ns.OPTIONS_REGISTRY) do
+			LibStub("AceConfigRegistry-3.0"):NotifyChange(registryName)
+		end
 	end
 
 	for _, msg in ipairs({ "OnProfileChanged", "OnProfileReset", "OnProfileCopied" }) do

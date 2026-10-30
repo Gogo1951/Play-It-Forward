@@ -1,7 +1,7 @@
 --[[
 	Class weights summed from talent trees, and the budget that makes every stat count.
 
-	Data/Match-Stats.lua writes each tree as the player levelling it: a stat it builds
+	Each Classic folder's Match-Specs file writes each tree as the player levelling it: a stat it builds
 	around is worth 2, one that helps it 1, and three trees sum to a class weight of 0 to
 	6. The cases below pin the sums worth pinning, then the reason the budget exists --
 	a Classic "+1% hit" reads as 1 beside "+10 Strength", and before the conversion hit
@@ -17,7 +17,8 @@ local function load(flavor)
 	local ok, ns = pcall(Harness.LoadAddon, ADDON_ROOT)
 	Stub.flavor = "Vanilla"
 	assert(ok, ns)
-	return ns
+	-- Every spec on: these cases pin what each spec sums to, not which ones ship turned on.
+	return Harness.AllSpecs(ns)
 end
 
 local function contains(list, wanted)

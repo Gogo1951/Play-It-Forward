@@ -35,7 +35,7 @@ ns.Data.OILS_AND_STONES = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, Classic Era 1.15.9.70003
+	2026-10-29, Classic Era 1.15.9.70576
 
 Notes
 	- The oils, sharpening stones and weightstones any class can put on a weapon, taken from
@@ -43,7 +43,7 @@ Notes
 	  (TFTB/Data/Vanilla/Buff-Window-Spells-Vanilla.lua), with quality, required level and binding
 	  read from ItemSparse.
 	- enhances is who the item helps, and it decides who can receive it through
-	  ns.Data.CONSUMABLE_CLASSES in Data/Data.lua, so there is no per-item class list. MELEE
+	  ns.Data.CONSUMABLE_CLASSES in this folder's Match-Classes file, so there is no per-item class list. MELEE
 	  for the stones; SPELL_DAMAGE for the wizard oils; MANA for the mana oils, which restore
 	  mana and, from Brilliant up, add healing.
 	- A sharpening stone only takes a bladed weapon and a weightstone only a blunt one. Every
@@ -59,6 +59,10 @@ Notes
 	  - 211845 Blackfathom Sharpening Stone and 211848 Blackfathom Mana Oil are in the Classic
 	    Era tables but are Season of Discovery's, which QuestieDB's Classic items don't hold.
 	    They belong in Data/Discovery/, never here.
+	- Rechecked against this client's tables at 1.15.9.70576 by name (sharpening stones,
+	  weightstones, wizard and mana oils). Besides the items held out above, only 6213 Test
+	  Sharpening Stone, an internal item, and 22600 Craftsman's Writ - Dense Weightstone, a
+	  quest token rather than a stone, turn up.
 
 SQL (CMaNGOS)
 	TODO: Add SQL Query
@@ -67,8 +71,8 @@ Wowhead
 	None.
 
 wago.tools
-	https://wago.tools/db2/ItemSparse?build=1.15.9.70003
-	https://wago.tools/db2/Item?build=1.15.9.70003
+	https://wago.tools/db2/ItemSparse?build=1.15.9.70576
+	https://wago.tools/db2/Item?build=1.15.9.70576
 
 QuestieDB
 	https://raw.githubusercontent.com/Questie/QuestieDB/master/data/Classic/classicItemDB.lua

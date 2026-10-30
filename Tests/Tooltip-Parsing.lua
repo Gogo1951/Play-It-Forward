@@ -66,7 +66,7 @@ end)
 --[[
 	Every stat with a localized _SHORT global should read off a "+N" line, not just the
 	five that were listed by hand. The client owns those strings, so deriving the table
-	from Data/Scan-Stats.lua is what keeps it locale-safe and stops it drifting.
+	from the Scan-Stats files is what keeps it locale-safe and stops it drifting.
 ]]
 test("stats beyond the core five parse from a plus line", function()
 	local ns = load()

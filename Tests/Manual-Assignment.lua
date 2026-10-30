@@ -71,8 +71,45 @@ test("picking somebody already holding an item takes them from it", function()
 	ns.UI:SetRecipient(second, held)
 
 	equal(second.recipient, held, "the player's pick lands")
-	equal(first.recipient, nil, "the row that held them lets go")
+	check(first.recipient ~= held, "the row that held them lets go")
 	check(not first.pinned, "and returns to auto-assignment rather than reading as a deliberate keep")
+	check(first.recipient ~= nil, "and finds somebody else at once rather than sitting empty")
+end)
+
+-- Manual always wins: a name set by hand on two rows stays on both, through a rescan too.
+test("a name picked by hand on two rows stays on both", function()
+	local ns = load()
+	local first, second = twoMatched(ns)
+	local held = first.recipient
+
+	ns.UI:SetRecipient(first, held)
+	ns.UI:SetRecipient(second, held)
+	equal(first.recipient, held, "the first pick stands")
+	equal(second.recipient, held, "and so does the second")
+
+	ns.fire("BAG_UPDATE", 0)
+	Stub.FireTimers()
+	ns.fire("MAIL_SHOW")
+	local items = ns.UI:Items()
+	equal(items[1].recipient and items[1].recipient.name, held.name, "the first survives a rescan")
+	equal(items[2].recipient and items[2].recipient.name, held.name, "and so does the second")
+end)
+
+-- Every press re-decides the rows the player has not set, and never the ones they have.
+test("a search re-decides automatic rows but never a hand pick", function()
+	local ns = load()
+	local _, second = twoMatched(ns)
+	local picked = second.recipient
+	ns.UI:SetRecipient(second, picked)
+
+	Stub.now = Stub.now + 10
+	Stub.FireTimers()
+	Stub.whoResults = { { name = "Mage3", level = 19, class = "MAGE" } }
+	ns.UI:FindRecipients()
+	ns.fire("WHO_LIST_UPDATE")
+
+	equal(ns.UI:Items()[2].recipient, picked, "the hand pick stands")
+	check(ns.UI:Items()[1].pinned ~= true, "the other row is still the allocator's")
 end)
 
 test("somebody who already has one is offered with a note, not a gate", function()
@@ -85,6 +122,11 @@ test("somebody who already has one is offered with a note, not a gate", function
 	check(
 		option and option.text:find(ns.L["PICKER_NOTE_HAS_ONE"], 1, true) ~= nil,
 		"with the note saying why to think twice"
+	)
+	equal(
+		option and option.tooltip,
+		ns.L["PICKER_NOTE_HAS_ONE_DESCRIPTION"],
+		"and hovering it says what the note means"
 	)
 end)
 
@@ -103,6 +145,9 @@ test("somebody free is offered and can be picked", function()
 		local held = option and option.text:find(ns.L["PICKER_NOTE_HAS_ONE"], 1, true)
 		if option and not held and person ~= (second.recipient and second.recipient.name) then
 			free = option
+		end
+		if option and not held then
+			equal(option.tooltip, nil, "a name with no note has no tooltip")
 		end
 	end
 	check(free ~= nil, "somebody unassigned is offered")
@@ -148,6 +193,7 @@ test("a recipient the server refused can still be picked by hand", function()
 	check(option ~= nil, "still shown")
 	check(option and not option.disabled, "and selectable")
 	check(option and option.text:find(ns.L["PICKER_NOTE_REFUSED"], 1, true) ~= nil, "with the refusal noted")
+	equal(option and option.tooltip, ns.L["PICKER_NOTE_REFUSED_DESCRIPTION"], "and explained on hover")
 
 	ns.UI:SetRecipient(second, target)
 	equal(second.recipient, target, "the pick lands")
@@ -367,4 +413,39 @@ test("nothing is reassigned behind the player's back", function()
 	for _, message in ipairs(Stub.printed) do
 		check(not tostring(message):find("reassigned"), "no reassignment announced: " .. tostring(message))
 	end
+end)
+
+--------------------------------------------------------------------------------
+-- Closing and reopening
+--------------------------------------------------------------------------------
+
+test("closing lets go of automatic names but keeps hand picks", function()
+	local ns = load()
+	local first, second = twoMatched(ns)
+	local picked = second.recipient
+	ns.UI:SetRecipient(second, picked)
+
+	ns.UI:Close()
+	equal(first.recipient, nil, "the automatic name is let go")
+	equal(second.recipient, picked, "the hand pick stays")
+end)
+
+--[[
+	Reopening shows the list unmatched (maintainer ruling, 2026-10-29): pairings left over from
+	the last open read as a search that already happened. The roster is kept, so the next press
+	matches from it as well as from whoever that press finds.
+]]
+test("reopening waits on Find Recipients, then matches from the roster already found", function()
+	local ns = load()
+	local first = twoMatched(ns)
+	check(first.recipient ~= nil, "matched before closing")
+
+	ns.UI:Close()
+	Stub.whoResults = {}
+	ns.UI:Open()
+	equal(ns.UI:Items()[1].recipient, nil, "nothing matched on open")
+
+	ns.UI:FindRecipients()
+	ns.fire("WHO_LIST_UPDATE")
+	check(ns.UI:Items()[1].recipient ~= nil, "the press matches from the saved roster")
 end)

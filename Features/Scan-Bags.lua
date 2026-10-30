@@ -3,6 +3,17 @@ local _, ns = ...
 ns.Scanner = {}
 local Scanner = ns.Scanner
 
+--[[
+	The item IDs the last full scan rejected as NOT_CACHED: the only items whose arriving info can
+	change what a scan returns. Features/Match-List.lua rescans on GET_ITEM_INFO_RECEIVED for these
+	alone, since that event fires for every item the client loads, from any source.
+]]
+local pendingItems = {}
+
+function Scanner:IsPending(itemID)
+	return itemID ~= nil and pendingItems[itemID] == true
+end
+
 local BOE_BINDTYPES = { [0] = true, [2] = true } -- 0 = no bind, 2 = Bind on Equip
 local NUM_BAGS = 4 -- 0..4 (Classic Era: backpack + 4 bags, no reagent bag)
 local CONSUMABLE_CLASS, WEAPON_CLASS, ARMOR_CLASS = 0, 2, 4 -- GetItemInfo classID
@@ -55,41 +66,13 @@ local BIND_REJECT = {
 	is food and drink at once, offered while either switch is on.
 ]]
 local FOOD_KINDS = { MANA = { "DRINK" }, BOTH = { "FOOD", "DRINK" } }
-local ONLY_FOOD, ONLY_POTION, ONLY_SCROLL, ONLY_OIL_STONE = { "FOOD" }, { "POTION" }, { "SCROLL" }, { "OIL_STONE" }
 
+-- kinds is a list, or for food a lookup by what the row restores, with the list beside it as the fallback.
 local CONSUMABLE_TABLES = {
-	{
-		table = "FOOD_AND_WATER",
-		form = "FOOD",
-		effect = "restores",
-		kinds = function(restores)
-			return FOOD_KINDS[restores] or ONLY_FOOD
-		end,
-	},
-	{
-		table = "POTIONS",
-		form = "POTION",
-		effect = "restores",
-		kinds = function()
-			return ONLY_POTION
-		end,
-	},
-	{
-		table = "SCROLLS",
-		form = "SCROLL",
-		effect = "buffs",
-		kinds = function()
-			return ONLY_SCROLL
-		end,
-	},
-	{
-		table = "OILS_AND_STONES",
-		form = "OIL_STONE",
-		effect = "enhances",
-		kinds = function()
-			return ONLY_OIL_STONE
-		end,
-	},
+	{ table = "FOOD_AND_WATER", form = "FOOD", effect = "restores", kinds = { "FOOD" }, kindsBy = FOOD_KINDS },
+	{ table = "POTIONS", form = "POTION", effect = "restores", kinds = { "POTION" } },
+	{ table = "SCROLLS", form = "SCROLL", effect = "buffs", kinds = { "SCROLL" } },
+	{ table = "OILS_AND_STONES", form = "OIL_STONE", effect = "enhances", kinds = { "OIL_STONE" } },
 }
 
 local consumableByID
@@ -106,7 +89,7 @@ local function ConsumableIndex()
 				useLevel = row[3],
 				[source.effect] = row[4],
 				form = source.form,
-				kinds = source.kinds(row[4]),
+				kinds = (source.kindsBy and source.kindsBy[row[4]]) or source.kinds,
 			}
 		end
 	end
@@ -189,6 +172,10 @@ local function FilterSlot(bag, slot)
 		C_Item.GetItemInfo(link)
 	if not name then
 		-- Not in the client's item cache yet; GET_ITEM_INFO_RECEIVED rescans while the window is open (Features/Match-List.lua).
+		local itemID = ns.GetInfoInstant(link)
+		if itemID then
+			pendingItems[itemID] = true
+		end
 		return nil, REJECT.NOT_CACHED
 	end
 
@@ -224,6 +211,9 @@ local function FilterSlot(bag, slot)
 		local gap = ns.db.profile.consumableLevelGap
 		if gap > 0 and (UnitLevel("player") or 1) - consumable.useLevel < gap then
 			return nil, REJECT.LEVEL_GAP
+		end
+		if isBound then
+			return nil, REJECT.SOULBOUND
 		end
 		return {
 			kind = "consumable",
@@ -328,17 +318,24 @@ function Scanner:Describe(link)
 	}
 end
 
-function Scanner:Scan()
-	local items = {}
+-- Classifies every bag slot in order, handing each slot and its answer to fn.
+local function EachSlot(fn)
 	for bag = 0, NUM_BAGS do
 		local slots = C_Container.GetContainerNumSlots(bag) or 0
 		for slot = 1, slots do
-			local record = self:Classify(bag, slot)
-			if record then
-				table.insert(items, record)
-			end
+			fn(bag, slot, Scanner:Classify(bag, slot))
 		end
 	end
+end
+
+function Scanner:Scan()
+	wipe(pendingItems)
+	local items = {}
+	EachSlot(function(_, _, record)
+		if record then
+			table.insert(items, record)
+		end
+	end)
 	return items
 end
 
@@ -348,20 +345,16 @@ end
 ]]
 function Scanner:ScanAll()
 	local rows = {}
-	for bag = 0, NUM_BAGS do
-		local slots = C_Container.GetContainerNumSlots(bag) or 0
-		for slot = 1, slots do
-			local record, reason = self:Classify(bag, slot)
-			if record or reason ~= REJECT.EMPTY_SLOT then
-				table.insert(rows, {
-					bag = bag,
-					slot = slot,
-					link = ns.GetItemLink(bag, slot),
-					item = record,
-					reason = reason,
-				})
-			end
+	EachSlot(function(bag, slot, record, reason)
+		if record or reason ~= REJECT.EMPTY_SLOT then
+			table.insert(rows, {
+				bag = bag,
+				slot = slot,
+				link = ns.GetItemLink(bag, slot),
+				item = record,
+				reason = reason,
+			})
 		end
-	end
+	end)
 	return rows
 end

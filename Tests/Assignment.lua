@@ -183,7 +183,8 @@ test("neither spelling of one player is handed a second item", function()
 
 	ns.MatchList:AddResults({ { name = "Bob", level = 19, class = "WARRIOR" } })
 	ns.MatchList:AddResults({ { name = "Bob-Test", level = 19, class = "WARRIOR", guild = true } })
-	ns.UI:Assign()
+	ns.UI:FindRecipients()
+	ns.fire("WHO_LIST_UPDATE")
 
 	local held = 0
 	for _, item in ipairs(ns.UI:Items()) do
@@ -199,7 +200,7 @@ end)
 	reach the same number of people, the better item still picks first.
 ]]
 test("equally reachable items are still handed out best-first", function()
-	local ns = load()
+	local ns = Harness.AllSpecs(load())
 	Stub.SetBackpack({
 		gear("Weak Chain Vest", "INVTYPE_CHEST", 4, 3, { ITEM_MOD_STRENGTH_SHORT = 2 }),
 		gear("Strong Chain Vest", "INVTYPE_LEGS", 4, 3, { ITEM_MOD_STRENGTH_SHORT = 9 }),

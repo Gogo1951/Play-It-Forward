@@ -17,11 +17,12 @@ local GetColor = ns.GetColor
 --[[
 	The branded line, built rather than printed, because chat is not the only place it appears:
 	Features/Generosity-Tooltip.lua heads its block with the same line. One builder so the two can
-	never brand the add-on differently, and so a locale body stays the body alone.
+	never brand the add-on differently, and so a locale body stays the body alone. nameKey picks
+	the name: the Full Name by default, the Short Name for a block in someone else's tooltip.
 ]]
-function ns:BuildBrandedLine(message)
+function ns:BuildBrandedLine(message, nameKey)
 	return GetColor("INFO")
-		.. L["ADDON_TITLE"]
+		.. L[nameKey or "ADDON_TITLE"]
 		.. "|r "
 		.. GetColor("SEPARATOR")
 		.. "//"

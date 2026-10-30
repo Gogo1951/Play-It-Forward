@@ -46,7 +46,7 @@ ns.MESSAGE_ID_FILTERED_EVENTS = {
 			return prefix == ns.ADDON_MESSAGE_PREFIX
 		end,
 	},
-	-- Signal exactly when the firing arms a rescan of the open window; otherwise it only marks the bags stale.
+	-- Signal exactly when the firing arms a rescan, of the open window or a waiting mailbox; otherwise it only marks the bags stale.
 	BAG_UPDATE = {
 		id = 1, -- (bagID)
 		correlated = function()
@@ -55,8 +55,8 @@ ns.MESSAGE_ID_FILTERED_EVENTS = {
 	},
 	GET_ITEM_INFO_RECEIVED = {
 		id = 1, -- (itemID, success)
-		correlated = function()
-			return ns.MatchList:WouldRescan()
+		correlated = function(itemID, success)
+			return ns.MatchList:WouldRescanItem(itemID, success)
 		end,
 	},
 }

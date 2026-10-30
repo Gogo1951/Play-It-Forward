@@ -1,9 +1,10 @@
 local _, ns = ...
 
---[[
-	GetItemStats keys -> internal stat tokens. The key set differs between clients, so a stat
-	that scores on one and not another means a row is missing here, not a broken scorer.
-]]
+if not ns.IS_DISCOVERY then
+	return
+end
+
+-- [GetItemStats key] = stat token
 ns.Data.STAT_MAP = {
 	ITEM_MOD_STRENGTH_SHORT = "STRENGTH",
 	ITEM_MOD_AGILITY_SHORT = "AGILITY",
@@ -37,5 +38,43 @@ ns.Data.STAT_MAP = {
 	ITEM_MOD_DODGE_RATING_SHORT = "DODGE",
 	ITEM_MOD_BLOCK_RATING_SHORT = "BLOCK",
 	ITEM_MOD_MANA_REGENERATION_SHORT = "MP5",
+
+	--[[
+		The ratings Mists gear is made of. TBC items carry haste, expertise and resilience as well:
+		read and reported there, weighted for nobody, because only the Mists specs list them.
+	]]
+	ITEM_MOD_HASTE_RATING_SHORT = "HASTE",
+	ITEM_MOD_EXPERTISE_RATING_SHORT = "EXPERTISE",
+	ITEM_MOD_MASTERY_RATING_SHORT = "MASTERY",
+	ITEM_MOD_PARRY_RATING_SHORT = "PARRY",
+	ITEM_MOD_RESILIENCE_RATING_SHORT = "RESILIENCE",
+	ITEM_MOD_PVP_POWER_SHORT = "PVP_POWER",
 	-- RESISTANCE0_NAME (armor) and RESISTANCE1..7 (schools) intentionally omitted.
 }
+
+--[[
+How We Got the Data
+
+Last Validated
+	2026-10-29, Season of Discovery 1.15.9.70576
+
+Notes
+	- GetItemStats keys this client can answer with, mapped to the add-on's stat tokens.
+	  Features/Scan-Bags.lua and Features/Scan-Tooltip.lua read it.
+	- The key set differs between clients, so a stat that scores on one and not another means
+	  a row is missing here, not a broken scorer.
+	- Keyed by stat global, which no client API looks up by ID, so Validate Data counts the
+	  rows only.
+
+SQL (CMaNGOS)
+	TODO: Add SQL Query
+
+Wowhead
+	None.
+
+wago.tools
+	None.
+
+QuestieDB
+	None.
+]]

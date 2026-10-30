@@ -156,16 +156,17 @@ end)
 
 --[[
 	Which zones lead is the zone table's job and is checked above. This is about the
-	shape of the plan: bare levels first, the zones behind them. Zones arrive lumped into
+	shape of the plan: the levelling zones first, because that is where the people who
+	will use a gift are; bare levels behind them as the fallback. Zones arrive lumped into
 	one query, so their label names a count rather than a place -- see
 	Tests/Query-Building.lua.
 ]]
-test("the first query asks bare levels, and the zones come after", function()
+test("the first query asks the zones, and bare levels come after", function()
 	local ns = load()
 	local steps = ns.Who:Plan({ { lo = 21, hi = 22 } })
 
 	check(steps > 1, "more than one place to look")
-	equal(ns.Who:Peek(), ns.DiagnosticsStrings.WHO_LABEL_ANYWHERE:format("21-22"), "starts with bare levels")
+	check(ns.Who:Peek():find("zone") ~= nil, "starts in the zones: " .. ns.Who:Peek())
 
 	Stub.whoTotal = 999 -- capped every time, or the first answer ends the search
 	local last
@@ -175,7 +176,7 @@ test("the first query asks bare levels, and the zones come after", function()
 		Stub.now = Stub.now + 60
 		ns.fire("WHO_LIST_UPDATE")
 	end
-	check(last:find("zone"), "the zones are still asked, last: " .. last)
+	equal(last, ns.DiagnosticsStrings.WHO_LABEL_ANYWHERE:format("21-22"), "bare levels are still asked, last")
 end)
 
 --[[
@@ -185,17 +186,23 @@ end)
 test("neighbouring bands share one query", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 50, hi = 51 }, { lo = 52, hi = 53 }, { lo = 54, hi = 55 } })
-	equal(ns.Who:Peek(), ns.DiagnosticsStrings.WHO_LABEL_ANYWHERE:format("50-55"), "one span for all three")
+	for _, attempt in ipairs(ns.Who.plan) do
+		equal(attempt.lo .. "-" .. attempt.hi, "50-55", "one span for all three: " .. attempt.label)
+	end
 
+	-- Past the zones, whose answers never end anything, to the bare query.
+	while #(ns.Who.plan[1].zones or {}) > 0 do
+		table.remove(ns.Who.plan, 1)
+	end
 	ns.Who:Step(function() end)
 	ns.fire("WHO_LIST_UPDATE") -- under the cap: everybody at 50-55 has answered
-	equal(ns.Who:Remaining(), 0, "and one answer under the cap finishes it")
+	equal(ns.Who:Remaining(), 0, "and one bare answer under the cap finishes it")
 end)
 
 test("bands far apart are not folded together", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 21, hi = 22 }, { lo = 45, hi = 47 } })
-	equal(ns.Who:Peek(), ns.DiagnosticsStrings.WHO_LABEL_ANYWHERE:format("21-22"), "the low band on its own")
+	equal(ns.Who.plan[1].lo .. "-" .. ns.Who.plan[1].hi, "21-22", "the low band on its own")
 end)
 
 --[[
@@ -205,6 +212,12 @@ end)
 test("an answer under the cap drops what it already answered, and nothing else", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 21, hi = 22, classes = { "MAGE", "PRIEST" } }, { lo = 45, hi = 47 } })
+	-- Straight to the bare 21-22: a zoned answer never ends anything, so it is not what this asks.
+	for index = #ns.Who.plan, 1, -1 do
+		if #(ns.Who.plan[index].zones or {}) > 0 then
+			table.remove(ns.Who.plan, index)
+		end
+	end
 
 	ns.Who:Step(function() end) -- bare 21-22
 	Stub.whoResults = { { name = "Agathe", level = 21, class = "MAGE" } }
@@ -237,15 +250,16 @@ end)
 
 --[[
 	Find Recipients for This Item exists to ask for the class it names; leading with the
-	bare query would only repeat what the main button already sent. A class filter reaches
-	everybody of that class wherever they stand, so it goes before the zones.
+	bare query would only repeat what the main button already sent. The class out in its
+	levelling zones goes first, and the class anywhere is the fallback behind it.
 ]]
-test("a targeted plan asks by class before it asks by zone", function()
+test("a targeted plan asks the class in its zones before anywhere", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 21, hi = 22, classes = { "HUNTER" } } }, true)
 	local label = ns.Who:Peek()
-	check(label:find("anywhere") and label:find("Hunter"), "the hunter, anywhere, first: " .. label)
-	check(ns.Who:Remaining() > 1, "with his zones still behind it")
+	check(label:find("zone") and label:find("Hunter"), "the hunter, in the zones, first: " .. label)
+	local last = ns.Who.plan[#ns.Who.plan].label
+	check(last:find("anywhere") and last:find("Hunter"), "with the hunter anywhere behind them: " .. last)
 end)
 
 test("bands take turns rather than one running to exhaustion", function()
@@ -378,9 +392,9 @@ test("finding a recipient ends the search", function()
 
 	ns.UI:FindRecipients()
 	check(#Stub.whoQueries == 1, "one query went out")
-	equal(Stub.whoQueries[1], "18-19", "asking bare levels")
+	check(Stub.whoQueries[1]:find('^18%-19 z%-"') ~= nil, "asking the zones: " .. Stub.whoQueries[1])
 
-	Stub.whoResults = { { name = "Agathe", level = 18, class = "MAGE" } }
+	Stub.whoResults = { { name = "Agathe", level = 18, class = "MAGE", area = "Westfall" } }
 	ns.fire("WHO_LIST_UPDATE")
 
 	equal(ns.UI:Items()[1].recipient.name, "Agathe", "the item found somebody")
@@ -459,6 +473,57 @@ test("an unanswered query still gives the panel its ears back", function()
 
 	Stub.FireTimers() -- the RESULT_TIMEOUT path: a blocked query never answers
 	check(FriendsFrame:IsEventRegistered("WHO_LIST_UPDATE"), "restored by the timeout's cleanup")
+end)
+
+--[[
+	Forever's Retail-based UI opened the panel over the mailbox with FriendsFrame and WhoFrame both
+	deaf, so the listeners are asked of the client, not named. Every one is quieted but the add-on's
+	own dispatcher, which is how the answer gets read at all.
+]]
+test("a listener with no name is quieted too, and the add-on's own frame never is", function()
+	local ns = load()
+	bagWithOneCloak(ns)
+	local other = Stub.otherWhoListener
+	-- The harness injects ns.On rather than loading Core, so its frame is stood up here.
+	ns.eventFrame = Stub.NewFrame()
+	ns.eventFrame:RegisterEvent("WHO_LIST_UPDATE")
+
+	ns.UI:FindRecipients()
+	check(not other:IsEventRegistered("WHO_LIST_UPDATE"), "the unnamed listener is deaf while our query is in flight")
+	check(ns.eventFrame:IsEventRegistered("WHO_LIST_UPDATE"), "the dispatcher still hears it")
+	equal(ns.Who:QuietedFrames(), 2, "both Blizzard-side listeners, nothing more")
+
+	Stub.whoResults = { { name = "Agathe", level = 18, class = "MAGE" } }
+	ns.fire("WHO_LIST_UPDATE")
+	check(other:IsEventRegistered("WHO_LIST_UPDATE"), "and it listens again once the answer is read")
+	equal(ns.Who:QuietedFrames(), 0, "nobody left deaf")
+end)
+
+test("without GetFramesRegisteredForEvent the two named frames are still quieted", function()
+	local ns = load()
+	bagWithOneCloak(ns)
+	GetFramesRegisteredForEvent = nil
+
+	ns.UI:FindRecipients()
+	check(not FriendsFrame:IsEventRegistered("WHO_LIST_UPDATE"), "FriendsFrame is deaf while our query is in flight")
+
+	Stub.whoResults = { { name = "Agathe", level = 18, class = "MAGE" } }
+	ns.fire("WHO_LIST_UPDATE")
+	check(FriendsFrame:IsEventRegistered("WHO_LIST_UPDATE"), "and listening again afterwards")
+end)
+
+test("the panel opening mid-query is counted for the roster report", function()
+	local ns = load()
+	bagWithOneCloak(ns)
+	ns.fire("PLAYER_LOGIN")
+	local onShow = FriendsFrame.hooks.OnShow
+
+	onShow() -- the player opening it with nothing in flight is not ours
+	equal(ns.Who.counts.panelOpened, 0, "no query, nothing counted")
+
+	ns.UI:FindRecipients()
+	onShow() -- some route the deafening did not cover
+	equal(ns.Who.counts.panelOpened, 1, "a query out and the panel closed before: counted")
 end)
 
 test("a fresh plan sends again once the abandoned query has landed", function()
@@ -561,15 +626,40 @@ test("a capped answer with nobody suitable keeps the search going", function()
 	equal(ns.UI.frame.findButton:IsEnabled(), true, "and can be pressed for the next look")
 end)
 
---[[
-	Nobody at all online at those levels, and the server said so. Every narrower query
-	would answer the same silence, so the next press starts fresh instead.
-]]
-test("an empty answer under the cap ends the search", function()
+-- Nobody out in the zones says nothing about the capitals: the bare fallback is still to ask.
+test("an empty answer from the zones leaves the fallback standing", function()
 	local ns = load()
 	bagWithOneCloak(ns)
 
 	ns.UI:FindRecipients()
+	Stub.whoResults = {}
+	ns.fire("WHO_LIST_UPDATE")
+
+	check(ns.Who:Remaining() > 0, "somewhere else left to look")
+	equal(ns.Who.plan[#ns.Who.plan].zones, nil, "the bare query among it")
+end)
+
+--[[
+	Nobody at all online at those levels, and the server said so. Every narrower query
+	would answer the same silence, so the next press starts fresh instead.
+]]
+test("an empty bare answer under the cap ends the search", function()
+	local ns = load()
+	bagWithOneCloak(ns)
+
+	-- Every zone answers empty first; none of them can end the search.
+	repeat
+		Stub.now = Stub.now + 60
+		Stub.FireTimers()
+		ns.UI:FindRecipients()
+		Stub.whoResults = {}
+		ns.fire("WHO_LIST_UPDATE")
+	until ns.Who:Remaining() == 0 or #(ns.Who.plan[1].zones or {}) == 0
+
+	Stub.now = Stub.now + 60
+	Stub.FireTimers()
+	ns.UI:FindRecipients()
+	equal(Stub.whoQueries[#Stub.whoQueries], "18-19", "the bare fallback went out")
 	Stub.whoResults = {}
 	ns.fire("WHO_LIST_UPDATE")
 
@@ -657,14 +747,23 @@ local function validateZones(ns)
 	return report, counts
 end
 
+-- The ZONES rows with this status, apart from the INSTANCE_AREAS rows that share the file's report and tallies.
+local function zoneRows(report, status)
+	local count = 0
+	for _ in report:gmatch("\n" .. status .. "\tZONES\t") do
+		count = count + 1
+	end
+	return count
+end
+
 test("the Data tab names every Forever zone ID", function()
 	Stub.flavor = "Camelot"
 	local ok, ns = pcall(load)
 	Stub.flavor = "Vanilla"
 	assert(ok, ns)
 
-	local report, counts = validateZones(ns)
-	equal(counts.OK, #ns.Data.ZONES, "every zone resolves")
+	local report = validateZones(ns)
+	equal(zoneRows(report, "OK"), #ns.Data.ZONES, "every zone resolves")
 	check(
 		report:find("OK\tZONES\t16591\tRiverglades\t33\t54\tBoth", 1, true),
 		"a row carries its name, levels and faction"
@@ -676,8 +775,8 @@ test("a zone ID the client cannot name is flagged", function()
 	local ns = load()
 	table.insert(ns.Data.ZONES, { 999999, 20, 30 })
 
-	local report, counts = validateZones(ns)
-	equal(counts["NO NAME"], 1, "the unnamed zone is flagged")
-	equal(counts.OK, #ns.Data.ZONES - 1, "the rest still resolve")
+	local report = validateZones(ns)
+	equal(zoneRows(report, "NO NAME"), 1, "the unnamed zone is flagged")
+	equal(zoneRows(report, "OK"), #ns.Data.ZONES - 1, "the rest still resolve")
 	check(report:find("NO NAME\tZONES\t999999\t\t20\t30\tBoth", 1, true), "and still prints its row")
 end)

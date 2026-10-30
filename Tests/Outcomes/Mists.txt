@@ -1,0 +1,1275 @@
+L20	Cloth chest	Strength	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L20	Cloth chest	Agility	DRUID HUNTER ROGUE
+L20	Cloth chest	Stamina	nobody
+L20	Cloth chest	Intellect	MAGE PRIEST WARLOCK | fallback: DRUID MONK PALADIN SHAMAN
+L20	Cloth chest	Spirit	PRIEST | fallback: DRUID MONK PALADIN SHAMAN
+L20	Cloth chest	Monkey: Agi Sta	DRUID HUNTER ROGUE
+L20	Cloth chest	Eagle: Int Sta	MAGE PRIEST WARLOCK | fallback: DRUID MONK PALADIN SHAMAN
+L20	Cloth chest	Owl: Int Spi	PRIEST | fallback: DRUID MAGE MONK PALADIN SHAMAN
+L20	Cloth chest	Bear: Str Sta	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L20	Cloth chest	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK PRIEST SHAMAN WARRIOR
+L20	Cloth chest	Tiger: Str Agi	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT PALADIN WARRIOR
+L20	Cloth chest	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L20	Cloth chest	Falcon: Agi Int	DRUID | fallback: HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK
+L20	Cloth chest	Wolf: Agi Spi	DRUID | fallback: HUNTER MONK PALADIN PRIEST ROGUE SHAMAN
+L20	Cloth chest	Whale: Sta Spi	PRIEST | fallback: DRUID MONK PALADIN SHAMAN
+L20	Cloth chest	Spell Power	MAGE PRIEST WARLOCK | fallback: DRUID MONK PALADIN SHAMAN
+L20	Cloth chest	Int Spell Power	MAGE PRIEST WARLOCK | fallback: DRUID MONK PALADIN SHAMAN
+L20	Cloth chest	Int Crit Haste	MAGE PRIEST WARLOCK | fallback: DEATHKNIGHT DRUID HUNTER MONK PALADIN ROGUE SHAMAN WARRIOR
+L20	Cloth chest	Int Spi Haste	PRIEST | fallback: DEATHKNIGHT DRUID HUNTER MAGE MONK PALADIN ROGUE SHAMAN WARRIOR
+L20	Cloth chest	Int Hit Mastery	MAGE PRIEST WARLOCK | fallback: DEATHKNIGHT DRUID HUNTER MONK PALADIN ROGUE SHAMAN WARRIOR
+L20	Cloth chest	Agi Crit Mastery	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE MONK PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L20	Cloth chest	Agi Hit Expertise	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L20	Cloth chest	Str Crit Mastery	PALADIN WARRIOR | fallback: DEATHKNIGHT DRUID HUNTER MAGE MONK PRIEST ROGUE SHAMAN WARLOCK
+L20	Cloth chest	Str Parry Dodge	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L20	Cloth chest	No stats	nobody
+L20	Leather chest	Strength	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L20	Leather chest	Agility	DRUID HUNTER ROGUE
+L20	Leather chest	Stamina	nobody
+L20	Leather chest	Intellect	DRUID MONK SHAMAN | fallback: PALADIN
+L20	Leather chest	Spirit	DRUID MONK SHAMAN | fallback: PALADIN
+L20	Leather chest	Monkey: Agi Sta	DRUID HUNTER ROGUE
+L20	Leather chest	Eagle: Int Sta	DRUID MONK SHAMAN | fallback: PALADIN
+L20	Leather chest	Owl: Int Spi	DRUID MONK PALADIN SHAMAN
+L20	Leather chest	Bear: Str Sta	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L20	Leather chest	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK SHAMAN WARRIOR
+L20	Leather chest	Tiger: Str Agi	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT PALADIN WARRIOR
+L20	Leather chest	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MONK SHAMAN WARRIOR
+L20	Leather chest	Falcon: Agi Int	DRUID | fallback: HUNTER MONK PALADIN ROGUE SHAMAN
+L20	Leather chest	Wolf: Agi Spi	DRUID | fallback: HUNTER MONK PALADIN ROGUE SHAMAN
+L20	Leather chest	Whale: Sta Spi	DRUID MONK SHAMAN | fallback: PALADIN
+L20	Leather chest	Spell Power	DRUID MONK SHAMAN | fallback: PALADIN
+L20	Leather chest	Int Spell Power	DRUID MONK SHAMAN | fallback: PALADIN
+L20	Leather chest	Int Crit Haste	DRUID MONK SHAMAN | fallback: DEATHKNIGHT HUNTER PALADIN ROGUE WARRIOR
+L20	Leather chest	Int Spi Haste	DRUID MONK PALADIN SHAMAN | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L20	Leather chest	Int Hit Mastery	DRUID MONK SHAMAN | fallback: DEATHKNIGHT HUNTER PALADIN ROGUE WARRIOR
+L20	Leather chest	Agi Crit Mastery	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MONK PALADIN SHAMAN WARRIOR
+L20	Leather chest	Agi Hit Expertise	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT PALADIN SHAMAN WARRIOR
+L20	Leather chest	Str Crit Mastery	PALADIN WARRIOR | fallback: DEATHKNIGHT DRUID HUNTER MONK ROGUE SHAMAN
+L20	Leather chest	Str Parry Dodge	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L20	Leather chest	No stats	nobody
+L20	Mail chest	Strength	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L20	Mail chest	Agility	nobody
+L20	Mail chest	Stamina	nobody
+L20	Mail chest	Intellect	PALADIN
+L20	Mail chest	Spirit	PALADIN
+L20	Mail chest	Monkey: Agi Sta	nobody
+L20	Mail chest	Eagle: Int Sta	PALADIN
+L20	Mail chest	Owl: Int Spi	PALADIN
+L20	Mail chest	Bear: Str Sta	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L20	Mail chest	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L20	Mail chest	Tiger: Str Agi	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L20	Mail chest	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L20	Mail chest	Falcon: Agi Int	PALADIN
+L20	Mail chest	Wolf: Agi Spi	 | fallback: PALADIN (leftover)
+L20	Mail chest	Whale: Sta Spi	PALADIN
+L20	Mail chest	Spell Power	PALADIN
+L20	Mail chest	Int Spell Power	PALADIN
+L20	Mail chest	Int Crit Haste	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L20	Mail chest	Int Spi Haste	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L20	Mail chest	Int Hit Mastery	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L20	Mail chest	Agi Crit Mastery	 | fallback: DEATHKNIGHT PALADIN WARRIOR (leftover)
+L20	Mail chest	Agi Hit Expertise	 | fallback: DEATHKNIGHT PALADIN WARRIOR (leftover)
+L20	Mail chest	Str Crit Mastery	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L20	Mail chest	Str Parry Dodge	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L20	Mail chest	No stats	nobody
+L20	Plate chest	Strength	DEATHKNIGHT
+L20	Plate chest	Agility	nobody
+L20	Plate chest	Stamina	nobody
+L20	Plate chest	Intellect	nobody
+L20	Plate chest	Spirit	nobody
+L20	Plate chest	Monkey: Agi Sta	nobody
+L20	Plate chest	Eagle: Int Sta	nobody
+L20	Plate chest	Owl: Int Spi	nobody
+L20	Plate chest	Bear: Str Sta	DEATHKNIGHT
+L20	Plate chest	Boar: Str Spi	DEATHKNIGHT
+L20	Plate chest	Tiger: Str Agi	DEATHKNIGHT
+L20	Plate chest	Gorilla: Str Int	DEATHKNIGHT
+L20	Plate chest	Falcon: Agi Int	nobody
+L20	Plate chest	Wolf: Agi Spi	nobody
+L20	Plate chest	Whale: Sta Spi	nobody
+L20	Plate chest	Spell Power	nobody
+L20	Plate chest	Int Spell Power	nobody
+L20	Plate chest	Int Crit Haste	DEATHKNIGHT
+L20	Plate chest	Int Spi Haste	DEATHKNIGHT
+L20	Plate chest	Int Hit Mastery	DEATHKNIGHT
+L20	Plate chest	Agi Crit Mastery	 | fallback: DEATHKNIGHT (leftover)
+L20	Plate chest	Agi Hit Expertise	 | fallback: DEATHKNIGHT (leftover)
+L20	Plate chest	Str Crit Mastery	DEATHKNIGHT
+L20	Plate chest	Str Parry Dodge	DEATHKNIGHT
+L20	Plate chest	No stats	nobody
+L20	Cloak	Strength	DEATHKNIGHT PALADIN WARRIOR
+L20	Cloak	Agility	DRUID HUNTER ROGUE
+L20	Cloak	Stamina	nobody
+L20	Cloak	Intellect	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Cloak	Spirit	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L20	Cloak	Monkey: Agi Sta	DRUID HUNTER ROGUE
+L20	Cloak	Eagle: Int Sta	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Cloak	Owl: Int Spi	DRUID MONK PALADIN PRIEST SHAMAN | fallback: MAGE
+L20	Cloak	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L20	Cloak	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK PRIEST SHAMAN WARRIOR
+L20	Cloak	Tiger: Str Agi	DEATHKNIGHT DRUID HUNTER PALADIN ROGUE WARRIOR
+L20	Cloak	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L20	Cloak	Falcon: Agi Int	DRUID | fallback: HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK
+L20	Cloak	Wolf: Agi Spi	DRUID | fallback: HUNTER MONK PALADIN PRIEST ROGUE SHAMAN
+L20	Cloak	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L20	Cloak	Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Cloak	Int Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Cloak	Int Crit Haste	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L20	Cloak	Int Spi Haste	DRUID MONK PALADIN PRIEST SHAMAN | fallback: DEATHKNIGHT HUNTER MAGE ROGUE WARRIOR
+L20	Cloak	Int Hit Mastery	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L20	Cloak	Agi Crit Mastery	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE MONK PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L20	Cloak	Agi Hit Expertise	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L20	Cloak	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID HUNTER MAGE MONK PRIEST ROGUE SHAMAN WARLOCK
+L20	Cloak	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L20	Cloak	No stats	nobody
+L20	Ring	Strength	DEATHKNIGHT PALADIN WARRIOR
+L20	Ring	Agility	DRUID HUNTER ROGUE
+L20	Ring	Stamina	nobody
+L20	Ring	Intellect	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Ring	Spirit	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L20	Ring	Monkey: Agi Sta	DRUID HUNTER ROGUE
+L20	Ring	Eagle: Int Sta	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Ring	Owl: Int Spi	DRUID MONK PALADIN PRIEST SHAMAN | fallback: MAGE
+L20	Ring	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L20	Ring	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK PRIEST SHAMAN WARRIOR
+L20	Ring	Tiger: Str Agi	DEATHKNIGHT DRUID HUNTER PALADIN ROGUE WARRIOR
+L20	Ring	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L20	Ring	Falcon: Agi Int	DRUID | fallback: HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK
+L20	Ring	Wolf: Agi Spi	DRUID | fallback: HUNTER MONK PALADIN PRIEST ROGUE SHAMAN
+L20	Ring	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L20	Ring	Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Ring	Int Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Ring	Int Crit Haste	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L20	Ring	Int Spi Haste	DRUID MONK PALADIN PRIEST SHAMAN | fallback: DEATHKNIGHT HUNTER MAGE ROGUE WARRIOR
+L20	Ring	Int Hit Mastery	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L20	Ring	Agi Crit Mastery	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE MONK PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L20	Ring	Agi Hit Expertise	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L20	Ring	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID HUNTER MAGE MONK PRIEST ROGUE SHAMAN WARLOCK
+L20	Ring	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L20	Ring	No stats	nobody
+L20	Shield	Strength	PALADIN WARRIOR
+L20	Shield	Agility	nobody
+L20	Shield	Stamina	PALADIN SHAMAN WARRIOR
+L20	Shield	Intellect	PALADIN SHAMAN
+L20	Shield	Spirit	PALADIN SHAMAN
+L20	Shield	Monkey: Agi Sta	nobody
+L20	Shield	Eagle: Int Sta	PALADIN SHAMAN
+L20	Shield	Owl: Int Spi	PALADIN SHAMAN
+L20	Shield	Bear: Str Sta	PALADIN WARRIOR
+L20	Shield	Boar: Str Spi	PALADIN | fallback: SHAMAN WARRIOR
+L20	Shield	Tiger: Str Agi	PALADIN WARRIOR
+L20	Shield	Gorilla: Str Int	PALADIN | fallback: SHAMAN WARRIOR
+L20	Shield	Falcon: Agi Int	PALADIN SHAMAN
+L20	Shield	Wolf: Agi Spi	 | fallback: PALADIN SHAMAN (leftover)
+L20	Shield	Whale: Sta Spi	PALADIN SHAMAN
+L20	Shield	Spell Power	PALADIN SHAMAN
+L20	Shield	Int Spell Power	PALADIN SHAMAN
+L20	Shield	Int Crit Haste	PALADIN SHAMAN | fallback: WARRIOR
+L20	Shield	Int Spi Haste	PALADIN SHAMAN | fallback: WARRIOR
+L20	Shield	Int Hit Mastery	PALADIN SHAMAN | fallback: WARRIOR
+L20	Shield	Agi Crit Mastery	 | fallback: PALADIN SHAMAN WARRIOR (leftover)
+L20	Shield	Agi Hit Expertise	 | fallback: PALADIN SHAMAN WARRIOR (leftover)
+L20	Shield	Str Crit Mastery	PALADIN WARRIOR | fallback: SHAMAN
+L20	Shield	Str Parry Dodge	PALADIN WARRIOR
+L20	Shield	No stats	PALADIN SHAMAN WARRIOR
+L20	Held off-hand	Strength	PALADIN
+L20	Held off-hand	Agility	DRUID
+L20	Held off-hand	Stamina	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Held off-hand	Intellect	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Held off-hand	Spirit	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L20	Held off-hand	Monkey: Agi Sta	DRUID
+L20	Held off-hand	Eagle: Int Sta	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Held off-hand	Owl: Int Spi	DRUID MONK PALADIN PRIEST SHAMAN | fallback: MAGE
+L20	Held off-hand	Bear: Str Sta	PALADIN
+L20	Held off-hand	Boar: Str Spi	PALADIN | fallback: DRUID MONK PRIEST SHAMAN
+L20	Held off-hand	Tiger: Str Agi	DRUID PALADIN
+L20	Held off-hand	Gorilla: Str Int	PALADIN | fallback: DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L20	Held off-hand	Falcon: Agi Int	DRUID | fallback: MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Held off-hand	Wolf: Agi Spi	DRUID | fallback: MONK PALADIN PRIEST SHAMAN
+L20	Held off-hand	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L20	Held off-hand	Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Held off-hand	Int Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Held off-hand	Int Crit Haste	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Held off-hand	Int Spi Haste	DRUID MONK PALADIN PRIEST SHAMAN | fallback: MAGE
+L20	Held off-hand	Int Hit Mastery	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Held off-hand	Agi Crit Mastery	DRUID | fallback: MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Held off-hand	Agi Hit Expertise	DRUID | fallback: MAGE PALADIN PRIEST SHAMAN WARLOCK
+L20	Held off-hand	Str Crit Mastery	PALADIN | fallback: DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L20	Held off-hand	Str Parry Dodge	PALADIN
+L20	Held off-hand	No stats	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L20	Staff	Strength	WARRIOR
+L20	Staff	Agility	DRUID
+L20	Staff	Stamina	DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L20	Staff	Intellect	DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L20	Staff	Spirit	PRIEST SHAMAN | fallback: DRUID MONK
+L20	Staff	Monkey: Agi Sta	DRUID
+L20	Staff	Eagle: Int Sta	DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L20	Staff	Owl: Int Spi	DRUID MONK PRIEST SHAMAN | fallback: MAGE
+L20	Staff	Bear: Str Sta	WARRIOR
+L20	Staff	Boar: Str Spi	WARRIOR | fallback: DRUID MONK PRIEST SHAMAN
+L20	Staff	Tiger: Str Agi	DRUID WARRIOR
+L20	Staff	Gorilla: Str Int	DRUID MAGE MONK PRIEST SHAMAN WARLOCK | fallback: WARRIOR
+L20	Staff	Falcon: Agi Int	DRUID | fallback: MAGE MONK PRIEST SHAMAN WARLOCK
+L20	Staff	Wolf: Agi Spi	DRUID | fallback: MONK PRIEST SHAMAN
+L20	Staff	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID MONK
+L20	Staff	Spell Power	DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L20	Staff	Int Spell Power	DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L20	Staff	Int Crit Haste	DRUID MAGE MONK PRIEST SHAMAN WARLOCK | fallback: WARRIOR
+L20	Staff	Int Spi Haste	DRUID MONK PRIEST SHAMAN | fallback: MAGE WARRIOR
+L20	Staff	Int Hit Mastery	DRUID MAGE MONK PRIEST SHAMAN WARLOCK | fallback: WARRIOR
+L20	Staff	Agi Crit Mastery	DRUID | fallback: MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L20	Staff	Agi Hit Expertise	DRUID | fallback: MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L20	Staff	Str Crit Mastery	WARRIOR | fallback: DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L20	Staff	Str Parry Dodge	WARRIOR
+L20	Staff	No stats	DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L20	Dagger	Strength	WARRIOR
+L20	Dagger	Agility	ROGUE | fallback: DRUID
+L20	Dagger	Stamina	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L20	Dagger	Intellect	DRUID MAGE PRIEST SHAMAN WARLOCK
+L20	Dagger	Spirit	PRIEST SHAMAN | fallback: DRUID
+L20	Dagger	Monkey: Agi Sta	ROGUE | fallback: DRUID
+L20	Dagger	Eagle: Int Sta	DRUID MAGE PRIEST SHAMAN WARLOCK
+L20	Dagger	Owl: Int Spi	DRUID PRIEST SHAMAN | fallback: MAGE
+L20	Dagger	Bear: Str Sta	WARRIOR
+L20	Dagger	Boar: Str Spi	WARRIOR | fallback: DRUID PRIEST SHAMAN
+L20	Dagger	Tiger: Str Agi	ROGUE | fallback: DRUID WARRIOR
+L20	Dagger	Gorilla: Str Int	DRUID MAGE PRIEST SHAMAN WARLOCK | fallback: WARRIOR
+L20	Dagger	Falcon: Agi Int	DRUID | fallback: MAGE PRIEST ROGUE SHAMAN WARLOCK
+L20	Dagger	Wolf: Agi Spi	ROGUE | fallback: DRUID PRIEST SHAMAN
+L20	Dagger	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID
+L20	Dagger	Spell Power	DRUID MAGE PRIEST SHAMAN WARLOCK
+L20	Dagger	Int Spell Power	DRUID MAGE PRIEST SHAMAN WARLOCK
+L20	Dagger	Int Crit Haste	DRUID MAGE PRIEST SHAMAN WARLOCK | fallback: ROGUE WARRIOR
+L20	Dagger	Int Spi Haste	DRUID PRIEST SHAMAN | fallback: MAGE ROGUE WARRIOR
+L20	Dagger	Int Hit Mastery	DRUID MAGE PRIEST SHAMAN WARLOCK | fallback: ROGUE WARRIOR
+L20	Dagger	Agi Crit Mastery	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L20	Dagger	Agi Hit Expertise	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L20	Dagger	Str Crit Mastery	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L20	Dagger	Str Parry Dodge	WARRIOR
+L20	Dagger	No stats	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L20	1H sword	Strength	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L20	1H sword	Agility	ROGUE
+L20	1H sword	Stamina	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L20	1H sword	Intellect	MONK | fallback: MAGE PALADIN WARLOCK
+L20	1H sword	Spirit	MONK | fallback: PALADIN
+L20	1H sword	Monkey: Agi Sta	ROGUE
+L20	1H sword	Eagle: Int Sta	MONK | fallback: MAGE PALADIN WARLOCK
+L20	1H sword	Owl: Int Spi	MONK PALADIN | fallback: MAGE
+L20	1H sword	Bear: Str Sta	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L20	1H sword	Boar: Str Spi	MONK WARRIOR | fallback: DEATHKNIGHT PALADIN
+L20	1H sword	Tiger: Str Agi	ROGUE WARRIOR | fallback: DEATHKNIGHT PALADIN
+L20	1H sword	Gorilla: Str Int	MONK | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK WARRIOR
+L20	1H sword	Falcon: Agi Int	MONK | fallback: MAGE PALADIN ROGUE WARLOCK
+L20	1H sword	Wolf: Agi Spi	MONK ROGUE | fallback: PALADIN
+L20	1H sword	Whale: Sta Spi	MONK | fallback: PALADIN
+L20	1H sword	Spell Power	MONK | fallback: MAGE PALADIN WARLOCK
+L20	1H sword	Int Spell Power	MONK | fallback: MAGE PALADIN WARLOCK
+L20	1H sword	Int Crit Haste	MONK | fallback: DEATHKNIGHT MAGE PALADIN ROGUE WARLOCK WARRIOR
+L20	1H sword	Int Spi Haste	MONK PALADIN | fallback: DEATHKNIGHT MAGE ROGUE WARRIOR
+L20	1H sword	Int Hit Mastery	MONK | fallback: DEATHKNIGHT MAGE PALADIN ROGUE WARLOCK WARRIOR
+L20	1H sword	Agi Crit Mastery	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L20	1H sword	Agi Hit Expertise	ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L20	1H sword	Str Crit Mastery	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L20	1H sword	Str Parry Dodge	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L20	1H sword	No stats	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L20	1H mace	Strength	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L20	1H mace	Agility	ROGUE | fallback: DRUID
+L20	1H mace	Stamina	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L20	1H mace	Intellect	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L20	1H mace	Spirit	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L20	1H mace	Monkey: Agi Sta	ROGUE | fallback: DRUID
+L20	1H mace	Eagle: Int Sta	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L20	1H mace	Owl: Int Spi	DRUID MONK PALADIN PRIEST SHAMAN
+L20	1H mace	Bear: Str Sta	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L20	1H mace	Boar: Str Spi	MONK WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L20	1H mace	Tiger: Str Agi	ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN
+L20	1H mace	Gorilla: Str Int	MONK | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN WARRIOR
+L20	1H mace	Falcon: Agi Int	MONK | fallback: DRUID PALADIN PRIEST ROGUE SHAMAN
+L20	1H mace	Wolf: Agi Spi	MONK ROGUE | fallback: DRUID PALADIN PRIEST SHAMAN
+L20	1H mace	Whale: Sta Spi	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L20	1H mace	Spell Power	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L20	1H mace	Int Spell Power	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L20	1H mace	Int Crit Haste	MONK | fallback: DEATHKNIGHT DRUID PALADIN PRIEST ROGUE SHAMAN WARRIOR
+L20	1H mace	Int Spi Haste	DRUID MONK PALADIN PRIEST SHAMAN | fallback: DEATHKNIGHT ROGUE WARRIOR
+L20	1H mace	Int Hit Mastery	MONK | fallback: DEATHKNIGHT DRUID PALADIN PRIEST ROGUE SHAMAN WARRIOR
+L20	1H mace	Agi Crit Mastery	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L20	1H mace	Agi Hit Expertise	ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L20	1H mace	Str Crit Mastery	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L20	1H mace	Str Parry Dodge	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L20	1H mace	No stats	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L20	2H sword	Strength	DEATHKNIGHT PALADIN WARRIOR
+L20	2H sword	Agility	nobody
+L20	2H sword	Stamina	DEATHKNIGHT PALADIN WARRIOR
+L20	2H sword	Intellect	PALADIN
+L20	2H sword	Spirit	PALADIN
+L20	2H sword	Monkey: Agi Sta	nobody
+L20	2H sword	Eagle: Int Sta	PALADIN
+L20	2H sword	Owl: Int Spi	PALADIN
+L20	2H sword	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L20	2H sword	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L20	2H sword	Tiger: Str Agi	DEATHKNIGHT PALADIN WARRIOR
+L20	2H sword	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L20	2H sword	Falcon: Agi Int	PALADIN
+L20	2H sword	Wolf: Agi Spi	 | fallback: PALADIN (leftover)
+L20	2H sword	Whale: Sta Spi	PALADIN
+L20	2H sword	Spell Power	PALADIN
+L20	2H sword	Int Spell Power	PALADIN
+L20	2H sword	Int Crit Haste	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L20	2H sword	Int Spi Haste	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L20	2H sword	Int Hit Mastery	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L20	2H sword	Agi Crit Mastery	 | fallback: DEATHKNIGHT PALADIN WARRIOR (leftover)
+L20	2H sword	Agi Hit Expertise	 | fallback: DEATHKNIGHT PALADIN WARRIOR (leftover)
+L20	2H sword	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR
+L20	2H sword	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L20	2H sword	No stats	DEATHKNIGHT PALADIN WARRIOR
+L20	2H mace	Strength	DEATHKNIGHT PALADIN WARRIOR
+L20	2H mace	Agility	DRUID
+L20	2H mace	Stamina	DEATHKNIGHT DRUID PALADIN SHAMAN WARRIOR
+L20	2H mace	Intellect	DRUID PALADIN SHAMAN
+L20	2H mace	Spirit	DRUID PALADIN SHAMAN
+L20	2H mace	Monkey: Agi Sta	DRUID
+L20	2H mace	Eagle: Int Sta	DRUID PALADIN SHAMAN
+L20	2H mace	Owl: Int Spi	DRUID PALADIN SHAMAN
+L20	2H mace	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L20	2H mace	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID SHAMAN WARRIOR
+L20	2H mace	Tiger: Str Agi	DEATHKNIGHT DRUID PALADIN WARRIOR
+L20	2H mace	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID SHAMAN WARRIOR
+L20	2H mace	Falcon: Agi Int	DRUID | fallback: PALADIN SHAMAN
+L20	2H mace	Wolf: Agi Spi	DRUID | fallback: PALADIN SHAMAN
+L20	2H mace	Whale: Sta Spi	DRUID PALADIN SHAMAN
+L20	2H mace	Spell Power	DRUID PALADIN SHAMAN
+L20	2H mace	Int Spell Power	DRUID PALADIN SHAMAN
+L20	2H mace	Int Crit Haste	DRUID PALADIN SHAMAN | fallback: DEATHKNIGHT WARRIOR
+L20	2H mace	Int Spi Haste	DRUID PALADIN SHAMAN | fallback: DEATHKNIGHT WARRIOR
+L20	2H mace	Int Hit Mastery	DRUID PALADIN SHAMAN | fallback: DEATHKNIGHT WARRIOR
+L20	2H mace	Agi Crit Mastery	DRUID | fallback: DEATHKNIGHT PALADIN SHAMAN WARRIOR
+L20	2H mace	Agi Hit Expertise	DRUID | fallback: DEATHKNIGHT PALADIN SHAMAN WARRIOR
+L20	2H mace	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID SHAMAN
+L20	2H mace	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L20	2H mace	No stats	DEATHKNIGHT DRUID PALADIN SHAMAN WARRIOR
+L20	Polearm	Strength	DEATHKNIGHT PALADIN WARRIOR
+L20	Polearm	Agility	DRUID
+L20	Polearm	Stamina	DEATHKNIGHT DRUID MONK PALADIN WARRIOR
+L20	Polearm	Intellect	DRUID MONK PALADIN
+L20	Polearm	Spirit	DRUID MONK PALADIN
+L20	Polearm	Monkey: Agi Sta	DRUID
+L20	Polearm	Eagle: Int Sta	DRUID MONK PALADIN
+L20	Polearm	Owl: Int Spi	DRUID MONK PALADIN
+L20	Polearm	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L20	Polearm	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK WARRIOR
+L20	Polearm	Tiger: Str Agi	DEATHKNIGHT DRUID PALADIN WARRIOR
+L20	Polearm	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MONK WARRIOR
+L20	Polearm	Falcon: Agi Int	DRUID | fallback: MONK PALADIN
+L20	Polearm	Wolf: Agi Spi	DRUID | fallback: MONK PALADIN
+L20	Polearm	Whale: Sta Spi	DRUID MONK PALADIN
+L20	Polearm	Spell Power	DRUID MONK PALADIN
+L20	Polearm	Int Spell Power	DRUID MONK PALADIN
+L20	Polearm	Int Crit Haste	DRUID MONK PALADIN | fallback: DEATHKNIGHT WARRIOR
+L20	Polearm	Int Spi Haste	DRUID MONK PALADIN | fallback: DEATHKNIGHT WARRIOR
+L20	Polearm	Int Hit Mastery	DRUID MONK PALADIN | fallback: DEATHKNIGHT WARRIOR
+L20	Polearm	Agi Crit Mastery	DRUID | fallback: DEATHKNIGHT MONK PALADIN WARRIOR
+L20	Polearm	Agi Hit Expertise	DRUID | fallback: DEATHKNIGHT PALADIN WARRIOR
+L20	Polearm	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID MONK
+L20	Polearm	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L20	Polearm	No stats	DEATHKNIGHT DRUID MONK PALADIN WARRIOR
+L20	Bow	Strength	nobody
+L20	Bow	Agility	HUNTER
+L20	Bow	Stamina	HUNTER
+L20	Bow	Intellect	nobody
+L20	Bow	Spirit	nobody
+L20	Bow	Monkey: Agi Sta	HUNTER
+L20	Bow	Eagle: Int Sta	nobody
+L20	Bow	Owl: Int Spi	nobody
+L20	Bow	Bear: Str Sta	nobody
+L20	Bow	Boar: Str Spi	nobody
+L20	Bow	Tiger: Str Agi	HUNTER
+L20	Bow	Gorilla: Str Int	nobody
+L20	Bow	Falcon: Agi Int	HUNTER
+L20	Bow	Wolf: Agi Spi	HUNTER
+L20	Bow	Whale: Sta Spi	nobody
+L20	Bow	Spell Power	nobody
+L20	Bow	Int Spell Power	nobody
+L20	Bow	Int Crit Haste	HUNTER
+L20	Bow	Int Spi Haste	HUNTER
+L20	Bow	Int Hit Mastery	HUNTER
+L20	Bow	Agi Crit Mastery	HUNTER
+L20	Bow	Agi Hit Expertise	HUNTER
+L20	Bow	Str Crit Mastery	 | fallback: HUNTER (leftover)
+L20	Bow	Str Parry Dodge	nobody
+L20	Bow	No stats	HUNTER
+L20	Wand	Strength	nobody
+L20	Wand	Agility	nobody
+L20	Wand	Stamina	MAGE PRIEST WARLOCK
+L20	Wand	Intellect	MAGE PRIEST WARLOCK
+L20	Wand	Spirit	PRIEST
+L20	Wand	Monkey: Agi Sta	nobody
+L20	Wand	Eagle: Int Sta	MAGE PRIEST WARLOCK
+L20	Wand	Owl: Int Spi	PRIEST | fallback: MAGE
+L20	Wand	Bear: Str Sta	nobody
+L20	Wand	Boar: Str Spi	 | fallback: PRIEST (leftover)
+L20	Wand	Tiger: Str Agi	nobody
+L20	Wand	Gorilla: Str Int	MAGE PRIEST WARLOCK
+L20	Wand	Falcon: Agi Int	MAGE PRIEST WARLOCK
+L20	Wand	Wolf: Agi Spi	 | fallback: PRIEST (leftover)
+L20	Wand	Whale: Sta Spi	PRIEST
+L20	Wand	Spell Power	MAGE PRIEST WARLOCK
+L20	Wand	Int Spell Power	MAGE PRIEST WARLOCK
+L20	Wand	Int Crit Haste	MAGE PRIEST WARLOCK
+L20	Wand	Int Spi Haste	PRIEST | fallback: MAGE
+L20	Wand	Int Hit Mastery	MAGE PRIEST WARLOCK
+L20	Wand	Agi Crit Mastery	 | fallback: MAGE PRIEST WARLOCK (leftover)
+L20	Wand	Agi Hit Expertise	 | fallback: MAGE PRIEST WARLOCK (leftover)
+L20	Wand	Str Crit Mastery	 | fallback: MAGE PRIEST WARLOCK (leftover)
+L20	Wand	Str Parry Dodge	nobody
+L20	Wand	No stats	MAGE PRIEST WARLOCK
+L35	Cloth chest	Strength	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L35	Cloth chest	Agility	DRUID HUNTER ROGUE
+L35	Cloth chest	Stamina	nobody
+L35	Cloth chest	Intellect	MAGE PRIEST WARLOCK | fallback: DRUID MONK PALADIN SHAMAN
+L35	Cloth chest	Spirit	PRIEST | fallback: DRUID MONK PALADIN SHAMAN
+L35	Cloth chest	Monkey: Agi Sta	DRUID HUNTER ROGUE
+L35	Cloth chest	Eagle: Int Sta	MAGE PRIEST WARLOCK | fallback: DRUID MONK PALADIN SHAMAN
+L35	Cloth chest	Owl: Int Spi	PRIEST | fallback: DRUID MAGE MONK PALADIN SHAMAN
+L35	Cloth chest	Bear: Str Sta	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L35	Cloth chest	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK PRIEST SHAMAN WARRIOR
+L35	Cloth chest	Tiger: Str Agi	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT PALADIN WARRIOR
+L35	Cloth chest	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L35	Cloth chest	Falcon: Agi Int	DRUID | fallback: HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK
+L35	Cloth chest	Wolf: Agi Spi	DRUID | fallback: HUNTER MONK PALADIN PRIEST ROGUE SHAMAN
+L35	Cloth chest	Whale: Sta Spi	PRIEST | fallback: DRUID MONK PALADIN SHAMAN
+L35	Cloth chest	Spell Power	MAGE PRIEST WARLOCK | fallback: DRUID MONK PALADIN SHAMAN
+L35	Cloth chest	Int Spell Power	MAGE PRIEST WARLOCK | fallback: DRUID MONK PALADIN SHAMAN
+L35	Cloth chest	Int Crit Haste	MAGE PRIEST WARLOCK | fallback: DEATHKNIGHT DRUID HUNTER MONK PALADIN ROGUE SHAMAN WARRIOR
+L35	Cloth chest	Int Spi Haste	PRIEST | fallback: DEATHKNIGHT DRUID HUNTER MAGE MONK PALADIN ROGUE SHAMAN WARRIOR
+L35	Cloth chest	Int Hit Mastery	MAGE PRIEST WARLOCK | fallback: DEATHKNIGHT DRUID HUNTER MONK PALADIN ROGUE SHAMAN WARRIOR
+L35	Cloth chest	Agi Crit Mastery	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE MONK PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L35	Cloth chest	Agi Hit Expertise	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L35	Cloth chest	Str Crit Mastery	PALADIN WARRIOR | fallback: DEATHKNIGHT DRUID HUNTER MAGE MONK PRIEST ROGUE SHAMAN WARLOCK
+L35	Cloth chest	Str Parry Dodge	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L35	Cloth chest	No stats	nobody
+L35	Leather chest	Strength	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L35	Leather chest	Agility	DRUID HUNTER ROGUE
+L35	Leather chest	Stamina	nobody
+L35	Leather chest	Intellect	DRUID MONK SHAMAN | fallback: PALADIN
+L35	Leather chest	Spirit	DRUID MONK SHAMAN | fallback: PALADIN
+L35	Leather chest	Monkey: Agi Sta	DRUID HUNTER ROGUE
+L35	Leather chest	Eagle: Int Sta	DRUID MONK SHAMAN | fallback: PALADIN
+L35	Leather chest	Owl: Int Spi	DRUID MONK PALADIN SHAMAN
+L35	Leather chest	Bear: Str Sta	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L35	Leather chest	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK SHAMAN WARRIOR
+L35	Leather chest	Tiger: Str Agi	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT PALADIN WARRIOR
+L35	Leather chest	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MONK SHAMAN WARRIOR
+L35	Leather chest	Falcon: Agi Int	DRUID | fallback: HUNTER MONK PALADIN ROGUE SHAMAN
+L35	Leather chest	Wolf: Agi Spi	DRUID | fallback: HUNTER MONK PALADIN ROGUE SHAMAN
+L35	Leather chest	Whale: Sta Spi	DRUID MONK SHAMAN | fallback: PALADIN
+L35	Leather chest	Spell Power	DRUID MONK SHAMAN | fallback: PALADIN
+L35	Leather chest	Int Spell Power	DRUID MONK SHAMAN | fallback: PALADIN
+L35	Leather chest	Int Crit Haste	DRUID MONK SHAMAN | fallback: DEATHKNIGHT HUNTER PALADIN ROGUE WARRIOR
+L35	Leather chest	Int Spi Haste	DRUID MONK PALADIN SHAMAN | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L35	Leather chest	Int Hit Mastery	DRUID MONK SHAMAN | fallback: DEATHKNIGHT HUNTER PALADIN ROGUE WARRIOR
+L35	Leather chest	Agi Crit Mastery	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MONK PALADIN SHAMAN WARRIOR
+L35	Leather chest	Agi Hit Expertise	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT PALADIN SHAMAN WARRIOR
+L35	Leather chest	Str Crit Mastery	PALADIN WARRIOR | fallback: DEATHKNIGHT DRUID HUNTER MONK ROGUE SHAMAN
+L35	Leather chest	Str Parry Dodge	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L35	Leather chest	No stats	nobody
+L35	Mail chest	Strength	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L35	Mail chest	Agility	HUNTER
+L35	Mail chest	Stamina	nobody
+L35	Mail chest	Intellect	PALADIN SHAMAN
+L35	Mail chest	Spirit	PALADIN SHAMAN
+L35	Mail chest	Monkey: Agi Sta	HUNTER
+L35	Mail chest	Eagle: Int Sta	PALADIN SHAMAN
+L35	Mail chest	Owl: Int Spi	PALADIN SHAMAN
+L35	Mail chest	Bear: Str Sta	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L35	Mail chest	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT SHAMAN WARRIOR
+L35	Mail chest	Tiger: Str Agi	HUNTER PALADIN WARRIOR | fallback: DEATHKNIGHT
+L35	Mail chest	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT SHAMAN WARRIOR
+L35	Mail chest	Falcon: Agi Int	HUNTER PALADIN SHAMAN
+L35	Mail chest	Wolf: Agi Spi	HUNTER | fallback: PALADIN SHAMAN
+L35	Mail chest	Whale: Sta Spi	PALADIN SHAMAN
+L35	Mail chest	Spell Power	PALADIN SHAMAN
+L35	Mail chest	Int Spell Power	PALADIN SHAMAN
+L35	Mail chest	Int Crit Haste	PALADIN SHAMAN | fallback: DEATHKNIGHT HUNTER WARRIOR
+L35	Mail chest	Int Spi Haste	PALADIN SHAMAN | fallback: DEATHKNIGHT HUNTER WARRIOR
+L35	Mail chest	Int Hit Mastery	PALADIN SHAMAN | fallback: DEATHKNIGHT HUNTER WARRIOR
+L35	Mail chest	Agi Crit Mastery	HUNTER | fallback: DEATHKNIGHT PALADIN SHAMAN WARRIOR
+L35	Mail chest	Agi Hit Expertise	HUNTER | fallback: DEATHKNIGHT PALADIN SHAMAN WARRIOR
+L35	Mail chest	Str Crit Mastery	PALADIN WARRIOR | fallback: DEATHKNIGHT HUNTER SHAMAN
+L35	Mail chest	Str Parry Dodge	PALADIN WARRIOR | fallback: DEATHKNIGHT
+L35	Mail chest	No stats	nobody
+L35	Plate chest	Strength	DEATHKNIGHT PALADIN WARRIOR
+L35	Plate chest	Agility	nobody
+L35	Plate chest	Stamina	nobody
+L35	Plate chest	Intellect	PALADIN
+L35	Plate chest	Spirit	PALADIN
+L35	Plate chest	Monkey: Agi Sta	nobody
+L35	Plate chest	Eagle: Int Sta	PALADIN
+L35	Plate chest	Owl: Int Spi	PALADIN
+L35	Plate chest	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L35	Plate chest	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L35	Plate chest	Tiger: Str Agi	DEATHKNIGHT PALADIN WARRIOR
+L35	Plate chest	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L35	Plate chest	Falcon: Agi Int	PALADIN
+L35	Plate chest	Wolf: Agi Spi	 | fallback: PALADIN (leftover)
+L35	Plate chest	Whale: Sta Spi	PALADIN
+L35	Plate chest	Spell Power	PALADIN
+L35	Plate chest	Int Spell Power	PALADIN
+L35	Plate chest	Int Crit Haste	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L35	Plate chest	Int Spi Haste	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L35	Plate chest	Int Hit Mastery	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L35	Plate chest	Agi Crit Mastery	 | fallback: DEATHKNIGHT PALADIN WARRIOR (leftover)
+L35	Plate chest	Agi Hit Expertise	 | fallback: DEATHKNIGHT PALADIN WARRIOR (leftover)
+L35	Plate chest	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR
+L35	Plate chest	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L35	Plate chest	No stats	nobody
+L35	Cloak	Strength	DEATHKNIGHT PALADIN WARRIOR
+L35	Cloak	Agility	DRUID HUNTER ROGUE
+L35	Cloak	Stamina	nobody
+L35	Cloak	Intellect	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Cloak	Spirit	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L35	Cloak	Monkey: Agi Sta	DRUID HUNTER ROGUE
+L35	Cloak	Eagle: Int Sta	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Cloak	Owl: Int Spi	DRUID MONK PALADIN PRIEST SHAMAN | fallback: MAGE
+L35	Cloak	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L35	Cloak	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK PRIEST SHAMAN WARRIOR
+L35	Cloak	Tiger: Str Agi	DEATHKNIGHT DRUID HUNTER PALADIN ROGUE WARRIOR
+L35	Cloak	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L35	Cloak	Falcon: Agi Int	DRUID | fallback: HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK
+L35	Cloak	Wolf: Agi Spi	DRUID | fallback: HUNTER MONK PALADIN PRIEST ROGUE SHAMAN
+L35	Cloak	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L35	Cloak	Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Cloak	Int Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Cloak	Int Crit Haste	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L35	Cloak	Int Spi Haste	DRUID MONK PALADIN PRIEST SHAMAN | fallback: DEATHKNIGHT HUNTER MAGE ROGUE WARRIOR
+L35	Cloak	Int Hit Mastery	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L35	Cloak	Agi Crit Mastery	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE MONK PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L35	Cloak	Agi Hit Expertise	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L35	Cloak	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID HUNTER MAGE MONK PRIEST ROGUE SHAMAN WARLOCK
+L35	Cloak	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L35	Cloak	No stats	nobody
+L35	Ring	Strength	DEATHKNIGHT PALADIN WARRIOR
+L35	Ring	Agility	DRUID HUNTER ROGUE
+L35	Ring	Stamina	nobody
+L35	Ring	Intellect	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Ring	Spirit	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L35	Ring	Monkey: Agi Sta	DRUID HUNTER ROGUE
+L35	Ring	Eagle: Int Sta	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Ring	Owl: Int Spi	DRUID MONK PALADIN PRIEST SHAMAN | fallback: MAGE
+L35	Ring	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L35	Ring	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK PRIEST SHAMAN WARRIOR
+L35	Ring	Tiger: Str Agi	DEATHKNIGHT DRUID HUNTER PALADIN ROGUE WARRIOR
+L35	Ring	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L35	Ring	Falcon: Agi Int	DRUID | fallback: HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK
+L35	Ring	Wolf: Agi Spi	DRUID | fallback: HUNTER MONK PALADIN PRIEST ROGUE SHAMAN
+L35	Ring	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L35	Ring	Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Ring	Int Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Ring	Int Crit Haste	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L35	Ring	Int Spi Haste	DRUID MONK PALADIN PRIEST SHAMAN | fallback: DEATHKNIGHT HUNTER MAGE ROGUE WARRIOR
+L35	Ring	Int Hit Mastery	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L35	Ring	Agi Crit Mastery	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE MONK PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L35	Ring	Agi Hit Expertise	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L35	Ring	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID HUNTER MAGE MONK PRIEST ROGUE SHAMAN WARLOCK
+L35	Ring	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L35	Ring	No stats	nobody
+L35	Shield	Strength	PALADIN WARRIOR
+L35	Shield	Agility	nobody
+L35	Shield	Stamina	PALADIN SHAMAN WARRIOR
+L35	Shield	Intellect	PALADIN SHAMAN
+L35	Shield	Spirit	PALADIN SHAMAN
+L35	Shield	Monkey: Agi Sta	nobody
+L35	Shield	Eagle: Int Sta	PALADIN SHAMAN
+L35	Shield	Owl: Int Spi	PALADIN SHAMAN
+L35	Shield	Bear: Str Sta	PALADIN WARRIOR
+L35	Shield	Boar: Str Spi	PALADIN | fallback: SHAMAN WARRIOR
+L35	Shield	Tiger: Str Agi	PALADIN WARRIOR
+L35	Shield	Gorilla: Str Int	PALADIN | fallback: SHAMAN WARRIOR
+L35	Shield	Falcon: Agi Int	PALADIN SHAMAN
+L35	Shield	Wolf: Agi Spi	 | fallback: PALADIN SHAMAN (leftover)
+L35	Shield	Whale: Sta Spi	PALADIN SHAMAN
+L35	Shield	Spell Power	PALADIN SHAMAN
+L35	Shield	Int Spell Power	PALADIN SHAMAN
+L35	Shield	Int Crit Haste	PALADIN SHAMAN | fallback: WARRIOR
+L35	Shield	Int Spi Haste	PALADIN SHAMAN | fallback: WARRIOR
+L35	Shield	Int Hit Mastery	PALADIN SHAMAN | fallback: WARRIOR
+L35	Shield	Agi Crit Mastery	 | fallback: PALADIN SHAMAN WARRIOR (leftover)
+L35	Shield	Agi Hit Expertise	 | fallback: PALADIN SHAMAN WARRIOR (leftover)
+L35	Shield	Str Crit Mastery	PALADIN WARRIOR | fallback: SHAMAN
+L35	Shield	Str Parry Dodge	PALADIN WARRIOR
+L35	Shield	No stats	PALADIN SHAMAN WARRIOR
+L35	Held off-hand	Strength	PALADIN
+L35	Held off-hand	Agility	DRUID
+L35	Held off-hand	Stamina	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Held off-hand	Intellect	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Held off-hand	Spirit	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L35	Held off-hand	Monkey: Agi Sta	DRUID
+L35	Held off-hand	Eagle: Int Sta	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Held off-hand	Owl: Int Spi	DRUID MONK PALADIN PRIEST SHAMAN | fallback: MAGE
+L35	Held off-hand	Bear: Str Sta	PALADIN
+L35	Held off-hand	Boar: Str Spi	PALADIN | fallback: DRUID MONK PRIEST SHAMAN
+L35	Held off-hand	Tiger: Str Agi	DRUID PALADIN
+L35	Held off-hand	Gorilla: Str Int	PALADIN | fallback: DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L35	Held off-hand	Falcon: Agi Int	DRUID | fallback: MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Held off-hand	Wolf: Agi Spi	DRUID | fallback: MONK PALADIN PRIEST SHAMAN
+L35	Held off-hand	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L35	Held off-hand	Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Held off-hand	Int Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Held off-hand	Int Crit Haste	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Held off-hand	Int Spi Haste	DRUID MONK PALADIN PRIEST SHAMAN | fallback: MAGE
+L35	Held off-hand	Int Hit Mastery	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Held off-hand	Agi Crit Mastery	DRUID | fallback: MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Held off-hand	Agi Hit Expertise	DRUID | fallback: MAGE PALADIN PRIEST SHAMAN WARLOCK
+L35	Held off-hand	Str Crit Mastery	PALADIN | fallback: DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L35	Held off-hand	Str Parry Dodge	PALADIN
+L35	Held off-hand	No stats	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L35	Staff	Strength	WARRIOR
+L35	Staff	Agility	DRUID
+L35	Staff	Stamina	DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L35	Staff	Intellect	DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L35	Staff	Spirit	PRIEST SHAMAN | fallback: DRUID MONK
+L35	Staff	Monkey: Agi Sta	DRUID
+L35	Staff	Eagle: Int Sta	DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L35	Staff	Owl: Int Spi	DRUID MONK PRIEST SHAMAN | fallback: MAGE
+L35	Staff	Bear: Str Sta	WARRIOR
+L35	Staff	Boar: Str Spi	WARRIOR | fallback: DRUID MONK PRIEST SHAMAN
+L35	Staff	Tiger: Str Agi	DRUID WARRIOR
+L35	Staff	Gorilla: Str Int	DRUID MAGE MONK PRIEST SHAMAN WARLOCK | fallback: WARRIOR
+L35	Staff	Falcon: Agi Int	DRUID | fallback: MAGE MONK PRIEST SHAMAN WARLOCK
+L35	Staff	Wolf: Agi Spi	DRUID | fallback: MONK PRIEST SHAMAN
+L35	Staff	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID MONK
+L35	Staff	Spell Power	DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L35	Staff	Int Spell Power	DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L35	Staff	Int Crit Haste	DRUID MAGE MONK PRIEST SHAMAN WARLOCK | fallback: WARRIOR
+L35	Staff	Int Spi Haste	DRUID MONK PRIEST SHAMAN | fallback: MAGE WARRIOR
+L35	Staff	Int Hit Mastery	DRUID MAGE MONK PRIEST SHAMAN WARLOCK | fallback: WARRIOR
+L35	Staff	Agi Crit Mastery	DRUID | fallback: MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L35	Staff	Agi Hit Expertise	DRUID | fallback: MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L35	Staff	Str Crit Mastery	WARRIOR | fallback: DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L35	Staff	Str Parry Dodge	WARRIOR
+L35	Staff	No stats	DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L35	Dagger	Strength	WARRIOR
+L35	Dagger	Agility	ROGUE | fallback: DRUID
+L35	Dagger	Stamina	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L35	Dagger	Intellect	DRUID MAGE PRIEST SHAMAN WARLOCK
+L35	Dagger	Spirit	PRIEST SHAMAN | fallback: DRUID
+L35	Dagger	Monkey: Agi Sta	ROGUE | fallback: DRUID
+L35	Dagger	Eagle: Int Sta	DRUID MAGE PRIEST SHAMAN WARLOCK
+L35	Dagger	Owl: Int Spi	DRUID PRIEST SHAMAN | fallback: MAGE
+L35	Dagger	Bear: Str Sta	WARRIOR
+L35	Dagger	Boar: Str Spi	WARRIOR | fallback: DRUID PRIEST SHAMAN
+L35	Dagger	Tiger: Str Agi	ROGUE | fallback: DRUID WARRIOR
+L35	Dagger	Gorilla: Str Int	DRUID MAGE PRIEST SHAMAN WARLOCK | fallback: WARRIOR
+L35	Dagger	Falcon: Agi Int	DRUID | fallback: MAGE PRIEST ROGUE SHAMAN WARLOCK
+L35	Dagger	Wolf: Agi Spi	ROGUE | fallback: DRUID PRIEST SHAMAN
+L35	Dagger	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID
+L35	Dagger	Spell Power	DRUID MAGE PRIEST SHAMAN WARLOCK
+L35	Dagger	Int Spell Power	DRUID MAGE PRIEST SHAMAN WARLOCK
+L35	Dagger	Int Crit Haste	DRUID MAGE PRIEST SHAMAN WARLOCK | fallback: ROGUE WARRIOR
+L35	Dagger	Int Spi Haste	DRUID PRIEST SHAMAN | fallback: MAGE ROGUE WARRIOR
+L35	Dagger	Int Hit Mastery	DRUID MAGE PRIEST SHAMAN WARLOCK | fallback: ROGUE WARRIOR
+L35	Dagger	Agi Crit Mastery	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L35	Dagger	Agi Hit Expertise	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L35	Dagger	Str Crit Mastery	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L35	Dagger	Str Parry Dodge	WARRIOR
+L35	Dagger	No stats	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L35	1H sword	Strength	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L35	1H sword	Agility	ROGUE
+L35	1H sword	Stamina	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L35	1H sword	Intellect	MONK | fallback: MAGE PALADIN WARLOCK
+L35	1H sword	Spirit	MONK | fallback: PALADIN
+L35	1H sword	Monkey: Agi Sta	ROGUE
+L35	1H sword	Eagle: Int Sta	MONK | fallback: MAGE PALADIN WARLOCK
+L35	1H sword	Owl: Int Spi	MONK PALADIN | fallback: MAGE
+L35	1H sword	Bear: Str Sta	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L35	1H sword	Boar: Str Spi	MONK WARRIOR | fallback: DEATHKNIGHT PALADIN
+L35	1H sword	Tiger: Str Agi	ROGUE WARRIOR | fallback: DEATHKNIGHT PALADIN
+L35	1H sword	Gorilla: Str Int	MONK | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK WARRIOR
+L35	1H sword	Falcon: Agi Int	MONK | fallback: MAGE PALADIN ROGUE WARLOCK
+L35	1H sword	Wolf: Agi Spi	MONK ROGUE | fallback: PALADIN
+L35	1H sword	Whale: Sta Spi	MONK | fallback: PALADIN
+L35	1H sword	Spell Power	MONK | fallback: MAGE PALADIN WARLOCK
+L35	1H sword	Int Spell Power	MONK | fallback: MAGE PALADIN WARLOCK
+L35	1H sword	Int Crit Haste	MONK | fallback: DEATHKNIGHT MAGE PALADIN ROGUE WARLOCK WARRIOR
+L35	1H sword	Int Spi Haste	MONK PALADIN | fallback: DEATHKNIGHT MAGE ROGUE WARRIOR
+L35	1H sword	Int Hit Mastery	MONK | fallback: DEATHKNIGHT MAGE PALADIN ROGUE WARLOCK WARRIOR
+L35	1H sword	Agi Crit Mastery	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L35	1H sword	Agi Hit Expertise	ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L35	1H sword	Str Crit Mastery	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L35	1H sword	Str Parry Dodge	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L35	1H sword	No stats	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L35	1H mace	Strength	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L35	1H mace	Agility	ROGUE | fallback: DRUID
+L35	1H mace	Stamina	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L35	1H mace	Intellect	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L35	1H mace	Spirit	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L35	1H mace	Monkey: Agi Sta	ROGUE | fallback: DRUID
+L35	1H mace	Eagle: Int Sta	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L35	1H mace	Owl: Int Spi	DRUID MONK PALADIN PRIEST SHAMAN
+L35	1H mace	Bear: Str Sta	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L35	1H mace	Boar: Str Spi	MONK WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L35	1H mace	Tiger: Str Agi	ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN
+L35	1H mace	Gorilla: Str Int	MONK | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN WARRIOR
+L35	1H mace	Falcon: Agi Int	MONK | fallback: DRUID PALADIN PRIEST ROGUE SHAMAN
+L35	1H mace	Wolf: Agi Spi	MONK ROGUE | fallback: DRUID PALADIN PRIEST SHAMAN
+L35	1H mace	Whale: Sta Spi	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L35	1H mace	Spell Power	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L35	1H mace	Int Spell Power	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L35	1H mace	Int Crit Haste	MONK | fallback: DEATHKNIGHT DRUID PALADIN PRIEST ROGUE SHAMAN WARRIOR
+L35	1H mace	Int Spi Haste	DRUID MONK PALADIN PRIEST SHAMAN | fallback: DEATHKNIGHT ROGUE WARRIOR
+L35	1H mace	Int Hit Mastery	MONK | fallback: DEATHKNIGHT DRUID PALADIN PRIEST ROGUE SHAMAN WARRIOR
+L35	1H mace	Agi Crit Mastery	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L35	1H mace	Agi Hit Expertise	ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L35	1H mace	Str Crit Mastery	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L35	1H mace	Str Parry Dodge	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L35	1H mace	No stats	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L35	2H sword	Strength	DEATHKNIGHT PALADIN WARRIOR
+L35	2H sword	Agility	nobody
+L35	2H sword	Stamina	DEATHKNIGHT PALADIN WARRIOR
+L35	2H sword	Intellect	PALADIN
+L35	2H sword	Spirit	PALADIN
+L35	2H sword	Monkey: Agi Sta	nobody
+L35	2H sword	Eagle: Int Sta	PALADIN
+L35	2H sword	Owl: Int Spi	PALADIN
+L35	2H sword	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L35	2H sword	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L35	2H sword	Tiger: Str Agi	DEATHKNIGHT PALADIN WARRIOR
+L35	2H sword	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L35	2H sword	Falcon: Agi Int	PALADIN
+L35	2H sword	Wolf: Agi Spi	 | fallback: PALADIN (leftover)
+L35	2H sword	Whale: Sta Spi	PALADIN
+L35	2H sword	Spell Power	PALADIN
+L35	2H sword	Int Spell Power	PALADIN
+L35	2H sword	Int Crit Haste	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L35	2H sword	Int Spi Haste	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L35	2H sword	Int Hit Mastery	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L35	2H sword	Agi Crit Mastery	 | fallback: DEATHKNIGHT PALADIN WARRIOR (leftover)
+L35	2H sword	Agi Hit Expertise	 | fallback: DEATHKNIGHT PALADIN WARRIOR (leftover)
+L35	2H sword	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR
+L35	2H sword	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L35	2H sword	No stats	DEATHKNIGHT PALADIN WARRIOR
+L35	2H mace	Strength	DEATHKNIGHT PALADIN WARRIOR
+L35	2H mace	Agility	DRUID
+L35	2H mace	Stamina	DEATHKNIGHT DRUID PALADIN SHAMAN WARRIOR
+L35	2H mace	Intellect	DRUID PALADIN SHAMAN
+L35	2H mace	Spirit	DRUID PALADIN SHAMAN
+L35	2H mace	Monkey: Agi Sta	DRUID
+L35	2H mace	Eagle: Int Sta	DRUID PALADIN SHAMAN
+L35	2H mace	Owl: Int Spi	DRUID PALADIN SHAMAN
+L35	2H mace	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L35	2H mace	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID SHAMAN WARRIOR
+L35	2H mace	Tiger: Str Agi	DEATHKNIGHT DRUID PALADIN WARRIOR
+L35	2H mace	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID SHAMAN WARRIOR
+L35	2H mace	Falcon: Agi Int	DRUID | fallback: PALADIN SHAMAN
+L35	2H mace	Wolf: Agi Spi	DRUID | fallback: PALADIN SHAMAN
+L35	2H mace	Whale: Sta Spi	DRUID PALADIN SHAMAN
+L35	2H mace	Spell Power	DRUID PALADIN SHAMAN
+L35	2H mace	Int Spell Power	DRUID PALADIN SHAMAN
+L35	2H mace	Int Crit Haste	DRUID PALADIN SHAMAN | fallback: DEATHKNIGHT WARRIOR
+L35	2H mace	Int Spi Haste	DRUID PALADIN SHAMAN | fallback: DEATHKNIGHT WARRIOR
+L35	2H mace	Int Hit Mastery	DRUID PALADIN SHAMAN | fallback: DEATHKNIGHT WARRIOR
+L35	2H mace	Agi Crit Mastery	DRUID | fallback: DEATHKNIGHT PALADIN SHAMAN WARRIOR
+L35	2H mace	Agi Hit Expertise	DRUID | fallback: DEATHKNIGHT PALADIN SHAMAN WARRIOR
+L35	2H mace	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID SHAMAN
+L35	2H mace	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L35	2H mace	No stats	DEATHKNIGHT DRUID PALADIN SHAMAN WARRIOR
+L35	Polearm	Strength	DEATHKNIGHT PALADIN WARRIOR
+L35	Polearm	Agility	DRUID
+L35	Polearm	Stamina	DEATHKNIGHT DRUID MONK PALADIN WARRIOR
+L35	Polearm	Intellect	DRUID MONK PALADIN
+L35	Polearm	Spirit	DRUID MONK PALADIN
+L35	Polearm	Monkey: Agi Sta	DRUID
+L35	Polearm	Eagle: Int Sta	DRUID MONK PALADIN
+L35	Polearm	Owl: Int Spi	DRUID MONK PALADIN
+L35	Polearm	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L35	Polearm	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK WARRIOR
+L35	Polearm	Tiger: Str Agi	DEATHKNIGHT DRUID PALADIN WARRIOR
+L35	Polearm	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MONK WARRIOR
+L35	Polearm	Falcon: Agi Int	DRUID | fallback: MONK PALADIN
+L35	Polearm	Wolf: Agi Spi	DRUID | fallback: MONK PALADIN
+L35	Polearm	Whale: Sta Spi	DRUID MONK PALADIN
+L35	Polearm	Spell Power	DRUID MONK PALADIN
+L35	Polearm	Int Spell Power	DRUID MONK PALADIN
+L35	Polearm	Int Crit Haste	DRUID MONK PALADIN | fallback: DEATHKNIGHT WARRIOR
+L35	Polearm	Int Spi Haste	DRUID MONK PALADIN | fallback: DEATHKNIGHT WARRIOR
+L35	Polearm	Int Hit Mastery	DRUID MONK PALADIN | fallback: DEATHKNIGHT WARRIOR
+L35	Polearm	Agi Crit Mastery	DRUID | fallback: DEATHKNIGHT MONK PALADIN WARRIOR
+L35	Polearm	Agi Hit Expertise	DRUID | fallback: DEATHKNIGHT PALADIN WARRIOR
+L35	Polearm	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID MONK
+L35	Polearm	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L35	Polearm	No stats	DEATHKNIGHT DRUID MONK PALADIN WARRIOR
+L35	Bow	Strength	nobody
+L35	Bow	Agility	HUNTER
+L35	Bow	Stamina	HUNTER
+L35	Bow	Intellect	nobody
+L35	Bow	Spirit	nobody
+L35	Bow	Monkey: Agi Sta	HUNTER
+L35	Bow	Eagle: Int Sta	nobody
+L35	Bow	Owl: Int Spi	nobody
+L35	Bow	Bear: Str Sta	nobody
+L35	Bow	Boar: Str Spi	nobody
+L35	Bow	Tiger: Str Agi	HUNTER
+L35	Bow	Gorilla: Str Int	nobody
+L35	Bow	Falcon: Agi Int	HUNTER
+L35	Bow	Wolf: Agi Spi	HUNTER
+L35	Bow	Whale: Sta Spi	nobody
+L35	Bow	Spell Power	nobody
+L35	Bow	Int Spell Power	nobody
+L35	Bow	Int Crit Haste	HUNTER
+L35	Bow	Int Spi Haste	HUNTER
+L35	Bow	Int Hit Mastery	HUNTER
+L35	Bow	Agi Crit Mastery	HUNTER
+L35	Bow	Agi Hit Expertise	HUNTER
+L35	Bow	Str Crit Mastery	 | fallback: HUNTER (leftover)
+L35	Bow	Str Parry Dodge	nobody
+L35	Bow	No stats	HUNTER
+L35	Wand	Strength	nobody
+L35	Wand	Agility	nobody
+L35	Wand	Stamina	MAGE PRIEST WARLOCK
+L35	Wand	Intellect	MAGE PRIEST WARLOCK
+L35	Wand	Spirit	PRIEST
+L35	Wand	Monkey: Agi Sta	nobody
+L35	Wand	Eagle: Int Sta	MAGE PRIEST WARLOCK
+L35	Wand	Owl: Int Spi	PRIEST | fallback: MAGE
+L35	Wand	Bear: Str Sta	nobody
+L35	Wand	Boar: Str Spi	 | fallback: PRIEST (leftover)
+L35	Wand	Tiger: Str Agi	nobody
+L35	Wand	Gorilla: Str Int	MAGE PRIEST WARLOCK
+L35	Wand	Falcon: Agi Int	MAGE PRIEST WARLOCK
+L35	Wand	Wolf: Agi Spi	 | fallback: PRIEST (leftover)
+L35	Wand	Whale: Sta Spi	PRIEST
+L35	Wand	Spell Power	MAGE PRIEST WARLOCK
+L35	Wand	Int Spell Power	MAGE PRIEST WARLOCK
+L35	Wand	Int Crit Haste	MAGE PRIEST WARLOCK
+L35	Wand	Int Spi Haste	PRIEST | fallback: MAGE
+L35	Wand	Int Hit Mastery	MAGE PRIEST WARLOCK
+L35	Wand	Agi Crit Mastery	 | fallback: MAGE PRIEST WARLOCK (leftover)
+L35	Wand	Agi Hit Expertise	 | fallback: MAGE PRIEST WARLOCK (leftover)
+L35	Wand	Str Crit Mastery	 | fallback: MAGE PRIEST WARLOCK (leftover)
+L35	Wand	Str Parry Dodge	nobody
+L35	Wand	No stats	MAGE PRIEST WARLOCK
+L50	Cloth chest	Strength	DEATHKNIGHT PALADIN WARRIOR
+L50	Cloth chest	Agility	DRUID ROGUE | fallback: HUNTER
+L50	Cloth chest	Stamina	nobody
+L50	Cloth chest	Intellect	MAGE PRIEST WARLOCK | fallback: DRUID MONK PALADIN SHAMAN
+L50	Cloth chest	Spirit	PRIEST | fallback: DRUID MONK PALADIN SHAMAN
+L50	Cloth chest	Monkey: Agi Sta	DRUID ROGUE | fallback: HUNTER
+L50	Cloth chest	Eagle: Int Sta	MAGE PRIEST WARLOCK | fallback: DRUID MONK PALADIN SHAMAN
+L50	Cloth chest	Owl: Int Spi	PRIEST | fallback: DRUID MAGE MONK PALADIN SHAMAN
+L50	Cloth chest	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L50	Cloth chest	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK PRIEST SHAMAN WARRIOR
+L50	Cloth chest	Tiger: Str Agi	DRUID ROGUE | fallback: DEATHKNIGHT HUNTER PALADIN WARRIOR
+L50	Cloth chest	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L50	Cloth chest	Falcon: Agi Int	DRUID | fallback: HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK
+L50	Cloth chest	Wolf: Agi Spi	DRUID | fallback: HUNTER MONK PALADIN PRIEST ROGUE SHAMAN
+L50	Cloth chest	Whale: Sta Spi	PRIEST | fallback: DRUID MONK PALADIN SHAMAN
+L50	Cloth chest	Spell Power	MAGE PRIEST WARLOCK | fallback: DRUID MONK PALADIN SHAMAN
+L50	Cloth chest	Int Spell Power	MAGE PRIEST WARLOCK | fallback: DRUID MONK PALADIN SHAMAN
+L50	Cloth chest	Int Crit Haste	MAGE PRIEST WARLOCK | fallback: DEATHKNIGHT DRUID HUNTER MONK PALADIN ROGUE SHAMAN WARRIOR
+L50	Cloth chest	Int Spi Haste	PRIEST | fallback: DEATHKNIGHT DRUID HUNTER MAGE MONK PALADIN ROGUE SHAMAN WARRIOR
+L50	Cloth chest	Int Hit Mastery	MAGE PRIEST WARLOCK | fallback: DEATHKNIGHT DRUID HUNTER MONK PALADIN ROGUE SHAMAN WARRIOR
+L50	Cloth chest	Agi Crit Mastery	DRUID ROGUE | fallback: DEATHKNIGHT HUNTER MAGE MONK PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L50	Cloth chest	Agi Hit Expertise	DRUID ROGUE | fallback: DEATHKNIGHT HUNTER MAGE PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L50	Cloth chest	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID HUNTER MAGE MONK PRIEST ROGUE SHAMAN WARLOCK
+L50	Cloth chest	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L50	Cloth chest	No stats	nobody
+L50	Leather chest	Strength	DEATHKNIGHT PALADIN WARRIOR
+L50	Leather chest	Agility	DRUID ROGUE | fallback: HUNTER
+L50	Leather chest	Stamina	nobody
+L50	Leather chest	Intellect	DRUID MONK | fallback: PALADIN SHAMAN
+L50	Leather chest	Spirit	DRUID MONK | fallback: PALADIN SHAMAN
+L50	Leather chest	Monkey: Agi Sta	DRUID ROGUE | fallback: HUNTER
+L50	Leather chest	Eagle: Int Sta	DRUID MONK | fallback: PALADIN SHAMAN
+L50	Leather chest	Owl: Int Spi	DRUID MONK PALADIN SHAMAN
+L50	Leather chest	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L50	Leather chest	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK SHAMAN WARRIOR
+L50	Leather chest	Tiger: Str Agi	DRUID ROGUE | fallback: DEATHKNIGHT HUNTER PALADIN WARRIOR
+L50	Leather chest	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MONK SHAMAN WARRIOR
+L50	Leather chest	Falcon: Agi Int	DRUID | fallback: HUNTER MONK PALADIN ROGUE SHAMAN
+L50	Leather chest	Wolf: Agi Spi	DRUID | fallback: HUNTER MONK PALADIN ROGUE SHAMAN
+L50	Leather chest	Whale: Sta Spi	DRUID MONK | fallback: PALADIN SHAMAN
+L50	Leather chest	Spell Power	DRUID MONK | fallback: PALADIN SHAMAN
+L50	Leather chest	Int Spell Power	DRUID MONK | fallback: PALADIN SHAMAN
+L50	Leather chest	Int Crit Haste	DRUID MONK | fallback: DEATHKNIGHT HUNTER PALADIN ROGUE SHAMAN WARRIOR
+L50	Leather chest	Int Spi Haste	DRUID MONK PALADIN SHAMAN | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L50	Leather chest	Int Hit Mastery	DRUID MONK | fallback: DEATHKNIGHT HUNTER PALADIN ROGUE SHAMAN WARRIOR
+L50	Leather chest	Agi Crit Mastery	DRUID ROGUE | fallback: DEATHKNIGHT HUNTER MONK PALADIN SHAMAN WARRIOR
+L50	Leather chest	Agi Hit Expertise	DRUID ROGUE | fallback: DEATHKNIGHT HUNTER PALADIN SHAMAN WARRIOR
+L50	Leather chest	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID HUNTER MONK ROGUE SHAMAN
+L50	Leather chest	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L50	Leather chest	No stats	nobody
+L50	Mail chest	Strength	DEATHKNIGHT PALADIN WARRIOR
+L50	Mail chest	Agility	HUNTER
+L50	Mail chest	Stamina	nobody
+L50	Mail chest	Intellect	SHAMAN | fallback: PALADIN
+L50	Mail chest	Spirit	SHAMAN | fallback: PALADIN
+L50	Mail chest	Monkey: Agi Sta	HUNTER
+L50	Mail chest	Eagle: Int Sta	SHAMAN | fallback: PALADIN
+L50	Mail chest	Owl: Int Spi	PALADIN SHAMAN
+L50	Mail chest	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L50	Mail chest	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT SHAMAN WARRIOR
+L50	Mail chest	Tiger: Str Agi	HUNTER | fallback: DEATHKNIGHT PALADIN WARRIOR
+L50	Mail chest	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT SHAMAN WARRIOR
+L50	Mail chest	Falcon: Agi Int	HUNTER SHAMAN | fallback: PALADIN
+L50	Mail chest	Wolf: Agi Spi	HUNTER | fallback: PALADIN SHAMAN
+L50	Mail chest	Whale: Sta Spi	SHAMAN | fallback: PALADIN
+L50	Mail chest	Spell Power	SHAMAN | fallback: PALADIN
+L50	Mail chest	Int Spell Power	SHAMAN | fallback: PALADIN
+L50	Mail chest	Int Crit Haste	SHAMAN | fallback: DEATHKNIGHT HUNTER PALADIN WARRIOR
+L50	Mail chest	Int Spi Haste	PALADIN SHAMAN | fallback: DEATHKNIGHT HUNTER WARRIOR
+L50	Mail chest	Int Hit Mastery	SHAMAN | fallback: DEATHKNIGHT HUNTER PALADIN WARRIOR
+L50	Mail chest	Agi Crit Mastery	HUNTER | fallback: DEATHKNIGHT PALADIN SHAMAN WARRIOR
+L50	Mail chest	Agi Hit Expertise	HUNTER | fallback: DEATHKNIGHT PALADIN SHAMAN WARRIOR
+L50	Mail chest	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: HUNTER SHAMAN
+L50	Mail chest	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L50	Mail chest	No stats	nobody
+L50	Plate chest	Strength	DEATHKNIGHT PALADIN WARRIOR
+L50	Plate chest	Agility	nobody
+L50	Plate chest	Stamina	nobody
+L50	Plate chest	Intellect	PALADIN
+L50	Plate chest	Spirit	PALADIN
+L50	Plate chest	Monkey: Agi Sta	nobody
+L50	Plate chest	Eagle: Int Sta	PALADIN
+L50	Plate chest	Owl: Int Spi	PALADIN
+L50	Plate chest	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L50	Plate chest	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L50	Plate chest	Tiger: Str Agi	DEATHKNIGHT PALADIN WARRIOR
+L50	Plate chest	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L50	Plate chest	Falcon: Agi Int	PALADIN
+L50	Plate chest	Wolf: Agi Spi	 | fallback: PALADIN (leftover)
+L50	Plate chest	Whale: Sta Spi	PALADIN
+L50	Plate chest	Spell Power	PALADIN
+L50	Plate chest	Int Spell Power	PALADIN
+L50	Plate chest	Int Crit Haste	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L50	Plate chest	Int Spi Haste	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L50	Plate chest	Int Hit Mastery	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L50	Plate chest	Agi Crit Mastery	 | fallback: DEATHKNIGHT PALADIN WARRIOR (leftover)
+L50	Plate chest	Agi Hit Expertise	 | fallback: DEATHKNIGHT PALADIN WARRIOR (leftover)
+L50	Plate chest	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR
+L50	Plate chest	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L50	Plate chest	No stats	nobody
+L50	Cloak	Strength	DEATHKNIGHT PALADIN WARRIOR
+L50	Cloak	Agility	DRUID HUNTER ROGUE
+L50	Cloak	Stamina	nobody
+L50	Cloak	Intellect	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Cloak	Spirit	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L50	Cloak	Monkey: Agi Sta	DRUID HUNTER ROGUE
+L50	Cloak	Eagle: Int Sta	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Cloak	Owl: Int Spi	DRUID MONK PALADIN PRIEST SHAMAN | fallback: MAGE
+L50	Cloak	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L50	Cloak	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK PRIEST SHAMAN WARRIOR
+L50	Cloak	Tiger: Str Agi	DEATHKNIGHT DRUID HUNTER PALADIN ROGUE WARRIOR
+L50	Cloak	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L50	Cloak	Falcon: Agi Int	DRUID | fallback: HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK
+L50	Cloak	Wolf: Agi Spi	DRUID | fallback: HUNTER MONK PALADIN PRIEST ROGUE SHAMAN
+L50	Cloak	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L50	Cloak	Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Cloak	Int Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Cloak	Int Crit Haste	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L50	Cloak	Int Spi Haste	DRUID MONK PALADIN PRIEST SHAMAN | fallback: DEATHKNIGHT HUNTER MAGE ROGUE WARRIOR
+L50	Cloak	Int Hit Mastery	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L50	Cloak	Agi Crit Mastery	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE MONK PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L50	Cloak	Agi Hit Expertise	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L50	Cloak	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID HUNTER MAGE MONK PRIEST ROGUE SHAMAN WARLOCK
+L50	Cloak	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L50	Cloak	No stats	nobody
+L50	Ring	Strength	DEATHKNIGHT PALADIN WARRIOR
+L50	Ring	Agility	DRUID HUNTER ROGUE
+L50	Ring	Stamina	nobody
+L50	Ring	Intellect	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Ring	Spirit	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L50	Ring	Monkey: Agi Sta	DRUID HUNTER ROGUE
+L50	Ring	Eagle: Int Sta	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Ring	Owl: Int Spi	DRUID MONK PALADIN PRIEST SHAMAN | fallback: MAGE
+L50	Ring	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L50	Ring	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK PRIEST SHAMAN WARRIOR
+L50	Ring	Tiger: Str Agi	DEATHKNIGHT DRUID HUNTER PALADIN ROGUE WARRIOR
+L50	Ring	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L50	Ring	Falcon: Agi Int	DRUID | fallback: HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK
+L50	Ring	Wolf: Agi Spi	DRUID | fallback: HUNTER MONK PALADIN PRIEST ROGUE SHAMAN
+L50	Ring	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L50	Ring	Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Ring	Int Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Ring	Int Crit Haste	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L50	Ring	Int Spi Haste	DRUID MONK PALADIN PRIEST SHAMAN | fallback: DEATHKNIGHT HUNTER MAGE ROGUE WARRIOR
+L50	Ring	Int Hit Mastery	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK | fallback: DEATHKNIGHT HUNTER ROGUE WARRIOR
+L50	Ring	Agi Crit Mastery	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE MONK PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L50	Ring	Agi Hit Expertise	DRUID HUNTER ROGUE | fallback: DEATHKNIGHT MAGE PALADIN PRIEST SHAMAN WARLOCK WARRIOR
+L50	Ring	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID HUNTER MAGE MONK PRIEST ROGUE SHAMAN WARLOCK
+L50	Ring	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L50	Ring	No stats	nobody
+L50	Shield	Strength	PALADIN WARRIOR
+L50	Shield	Agility	nobody
+L50	Shield	Stamina	PALADIN SHAMAN WARRIOR
+L50	Shield	Intellect	PALADIN SHAMAN
+L50	Shield	Spirit	PALADIN SHAMAN
+L50	Shield	Monkey: Agi Sta	nobody
+L50	Shield	Eagle: Int Sta	PALADIN SHAMAN
+L50	Shield	Owl: Int Spi	PALADIN SHAMAN
+L50	Shield	Bear: Str Sta	PALADIN WARRIOR
+L50	Shield	Boar: Str Spi	PALADIN | fallback: SHAMAN WARRIOR
+L50	Shield	Tiger: Str Agi	PALADIN WARRIOR
+L50	Shield	Gorilla: Str Int	PALADIN | fallback: SHAMAN WARRIOR
+L50	Shield	Falcon: Agi Int	PALADIN SHAMAN
+L50	Shield	Wolf: Agi Spi	 | fallback: PALADIN SHAMAN (leftover)
+L50	Shield	Whale: Sta Spi	PALADIN SHAMAN
+L50	Shield	Spell Power	PALADIN SHAMAN
+L50	Shield	Int Spell Power	PALADIN SHAMAN
+L50	Shield	Int Crit Haste	PALADIN SHAMAN | fallback: WARRIOR
+L50	Shield	Int Spi Haste	PALADIN SHAMAN | fallback: WARRIOR
+L50	Shield	Int Hit Mastery	PALADIN SHAMAN | fallback: WARRIOR
+L50	Shield	Agi Crit Mastery	 | fallback: PALADIN SHAMAN WARRIOR (leftover)
+L50	Shield	Agi Hit Expertise	 | fallback: PALADIN SHAMAN WARRIOR (leftover)
+L50	Shield	Str Crit Mastery	PALADIN WARRIOR | fallback: SHAMAN
+L50	Shield	Str Parry Dodge	PALADIN WARRIOR
+L50	Shield	No stats	PALADIN SHAMAN WARRIOR
+L50	Held off-hand	Strength	PALADIN
+L50	Held off-hand	Agility	DRUID
+L50	Held off-hand	Stamina	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Held off-hand	Intellect	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Held off-hand	Spirit	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L50	Held off-hand	Monkey: Agi Sta	DRUID
+L50	Held off-hand	Eagle: Int Sta	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Held off-hand	Owl: Int Spi	DRUID MONK PALADIN PRIEST SHAMAN | fallback: MAGE
+L50	Held off-hand	Bear: Str Sta	PALADIN
+L50	Held off-hand	Boar: Str Spi	PALADIN | fallback: DRUID MONK PRIEST SHAMAN
+L50	Held off-hand	Tiger: Str Agi	DRUID PALADIN
+L50	Held off-hand	Gorilla: Str Int	PALADIN | fallback: DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L50	Held off-hand	Falcon: Agi Int	DRUID | fallback: MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Held off-hand	Wolf: Agi Spi	DRUID | fallback: MONK PALADIN PRIEST SHAMAN
+L50	Held off-hand	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID MONK PALADIN
+L50	Held off-hand	Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Held off-hand	Int Spell Power	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Held off-hand	Int Crit Haste	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Held off-hand	Int Spi Haste	DRUID MONK PALADIN PRIEST SHAMAN | fallback: MAGE
+L50	Held off-hand	Int Hit Mastery	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Held off-hand	Agi Crit Mastery	DRUID | fallback: MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Held off-hand	Agi Hit Expertise	DRUID | fallback: MAGE PALADIN PRIEST SHAMAN WARLOCK
+L50	Held off-hand	Str Crit Mastery	PALADIN | fallback: DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L50	Held off-hand	Str Parry Dodge	PALADIN
+L50	Held off-hand	No stats	DRUID MAGE MONK PALADIN PRIEST SHAMAN WARLOCK
+L50	Staff	Strength	WARRIOR
+L50	Staff	Agility	DRUID
+L50	Staff	Stamina	DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L50	Staff	Intellect	DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L50	Staff	Spirit	PRIEST SHAMAN | fallback: DRUID MONK
+L50	Staff	Monkey: Agi Sta	DRUID
+L50	Staff	Eagle: Int Sta	DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L50	Staff	Owl: Int Spi	DRUID MONK PRIEST SHAMAN | fallback: MAGE
+L50	Staff	Bear: Str Sta	WARRIOR
+L50	Staff	Boar: Str Spi	WARRIOR | fallback: DRUID MONK PRIEST SHAMAN
+L50	Staff	Tiger: Str Agi	DRUID WARRIOR
+L50	Staff	Gorilla: Str Int	DRUID MAGE MONK PRIEST SHAMAN WARLOCK | fallback: WARRIOR
+L50	Staff	Falcon: Agi Int	DRUID | fallback: MAGE MONK PRIEST SHAMAN WARLOCK
+L50	Staff	Wolf: Agi Spi	DRUID | fallback: MONK PRIEST SHAMAN
+L50	Staff	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID MONK
+L50	Staff	Spell Power	DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L50	Staff	Int Spell Power	DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L50	Staff	Int Crit Haste	DRUID MAGE MONK PRIEST SHAMAN WARLOCK | fallback: WARRIOR
+L50	Staff	Int Spi Haste	DRUID MONK PRIEST SHAMAN | fallback: MAGE WARRIOR
+L50	Staff	Int Hit Mastery	DRUID MAGE MONK PRIEST SHAMAN WARLOCK | fallback: WARRIOR
+L50	Staff	Agi Crit Mastery	DRUID | fallback: MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L50	Staff	Agi Hit Expertise	DRUID | fallback: MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L50	Staff	Str Crit Mastery	WARRIOR | fallback: DRUID MAGE MONK PRIEST SHAMAN WARLOCK
+L50	Staff	Str Parry Dodge	WARRIOR
+L50	Staff	No stats	DRUID MAGE MONK PRIEST SHAMAN WARLOCK WARRIOR
+L50	Dagger	Strength	WARRIOR
+L50	Dagger	Agility	ROGUE | fallback: DRUID
+L50	Dagger	Stamina	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L50	Dagger	Intellect	DRUID MAGE PRIEST SHAMAN WARLOCK
+L50	Dagger	Spirit	PRIEST SHAMAN | fallback: DRUID
+L50	Dagger	Monkey: Agi Sta	ROGUE | fallback: DRUID
+L50	Dagger	Eagle: Int Sta	DRUID MAGE PRIEST SHAMAN WARLOCK
+L50	Dagger	Owl: Int Spi	DRUID PRIEST SHAMAN | fallback: MAGE
+L50	Dagger	Bear: Str Sta	WARRIOR
+L50	Dagger	Boar: Str Spi	WARRIOR | fallback: DRUID PRIEST SHAMAN
+L50	Dagger	Tiger: Str Agi	ROGUE | fallback: DRUID WARRIOR
+L50	Dagger	Gorilla: Str Int	DRUID MAGE PRIEST SHAMAN WARLOCK | fallback: WARRIOR
+L50	Dagger	Falcon: Agi Int	DRUID | fallback: MAGE PRIEST ROGUE SHAMAN WARLOCK
+L50	Dagger	Wolf: Agi Spi	ROGUE | fallback: DRUID PRIEST SHAMAN
+L50	Dagger	Whale: Sta Spi	PRIEST SHAMAN | fallback: DRUID
+L50	Dagger	Spell Power	DRUID MAGE PRIEST SHAMAN WARLOCK
+L50	Dagger	Int Spell Power	DRUID MAGE PRIEST SHAMAN WARLOCK
+L50	Dagger	Int Crit Haste	DRUID MAGE PRIEST SHAMAN WARLOCK | fallback: ROGUE WARRIOR
+L50	Dagger	Int Spi Haste	DRUID PRIEST SHAMAN | fallback: MAGE ROGUE WARRIOR
+L50	Dagger	Int Hit Mastery	DRUID MAGE PRIEST SHAMAN WARLOCK | fallback: ROGUE WARRIOR
+L50	Dagger	Agi Crit Mastery	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L50	Dagger	Agi Hit Expertise	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L50	Dagger	Str Crit Mastery	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L50	Dagger	Str Parry Dodge	WARRIOR
+L50	Dagger	No stats	ROGUE | fallback: DRUID MAGE PRIEST SHAMAN WARLOCK WARRIOR
+L50	1H sword	Strength	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L50	1H sword	Agility	ROGUE
+L50	1H sword	Stamina	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L50	1H sword	Intellect	MONK | fallback: MAGE PALADIN WARLOCK
+L50	1H sword	Spirit	MONK | fallback: PALADIN
+L50	1H sword	Monkey: Agi Sta	ROGUE
+L50	1H sword	Eagle: Int Sta	MONK | fallback: MAGE PALADIN WARLOCK
+L50	1H sword	Owl: Int Spi	MONK PALADIN | fallback: MAGE
+L50	1H sword	Bear: Str Sta	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L50	1H sword	Boar: Str Spi	MONK WARRIOR | fallback: DEATHKNIGHT PALADIN
+L50	1H sword	Tiger: Str Agi	ROGUE WARRIOR | fallback: DEATHKNIGHT PALADIN
+L50	1H sword	Gorilla: Str Int	MONK | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK WARRIOR
+L50	1H sword	Falcon: Agi Int	MONK | fallback: MAGE PALADIN ROGUE WARLOCK
+L50	1H sword	Wolf: Agi Spi	MONK ROGUE | fallback: PALADIN
+L50	1H sword	Whale: Sta Spi	MONK | fallback: PALADIN
+L50	1H sword	Spell Power	MONK | fallback: MAGE PALADIN WARLOCK
+L50	1H sword	Int Spell Power	MONK | fallback: MAGE PALADIN WARLOCK
+L50	1H sword	Int Crit Haste	MONK | fallback: DEATHKNIGHT MAGE PALADIN ROGUE WARLOCK WARRIOR
+L50	1H sword	Int Spi Haste	MONK PALADIN | fallback: DEATHKNIGHT MAGE ROGUE WARRIOR
+L50	1H sword	Int Hit Mastery	MONK | fallback: DEATHKNIGHT MAGE PALADIN ROGUE WARLOCK WARRIOR
+L50	1H sword	Agi Crit Mastery	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L50	1H sword	Agi Hit Expertise	ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L50	1H sword	Str Crit Mastery	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L50	1H sword	Str Parry Dodge	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L50	1H sword	No stats	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT MAGE PALADIN WARLOCK
+L50	1H mace	Strength	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L50	1H mace	Agility	ROGUE | fallback: DRUID
+L50	1H mace	Stamina	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L50	1H mace	Intellect	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L50	1H mace	Spirit	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L50	1H mace	Monkey: Agi Sta	ROGUE | fallback: DRUID
+L50	1H mace	Eagle: Int Sta	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L50	1H mace	Owl: Int Spi	DRUID MONK PALADIN PRIEST SHAMAN
+L50	1H mace	Bear: Str Sta	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L50	1H mace	Boar: Str Spi	MONK WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L50	1H mace	Tiger: Str Agi	ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN
+L50	1H mace	Gorilla: Str Int	MONK | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN WARRIOR
+L50	1H mace	Falcon: Agi Int	MONK | fallback: DRUID PALADIN PRIEST ROGUE SHAMAN
+L50	1H mace	Wolf: Agi Spi	MONK ROGUE | fallback: DRUID PALADIN PRIEST SHAMAN
+L50	1H mace	Whale: Sta Spi	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L50	1H mace	Spell Power	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L50	1H mace	Int Spell Power	MONK | fallback: DRUID PALADIN PRIEST SHAMAN
+L50	1H mace	Int Crit Haste	MONK | fallback: DEATHKNIGHT DRUID PALADIN PRIEST ROGUE SHAMAN WARRIOR
+L50	1H mace	Int Spi Haste	DRUID MONK PALADIN PRIEST SHAMAN | fallback: DEATHKNIGHT ROGUE WARRIOR
+L50	1H mace	Int Hit Mastery	MONK | fallback: DEATHKNIGHT DRUID PALADIN PRIEST ROGUE SHAMAN WARRIOR
+L50	1H mace	Agi Crit Mastery	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L50	1H mace	Agi Hit Expertise	ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L50	1H mace	Str Crit Mastery	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L50	1H mace	Str Parry Dodge	WARRIOR | fallback: DEATHKNIGHT PALADIN
+L50	1H mace	No stats	MONK ROGUE WARRIOR | fallback: DEATHKNIGHT DRUID PALADIN PRIEST SHAMAN
+L50	2H sword	Strength	DEATHKNIGHT PALADIN WARRIOR
+L50	2H sword	Agility	nobody
+L50	2H sword	Stamina	DEATHKNIGHT PALADIN WARRIOR
+L50	2H sword	Intellect	PALADIN
+L50	2H sword	Spirit	PALADIN
+L50	2H sword	Monkey: Agi Sta	nobody
+L50	2H sword	Eagle: Int Sta	PALADIN
+L50	2H sword	Owl: Int Spi	PALADIN
+L50	2H sword	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L50	2H sword	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L50	2H sword	Tiger: Str Agi	DEATHKNIGHT PALADIN WARRIOR
+L50	2H sword	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L50	2H sword	Falcon: Agi Int	PALADIN
+L50	2H sword	Wolf: Agi Spi	 | fallback: PALADIN (leftover)
+L50	2H sword	Whale: Sta Spi	PALADIN
+L50	2H sword	Spell Power	PALADIN
+L50	2H sword	Int Spell Power	PALADIN
+L50	2H sword	Int Crit Haste	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L50	2H sword	Int Spi Haste	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L50	2H sword	Int Hit Mastery	PALADIN | fallback: DEATHKNIGHT WARRIOR
+L50	2H sword	Agi Crit Mastery	 | fallback: DEATHKNIGHT PALADIN WARRIOR (leftover)
+L50	2H sword	Agi Hit Expertise	 | fallback: DEATHKNIGHT PALADIN WARRIOR (leftover)
+L50	2H sword	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR
+L50	2H sword	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L50	2H sword	No stats	DEATHKNIGHT PALADIN WARRIOR
+L50	2H mace	Strength	DEATHKNIGHT PALADIN WARRIOR
+L50	2H mace	Agility	DRUID
+L50	2H mace	Stamina	DEATHKNIGHT DRUID PALADIN SHAMAN WARRIOR
+L50	2H mace	Intellect	DRUID PALADIN SHAMAN
+L50	2H mace	Spirit	DRUID PALADIN SHAMAN
+L50	2H mace	Monkey: Agi Sta	DRUID
+L50	2H mace	Eagle: Int Sta	DRUID PALADIN SHAMAN
+L50	2H mace	Owl: Int Spi	DRUID PALADIN SHAMAN
+L50	2H mace	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L50	2H mace	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID SHAMAN WARRIOR
+L50	2H mace	Tiger: Str Agi	DEATHKNIGHT DRUID PALADIN WARRIOR
+L50	2H mace	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID SHAMAN WARRIOR
+L50	2H mace	Falcon: Agi Int	DRUID | fallback: PALADIN SHAMAN
+L50	2H mace	Wolf: Agi Spi	DRUID | fallback: PALADIN SHAMAN
+L50	2H mace	Whale: Sta Spi	DRUID PALADIN SHAMAN
+L50	2H mace	Spell Power	DRUID PALADIN SHAMAN
+L50	2H mace	Int Spell Power	DRUID PALADIN SHAMAN
+L50	2H mace	Int Crit Haste	DRUID PALADIN SHAMAN | fallback: DEATHKNIGHT WARRIOR
+L50	2H mace	Int Spi Haste	DRUID PALADIN SHAMAN | fallback: DEATHKNIGHT WARRIOR
+L50	2H mace	Int Hit Mastery	DRUID PALADIN SHAMAN | fallback: DEATHKNIGHT WARRIOR
+L50	2H mace	Agi Crit Mastery	DRUID | fallback: DEATHKNIGHT PALADIN SHAMAN WARRIOR
+L50	2H mace	Agi Hit Expertise	DRUID | fallback: DEATHKNIGHT PALADIN SHAMAN WARRIOR
+L50	2H mace	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID SHAMAN
+L50	2H mace	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L50	2H mace	No stats	DEATHKNIGHT DRUID PALADIN SHAMAN WARRIOR
+L50	Polearm	Strength	DEATHKNIGHT PALADIN WARRIOR
+L50	Polearm	Agility	DRUID
+L50	Polearm	Stamina	DEATHKNIGHT DRUID MONK PALADIN WARRIOR
+L50	Polearm	Intellect	DRUID MONK PALADIN
+L50	Polearm	Spirit	DRUID MONK PALADIN
+L50	Polearm	Monkey: Agi Sta	DRUID
+L50	Polearm	Eagle: Int Sta	DRUID MONK PALADIN
+L50	Polearm	Owl: Int Spi	DRUID MONK PALADIN
+L50	Polearm	Bear: Str Sta	DEATHKNIGHT PALADIN WARRIOR
+L50	Polearm	Boar: Str Spi	PALADIN | fallback: DEATHKNIGHT DRUID MONK WARRIOR
+L50	Polearm	Tiger: Str Agi	DEATHKNIGHT DRUID PALADIN WARRIOR
+L50	Polearm	Gorilla: Str Int	PALADIN | fallback: DEATHKNIGHT DRUID MONK WARRIOR
+L50	Polearm	Falcon: Agi Int	DRUID | fallback: MONK PALADIN
+L50	Polearm	Wolf: Agi Spi	DRUID | fallback: MONK PALADIN
+L50	Polearm	Whale: Sta Spi	DRUID MONK PALADIN
+L50	Polearm	Spell Power	DRUID MONK PALADIN
+L50	Polearm	Int Spell Power	DRUID MONK PALADIN
+L50	Polearm	Int Crit Haste	DRUID MONK PALADIN | fallback: DEATHKNIGHT WARRIOR
+L50	Polearm	Int Spi Haste	DRUID MONK PALADIN | fallback: DEATHKNIGHT WARRIOR
+L50	Polearm	Int Hit Mastery	DRUID MONK PALADIN | fallback: DEATHKNIGHT WARRIOR
+L50	Polearm	Agi Crit Mastery	DRUID | fallback: DEATHKNIGHT MONK PALADIN WARRIOR
+L50	Polearm	Agi Hit Expertise	DRUID | fallback: DEATHKNIGHT PALADIN WARRIOR
+L50	Polearm	Str Crit Mastery	DEATHKNIGHT PALADIN WARRIOR | fallback: DRUID MONK
+L50	Polearm	Str Parry Dodge	DEATHKNIGHT PALADIN WARRIOR
+L50	Polearm	No stats	DEATHKNIGHT DRUID MONK PALADIN WARRIOR
+L50	Bow	Strength	nobody
+L50	Bow	Agility	HUNTER
+L50	Bow	Stamina	HUNTER
+L50	Bow	Intellect	nobody
+L50	Bow	Spirit	nobody
+L50	Bow	Monkey: Agi Sta	HUNTER
+L50	Bow	Eagle: Int Sta	nobody
+L50	Bow	Owl: Int Spi	nobody
+L50	Bow	Bear: Str Sta	nobody
+L50	Bow	Boar: Str Spi	nobody
+L50	Bow	Tiger: Str Agi	HUNTER
+L50	Bow	Gorilla: Str Int	nobody
+L50	Bow	Falcon: Agi Int	HUNTER
+L50	Bow	Wolf: Agi Spi	HUNTER
+L50	Bow	Whale: Sta Spi	nobody
+L50	Bow	Spell Power	nobody
+L50	Bow	Int Spell Power	nobody
+L50	Bow	Int Crit Haste	HUNTER
+L50	Bow	Int Spi Haste	HUNTER
+L50	Bow	Int Hit Mastery	HUNTER
+L50	Bow	Agi Crit Mastery	HUNTER
+L50	Bow	Agi Hit Expertise	HUNTER
+L50	Bow	Str Crit Mastery	 | fallback: HUNTER (leftover)
+L50	Bow	Str Parry Dodge	nobody
+L50	Bow	No stats	HUNTER
+L50	Wand	Strength	nobody
+L50	Wand	Agility	nobody
+L50	Wand	Stamina	MAGE PRIEST WARLOCK
+L50	Wand	Intellect	MAGE PRIEST WARLOCK
+L50	Wand	Spirit	PRIEST
+L50	Wand	Monkey: Agi Sta	nobody
+L50	Wand	Eagle: Int Sta	MAGE PRIEST WARLOCK
+L50	Wand	Owl: Int Spi	PRIEST | fallback: MAGE
+L50	Wand	Bear: Str Sta	nobody
+L50	Wand	Boar: Str Spi	 | fallback: PRIEST (leftover)
+L50	Wand	Tiger: Str Agi	nobody
+L50	Wand	Gorilla: Str Int	MAGE PRIEST WARLOCK
+L50	Wand	Falcon: Agi Int	MAGE PRIEST WARLOCK
+L50	Wand	Wolf: Agi Spi	 | fallback: PRIEST (leftover)
+L50	Wand	Whale: Sta Spi	PRIEST
+L50	Wand	Spell Power	MAGE PRIEST WARLOCK
+L50	Wand	Int Spell Power	MAGE PRIEST WARLOCK
+L50	Wand	Int Crit Haste	MAGE PRIEST WARLOCK
+L50	Wand	Int Spi Haste	PRIEST | fallback: MAGE
+L50	Wand	Int Hit Mastery	MAGE PRIEST WARLOCK
+L50	Wand	Agi Crit Mastery	 | fallback: MAGE PRIEST WARLOCK (leftover)
+L50	Wand	Agi Hit Expertise	 | fallback: MAGE PRIEST WARLOCK (leftover)
+L50	Wand	Str Crit Mastery	 | fallback: MAGE PRIEST WARLOCK (leftover)
+L50	Wand	Str Parry Dodge	nobody
+L50	Wand	No stats	MAGE PRIEST WARLOCK

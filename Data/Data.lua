@@ -34,6 +34,12 @@ ns.LINKS = {
 -- AceConfig registry names: stable identifiers, never localized and never built inline.
 ns.OPTIONS_REGISTRY = {
 	General = ADDON_NAME,
+	GiveAway = ADDON_NAME .. "_GiveAway",
+	Recipients = ADDON_NAME .. "_Recipients",
+	Alts = ADDON_NAME .. "_Alts",
+	Guilds = ADDON_NAME .. "_Guilds",
+	Mail = ADDON_NAME .. "_Mail",
+	Generosity = ADDON_NAME .. "_Generosity",
 	Profiles = ADDON_NAME .. "_Profiles",
 	FeedbackSupport = ADDON_NAME .. "_FeedbackSupport",
 	Diagnostics = ADDON_NAME .. "_Diagnostics",
@@ -57,6 +63,15 @@ ns.OPTIONS_REMOVE_ICON_WIDTH = 0.25
 
 -- The blank cell a sub-option row leads with, so its control indents.
 ns.OPTIONS_SUB_INDENT_WIDTH = 0.115
+
+--[[
+	The My Alts and My Guilds panels split in two, Magic Eraser's list layout: the characters or
+	guilds down the left, the one picked on the right. The sidebar eats into the pane, so rows
+	inside it spend TREE_ROW_WIDTH rather than ROW_WIDTH. The tree stays drag-resizable, and a drag
+	wins over this seed.
+]]
+ns.OPTIONS_TREE_WIDTH = 180
+ns.OPTIONS_TREE_ROW_WIDTH = 2.5
 
 --------------------------------------------------------------------------------
 -- Addon Message Prefix
@@ -88,13 +103,14 @@ ns.PALETTE = {
 
 --[[
 	Fallback only: CUSTOM_CLASS_COLORS and RAID_CLASS_COLORS win when present. Era and TBC have
-	no Death Knights; the extra key keeps the table identical across flavors.
+	no Death Knights and only Mists has Monks; the extra keys keep the table identical across flavors.
 ]]
 ns.CLASS_COLORS = {
 	DEATHKNIGHT = "C41E3A",
 	DRUID = "FF7C0A",
 	HUNTER = "AAD372",
 	MAGE = "3FC7EB",
+	MONK = "00FF98",
 	PALADIN = "F48CBA",
 	PRIEST = "FFFFFF",
 	ROGUE = "FFF468",
@@ -102,6 +118,55 @@ ns.CLASS_COLORS = {
 	WARLOCK = "8788EE",
 	WARRIOR = "C69B6D",
 }
+
+--------------------------------------------------------------------------------
+-- Matching
+--------------------------------------------------------------------------------
+
+--[[
+	How far below a class's training level an item may require and still be worth sending to it.
+
+	THE FLAVOR FOLDER'S NATIVE_ARMOR IS A GATE ON TWO THINGS AT ONCE and only one of them is about
+	eligibility.
+	A hunter trains mail at 40, so on a level 36 mail belt the gate says both "he cannot wear
+	this yet" and "he is not who it is for" -- and the second is wrong. Blizzard itemizes the
+	35-to-39 mail with Agility and Intellect FOR hunters and shamans, who then watched it go to
+	a warrior or a paladin because they were the only heavy-armor classes admitted. Reach makes
+	the class eligible and moves its recipient band up to the level it can actually equip the
+	item at, instead of dropping it.
+
+	FIVE, BECAUSE AN ITEM GOES STALE. A level 36 belt is a real gift to a hunter about to hit 40
+	with no mail at all; a level 20 one is not, and would arrive four tiers out of date. Any item
+	further below the training level than this reverts to being ineligible outright.
+
+	ARMOR ONLY. A weapon type is either in a class's column of the flavor folder's WEAPON_SPECS or it
+	never is, so there is no weapon training level to reach for.
+]]
+ns.Data.PROFICIENCY_REACH = 5
+
+-- Keeps a statless weapon out of the leftover pile: itemLevel * WEAPON_BASELINE for any eligible class.
+ns.Data.WEAPON_BASELINE = 0.15
+
+--[[
+	How much of an item a class must use to count as one of the classes it is for rather than a
+	fallback. Compared with Matcher:Coverage, and STRICTLY GREATER: a class using exactly half
+	is demoted.
+
+	Scoring alone cannot express "you have to use most of it" because it sums -- on "of the
+	Gorilla" a paladin's 16 Strength plus 8 Intellect ties a warrior's 24, and the warrior takes
+	it on proximity with half the item dead on him. Half is the bar because Classic's two-stat
+	suffixes are near-even splits: one of the pair is 0.5, both is 1.0.
+]]
+ns.Data.COVERAGE_MAJORITY = 0.5
+
+-- The share of the best class's claim another must reach to compete. See THE SCALE in Features/Match-Derivations.lua.
+ns.Data.CLASS_SHARE = 0.35
+
+--[[
+	A best score below this sends an item to the vendor pile. Deliberately near the floor: the
+	job is to catch an item nobody scores at all, and a higher bar bins real low-level gear.
+]]
+ns.Data.LEFTOVER_THRESHOLD = 1.0
 
 --------------------------------------------------------------------------------
 -- Recipient Level Band
@@ -136,11 +201,20 @@ ns.Data.CONSUMABLE_RECIPIENT_GAP = 2
 	The lowest level anybody can receive anything, whatever list named them. Levels 1 to 4 are
 	where bank and profession alts sit.
 
-	ENFORCED IN ONE PLACE, Features/Match-List.lua's AddResults, because that is the single door
+	ENFORCED IN ONE PLACE, Features/Match-Roster.lua's AddResults, because that is the single door
 	every recipient comes through -- /who results, the guild roster, anything added later. A
 	copy of this rule per source is a copy that can drift.
 ]]
 ns.Data.MIN_RECIPIENT_LEVEL = 5
+
+--[[
+	The band a stranger warlock is skipped in while the Recipients panel's Ignore Warlocks switch
+	is on: Ritual of Summoning unlocks at 20, and summoning alts park there, drifting a few levels
+	before they stop. Wider than the guild roster's always-on rule (Features/Recipients-Guild.lua),
+	because a stranger is an opt-in guess the player made, where a guildmate's parked alt is known.
+]]
+ns.Data.SUMMONER_MIN_LEVEL = 20
+ns.Data.SUMMONER_MAX_LEVEL = 25
 
 --------------------------------------------------------------------------------
 -- Consumable Level Gap
@@ -153,35 +227,21 @@ ns.Data.MIN_RECIPIENT_LEVEL = 5
 ]]
 ns.CONSUMABLE_GAP_ORDER = { 0, 5, 10, 15, 20 }
 
+-- The stops the Ignore Offline Guild Members dropdown offers, in display order: keys of ns.Guild.OFFLINE_DAYS.
+ns.GUILD_OFFLINE_ORDER = { "WEEK", "TWO_WEEKS", "NEVER" }
+
 --------------------------------------------------------------------------------
--- Consumable Eligibility
+-- Alt Gear Levels
 --------------------------------------------------------------------------------
 
 --[[
-	What a consumable restores, the stat a scroll buffs, or who an oil or stone enhances a weapon
-	for decides who can receive it, not a class list on every row. Hunters have mana in Classic and TBC and belong here; death knights
-	use runic power. A scroll goes to the classes that build on its stat, so a Scroll of Agility
-	never reaches a mage; Stamina and armor help everybody. Pet food feeds a hunter's pet, so it
-	goes to hunters alone. A sharpening stone, weightstone or melee oil goes to the classes that
-	fight in melee with their weapon (a druid's forms ignore it, and a hunter's damage is ranged);
-	a wizard oil to the spell-damage casters; a mana oil to anybody with a mana bar.
+	The stops the My Alts pane offers for the lowest and highest gear each alt is mailed, counted
+	from its own level, in display order. "ANY" lifts the top end outright: anything the alt will
+	ever grow into. A new alt starts on the first stop of the one and the last of the other, gear
+	at its own level and up. Consumables keep the band everyone else is searched in.
 ]]
-local MANA_USERS = { "MAGE", "PRIEST", "WARLOCK", "PALADIN", "SHAMAN", "DRUID", "HUNTER" }
-
-ns.Data.CONSUMABLE_CLASSES = {
-	HEALTH = "ALL",
-	MANA = MANA_USERS,
-	BOTH = MANA_USERS,
-	STRENGTH = { "WARRIOR", "PALADIN", "SHAMAN", "DRUID", "DEATHKNIGHT" },
-	AGILITY = { "ROGUE", "HUNTER", "WARRIOR", "DRUID" },
-	STAMINA = "ALL",
-	INTELLECT = MANA_USERS,
-	SPIRIT = { "PRIEST", "MAGE", "DRUID", "SHAMAN", "PALADIN" },
-	ARMOR = "ALL",
-	PET = { "HUNTER" },
-	MELEE = { "WARRIOR", "ROGUE", "PALADIN", "SHAMAN", "DEATHKNIGHT" },
-	SPELL_DAMAGE = { "MAGE", "WARLOCK", "PRIEST", "SHAMAN", "DRUID" },
-}
+ns.ALT_LEVELS_BELOW_ORDER = { 0, 1, 2, 3 }
+ns.ALT_LEVELS_ABOVE_ORDER = { 1, 2, 3, "ANY" }
 
 --------------------------------------------------------------------------------
 -- Consumable Kinds

@@ -10,71 +10,20 @@ local Tooltip = ns.Tooltip
 	sees it, suffix included. Where a read came from travels with its result rather than being
 	parked on this table: a "most recent call" field is only true for a caller reading it at once.
 ]]
-local scanner
-local function GetScanner()
-	if scanner then
-		return scanner
-	end
-	scanner = CreateFrame("GameTooltip", "PlayItForwardScanTooltip", UIParent, "GameTooltipTemplate")
-	scanner:SetOwner(UIParent, "ANCHOR_NONE")
-	return scanner
-end
 
---[[
-	An item's tooltip as a list of left-hand text lines. Both paths are live: Classic Era
-	has no C_TooltipInfo.GetHyperlink, so the scanning tooltip below is not a legacy leftover.
-]]
+-- An item's tooltip as a list of left-hand text lines, and where it was read from (ns.ReadTooltip).
 local function TooltipLines(link)
-	if C_TooltipInfo and C_TooltipInfo.GetHyperlink then
-		local data = C_TooltipInfo.GetHyperlink(link)
-		if data then
-			-- Older 10.0.x builds hand back packed args that need surfacing first.
-			if TooltipUtil and TooltipUtil.SurfaceArgs then
-				TooltipUtil.SurfaceArgs(data)
-				for _, line in ipairs(data.lines or {}) do
-					TooltipUtil.SurfaceArgs(line)
-				end
-			end
-			--[[
-				Require actual text, not just line objects: with SurfaceArgs missing every leftText
-				is nil, so counting lines would "succeed" empty and never fall through below.
-			]]
-			local out, anyText = {}, false
-			for _, line in ipairs(data.lines or {}) do
-				out[#out + 1] = line.leftText or ""
-				if line.leftText and line.leftText ~= "" then
-					anyText = true
-				end
-			end
-			if anyText then
-				return out, "C_TooltipInfo"
-			end
-		end
+	local pairsRead, source = ns.ReadTooltip(link)
+	local out = {}
+	for index, pair in ipairs(pairsRead) do
+		out[index] = pair[1]
 	end
-
-	local tooltip = GetScanner()
-	tooltip:SetOwner(UIParent, "ANCHOR_NONE")
-	tooltip:ClearLines()
-	if not pcall(tooltip.SetHyperlink, tooltip, link) then
-		return {}, "none"
-	end
-
-	-- Same requirement as above: a line count with every font string empty is not a read.
-	local out, anyText = {}, false
-	for i = 1, tooltip:NumLines() do
-		local fontString = _G["PlayItForwardScanTooltipTextLeft" .. i]
-		local text = (fontString and fontString:GetText()) or ""
-		out[i] = text
-		if text ~= "" then
-			anyText = true
-		end
-	end
-	return out, (anyText and "scanning tooltip" or "none")
+	return out, source
 end
 
 --[[
 	Localized stat name ("Intellect") to the internal token, for a "+N Something" line. DERIVED
-	FROM Data/Scan-Stats.lua, NOT LISTED HERE: naming stats by hand drops every other "+N Something"
+	FROM THE FLAVOR FOLDER'S Scan-Stats FILE, NOT LISTED HERE: naming stats by hand drops every other "+N Something"
 	the client writes, since the equip patterns below only match the "increases ... by N" wording.
 ]]
 local STAT_BY_NAME

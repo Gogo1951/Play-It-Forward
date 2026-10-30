@@ -168,7 +168,7 @@ end)
 
 --[[
 	Same rule on the answering side, and the gate has to come first for the same reason: an answer
-	that cannot go out must not spend the 30s window, or a ping heard just outside an inn leaves the
+	that cannot go out must not spend the broadcast window, or a ping heard just outside an inn leaves the
 	next one unanswered after the player has stepped inside. Receiving is ungated, so this path is
 	reached out in the world where Broadcast's own is not.
 ]]

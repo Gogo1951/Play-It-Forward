@@ -51,6 +51,54 @@ ns.Data.ZONES = {
 -- [field] = its position in a ZONES row
 ns.Data.ZONE_COLUMNS = { AREA_ID = 1, MIN = 2, MAX = 3, FACTION = 4 }
 
+-- { areaID }
+ns.Data.INSTANCE_AREAS = {
+	{ 3428 }, -- Ahn'Qiraj
+	{ 719 }, -- Blackfathom Deeps
+	{ 17803 }, -- Blackrock Depths
+	{ 17804 }, -- Blackrock Spire
+	{ 2677 }, -- Blackwing Lair
+	{ 16544 }, -- City of Dalaran
+	{ 16560 }, -- City of Dalaran
+	{ 16114 }, -- Deadwind Pass
+	{ 15475 }, -- Demon Fall Canyon
+	{ 2557 }, -- Dire Maul
+	{ 16732 }, -- Excavation Site: Wetlands
+	{ 721 }, -- Gnomeregan
+	{ 16074 }, -- Karazhan Crypts
+	{ 17191 }, -- Manor Mistmantle
+	{ 2100 }, -- Maraudon
+	{ 2717 }, -- Molten Core
+	{ 3456 }, -- Naxxramas
+	{ 16394 }, -- Naxxramas
+	{ 2159 }, -- Onyxia's Lair
+	{ 2437 }, -- Ragefire Chasm
+	{ 722 }, -- Razorfen Downs
+	{ 491 }, -- Razorfen Kraul
+	{ 3429 }, -- Ruins of Ahn'Qiraj
+	{ 16611 }, -- Ruins of Lordaeron
+	{ 16236 }, -- Scarlet Enclave
+	{ 796 }, -- Scarlet Monastery
+	{ 2057 }, -- Scholomance
+	{ 16362 }, -- Shadow Hold
+	{ 209 }, -- Shadowfang Keep
+	{ 15938 }, -- Starfall Village
+	{ 15532 }, -- Storm Cliffs
+	{ 2017 }, -- Stratholme
+	{ 1417 }, -- Sunken Temple
+	{ 15828 }, -- The Burning of Andorhal
+	{ 15825 }, -- The Crystal Vale
+	{ 1581 }, -- The Deadmines
+	{ 16919 }, -- The Hall of Thanes
+	{ 16295 }, -- The Scarab Dais
+	{ 717 }, -- The Stockade
+	{ 15531 }, -- The Tainted Scar
+	{ 1337 }, -- Uldaman
+	{ 718 }, -- Wailing Caverns
+	{ 1176 }, -- Zul'Farrak
+	{ 1977 }, -- Zul'Gurub
+}
+
 --[[
 How We Got the Data
 

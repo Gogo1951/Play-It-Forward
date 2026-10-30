@@ -86,4 +86,83 @@ ns.Data.ZONES = {
 -- Exported: Features/Recipients-Who.lua reads rows through these same columns.
 ns.Data.ZONE_COLUMNS = { AREA_ID = 1, MIN = 2, MAX = 3, FACTION = 4 }
 
+-- { areaID }
+ns.Data.INSTANCE_AREAS = {
+	{ 3428 }, -- Ahn'Qiraj
+	{ 4494 }, -- Ahn'kahet: The Old Kingdom
+	{ 3790 }, -- Auchenai Crypts
+	{ 4277 }, -- Azjol-Nerub
+	{ 3959 }, -- Black Temple
+	{ 719 }, -- Blackfathom Deeps
+	{ 1584 }, -- Blackrock Depths
+	{ 1583 }, -- Blackrock Spire
+	{ 2677 }, -- Blackwing Lair
+	{ 2557 }, -- Dire Maul
+	{ 4196 }, -- Drak'Tharon Keep
+	{ 721 }, -- Gnomeregan
+	{ 3923 }, -- Gruul's Lair
+	{ 4416 }, -- Gundrak
+	{ 4272 }, -- Halls of Lightning
+	{ 4820 }, -- Halls of Reflection
+	{ 4264 }, -- Halls of Stone
+	{ 3535 }, -- Hellfire Citadel
+	{ 3562 }, -- Hellfire Ramparts
+	{ 267 }, -- Hillsbrad Foothills
+	{ 616 }, -- Hyjal
+	{ 4812 }, -- Icecrown Citadel
+	{ 3457 }, -- Karazhan
+	{ 4131 }, -- Magisters' Terrace
+	{ 3836 }, -- Magtheridon's Lair
+	{ 3792 }, -- Mana-Tombs
+	{ 2100 }, -- Maraudon
+	{ 2717 }, -- Molten Core
+	{ 3456 }, -- Naxxramas
+	{ 2159 }, -- Onyxia's Lair
+	{ 4813 }, -- Pit of Saron
+	{ 2437 }, -- Ragefire Chasm
+	{ 722 }, -- Razorfen Downs
+	{ 491 }, -- Razorfen Kraul
+	{ 3429 }, -- Ruins of Ahn'Qiraj
+	{ 796 }, -- Scarlet Monastery
+	{ 2057 }, -- Scholomance
+	{ 3607 }, -- Serpentshrine Cavern
+	{ 3791 }, -- Sethekk Halls
+	{ 3789 }, -- Shadow Labyrinth
+	{ 209 }, -- Shadowfang Keep
+	{ 2017 }, -- Stratholme
+	{ 1417 }, -- Sunken Temple
+	{ 4075 }, -- Sunwell Plateau
+	{ 3845 }, -- Tempest Keep
+	{ 3848 }, -- The Arcatraz
+	{ 2366 }, -- The Black Morass
+	{ 3713 }, -- The Blood Furnace
+	{ 3847 }, -- The Botanica
+	{ 4100 }, -- The Culling of Stratholme
+	{ 1581 }, -- The Deadmines
+	{ 4500 }, -- The Eye of Eternity
+	{ 4809 }, -- The Forge of Souls
+	{ 3849 }, -- The Mechanar
+	{ 4265 }, -- The Nexus
+	{ 4493 }, -- The Obsidian Sanctum
+	{ 4228 }, -- The Oculus
+	{ 4987 }, -- The Ruby Sanctum
+	{ 3714 }, -- The Shattered Halls
+	{ 3717 }, -- The Slave Pens
+	{ 3715 }, -- The Steamvault
+	{ 717 }, -- The Stockade
+	{ 3716 }, -- The Underbog
+	{ 4415 }, -- The Violet Hold
+	{ 4723 }, -- Trial of the Champion
+	{ 4722 }, -- Trial of the Crusader
+	{ 1337 }, -- Uldaman
+	{ 4273 }, -- Ulduar
+	{ 206 }, -- Utgarde Keep
+	{ 1196 }, -- Utgarde Pinnacle
+	{ 4603 }, -- Vault of Archavon
+	{ 718 }, -- Wailing Caverns
+	{ 3805 }, -- Zul'Aman
+	{ 1176 }, -- Zul'Farrak
+	{ 1977 }, -- Zul'Gurub
+}
+
 -- Ordered and filtered into a search plan by ns.Data.ZonesFor, in Features/Recipients-Who.lua.

@@ -352,7 +352,8 @@ end)
 	An Intellect-and-Spirit two-hand mace matches both: the caster rule names priests,
 	mages and druids, the two-hand rule names druids and paladins. Only a druid can hold
 	one of the three the caster rule names, so the caster rule winning leaves the druid
-	alone -- and the paladin the two-hand rule would have added is the tell.
+	alone -- and the paladin the two-hand rule would have added is the tell. (The Spirit
+	veto now removes him outright as well.)
 ]]
 test("a stat rule still beats a weapon rule", function()
 	local ns = load()
@@ -362,8 +363,7 @@ test("a stat rule still beats a weapon rule", function()
 	}))
 
 	equal(sorted(verdict.contenders), "DRUID", "the caster rule took it")
-	check(contains(verdict.admitted, "PALADIN"), "the paladin is admitted")
-	check(not contains(verdict.contenders, "PALADIN"), "but the two-hand rule never got to name him")
+	check(not contains(verdict.contenders, "PALADIN"), "the two-hand rule never got to name the paladin")
 end)
 
 --[[

@@ -19,18 +19,13 @@ ns.GetItemStats = C_Item.GetItemStats or GetItemStats
 --------------------------------------------------------------------------------
 
 --[[
-	An item's or spell's tooltip as plain lines, a right-hand column kept after " >> ", for the
-	Validate Data report. kind is "item" or "spell". C_TooltipInfo hands the lines over as data
-	where the client ships its GetItemByID and GetSpellByID getters (WoW Forever); elsewhere they
-	are read off a hidden tooltip that is never shown. Color escapes are stripped so each line
-	reads as its words. Resolved once at load. A read can throw on an odd id, so callers protect it.
+	A hyperlink's tooltip as { left, right } plain-text pairs, color escapes stripped so each line
+	reads as its words, plus where it came from: "C_TooltipInfo", "scanning tooltip" or "none".
+	Both paths are live: Classic Era has no C_TooltipInfo.GetHyperlink, so the hidden tooltip is not
+	a legacy leftover. Shared by the stat reader (Features/Scan-Tooltip.lua) and Validate Data.
 ]]
-local DATA_TOOLTIP_NAME = "PlayItForwardDataTooltip"
-local TOOLTIP_DATA_GETTERS = C_TooltipInfo
-	and C_TooltipInfo.GetItemByID
-	and C_TooltipInfo.GetSpellByID
-	and { item = C_TooltipInfo.GetItemByID, spell = C_TooltipInfo.GetSpellByID }
-local dataTooltip
+local SCAN_TOOLTIP_NAME = "PlayItForwardScanTooltip"
+local scanTooltip
 
 local function PlainText(text)
 	if type(text) ~= "string" then
@@ -39,42 +34,86 @@ local function PlainText(text)
 	return (text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|cn[^:]*:", ""):gsub("|r", ""))
 end
 
-local function JoinTooltipLine(left, right)
-	left = PlainText(left) or ""
-	right = PlainText(right)
-	if right and right ~= "" then
-		return left .. " >> " .. right
+-- A read with every left line empty is no read: it falls through rather than "succeeding" empty.
+local function AnyText(lines)
+	for _, pair in ipairs(lines) do
+		if pair[1] ~= "" then
+			return true
+		end
 	end
-	return left
+	return false
 end
 
-local function ReadTooltipData(kind, id)
+local function ReadTooltipData(hyperlink)
+	-- A read can throw on an odd link; a throw is no data, and the scanning tooltip is tried.
+	local ok, data = pcall(C_TooltipInfo.GetHyperlink, hyperlink)
+	if not ok or not data then
+		return nil
+	end
+	-- Older 10.0.x builds hand back packed args that need surfacing first.
+	if TooltipUtil and TooltipUtil.SurfaceArgs then
+		TooltipUtil.SurfaceArgs(data)
+		for _, line in ipairs(data.lines or {}) do
+			TooltipUtil.SurfaceArgs(line)
+		end
+	end
+	local out = {}
+	for _, line in ipairs(data.lines or {}) do
+		out[#out + 1] = { PlainText(line.leftText) or "", PlainText(line.rightText) }
+	end
+	return AnyText(out) and out or nil
+end
+
+local function ReadHiddenTooltip(hyperlink)
+	-- No parent, and hidden after every read, so it never runs its template's OnUpdate in between.
+	if not scanTooltip then
+		scanTooltip = CreateFrame("GameTooltip", SCAN_TOOLTIP_NAME, nil, "GameTooltipTemplate")
+	end
+	scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
+	scanTooltip:ClearLines()
+	if not pcall(scanTooltip.SetHyperlink, scanTooltip, hyperlink) then
+		scanTooltip:Hide()
+		return nil
+	end
+	local out = {}
+	for index = 1, scanTooltip:NumLines() do
+		local left = _G[SCAN_TOOLTIP_NAME .. "TextLeft" .. index]
+		local right = _G[SCAN_TOOLTIP_NAME .. "TextRight" .. index]
+		out[index] = {
+			PlainText(left and left:GetText()) or "",
+			PlainText(right and right:IsShown() and right:GetText() or nil),
+		}
+	end
+	scanTooltip:Hide()
+	return AnyText(out) and out or nil
+end
+
+function ns.ReadTooltip(hyperlink)
+	if C_TooltipInfo and C_TooltipInfo.GetHyperlink then
+		local out = ReadTooltipData(hyperlink)
+		if out then
+			return out, "C_TooltipInfo"
+		end
+	end
+	local out = ReadHiddenTooltip(hyperlink)
+	if out then
+		return out, "scanning tooltip"
+	end
+	return {}, "none"
+end
+
+--[[
+	An item's or spell's tooltip as plain lines, a right-hand column kept after " >> ", for the
+	Validate Data report. kind is "item" or "spell".
+]]
+function ns.GetTooltipLines(kind, id)
 	local lines = {}
-	local data = TOOLTIP_DATA_GETTERS[kind](id)
-	for _, line in ipairs(data and data.lines or {}) do
-		lines[#lines + 1] = JoinTooltipLine(line.leftText, line.rightText)
+	for index, pair in ipairs((ns.ReadTooltip(kind .. ":" .. id))) do
+		local right = pair[2]
+		lines[index] = (right and right ~= "") and (pair[1] .. " >> " .. right) or pair[1]
 	end
 	return lines
 end
-
-local function ReadHiddenTooltip(kind, id)
-	if not dataTooltip then
-		dataTooltip = CreateFrame("GameTooltip", DATA_TOOLTIP_NAME, nil, "GameTooltipTemplate")
-	end
-	dataTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
-	dataTooltip:ClearLines()
-	dataTooltip:SetHyperlink(kind .. ":" .. id)
-	local lines = {}
-	for index = 1, dataTooltip:NumLines() do
-		local left = _G[DATA_TOOLTIP_NAME .. "TextLeft" .. index]
-		local right = _G[DATA_TOOLTIP_NAME .. "TextRight" .. index]
-		lines[#lines + 1] = JoinTooltipLine(left and left:GetText(), right and right:IsShown() and right:GetText())
-	end
-	dataTooltip:Hide()
-	return lines
-end
-
-ns.GetTooltipLines = TOOLTIP_DATA_GETTERS and ReadTooltipData or ReadHiddenTooltip
 
 --------------------------------------------------------------------------------
 -- Frame Templates
@@ -100,6 +139,36 @@ function ns.PickTemplate(...)
 		end
 	end
 	return (select(select("#", ...), ...))
+end
+
+--------------------------------------------------------------------------------
+-- ElvUI
+--------------------------------------------------------------------------------
+
+--[[
+	With ElvUI loaded, its Skins module dresses the add-on's own buttons, ticks, dropdowns and
+	scrollbars as it dresses Blizzard's, so they match the rest of that UI, as Bags Buffs &
+	Buttons' windows do. The module is another add-on's API, so every call is guarded: a change to
+	it leaves a control in the default art rather than breaking the window. Without ElvUI this
+	does nothing.
+]]
+local function ElvUISkins()
+	local elv = ElvUI and ElvUI[1]
+	return elv and elv.GetModule and elv:GetModule("Skins", true)
+end
+
+-- kind names one of the Skins module's handlers: "Button", "CheckBox" or "ScrollBar".
+function ns.SkinWidget(kind, widget)
+	local skins = ElvUISkins()
+	local handler = skins and skins["Handle" .. kind]
+	if handler and widget then
+		pcall(handler, skins, widget)
+	end
+end
+
+-- A UIPanelScrollFrameTemplate's bar, under whichever name this client gives it.
+function ns.SkinScrollFrame(scroll, name)
+	ns.SkinWidget("ScrollBar", scroll.ScrollBar or (name and _G[name .. "ScrollBar"]))
 end
 
 --------------------------------------------------------------------------------
@@ -229,8 +298,103 @@ function ns.NearestConsumableGap(value)
 end
 
 --------------------------------------------------------------------------------
+-- Spec Names
+--------------------------------------------------------------------------------
+
+-- Class token -> the client's classID, built on first use.
+local classIDs
+
+local function ClassID(token)
+	if not classIDs then
+		classIDs = {}
+		local classInfo = C_CreatureInfo and C_CreatureInfo.GetClassInfo
+		for classID = 1, 20 do
+			local file
+			if classInfo then
+				local info = classInfo(classID)
+				file = info and info.classFile
+			elseif GetClassInfo then
+				file = select(2, GetClassInfo(classID))
+			end
+			if file then
+				classIDs[file] = classID
+			end
+		end
+	end
+	return classIDs[token]
+end
+
+-- The logged-in class's own tree name; Classic Era leads with the name, later clients with an id.
+local function OwnTreeName(class, index)
+	local _, playerClass = UnitClass("player")
+	if class ~= playerClass or not GetTalentTabInfo then
+		return nil
+	end
+	local ok, first, second = pcall(GetTalentTabInfo, index)
+	if not ok then
+		return nil
+	end
+	return (type(first) == "number") and second or first
+end
+
+--[[
+	A spec's name as the game writes it (GAME NAMES), by its index in the flavor folder's
+	Match-Specs file: every class's on a client with GetSpecializationInfoForClassID, the
+	logged-in class's own trees elsewhere. Where the client has none -- another class's trees on
+	Classic Era, TBC Anniversary and WoW Forever, and Season of Discovery's rune roles -- the
+	add-on's own SPEC_* string (README-Notes). A tree whose key another class shares, but whose
+	name differs from it in some locale, reads its class-qualified string instead.
+]]
+local CLASS_QUALIFIED_SPECS = {
+	SPEC_PALADIN_Protection = true,
+	SPEC_DRUID_Restoration = true,
+}
+
+function ns.SpecName(class, index, spec)
+	local name
+	if not spec.rune then
+		if GetSpecializationInfoForClassID then
+			local classID = ClassID(class)
+			name = classID and select(2, GetSpecializationInfoForClassID(classID, index))
+		else
+			name = OwnTreeName(class, index)
+		end
+	end
+	if type(name) ~= "string" or name == "" then
+		local qualified = "SPEC_" .. tostring(class) .. "_" .. spec.key
+		return ns.L[CLASS_QUALIFIED_SPECS[qualified] and qualified or "SPEC_" .. spec.key]
+	end
+	return name
+end
+
+--------------------------------------------------------------------------------
 -- Player Names
 --------------------------------------------------------------------------------
+
+--[[
+	A realm as a name suffix writes it: no spaces or hyphens, so "Blade's Edge" is "Blade'sEdge"
+	and "Azjol-Nerub" is "AzjolNerub", as GetNormalizedRealmName gives them.
+]]
+function ns.NormalizeRealm(realm)
+	return ((realm or ""):gsub("[%s%-]", ""))
+end
+
+--[[
+	This character's realm in that form. PICKED BY AVAILABILITY, then retried on an unresolved
+	answer. The second read is not a legacy fallback: every target has GetNormalizedRealmName, and
+	it answers nil early in login before the realm resolves, which is the one case worth asking
+	twice for.
+]]
+function ns.PlayerRealm()
+	local realm
+	if GetNormalizedRealmName then
+		realm = GetNormalizedRealmName()
+	end
+	if (realm == nil or realm == "") and GetRealmName then
+		realm = GetRealmName()
+	end
+	return ns.NormalizeRealm(realm)
+end
 
 --[[
 	One character's identity as "Name-Realm", for telling two sightings of the same player
@@ -250,20 +414,7 @@ function ns.QualifyPlayerName(name)
 	if name:find("-", 1, true) then
 		return name
 	end
-	--[[
-		PICKED BY AVAILABILITY, then retried on an unresolved answer. The second read is not a
-		legacy fallback: every target has GetNormalizedRealmName, and it answers nil
-		early in login before the realm resolves, which is the one case worth asking twice for.
-	]]
-	local realm
-	if GetNormalizedRealmName then
-		realm = GetNormalizedRealmName()
-	end
-	if (realm == nil or realm == "") and GetRealmName then
-		realm = GetRealmName()
-	end
-	-- Suffixes carry no spaces, so "Blade's Edge" is "BladesEdge" in a qualified name.
-	return name .. "-" .. ((realm or ""):gsub("%s+", ""))
+	return name .. "-" .. ns.PlayerRealm()
 end
 
 --------------------------------------------------------------------------------
@@ -297,9 +448,10 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	A whole number with thousands separators: 1234567 -> "1,234,567". Stateless, used by the General
-	panel's Generosity totals and Features/Generosity-Tooltip.lua. The tally counters are integers,
-	so the fractional part is dropped rather than rounded; a stray negative keeps its sign.
+	A whole number with thousands separators: 1234567 -> "1,234,567". Stateless, used by
+	Generosity:BlockLines, which the tooltip and the Badge of Generosity panel share. The tally counters
+	are integers, so the fractional part is dropped rather than rounded; a stray negative keeps its
+	sign.
 ]]
 function ns.CommaNumber(n)
 	local number = tostring(math.floor(tonumber(n) or 0))

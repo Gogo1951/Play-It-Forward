@@ -148,9 +148,9 @@ end
 	THE WHO PANEL MUST NEVER LEARN A QUERY ANSWERED. The stock UI opens it on WHO_LIST_UPDATE
 	whenever results were routed to the list -- and the panel is a UIPanel, so opening it over an
 	open mailbox makes the panel manager close MailFrame, whose OnHide ends the mailbox
-	interaction. So the Blizzard frames that would react are unregistered for exactly the life of
-	one query and put back on the way out. The hide below is only a safety net for a client that
-	routes the event some other way: by the time it fires the mailbox is already gone.
+	interaction. So every frame that would react is unregistered for exactly the life of one query
+	and put back on the way out. The hide below is only a safety net for a client that routes the
+	event some other way: by the time it fires the mailbox is already gone.
 ]]
 local panelWasOpen = false
 local deafened = {}
@@ -159,11 +159,43 @@ local function WhoPanel()
 	return FriendsFrame
 end
 
+--[[
+	Every frame listening but this add-on's own, asked of the client rather than named. Forever's
+	Retail-based UI opened the panel over the mailbox with FriendsFrame and WhoFrame both deaf
+	(2026-10-29), so whatever raises it there is neither. Another add-on's listener is quieted too:
+	the answer is ours, and a who-list add-on opening its own window on it is the same bug. The
+	named pair is the fallback for a client without GetFramesRegisteredForEvent.
+]]
+local function Listeners()
+	local frames
+	if GetFramesRegisteredForEvent then
+		frames = { GetFramesRegisteredForEvent("WHO_LIST_UPDATE") }
+	else
+		frames = { FriendsFrame, WhoFrame }
+	end
+	local list = {}
+	for _, frame in ipairs(frames) do
+		local forbidden = frame.IsForbidden and frame:IsForbidden()
+		if frame ~= ns.eventFrame and not forbidden and frame.IsEventRegistered then
+			list[#list + 1] = frame
+		end
+	end
+	return list
+end
+
+-- For the roster report: who hears an answer right now, by name where the frame has one.
+function Who:ListenerNames()
+	local names = {}
+	for _, frame in ipairs(Listeners()) do
+		names[#names + 1] = (frame.GetName and frame:GetName()) or "(unnamed)"
+	end
+	return names
+end
+
 local function BeginQuery()
 	panelWasOpen = WhoPanel() ~= nil and WhoPanel():IsShown()
-	for _, frame in ipairs({ FriendsFrame, WhoFrame }) do
-		if frame and frame.IsEventRegistered and frame:IsEventRegistered("WHO_LIST_UPDATE") then
-			pcall(frame.UnregisterEvent, frame, "WHO_LIST_UPDATE")
+	for _, frame in ipairs(Listeners()) do
+		if frame:IsEventRegistered("WHO_LIST_UPDATE") and pcall(frame.UnregisterEvent, frame, "WHO_LIST_UPDATE") then
 			deafened[#deafened + 1] = frame
 		end
 	end
@@ -238,6 +270,24 @@ local function OnWhoListUpdate()
 	end
 end
 ns.On("WHO_LIST_UPDATE", OnWhoListUpdate)
+
+--[[
+	Counts, never acts: hiding it here is too late, the panel manager has already closed MailFrame.
+	What it buys is evidence from a client nobody here can reach -- the roster report says whether
+	the deafening held.
+]]
+local function OnPlayerLogin()
+	local panel = WhoPanel()
+	if not (panel and panel.HookScript) then
+		return
+	end
+	panel:HookScript("OnShow", function()
+		if pending and not panelWasOpen then
+			counts.panelOpened = counts.panelOpened + 1
+		end
+	end)
+end
+ns.On("PLAYER_LOGIN", OnPlayerLogin)
 
 -- Turn a blocked call into an explanation instead of a mystery BugSack popup.
 local function OnAddonActionBlocked(addon, func)

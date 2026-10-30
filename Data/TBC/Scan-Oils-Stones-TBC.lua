@@ -37,7 +37,7 @@ ns.Data.OILS_AND_STONES = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, TBC Anniversary 2.5.6.70006
+	2026-10-29, TBC Anniversary 2.5.6.70577
 
 Notes
 	- The oils, sharpening stones and weightstones any class can put on a weapon, taken from
@@ -45,7 +45,7 @@ Notes
 	  (TFTB/Data/TBC/Buff-Window-Spells-TBC.lua), with quality, required level and binding
 	  read from ItemSparse.
 	- enhances is who the item helps, and it decides who can receive it through
-	  ns.Data.CONSUMABLE_CLASSES in Data/Data.lua, so there is no per-item class list. MELEE
+	  ns.Data.CONSUMABLE_CLASSES in this folder's Match-Classes file, so there is no per-item class list. MELEE
 	  for the stones; SPELL_DAMAGE for the wizard oils; MANA for the mana oils, which restore
 	  mana and, from Brilliant up, add healing.
 	- A sharpening stone only takes a bladed weapon and a weightstone only a blunt one. Every
@@ -62,6 +62,9 @@ Notes
 	  Scourgebane (30696) and Bloodboil Poison (31535) bind on pickup and need no level; the
 	  Blessed and Righteous Weapon Coatings (34538, 34539) only work on the Isle of Quel'Danas
 	  and need level 70, which nobody outgrows.
+	- Rechecked against this client's tables at 2.5.6.70577 by name. Besides the items held
+	  out above, only 6213 Test Sharpening Stone, an internal item, and 22600 Craftsman's Writ
+	  - Dense Weightstone, a quest token rather than a stone, turn up.
 
 SQL (CMaNGOS)
 	TODO: Add SQL Query
@@ -70,9 +73,8 @@ Wowhead
 	None.
 
 wago.tools
-	https://wago.tools/db2/ItemSparse?build=2.5.6.69795
-	https://wago.tools/db2/Item?build=2.5.6.70006
-	https://wago.tools/db2/ItemSparse?build=2.5.6.70006
+	https://wago.tools/db2/ItemSparse?build=2.5.6.70577
+	https://wago.tools/db2/Item?build=2.5.6.70577
 
 QuestieDB
 	None.

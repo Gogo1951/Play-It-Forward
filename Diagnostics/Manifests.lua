@@ -57,11 +57,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_Container) == "table" and type(C_Container.UseContainerItem) == "function"
 		end,
 	},
-	--[[
-		No rows for the bare GetContainerNumSlots/GetContainerItemInfo globals: every target ships
-		C_Container. The C_TooltipInfo rows are Features/Scan-Tooltip.lua's runtime branch, and
-		Classic Era lacks them, so a FAIL there is the report saying which path that client takes.
-	]]
+	-- No rows for the bare GetContainerNumSlots/GetContainerItemInfo globals: every target ships C_Container.
 	{
 		"C_Item.GetItemInfoInstant",
 		function()
@@ -93,6 +89,11 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(GetItemStats) == "function"
 		end,
 	},
+	--[[
+		Both halves of ns.ReadTooltip in Features/Utilities.lua, which the stat reader and Validate
+		Data share. Classic Era has no C_TooltipInfo.GetHyperlink, so a FAIL there is the report
+		saying which path that client takes; the hidden tooltip is the other path, not a leftover.
+	]]
 	{
 		"C_TooltipInfo.GetHyperlink",
 		function()
@@ -103,6 +104,15 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		"TooltipUtil.SurfaceArgs",
 		function()
 			return type(TooltipUtil) == "table" and type(TooltipUtil.SurfaceArgs) == "function"
+		end,
+	},
+	{
+		"Hidden scan tooltip",
+		function()
+			return type(CreateFrame) == "function"
+				and type(GameTooltip) == "table"
+				and type(GameTooltip.SetHyperlink) == "function"
+				and type(GameTooltip.NumLines) == "function"
 		end,
 	},
 	--[[
@@ -297,6 +307,71 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
+		Where ns.SpecName finds the spec names the Recipients and My Alts panels show. Every source it
+		lacks falls back to the add-on's own SPEC_* string (README-Notes), so a FAIL is a route, not a
+		fault: the row says which names the game supplied.
+	]]
+	{
+		"Spec names from the client",
+		function()
+			if GetSpecializationInfoForClassID then
+				local reader = (type(C_CreatureInfo) == "table" and C_CreatureInfo.GetClassInfo)
+						and "C_CreatureInfo.GetClassInfo"
+					or (GetClassInfo and "GetClassInfo")
+				if not reader then
+					return false,
+						"GetSpecializationInfoForClassID, but no class ID reader: every spec uses the add-on's names"
+				end
+				return true, "via GetSpecializationInfoForClassID for every class, class IDs via " .. reader
+			end
+			if GetTalentTabInfo then
+				return true, "via GetTalentTabInfo for your own class; other classes use the add-on's names"
+			end
+			return false, "no client source: every spec uses the add-on's names"
+		end,
+	},
+	--[[
+		How Features/Recipients-Alts.lua reads the spec this character records for the My Alts panel:
+		the chosen specialization from Mists on, the talent tree holding the most points before it.
+		Mists keeps GetNumTalentTabs only as a stub that throws, which this row would show as a FAIL.
+	]]
+	{
+		"This character's spec, recorded for My Alts",
+		function()
+			if ns.EXPANSION >= 5 then
+				if type(C_SpecializationInfo) == "table" and C_SpecializationInfo.GetSpecialization then
+					return true, "via C_SpecializationInfo.GetSpecialization"
+				end
+				if GetSpecialization then
+					return true, "via GetSpecialization"
+				end
+				return false,
+					"neither C_SpecializationInfo.GetSpecialization nor GetSpecialization: alts record no spec"
+			end
+			if not (GetNumTalentTabs and GetTalentTabInfo) then
+				return false, "no GetNumTalentTabs and GetTalentTabInfo: alts record no spec"
+			end
+			local ok, count = pcall(GetNumTalentTabs)
+			if not ok or type(count) ~= "number" then
+				return false, "GetNumTalentTabs did not answer a number: alts record no spec"
+			end
+			return true, string.format("via the talent tree with the most points, of %d", count)
+		end,
+	},
+	--[[
+		How Features/Recipients-Who.lua finds the frames to quiet: every listener the client names, or
+		the named FriendsFrame and WhoFrame where it cannot, which misses whatever else opens the panel.
+	]]
+	{
+		"Frames that hear a /who answer",
+		function()
+			if GetFramesRegisteredForEvent then
+				return true, "via GetFramesRegisteredForEvent"
+			end
+			return false, "falling back to the named FriendsFrame and WhoFrame"
+		end,
+	},
+	--[[
 		The Blizzard frames Features/Recipients-Who.lua quiets for the life of a query, so the Who
 		panel never opens over the mailbox and closes it.
 	]]
@@ -347,6 +422,40 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		"GetNumGuildMembers",
 		function()
 			return type(GetNumGuildMembers) == "function"
+		end,
+	},
+	-- The guild's name, which keys its saved roster; without it the guild you are in is never saved or read live.
+	{
+		"GetGuildInfo",
+		function()
+			return type(GetGuildInfo) == "function"
+		end,
+	},
+	--[[
+		Picks the connected-realm clusters from the flavor folder's Recipients-Realms file on the
+		clients that ship one per region. Without it no alt on a connected realm is offered.
+	]]
+	{
+		"GetCurrentRegion",
+		function()
+			return type(GetCurrentRegion) == "function"
+		end,
+	},
+	--[[
+		The level cap Features/Recipients-Alts.lua unticks an alt at by default. With neither, every
+		alt starts ticked, including the ones at the cap.
+	]]
+	{
+		"Level cap for My Alts",
+		function()
+			local cap = GetMaxPlayerLevel and GetMaxPlayerLevel()
+			if type(cap) == "number" and cap > 0 then
+				return true, "via GetMaxPlayerLevel: " .. cap
+			end
+			if type(MAX_PLAYER_LEVEL) == "number" and MAX_PLAYER_LEVEL > 0 then
+				return true, "via MAX_PLAYER_LEVEL: " .. MAX_PLAYER_LEVEL
+			end
+			return false, "neither GetMaxPlayerLevel nor MAX_PLAYER_LEVEL answered"
 		end,
 	},
 	{
@@ -574,28 +683,6 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_Spell) == "table" and type(C_Spell.IsSpellDataCached) == "function"
 		end,
 	},
-	-- Both halves of ns.GetTooltipLines, which Validate Data reads each item's tooltip through.
-	{
-		"C_TooltipInfo.GetItemByID",
-		function()
-			return type(C_TooltipInfo) == "table" and type(C_TooltipInfo.GetItemByID) == "function"
-		end,
-	},
-	{
-		"C_TooltipInfo.GetSpellByID",
-		function()
-			return type(C_TooltipInfo) == "table" and type(C_TooltipInfo.GetSpellByID) == "function"
-		end,
-	},
-	{
-		"Hidden scan tooltip (legacy)",
-		function()
-			return type(CreateFrame) == "function"
-				and type(GameTooltip) == "table"
-				and type(GameTooltip.SetHyperlink) == "function"
-				and type(GameTooltip.NumLines) == "function"
-		end,
-	},
 	-- The Generosity tooltip block: the unit post-call, the older script hook, and the secret check before both.
 	{
 		"TooltipDataProcessor.AddTooltipPostCall",
@@ -689,6 +776,30 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		"ITEM_QUALITY_COLORS",
 		function()
 			return type(ITEM_QUALITY_COLORS) == "table"
+		end,
+	},
+	-- Cosmetic: the class icons beside names on the My Alts and My Guilds panels, left off without it.
+	{
+		"CLASS_ICON_TCOORDS",
+		function()
+			return type(CLASS_ICON_TCOORDS) == "table"
+		end,
+	},
+	-- Cosmetic: the border on the Mail Message Text panel's preview box, through whichever this client takes.
+	{
+		"Mail preview border",
+		function()
+			if type(BackdropTemplateMixin) == "table" then
+				return true, "via BackdropTemplate"
+			end
+			return false, "no BackdropTemplate; drawn only if the frame has its own SetBackdrop"
+		end,
+	},
+	-- The list Escape closes the mail window and the recipient picker through.
+	{
+		"UISpecialFrames",
+		function()
+			return type(UISpecialFrames) == "table"
 		end,
 	},
 	-- The combat gate /pif checks before opening the options panel.
@@ -1016,6 +1127,7 @@ function ns:BuildMailboxReport()
 	lines[#lines + 1] = "window shown = " .. tostring(frame ~= nil and frame:IsShown() == true)
 	-- The question the mailbox itself asks before opening the window, against the list as it stands.
 	lines[#lines + 1] = "window would open at a mailbox now = " .. tostring(ns.UI:HasSomethingToDo())
+	lines[#lines + 1] = "reopen button shown = " .. tostring(ns.UI:ReopenButtonShown())
 	lines[#lines + 1] = ""
 
 	local byState, holding, ticked = {}, 0, 0
@@ -1040,11 +1152,16 @@ function ns:BuildMailboxReport()
 	lines[#lines + 1] = "items holding a recipient = " .. holding
 	lines[#lines + 1] = "items ticked to send = " .. ticked
 	lines[#lines + 1] = "list is stale, rescans at the next mailbox = " .. tostring(ns.MatchList:IsStale() == true)
-	-- False while a mail run is busy or the window is shut: a loot or a late item load then waits for the next mailbox.
-	lines[#lines + 1] = "bag changes rescan the open window now = " .. tostring(ns.MatchList:WouldRescan())
+	--[[
+		False while a mail run is busy, or the window is shut with no mailbox waiting on it: a loot
+		or a late item load then waits for the next mailbox.
+	]]
+	lines[#lines + 1] = "mailbox waiting to open the window = " .. tostring(ns.UI:WaitingToOpen() == true)
+	lines[#lines + 1] = "bag changes rescan now = " .. tostring(ns.MatchList:WouldRescan())
 	lines[#lines + 1] = ""
 
 	local mailer = ns.Distributor
+	lines[#lines + 1] = "mail run active = " .. tostring(mailer:IsRunning() == true)
 	lines[#lines + 1] = "mail run busy = " .. tostring(mailer.busy == true)
 	lines[#lines + 1] = "mail run queue = " .. #mailer.queue
 	lines[#lines + 1] = "mail run errors in a row = " .. tostring(mailer.errors)
@@ -1343,6 +1460,16 @@ function ns:BuildRosterReport()
 		(quieted > 0 and not label) and ", with nothing in flight: the player's own /who is broken until a reload."
 			or "."
 	)
+	local listeners = ns.Who:ListenerNames()
+	lines[#lines + 1] = string.format(
+		"  Frames that hear a /who answer: %s.",
+		#listeners > 0 and table.concat(listeners, ", ") or "none"
+	)
+	lines[#lines + 1] = string.format(
+		"  Who panel opened during a query: %d%s",
+		stats.panelOpened,
+		stats.panelOpened > 0 and ", so something still raises it -- and closes the mailbox." or "."
+	)
 	if #ns.Who.plan > 0 then
 		lines[#lines + 1] = "  Still planned, in order:"
 		for index, attempt in ipairs(ns.Who.plan) do
@@ -1365,14 +1492,94 @@ function ns:BuildRosterReport()
 		-- Reads the window off ns.Guild rather than naming it here, which would drift the day it changes.
 		lines[#lines + 1] = string.format("  %d of %d eligible, %d online.", guild.eligible, guild.rows, guild.online)
 		lines[#lines + 1] = string.format(
-			"  Dropped: %d not on in %d day(s), %d summoning alts, %d of your own characters, %d unreadable.",
+			"  Dropped: %d offline past the %s limit, %d summoning alts, %d of your own characters, %d ignored, %d unreadable.",
 			guild.stale,
-			ns.Guild.ACTIVE_DAYS,
+			tostring(ns.db and ns.db.profile.guildOfflineLimit),
 			guild.summonAlts,
 			guild.ownAlts,
+			guild.ignored,
 			guild.unreadable
 		)
 	end
+
+	-- The Recipients panel's ordering switches, which reorder everything below without dropping anybody.
+	local recipientsProfile = ns.db and ns.db.profile or {}
+	lines[#lines + 1] = string.format(
+		"Recipients: prioritize alts %s, guilds %s, level-appropriate zones %s, outside instances %s; ignore summoner warlocks %s (%d instance names known).",
+		tostring(recipientsProfile.prioritizeAlts ~= false),
+		tostring(recipientsProfile.prioritizeGuilds ~= false),
+		tostring(recipientsProfile.prioritizeLevelingZones ~= false),
+		tostring(recipientsProfile.prioritizeOutsideInstances ~= false),
+		tostring(recipientsProfile.ignoreSummonerWarlocks == true),
+		ns.CountDiagnosticKeys(ns.Who.InstanceNames())
+	)
+
+	-- The counts from the last read, the one the window made at the mailbox.
+	local alts = ns.Alts:Stats()
+	local profile = ns.db and ns.db.profile or {}
+	lines[#lines + 1] = string.format(
+		"Alts: Send to Alts %s. %d recorded, %d offered (%d on a connected realm); left out %d this character, %d unconnected realm, %d other faction, %d unticked.",
+		tostring(profile.sendToAlts == true),
+		alts.known,
+		alts.offered,
+		alts.connected,
+		alts.current,
+		alts.otherRealm,
+		alts.otherFaction,
+		alts.excluded
+	)
+	-- Who Kept gear is mailed to, of the characters in reach here; nobody when none is picked.
+	local enchanterKey = ns.Alts:Disenchanter()
+	lines[#lines + 1] = string.format(
+		"Disenchant Unmatched Items %s, to %s (%d in reach).",
+		tostring(profile.disenchantUnmatched == true),
+		enchanterKey or "nobody",
+		#ns.Alts:DisenchantChoices()
+	)
+
+	--[[
+		The connected realms an alt can be mailed on, from the data file, beside the client's own
+		list. ns.Data.LINKED_REALMS is copied from a population site and Blizzard reshuffles
+		clusters, so the two disagreeing is how a stale table shows. GetAutoCompleteRealms answers a
+		table on some clients and a list of returns on others, and nothing at all on a lone realm.
+	]]
+	local client = "not on client"
+	if GetAutoCompleteRealms then
+		local ok, answer = pcall(function()
+			return { GetAutoCompleteRealms() }
+		end)
+		local list = ok and (type(answer[1]) == "table" and answer[1] or answer) or nil
+		client = list and #list > 0 and table.concat(list, ", ") or "none"
+	end
+	local listed = ns.Alts:LinkedRealms()
+	lines[#lines + 1] = string.format(
+		"  Connected realms: data lists %s; client lists %s.",
+		#listed > 0 and table.concat(listed, ", ") or "none",
+		client
+	)
+
+	-- Saved guilds, the third source: what each one is and whether this character can read it.
+	local saved = ns.db and ns.db.global.guilds or {}
+	local savedCount = 0
+	for key, entry in pairs(saved) do
+		savedCount = savedCount + 1
+		local usable, why = ns.Guild:Usable(entry)
+		lines[#lines + 1] = string.format(
+			"  Saved guild %s: %d members, %d active, saved %ds ago by %s; %s.",
+			key,
+			#(entry.members or {}),
+			ns.Guild:ActiveCount(entry),
+			time() - (entry.scanned or 0),
+			tostring(entry.scannedBy),
+			key == ns.Guild:CurrentKey() and "current, read live"
+				or (usable and "read" or ("skipped, " .. tostring(why)))
+		)
+	end
+	lines[#lines + 1] = string.format(
+		"Saved guilds: %d, ignoring members offline longer than %s.",
+		savedCount,
+		tostring(profile.guildOfflineLimit)
+	)
 
 	--[[
 		Reported once for both sources because it is enforced once for both, and only when it has
@@ -1474,20 +1681,23 @@ local function AvailableClasses()
 	return set
 end
 
-local function GroupedByTier(byClass, maxTier, available)
-	local byTier = {}
+-- Every tier the data produced, lowest first, so no group can fall outside a range written here.
+local function GroupedByTier(byClass, available)
+	local byTier, tiers = {}, {}
 	for class, tier in pairs(byClass) do
 		if not available or available[class] then
-			byTier[tier] = byTier[tier] or {}
+			if not byTier[tier] then
+				byTier[tier] = {}
+				tiers[#tiers + 1] = tier
+			end
 			table.insert(byTier[tier], class)
 		end
 	end
+	table.sort(tiers)
 	local parts = {}
-	for tier = 1, maxTier do
-		if byTier[tier] then
-			table.sort(byTier[tier])
-			parts[#parts + 1] = table.concat(byTier[tier], ", ")
-		end
+	for _, tier in ipairs(tiers) do
+		table.sort(byTier[tier])
+		parts[#parts + 1] = table.concat(byTier[tier], ", ")
 	end
 	return #parts > 0 and table.concat(parts, " / ") or "(nobody)"
 end
@@ -1504,6 +1714,25 @@ local function AppendClassLine(lines)
 		tostring(UnitFactionGroup("player") or "unknown"),
 		table.concat(classes, ", ")
 	)
+
+	--[[
+		The specs each class counts, the player's Recipients panel choices over the flavor folder's
+		defaults: a class with every spec off is offered no gear at all, which reads from outside
+		as that class never being sent anything.
+	]]
+	lines[#lines + 1] = "Specs counted:"
+	for _, class in ipairs(classes) do
+		local on, off = {}, {}
+		for _, spec in ipairs(ns.Data.SPECS[class] or {}) do
+			table.insert(ns.Data.SpecEnabled(class, spec) and on or off, spec.key)
+		end
+		lines[#lines + 1] = string.format(
+			"  %-11s %s%s",
+			class,
+			#on > 0 and table.concat(on, ", ") or "NONE, offered no gear",
+			#off > 0 and (" (off: " .. table.concat(off, ", ") .. ")") or ""
+		)
+	end
 	lines[#lines + 1] = ""
 end
 
@@ -1514,11 +1743,12 @@ local function AppendArmorGroups(lines, level)
 		lines[#lines + 1] = string.format(
 			"  %-8s %s",
 			armorType:lower(),
-			GroupedByTier(ns.Data.ArmorPriorityFor(armorType, level) or {}, 9, available)
+			GroupedByTier(ns.Data.ArmorPriorityFor(armorType, level) or {}, available)
 		)
 	end
 end
 
+-- The order the report prints in; a key this client's WEAPON_SPECS adds beyond it prints after, sorted.
 local WEAPON_ORDER = {
 	"1H_SWORD",
 	"2H_SWORD",
@@ -1542,29 +1772,50 @@ local WEAPON_ORDER = {
 	"TOTEM",
 }
 
-local function AppendWeaponGroups(lines, level)
-	lines[#lines + 1] =
-		string.format("Weapon priority for an item requiring level %d (group 1 = every spec wants it):", level)
+local function WeaponKeys()
+	local keys, listed = {}, {}
 	for _, weaponKey in ipairs(WEAPON_ORDER) do
+		listed[weaponKey] = true
+		if ns.Data.WEAPON_SPECS[weaponKey] then
+			keys[#keys + 1] = weaponKey
+		end
+	end
+	local extra = {}
+	for weaponKey in pairs(ns.Data.WEAPON_SPECS) do
+		if not listed[weaponKey] then
+			extra[#extra + 1] = weaponKey
+		end
+	end
+	table.sort(extra)
+	for _, weaponKey in ipairs(extra) do
+		keys[#keys + 1] = weaponKey
+	end
+	return keys
+end
+
+-- Weapons are grouped by how many of a class's specs use them, whatever the item's level.
+local function AppendWeaponGroups(lines)
+	lines[#lines + 1] = "Weapon priority, at any level (group 1 = every spec wants it):"
+	for _, weaponKey in ipairs(WeaponKeys()) do
 		local byClass = {}
 		for _, class in ipairs(ns.Matcher:Classes()) do
-			local group = ns.Data.WeaponPriorityFor(weaponKey, class, level)
+			local group = ns.Data.WeaponPriorityFor(weaponKey, class)
 			if group then
 				byClass[class] = group
 			end
 		end
-		lines[#lines + 1] = string.format("  %-9s %s", weaponKey:lower(), GroupedByTier(byClass, 3))
+		lines[#lines + 1] = string.format("  %-9s %s", weaponKey:lower(), GroupedByTier(byClass))
 	end
 end
 
--- Both matrices for an item requiring this level, or the player's own when none was entered.
+-- The armor matrix for an item requiring this level, or the player's own when none was entered, then the weapon one.
 function ns:BuildClassGroupsReport(level)
 	level = tonumber(level) or UnitLevel("player") or 60
 	local lines = { GetClientHeader(), "" }
 	AppendClassLine(lines)
 	AppendArmorGroups(lines, level)
 	lines[#lines + 1] = ""
-	AppendWeaponGroups(lines, level)
+	AppendWeaponGroups(lines)
 	return table.concat(lines, "\n")
 end
 
@@ -1577,6 +1828,12 @@ function ns:BuildMailPreviewReport()
 	local subject = ns.Distributor:BuildSubject()
 	local body = ns.Distributor:BuildBody()
 
+	-- Which half the player rewrote on the Mail Message Text panel; a custom body carries the footer.
+	lines[#lines + 1] = string.format(
+		"custom subject = %s, custom body = %s",
+		tostring(ns.Distributor:CustomText("mailSubject") ~= nil),
+		tostring(ns.Distributor:CustomText("mailBody") ~= nil)
+	)
 	lines[#lines + 1] = string.format("subject (%d/%d): %s", #subject, ns.Distributor.SUBJECT_MAX, subject)
 	lines[#lines + 1] = ""
 	lines[#lines + 1] = string.format("body (%d/%d):", #body, ns.Distributor.BODY_MAX)
@@ -1631,22 +1888,17 @@ function ns:BuildGenerosityReport()
 
 	--[[
 		The throttles, as they stand. A broadcast refused by the interval and one never sent look the
-		same from outside; so do a peer who never answered and one we were too recently pinged by.
+		same from outside, and a ping is answered by a broadcast, so the interval covers both.
 	]]
 	local now = GetTime()
 	local function Since(stamp)
 		return (stamp or 0) > 0 and string.format("%ds ago", math.floor(now - stamp)) or "never"
 	end
-	local lastBroadcast, lastPingAnswer = ns.Generosity:LastSends()
+	local lastBroadcast = ns.Generosity:LastSends()
 	lines[#lines + 1] = "last broadcast = " .. Since(lastBroadcast)
 	lines[#lines + 1] = string.format(
 		"next broadcast allowed in = %ds",
 		math.max(0, math.ceil(ns.Generosity.BROADCAST_MIN_INTERVAL - (now - lastBroadcast)))
-	)
-	lines[#lines + 1] = "last ping answered = " .. Since(lastPingAnswer)
-	lines[#lines + 1] = string.format(
-		"next ping answer allowed in = %ds",
-		math.max(0, math.ceil(ns.Generosity.PING_ANSWER_INTERVAL - (now - lastPingAnswer)))
 	)
 	lines[#lines + 1] = "last hover ping sent = " .. Since(ns.Generosity:LastHoverPing())
 	--[[
@@ -1697,7 +1949,7 @@ end
 	Every game name Play It Forward shows or matches against what the client shows, for the
 	Localization tab's Game Names report, each read through the same call its feature makes, so a
 	NIL here is a name that feature cannot show or match on this client. The rows are built here
-	from the add-on's own data, so a stat, class or zone added there gets its row without an edit
+	from the add-on's own data, so a stat, class, spec or area added there gets its row without an edit
 	here. Classes are every one either faction can roll on this client, since the faction gate is
 	not known at load. The add-on names no items or spells by ID, so no row waits on a load.
 ]]
@@ -1739,6 +1991,9 @@ ns.DIAGNOSTIC_NAME_LOOKUPS = {
 	UiLabel("ITEM_QUALITY2_DESC"),
 	UiLabel("ITEM_QUALITY3_DESC"),
 	UiLabel("ITEM_QUALITY4_DESC"),
+	-- The role labels on the Recipients panel's Tank and Healer spec tooltips.
+	UiLabel("TANK"),
+	UiLabel("HEALER"),
 }
 
 -- The stat names Features/Scan-Tooltip.lua reads a "+9 Intellect" line by.
@@ -1771,34 +2026,64 @@ for _, token in ipairs(ClientClasses()) do
 	}
 end
 
--- The zone names the /who search sends; an unnamed zone is never searched.
-local AREA_ID_COLUMN = ns.Data.ZONE_COLUMNS and ns.Data.ZONE_COLUMNS.AREA_ID or 1
-for _, zone in ipairs(ns.Data.ZONES or {}) do
-	local areaId = zone[AREA_ID_COLUMN]
-	ns.DIAGNOSTIC_NAME_LOOKUPS[#ns.DIAGNOSTIC_NAME_LOOKUPS + 1] = {
-		constant = "ns.Data.ZONES",
-		kind = "area",
-		id = areaId,
-		lookup = function()
-			return ns.Who.AreaName(areaId)
-		end,
-	}
+--[[
+	The spec names the Recipients and My Alts panels show, through ns.SpecName as they read them.
+	Where the client cannot name a spec the accessor answers with the add-on's own SPEC_* string
+	(README-Notes), so a row reads what the player sees; the API Endpoints row "Spec names from the
+	client" says which source this client gave. The id is the class token and our key, so a row
+	naming a different spec is an index the flavor folder's Match-Specs file holds out of the
+	game's order. Discovery's rune roles have no name in the game and get no row.
+]]
+for _, token in ipairs(ClientClasses()) do
+	for index, spec in ipairs(ns.Data.SPECS and ns.Data.SPECS[token] or {}) do
+		if not spec.rune then
+			ns.DIAGNOSTIC_NAME_LOOKUPS[#ns.DIAGNOSTIC_NAME_LOOKUPS + 1] = {
+				constant = "ns.SpecName",
+				kind = "spec",
+				id = token .. "/" .. spec.key,
+				lookup = function()
+					return ns.SpecName(token, index, spec)
+				end,
+			}
+		end
+	end
 end
+
+-- The area names a /who answer is read against: the zones the search sends, and the instances it ranks last.
+local function AreaRows(constant, rows, column)
+	for _, row in ipairs(rows or {}) do
+		local areaId = row[column]
+		ns.DIAGNOSTIC_NAME_LOOKUPS[#ns.DIAGNOSTIC_NAME_LOOKUPS + 1] = {
+			constant = constant,
+			kind = "area",
+			id = areaId,
+			lookup = function()
+				return ns.Who.AreaName(areaId)
+			end,
+		}
+	end
+end
+
+AreaRows("ns.Data.ZONES", ns.Data.ZONES, ns.Data.ZONE_COLUMNS and ns.Data.ZONE_COLUMNS.AREA_ID or 1)
+AreaRows("ns.Data.INSTANCE_AREAS", ns.Data.INSTANCE_AREAS, 1)
 
 --------------------------------------------------------------------------------
 -- Validate Data Sources
 --------------------------------------------------------------------------------
 
 --[[
-	One entry per flavor-folder file, and one report row per entry on the Data tab. The label is the table-name part of the file name, so
-	ns.DataSourceFileName names the file this client's folder built. Food, potions, scrolls and
-	oils and stones are positional rows, { itemId, quality, useLevel, restores, buffs or
-	enhances }, so the id is the first field. Recipients-Zones rows are { areaId, min level, max level, faction }, checked by the
-	name C_Map.GetAreaInfo gives each one, since that name is what the /who zone filter sends.
+	One entry per flavor-folder file, and one report row per entry on the Data tab. The label is
+	the table-name part of the file name, so ns.DataSourceFileName names the file this client's
+	folder built. Food, potions, scrolls and oils and stones are positional rows, { itemId,
+	quality, useLevel, restores, buffs or enhances }, so the id is the first field.
+	Recipients-Zones rows are { areaId, min level, max level, faction } and its instances
+	{ areaId }, each checked by the name C_Map.GetAreaInfo gives it, since that name is what the
+	/who zone filter sends and what a /who answer is read against; its column map is counted.
 
-	Match-Stat-Budget, Match-Weapons, Match-Armor and Match-Classes are keyed by tokens and
-	subclass numbers no client API looks up, so they are "other" rows: each table's row count,
-	and TABLE MISSING when this client's folder never built it.
+	Match-Rules, Match-Specs, Match-Stat-Budget, Match-Weapons, Match-Armor, Match-Classes,
+	Scan-Stats and Recipients-Realms are keyed by tokens, stat globals, subclass numbers and realm
+	names no client API looks up by ID, so they are "other" rows: each table's row count, and
+	TABLE MISSING when this client's folder never built it.
 ]]
 local function FirstField(_, row)
 	return type(row) == "table" and row[1] or nil
@@ -1867,9 +2152,36 @@ ns.DIAGNOSTIC_DATA_SOURCES = {
 		},
 	},
 	{
+		label = "Scan-Stats",
+		sources = {
+			{ table = "STAT_MAP", kind = "other" },
+		},
+	},
+	{
 		label = "Recipients-Zones",
 		sources = {
 			{ table = "ZONES", kind = "area", rowId = FirstField, dataColumns = ZONE_COLUMNS },
+			{ table = "INSTANCE_AREAS", kind = "area", rowId = FirstField },
+			{ table = "ZONE_COLUMNS", kind = "other" },
+		},
+	},
+	{
+		label = "Recipients-Realms",
+		sources = {
+			-- No API names a realm off this cluster; the roster report checks this realm's against the client's.
+			{ table = "LINKED_REALMS", kind = "other" },
+		},
+	},
+	{
+		label = "Match-Rules",
+		sources = {
+			{ table = "ITEM_RULES", kind = "other" },
+		},
+	},
+	{
+		label = "Match-Specs",
+		sources = {
+			{ table = "SPECS", kind = "other" },
 		},
 	},
 	{
@@ -1892,12 +2204,15 @@ ns.DIAGNOSTIC_DATA_SOURCES = {
 		sources = {
 			{ table = "ARMOR_SUBCLASS", kind = "other" },
 			{ table = "NATIVE_ARMOR", kind = "other" },
+			{ table = "ARMOR_WEIGHT", kind = "other" },
+			{ table = "UNIVERSAL_EQUIP_LOC", kind = "other" },
 		},
 	},
 	{
 		label = "Match-Classes",
 		sources = {
 			{ table = "FACTION_CLASSES", kind = "other" },
+			{ table = "CONSUMABLE_CLASSES", kind = "other" },
 		},
 	},
 }

@@ -57,7 +57,7 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	What Data/Match-Stats.lua's THE SCALE block promises is pinned here, and this is the
+	What Features/Match-Derivations.lua's THE SCALE block promises is pinned here, and this is the
 	pin it names: the gap between a secondary 2 and a competes 3 is one point and it is
 	categorical, because ns.Data.CLASS_SHARE puts the admission line at 2.1 against a
 	primary 6. Move the constant and one of these fails rather than every item quietly
@@ -83,7 +83,8 @@ end)
 test("a secondary weight is admitted but never in contention against a primary", function()
 	local ns = load()
 	equal(ns.Data.STAT_WEIGHTS.ROGUE.AGILITY, 6, "the rogue's primary")
-	equal(ns.Data.STAT_WEIGHTS.WARRIOR.AGILITY, 2, "the warrior's secondary")
+	-- Fury alone gears for it now that Arms ships off.
+	equal(ns.Data.STAT_WEIGHTS.WARRIOR.AGILITY, 1, "the warrior's secondary")
 
 	local verdict = ns.Matcher:Verdict(cloth(ns, { ITEM_MOD_AGILITY_SHORT = 8 }))
 
@@ -96,12 +97,16 @@ end)
 -- The weights themselves
 --------------------------------------------------------------------------------
 
-test("priests rank spirit, and rank it above druids", function()
+--[[
+	Two of a priest's three trees heal on Spirit, and a druid's Restoration tree is the one of its
+	three that does. Turning the druid's other trees off does not triple it: Spirit is a secondary.
+]]
+test("priests rank spirit above druids", function()
 	local ns = load()
 	local weights = ns.Data.STAT_WEIGHTS
 
 	equal(weights.PRIEST.SPIRIT, 2, "priest spirit weight")
-	equal(weights.DRUID.SPIRIT, 1, "druid spirit weight")
+	equal(weights.DRUID.SPIRIT, 1, "restoration druid spirit weight")
 end)
 
 test("spirit does not leak to classes that do not want it", function()
@@ -121,7 +126,6 @@ test("only warlocks rank stamina", function()
 	for _, class in ipairs({ "WARRIOR", "ROGUE", "MAGE", "PRIEST", "HUNTER", "PALADIN", "SHAMAN", "DRUID" }) do
 		equal(weights[class].STAMINA, nil, class .. " has no stamina weight")
 	end
-	equal(ns.Data.UNIVERSAL_WEIGHTS.STAMINA, nil, "and it is not universal")
 end)
 
 --[[
@@ -163,43 +167,35 @@ test("a warlock does not compete for melee gear that happens to carry stamina", 
 
 	local bear = contenders({ ITEM_MOD_STRENGTH_SHORT = 6, ITEM_MOD_STAMINA_SHORT = 6 }, "Bear")
 	check(not contains(bear, "WARLOCK"), "no warlock on a strength roll")
-	check(contains(bear, "WARRIOR"), "the warrior still competes for it")
+	check(contains(bear, "DRUID"), "a feral druid, the nearest strength wearer to cloth, competes for it")
 end)
 
 --[[
 	The Intellect-and-Spirit case is no longer decided here. Coverage demoted the mage
 	off an "of the Owl" roll, because a priest ranks both halves and he ranks one -- and
-	Data/Match-Rules.lua now overrules that with "Intellect and Spirit is for priests,
+	The Match-Rules files overrule that with "Intellect and Spirit is for priests,
 	mages and druids". Tests/Item-Rules.lua owns it; what is left below is the same
 	mechanism on a combination no rule names.
 ]]
 
 --[[
-	The side effect that happens at any weight, pinned deliberately. Coverage measures a
-	class against every stat some class ranks, so on Intellect-and-Stamina a warlock
-	uses both halves and a mage uses one. The mage is demoted out of contention on the
-	commonest caster suffix carrying stamina, and stays admitted, so he still receives
-	it whenever no warlock is in range.
+	Coverage leaves Stamina out: it is on most items in the game and everybody's, so counting it
+	put a mage at half of the commonest caster suffix and out of contention for it. The warlock,
+	who weighs the Stamina too, is still the best fit; every Intellect cloth wearer competes.
 ]]
-test("of the Eagle prefers a warlock but is still offered to a mage", function()
+test("of the Eagle is every intellect class's, best for a warlock", function()
 	local ns = load()
 	local eagle = cloth(ns, { ITEM_MOD_INTELLECT_SHORT = 6, ITEM_MOD_STAMINA_SHORT = 6 }, "Robe of the Eagle")
 	local verdict = ns.Matcher:Verdict(eagle)
 
 	equal(verdict.best, "WARLOCK", "the warlock uses all of it")
-	check(not contains(verdict.contenders, "MAGE"), "the mage uses half, so he is not in contention")
-	check(contains(verdict.admitted, "MAGE"), "but he is still offered it")
+	check(contains(verdict.contenders, "MAGE"), "the mage competes for it")
+	check(contains(verdict.contenders, "PRIEST"), "and so does the priest")
 end)
 
---[[
-	Spirit must stay off ns.Data.UNIVERSAL_WEIGHTS. A weight every class carries is
-	excluded from Matcher:SpecScore, so it could never admit anybody -- which is the
-	whole reason for weighting spirit in the first place.
-]]
-test("spirit is a class weight, not a universal one", function()
+-- Spirit is weighted so it can admit somebody, which only a class's own claim does.
+test("spirit is a class weight", function()
 	local ns = load()
-	equal(ns.Data.UNIVERSAL_WEIGHTS.SPIRIT, nil, "not universal")
-
 	local item = cloth(ns, { ITEM_MOD_SPIRIT_SHORT = 5 })
 	check(ns.Matcher:SpecScore(item, "PRIEST") > 0, "so a priest has a real claim on spirit")
 end)
@@ -209,7 +205,7 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	The case that prompted the change. Data/Match-Stats.lua used to name this item as
+	The case that prompted the change. The talent trees used to name this item as
 	the pure example of something every class scores zero on.
 ]]
 test("of the Whale reaches a priest instead of the vendor", function()

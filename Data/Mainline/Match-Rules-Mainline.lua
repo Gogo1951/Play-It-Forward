@@ -1,8 +1,8 @@
 local _, ns = ...
 
 --[[
-	Stat combinations that name their own class, on top of the point tables:
-	Data/Match-Stats.lua ranks one stat at a time and cannot say that a pair together means
+	Stat combinations that name their own class, on top of the talent-tree
+	points, which rank one stat at a time and cannot say that a pair together means
 	something neither says alone.
 
 	SOFT BY DESIGN. A rule decides who is in contention, not who is admitted -- everybody the
@@ -16,6 +16,7 @@ local _, ns = ...
 --[[
 	requires   every one of these stats must be on the item
 	exclusive  and nothing else any class ranks may be
+	without    and none of these may be on the item
 	armor      the item is body armor of one of these materials; never a cloak, ring or neck
 	form       "POTION", "FOOD", "SCROLL" or "OIL_STONE", for a consumable rule
 	restores   any one of these, for a consumable rule
@@ -25,6 +26,7 @@ local _, ns = ...
 	prefer     these classes are the contenders, if any of them is admitted at all
 	demote     these classes drop out of contention, but stay as fallbacks
 	veto       these classes are removed outright, before anything is scored
+	vetoUnlessRole  every class with no spec of this role turned on is removed, as veto
 ]]
 ns.Data.ITEM_RULES = {
 	--[[
@@ -39,30 +41,34 @@ ns.Data.ITEM_RULES = {
 		armor = { "CLOTH" },
 		prefer = { "PRIEST" },
 	},
+	--[[
+		"Of the Owl" on cloth armor is a priest's: Intellect and Spirit together is a healer's pair,
+		and the priest is the healer who wears cloth. Ahead of the general rule below, which would
+		name a mage beside him. Cloaks stay out, as above.
+	]]
+	{
+		name = "Cloth Intellect and Spirit",
+		requires = { "INTELLECT", "SPIRIT" },
+		armor = { "CLOTH" },
+		prefer = { "PRIEST" },
+	},
 	{
 		name = "Intellect and Spirit",
 		requires = { "INTELLECT", "SPIRIT" },
-		prefer = { "PRIEST", "MAGE", "DRUID" },
+		prefer = { "PRIEST", "PALADIN", "SHAMAN", "DRUID", "MONK" },
 	},
 	--[[
-		The only pair a hunter needs together and nobody else does: a rogue wants the Agility
-		and none of the Intellect, a mage the reverse. True on cloth too, which admits everybody.
+		Healing is a healer's and nobody else's, however much spell damage rides along with it: a
+		mage scores the damage half of a "+healing and damage" roll and, with no priest in range,
+		used to take it. Vetoed rather than demoted, so there is no last resort for it either.
+		Which classes heal is read from the specs the player has on, not listed here.
 	]]
 	{
-		name = "Agility and Intellect",
-		requires = { "AGILITY", "INTELLECT" },
-		prefer = { "HUNTER" },
+		name = "Healing",
+		requires = { "HEALING" },
+		vetoUnlessRole = "HEALER",
 	},
-	--[[
-		Exclusive, because Stamina beside anything else is that other stat's item. Life Tap is
-		what makes a bare Stamina roll worth mailing at all rather than vendoring.
-	]]
-	{
-		name = "Stamina alone",
-		requires = { "STAMINA" },
-		exclusive = true,
-		prefer = { "WARLOCK" },
-	},
+	-- Spirit is a healer stat here, paladins and shamans included; only the warlock gets nothing from it.
 	{
 		name = "Spirit",
 		requires = { "SPIRIT" },
@@ -103,19 +109,15 @@ ns.Data.ITEM_RULES = {
 		name = "Mana potions",
 		form = "POTION",
 		restores = { "MANA", "BOTH" },
-		prefer = { "PRIEST", "PALADIN", "SHAMAN", "DRUID" },
+		prefer = { "PRIEST", "PALADIN", "SHAMAN", "DRUID", "MONK" },
 	},
 
 	--[[
-		Which hand a weapon takes, and who that makes it for. The point tables put a druid level
-		with a warrior on a one-hand mace and ahead of a rogue, so a good one lands on him and
-		is wasted twice.
-
-		A STAFF IS NOT A TWO-HANDER HERE. It is the caster weapon -- every mage, priest and
-		warlock has nothing else -- so putting staves under the two-hand rule would hand each
-		one to a druid ahead of the three classes it was made for. Wands, bows, guns, crossbows
-		and thrown are out from the other direction: none is melee and the matrix already
-		decides them. Shields, held off-hands and relics never reach here.
+		Which hand a weapon takes, and who that makes it for. No two-hand or polearm rule here:
+		a hunter carries no melee weapon, and the plate classes own a two-hander alike, so
+		scoring decides those. Staves are the caster weapon and stay out too. Wands, bows, guns,
+		crossbows and thrown are out from the other direction: none is melee and the matrix
+		already decides them. Shields and held off-hands never reach here.
 
 		No rule needs an "unless it has caster stats" clause: a rule can only name classes that
 		scoring already admitted.
@@ -131,35 +133,14 @@ ns.Data.ITEM_RULES = {
 		prefer = { "ROGUE" },
 	},
 	--[[
-		The two classes that fight one-handed, and the matrix decides which kinds each may hold:
-		a rogue reaches swords, maces and fists, and axes only from Wrath, so naming him costs
-		nothing there.
+		The classes that fight one-handed, and the matrix decides which kinds each may hold: a
+		monk reaches fists, swords, maces and axes, never a dagger.
 	]]
 	-- FIST is 1H melee like the rest; move it to the dagger rule above if rogues turn out to want it more.
 	{
 		name = "One-hand weapons",
 		weapon = { "1H_SWORD", "1H_MACE", "1H_AXE", "FIST" },
-		prefer = { "WARRIOR", "ROGUE" },
-	},
-	--[[
-		A hunter's melee weapon is a stat stick: his damage comes out of the ranged slot, so the
-		largest stat budget wins and that is a two-hander. A druid is the same case from the other
-		side -- form damage scales off attack power, not the weapon's own damage. The matrix keeps
-		each to what he can carry: a druid only meets 2H maces here, a hunter only swords and axes.
-	]]
-	{
-		name = "Two-hand weapons",
-		weapon = { "2H_SWORD", "2H_MACE", "2H_AXE" },
-		prefer = { "DRUID", "PALADIN", "HUNTER" },
-	},
-	--[[
-		A polearm is a hunter's before it is a two-hander, so POLEARM is out of the rule above
-		rather than merely ahead of it: a key sitting in a rule that can never reach it lies.
-	]]
-	{
-		name = "Polearms",
-		weapon = { "POLEARM" },
-		prefer = { "HUNTER" },
+		prefer = { "WARRIOR", "ROGUE", "MONK" },
 	},
 	--[[
 		A ranged weapon with nothing on it to say who it is for. All three of a hunter's trees
@@ -182,3 +163,26 @@ ns.Data.ITEM_RULES = {
 }
 
 -- Matched against items by Features/Match-Derivations.lua, which owns the rule matching.
+
+--[[
+How We Got the Data
+
+Last Validated
+	Never. Copied from Data/Match-Rules.lua.
+
+Notes
+	- Stat combinations that name their own class, on top of the talent-tree points; see the
+	-   comments above the table for the fields and the order. Policy rather than game records: no IDs.
+
+SQL (CMaNGOS)
+	None.
+
+Wowhead
+	None.
+
+wago.tools
+	None.
+
+QuestieDB
+	None.
+]]

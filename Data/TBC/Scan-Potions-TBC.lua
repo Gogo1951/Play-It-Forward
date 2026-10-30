@@ -36,7 +36,7 @@ ns.Data.POTIONS = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, TBC Anniversary 2.5.6.70006
+	2026-10-29, TBC Anniversary 2.5.6.70577
 
 Notes
 	- Healing, mana and rejuvenation potions a player can give away: Potion consumables that can
@@ -47,13 +47,16 @@ Notes
 	- useLevel is the level the potion requires and quality its quality. restores comes from
 	  the name: Rejuvenation and Restore are BOTH, Healing and Health are HEALTH, Mana is MANA.
 	  It decides who can receive the potion through ns.Data.CONSUMABLE_CLASSES in
-	  Data/Data.lua. Features/Scan-Bags.lua reads every field.
+	  this folder's Match-Classes file. Features/Scan-Bags.lua reads every field.
 	- 44728 Endless Rejuvenation Potion is held out by hand. It is the only quality 0 result
 	  the query returns, an internal item the name exclusions match nothing in, and it returns
 	  on every re-run: drop it again rather than reading it as new.
 	- 32762 Rulkster's Brain Juice and 32763 Rulkster's Secret Sauce are added by hand. Their
 	  names say neither Healing nor Mana, so the query files them as Other and drops them: add
 	  them back after a re-run.
+	- Rechecked against this client's tables at 2.5.6.70577 by the query's own test. Only
+	  bound or level 1 potions are missing, 33934 Crystal Healing Potion and 33935 Crystal
+	  Mana Potion among them.
 
 SQL (CMaNGOS)
 	Database not recorded. It returned Wrath items, so it ran against a Wrath-era database,
@@ -88,10 +91,8 @@ Wowhead
 	None.
 
 wago.tools
-	https://wago.tools/db2/Item?build=2.5.6.69795
-	https://wago.tools/db2/ItemSparse?build=2.5.6.69795
-	https://wago.tools/db2/Item?build=2.5.6.70006
-	https://wago.tools/db2/ItemSparse?build=2.5.6.70006
+	https://wago.tools/db2/Item?build=2.5.6.70577
+	https://wago.tools/db2/ItemSparse?build=2.5.6.70577
 
 QuestieDB
 	None.

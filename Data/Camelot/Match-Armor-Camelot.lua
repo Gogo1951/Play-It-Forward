@@ -24,6 +24,23 @@ ns.Data.NATIVE_ARMOR = {
 	DEATHKNIGHT = { { 1, "PLATE" } },
 }
 
+-- ns.Data.ArmorPriorityFor derives the priority groups by subtracting one weight from another.
+ns.Data.ARMOR_WEIGHT = { CLOTH = 1, LEATHER = 2, MAIL = 3, PLATE = 4 }
+
+--[[
+	Equip slots any class can use regardless of armor material: stats alone decide them.
+
+	INVTYPE_HOLDABLE must never be added. Held off-hands look universal but turn on whether a
+	class has the off-hand slot free, and adding them here makes an Intellect orb eligible for
+	a warrior. They route through the weapon matrix as "HELD", in the flavor folder's WEAPON_SPECS.
+]]
+ns.Data.UNIVERSAL_EQUIP_LOC = {
+	INVTYPE_CLOAK = true,
+	INVTYPE_FINGER = true,
+	INVTYPE_NECK = true,
+	INVTYPE_TRINKET = true,
+}
+
 --[[
 How We Got the Data
 
@@ -31,8 +48,9 @@ Last Validated
 	2026-10-20, WoW Forever 1.60.1.70450
 
 Notes
+	- ARMOR_WEIGHT ranks the materials for ns.Data.ArmorPriorityFor; UNIVERSAL_EQUIP_LOC lists the equip slots any class can use whatever its armor, where stats alone decide.
 	- ARMOR_SUBCLASS turns the armor subclass the client reports for an item into its material.
-	  ns.Data.ARMOR_WEIGHT in Data/Match-Armor.lua ranks the materials, and
+	  ns.Data.ARMOR_WEIGHT in this file ranks the materials, and
 	  Features/Match-Engine.lua and Features/Match-Derivations.lua read both.
 	- Subclass 0 Miscellaneous (rings, necks, trinkets, cloaks, held off-hands) has no row: it
 	  is decided by equip slot, so stats alone pick its recipient. 6 Shield maps to SHIELD,

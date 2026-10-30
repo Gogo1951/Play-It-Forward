@@ -114,10 +114,25 @@ test("oils and stones follow their own switch", function()
 	equal(reason, ns.Scanner.REJECT.KIND_DISABLED, "and the reason says why")
 end)
 
-test("Include Consumables off still wins over every kind", function()
+test("Distribute Consumables off still wins over every kind", function()
 	local ns = load()
 	backpack(ns, row(ns.Data.POTIONS))
 	ns.db.profile.includeConsumables = false
 	local _, reason = ns.Scanner:Classify(0, 1)
 	equal(reason, ns.Scanner.REJECT.CONSUMABLES_DISABLED, "the parent switch is checked first")
+end)
+
+test("a soulbound consumable is held back as SOULBOUND", function()
+	local ns = load()
+	local Stub = Harness.Stub
+	local water = row(ns.Data.FOOD_AND_WATER, "MANA")
+	Stub.playerLevel = 60
+	ns.db.profile.consumableLevelGap = 0
+	local def = Stub.Item({ id = water[1], name = "Bound Water", quality = 1, classID = 0, bindType = 0 })
+	def.isBound = true
+	Stub.SetBackpack({ def })
+
+	local record, reason = ns.Scanner:Classify(0, 1)
+	equal(record, nil, "a bound water is not listed, since the mail would refuse it")
+	equal(reason, ns.Scanner.REJECT.SOULBOUND, "and the reason says why")
 end)

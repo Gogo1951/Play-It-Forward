@@ -1,37 +1,23 @@
 local _, ns = ...
 
 --[[
-	What is in the bags, who is on the roster, and which of them holds what;
-	Features/UI-Window.lua draws it. items, pools and assignedTo are file-scope and nothing
-	wipes them on a window close, which is what makes matches survive walking away from a mailbox.
+	What is in the bags and which roster player holds what; Features/UI-Window.lua draws it. The
+	roster is Features/Match-Roster.lua's, and the search bands Features/Match-Search.lua's. items
+	and assignedTo are file-scope and nothing wipes the items or the hand picks on a window close.
+	The automatic pairings are released on close and come back only on Find Recipients.
 ]]
 
 ns.MatchList = {}
 local MatchList = ns.MatchList
 
-local pools = {} -- classToken -> { {name, level, class, area}, ... } from /who and the guild roster
 local items = {} -- current scan, decorated with .verdict/.state/.score/.bandLo/.bandHi/.recipient/.send/.pinned
 local assignedTo = {} -- recipient name -> the item they're currently holding
-local seenPlayer = {} -- qualified identity -> its pool entry, dedupes across sources and chunks
---[[
-	Session total for the roster report: the report explains what a search found, and who was too
-	low is part of that.
-]]
-local tooLow = 0
-
---[[
-	Bumped whenever the pools change, which is what makes the candidate cache below safe to hand
-	out. A counter rather than a walk of every item: one increment per query, where clearing a
-	field per item costs the scan it was meant to save. RescanBags deliberately has no bump -- it
-	replaces every item table outright, so no cache survives it anyway.
-]]
-local poolsGeneration = 0
-
 --[[
 	A re-scan rebuilds items from the bags, so decisions are remembered against the slot they were
 	made for; otherwise every press of Find Recipients reshuffles pairings already reviewed.
 	Anything that moved slots loses its pairing deliberately -- the Distributor would refuse to
-	send it. Read off the record rather than rebuilt, so the uid format has one home.
+	send it. Read off the record's uid; the fallback builds the same shape for a record made
+	without one.
 ]]
 local function SlotKey(item)
 	return item.uid or ("%d:%d:%s"):format(item.bag or -1, item.slot or -1, item.link or "")
@@ -65,9 +51,17 @@ end
 
 	One function, because the diagnostics event log classifies both events with it: a firing
 	this answers true for is one that armed a rescan, and the log keeps it in full.
+
+	A mailbox that opened on nothing to give counts as well as a shown window. That answer is
+	often the cold cache's -- the first visit after login reads half the bag as NOT_CACHED --
+	and making the player walk away and back to find out otherwise is the delay this closes.
 ]]
+local function WaitingToOpen()
+	return ns.UI and ns.UI:WaitingToOpen()
+end
+
 local function WouldRescan()
-	return (ns.db and not ns.Distributor.busy and WindowIsShown()) and true or false
+	return (ns.db and not ns.Distributor.busy and (WindowIsShown() or WaitingToOpen())) and true or false
 end
 
 local function ScanSoon()
@@ -82,12 +76,22 @@ local function ScanSoon()
 		scanTimer = nil
 		--[[
 			The whole test is asked again: the window can close and a mail run can start inside
-			the debounce. Never opens the window either -- a panel appearing because the player
-			looted a green is the add-on talking over the game.
+			the debounce. Opens the window only for a mailbox still waiting on it -- away from
+			one, a panel appearing because the player looted a green is the add-on talking over
+			the game.
+
+			An open window is re-matched from the pools already found, since the rescan brings a
+			new row in with nobody on it. The search plan is left alone: re-planning on every bag
+			change would throw away a Find Recipients for This Item search mid-run, and the next
+			Find Recipients press picks up a new item's band anyway.
 		]]
 		if WouldRescan() then
 			EnsureScan()
-			ns.UI:Refresh()
+			if WindowIsShown() then
+				ns.UI:Assign()
+			else
+				ns.UI:OpenIfWaiting()
+			end
 		end
 	end)
 end
@@ -99,93 +103,20 @@ ns.On("BAG_UPDATE", OnBagUpdate)
 
 --[[
 	An unresolved item is rejected as NOT_CACHED, so a cold-cache scan reports a bag emptier than
-	it is -- and that decides whether the window opens at all.
+	it is -- and that decides whether the window opens at all. Only an item the scan is waiting on
+	counts: the event fires for every item the client loads, mail, chat links and other add-ons
+	included, and each of those would otherwise re-read the whole bag.
 ]]
-local function OnGetItemInfoReceived()
-	ScanSoon()
+local function ItemInfoMatters(itemID, success)
+	return success ~= false and ns.Scanner:IsPending(itemID)
+end
+
+local function OnGetItemInfoReceived(itemID, success)
+	if ItemInfoMatters(itemID, success) then
+		ScanSoon()
+	end
 end
 ns.On("GET_ITEM_INFO_RECEIVED", OnGetItemInfoReceived)
-
---[[
-	Clusters, not one span: bags routinely hold low-level gear and high-level consumables and
-	nothing between, and one span queries the empty middle while the bands that matter come back a
-	thin sample against the /who cap.
-
-	Merging unions the class sets as well as the level spans -- two items sharing a band are one
-	query, which has to ask for everybody either of them can go to. Shared by the scan bands and
-	the unmatched bands below, so Who:Prune matches attempts against bands built the same way.
-]]
-local function MergeBands(bands)
-	table.sort(bands, function(a, b)
-		return a.lo < b.lo
-	end)
-
-	local merged = {}
-	for _, band in ipairs(bands) do
-		local last = merged[#merged]
-		if last and band.lo <= last.hi + 1 then
-			last.hi = math.max(last.hi, band.hi)
-			for _, class in ipairs(band.classes or {}) do
-				if not last.seen[class] then
-					last.seen[class] = true
-					last.classes[#last.classes + 1] = class
-				end
-			end
-		else
-			local seen, classes = {}, {}
-			for _, class in ipairs(band.classes or {}) do
-				if not seen[class] then
-					seen[class] = true
-					classes[#classes + 1] = class
-				end
-			end
-			merged[#merged + 1] = { lo = band.lo, hi = band.hi, classes = classes, seen = seen }
-		end
-	end
-	return merged
-end
-
--- Whether this class is one the verdict put in contention, not merely admitted behind them.
-local function InContention(item, classToken)
-	for _, class in ipairs((item.verdict and item.verdict.contenders) or {}) do
-		if class == classToken then
-			return true
-		end
-	end
-	return false
-end
-
---[[
-	A gift is still worth searching for while nobody holds it -- or while only a fallback does.
-	The contenders are who the verdict says the item is FOR, and a fallback pairing must not
-	read as the search having found them, or the plan clears before the contenders' bands are
-	asked. A pinned row is the player's
-	decision, and final; an unticked row is pinned, so it is never searched for. Leftovers and
-	unreadables are excluded, or the plan never empties and every press of Find Recipients goes
-	on spending the /who throttle for the whole session.
-]]
-local function StillSearching(item)
-	if item.state ~= ns.Matcher.GIFT or item.pinned then
-		return false
-	end
-	if not item.recipient then
-		return true
-	end
-	return not InContention(item, item.recipient.class)
-end
-
---[[
-	Which classes a band should query for. A fallback-held item narrows to the contenders --
-	somebody suitable already holds it, so the only find worth a press is an upgrade -- while an
-	unheld one asks for everybody admitted, since there a fallback beats nobody. Admitted, or
-	eligible when nothing was admitted: narrowing on an empty set asks for no classes at all.
-]]
-local function BandClasses(item, verdict)
-	if item.recipient and not item.pinned and not InContention(item, item.recipient.class) then
-		return verdict.contenders
-	end
-	return (#verdict.admitted > 0) and verdict.admitted or verdict.eligible
-end
 
 local function RescanBags()
 	--[[
@@ -201,6 +132,19 @@ local function RescanBags()
 
 	items = ns.Scanner:Scan()
 	wipe(assignedTo)
+
+	--[[
+		THE PLAYER'S PICKS FIRST, and they always survive, even two rows set to one name by hand.
+		Only then do the automatic pairings come back, each one only if nobody holds its name:
+		read in bag order alone, an automatic row early in the bags would take the name and drop
+		the pick the player made further down.
+	]]
+	for _, item in ipairs(items) do
+		local kept = previous[SlotKey(item)]
+		if kept and kept.pinned and kept.recipient and not kept.recipient.alt then
+			assignedTo[kept.recipient.name] = item
+		end
+	end
 
 	local bands = {}
 	for _, item in ipairs(items) do
@@ -225,9 +169,13 @@ local function RescanBags()
 		local kept = previous[SlotKey(item)]
 		if kept then
 			item.send, item.pinned = kept.send, kept.pinned
-			if kept.recipient and not assignedTo[kept.recipient.name] then
+			local name = kept.recipient and kept.recipient.name
+			local free = kept.recipient and (kept.pinned or kept.recipient.alt or not assignedTo[name])
+			if free then
 				item.recipient = kept.recipient
-				assignedTo[kept.recipient.name] = item
+				if not kept.recipient.alt then
+					assignedTo[name] = assignedTo[name] or item
+				end
 			else
 				item.recipient = nil
 				if item.send then
@@ -244,14 +192,14 @@ local function RescanBags()
 			kept fallback pairing narrows its band to the contenders, same as the prune path.
 		]]
 		if #eligible > 0 then
-			for _, group in ipairs(ns.Matcher:BandGroups(item, BandClasses(item, verdict))) do
+			for _, group in ipairs(ns.Matcher:BandGroups(item, ns.MatchSearch.BandClasses(item, verdict))) do
 				bands[#bands + 1] = group
 			end
 		end
 	end
 
 	bagsDirty = false
-	return MergeBands(bands)
+	return ns.MatchSearch.MergeBands(bands)
 end
 
 --[[
@@ -262,89 +210,6 @@ function EnsureScan()
 	if bagsDirty then
 		RescanBags()
 	end
-end
-
---[[
-	The row a targeted search is looking for, by slot key: RescanBags replaces every item table,
-	so a reference would go stale under it. Read only while Who.targeted says the plan is still
-	that search's; a fresh plan or a Clear ends it without this having to be told.
-]]
-local targetKey
-
--- The row itself, or nil once it has left the bags.
-local function TargetItem()
-	if not targetKey then
-		return nil
-	end
-	for _, item in ipairs(items) do
-		if SlotKey(item) == targetKey then
-			return item
-		end
-	end
-	return nil
-end
-
---[[
-	Narrows a targeted search to the attempts that could still turn up somebody who outranks the
-	row's holder, and ends it once none is left -- or at once when the row is gone or the player
-	decided it by hand. An attempt with no class filter (a consumable's zones) asks for everybody,
-	so it stays while any admitted class could.
-]]
-local function NarrowTargeted()
-	local item = TargetItem()
-	if not item or item.pinned then
-		ns.Who:Clear()
-		return
-	end
-
-	local admitted = (item.verdict and item.verdict.admitted) or {}
-	ns.Who:PruneTargeted(function(attempt)
-		local classes = (#attempt.classes > 0) and attempt.classes or admitted
-		for _, class in ipairs(classes) do
-			if ns.Matcher:CouldOutrank(item, item.recipient, class) then
-				return true
-			end
-		end
-		return false
-	end)
-
-	-- Remaining, not the plan alone: a query still in flight is answered and assigned first.
-	if ns.Who:Remaining() == 0 then
-		ns.Who:Clear()
-	end
-end
-
-local function SearchingGifts()
-	local waiting = 0
-	for _, item in ipairs(items) do
-		if StillSearching(item) then
-			waiting = waiting + 1
-		end
-	end
-	return waiting
-end
-
---[[
-	The bands a search still has something to find for. Leftovers are left out here, where the
-	scan bands keep them: the plan is dropped whole the moment no gift is searching, so a band
-	held open for a leftover would spend presses on a row the search was never going to finish.
-	Reads the verdict RescanBags cached rather than asking the matcher again -- a second opinion
-	here could prune a band the list still shows as waiting.
-]]
-local function SearchingBands()
-	local bands = {}
-	for _, item in ipairs(items) do
-		if StillSearching(item) then
-			local verdict = item.verdict
-			local eligible = (verdict and verdict.eligible) or {}
-			if #eligible > 0 then
-				for _, group in ipairs(ns.Matcher:BandGroups(item, BandClasses(item, verdict))) do
-					bands[#bands + 1] = group
-				end
-			end
-		end
-	end
-	return MergeBands(bands)
 end
 
 --[[
@@ -360,21 +225,68 @@ function MatchList:EnsureScan()
 	EnsureScan()
 end
 
+--[[
+	For a setting changed while no window is built to re-read into. The scan the next mailbox
+	would otherwise reuse was judged under the old setting, so a switch to All Consumables at
+	a bag that has not moved since opened nothing.
+]]
+function MatchList:MarkStale()
+	bagsDirty = true
+end
+
 -- Whether the next mailbox rescans the bags, for the Mailbox report. Reads the flag only.
 function MatchList:IsStale()
 	return bagsDirty
 end
 
--- Whether a bag or item-info event right now would arm a rescan. Read by the event log filter.
+-- Whether a bag event right now would arm a rescan. Read by the event log filter.
 function MatchList:WouldRescan()
 	return WouldRescan()
+end
+
+-- The same for one GET_ITEM_INFO_RECEIVED firing: its item is one the scan waits on.
+function MatchList:WouldRescanItem(itemID, success)
+	return ItemInfoMatters(itemID, success) and WouldRescan()
 end
 
 function MatchList:SlotKey(item)
 	return SlotKey(item)
 end
 
--- Assigns each item a recipient, one item per person per pass.
+-- The row under this slot key and its index, or nil once it has left the list.
+function MatchList:FindByKey(key)
+	for index, item in ipairs(items) do
+		if SlotKey(item) == key then
+			return item, index
+		end
+	end
+	return nil
+end
+
+--[[
+	Every automatic pairing let go, and only the player's picks held: a pinned row keeps its name,
+	every other row loses it. resetSend also ticks every unpinned row again, as a fresh pass does.
+]]
+local function KeepPinnedOnly(resetSend)
+	wipe(assignedTo)
+	for _, item in ipairs(items) do
+		if item.pinned then
+			if item.recipient and not item.recipient.alt then
+				assignedTo[item.recipient.name] = item
+			end
+		else
+			item.recipient = nil
+			if resetSend then
+				item.send = true
+			end
+		end
+	end
+end
+
+--[[
+	Assigns each item a recipient, one item per person per pass. Two are exempt: your own alts,
+	who can take every item that suits them, and the player's own picks, which always stand.
+]]
 function MatchList:Assign()
 	--[[
 		EVERY PASS DECIDES AGAIN, from scratch, against the whole roster. Filling only the gaps is
@@ -385,16 +297,7 @@ function MatchList:Assign()
 		What survives is what the player decided: a pinned row is one they touched, and rebuilding
 		over those is the one thing a rebuild must not do.
 	]]
-	wipe(assignedTo)
-	for _, item in ipairs(items) do
-		if item.pinned then
-			if item.recipient then
-				assignedTo[item.recipient.name] = item
-			end
-		else
-			item.recipient, item.send = nil, true
-		end
-	end
+	KeepPinnedOnly(true)
 
 	--[[
 		Every item, not just the ones that scored: a leftover showing candidates but holding no
@@ -428,7 +331,7 @@ function MatchList:Assign()
 	end)
 
 	local function IsTaken(person)
-		return assignedTo[person.name] ~= nil
+		return not person.alt and assignedTo[person.name] ~= nil
 	end
 
 	for _, entry in ipairs(order) do
@@ -441,7 +344,23 @@ function MatchList:Assign()
 				Unticking is the player's veto, and pins it.
 			]]
 			entry.item.recipient, entry.item.send = pick, true
-			assignedTo[pick.name] = entry.item
+			if not pick.alt then
+				assignedTo[pick.name] = entry.item
+			end
+		end
+	end
+
+	--[[
+		Last, so it only ever takes what nobody else could: gear still unpaired after every player
+		found had their turn. Unpinned like any automatic pairing, so a Keep Item stands and a rule
+		change that turns a Kept row into a gift takes it back.
+	]]
+	local enchanter = ns.db and ns.db.profile.disenchantUnmatched and ns.Alts:DisenchantRecipient()
+	if enchanter then
+		for _, item in ipairs(items) do
+			if not item.pinned and not item.recipient and self:Disenchantable(item) then
+				item.recipient, item.send = enchanter, true
+			end
 		end
 	end
 
@@ -458,17 +377,12 @@ function MatchList:Assign()
 		It is narrowed against its one row's holder instead, and the bands below never touch it.
 	]]
 	if ns.Who.targeted then
-		NarrowTargeted()
-	elseif SearchingGifts() == 0 then
+		ns.MatchSearch.NarrowTargeted()
+	elseif ns.MatchSearch.SearchingGifts() == 0 then
 		ns.Who:Clear()
 	else
-		ns.Who:Prune(SearchingBands())
+		ns.Who:Prune(ns.MatchSearch.SearchingBands())
 	end
-end
-
--- Marks the row a targeted search is for; Assign narrows and ends that search against it.
-function MatchList:Target(item)
-	targetKey = item and SlotKey(item) or nil
 end
 
 --------------------------------------------------------------------------------
@@ -477,15 +391,10 @@ end
 
 --[[
 	items is REASSIGNED by RescanBags, so a caller holding the table would keep rendering the
-	pre-scan list. pools and assignedTo are only ever wiped in place, so handing those out is
-	safe.
+	pre-scan list. assignedTo is only ever wiped in place, so handing it out is safe.
 ]]
 function MatchList:Items()
 	return items
-end
-
-function MatchList:Pools()
-	return pools
 end
 
 function MatchList:AssignedTo()
@@ -493,88 +402,20 @@ function MatchList:AssignedTo()
 end
 
 --[[
-	RankCandidates sorts every admitted class against every pooled player, and the same answer is
-	asked for repeatedly -- once per Assign, once per dropdown open, and once per mouse-over of a
-	recipient button, which has no ceiling. Its inputs are the pools and the item's own verdict
-	and band: it never reads item.recipient, so an assignment does not invalidate a cached answer.
-
-	HANDED OUT BY REFERENCE, NEVER COPIED. Every caller only reads it, and one that sorted or
-	removed in place would poison the cache for everybody after it.
+	A Kept row Disenchant Unmatched Items may send off: gear, since every weapon and armor piece the
+	scan admits is green or better and so disenchants, and nothing a consumable turns into. Never
+	a Pending Match row, which a later search may still fill, nor an unreadable one, which may yet
+	suit somebody once its stats read.
 ]]
-function MatchList:Candidates(item)
-	if item._candidates and item._candidatesGeneration == poolsGeneration then
-		return item._candidates
-	end
-	local ranked = ns.Matcher:RankCandidates(item, pools)
-	item._candidates, item._candidatesGeneration = ranked, poolsGeneration
-	return ranked
+function MatchList:Disenchantable(item)
+	return item.kind == "gear" and item.state == ns.Matcher.LEFTOVER
 end
 
 --[[
-	Folds one query's results into the roster, deduped. The shuffle key is rolled once as a player
-	enters the pool, so the order among equals holds still instead of moving between renders.
-	Returns how many pool entries changed: new players, plus known ones who just became guildmates
-	or were seen at a higher level.
+	Every name the allocator chose, let go, for the window closing: the next open matches again
+	from the whole roster found this session rather than showing pairings made against an older
+	one. A row the player set by hand keeps its name, and nothing found is forgotten.
 ]]
-function MatchList:AddResults(results)
-	local changed = 0
-	for _, person in ipairs(results) do
-		--[[
-			THE ONE LEVEL FLOOR, here rather than in either reader because this is the single door
-			every recipient comes through: /who and the guild roster both arrive at this line, and
-			a source added later inherits it without having to remember to. Counted before the
-			dedupe, so the number means "people this rule turned away", not "people it turned away
-			who were also new".
-		]]
-		if (person.level or 0) < ns.Data.MIN_RECIPIENT_LEVEL then
-			tooLow = tooLow + 1
-		else
-			--[[
-				DEDUPED ON THE QUALIFIED IDENTITY, NOT THE RAW NAME. /who answers bare for
-				somebody on your own realm where the guild roster qualifies the same character,
-				so one person arrives under two spellings and a raw-string check pools them
-				twice -- two entries, two items, two parcels in one mailbox. The entry itself
-				keeps the name it arrived under, because that is the address.
-			]]
-			local key = ns.QualifyPlayerName(person.name) or person.name
-			local known = seenPlayer[key]
-			if known then
-				-- The later sighting still has something to add: a guildmate's tiebreak, or a level gained.
-				local entryChanged = false
-				if person.guild and not known.guild then
-					known.guild = true
-					entryChanged = true
-				end
-				if type(person.level) == "number" and person.level > (known.level or 0) then
-					known.level = person.level
-					entryChanged = true
-				end
-				if entryChanged then
-					changed = changed + 1
-				end
-			else
-				person.shuffle = math.random()
-				seenPlayer[key] = person
-				pools[person.class] = pools[person.class] or {}
-				table.insert(pools[person.class], person)
-				changed = changed + 1
-			end
-		end
-	end
-	--[[
-		Only when a pool entry changed: a query returning nothing new leaves the ranking unchanged,
-		and bumping would throw the cache away once per press for an answer that could not have
-		moved -- the common case, since the guild roster re-answers in full every time. A known
-		player turning out to be a guildmate does change it, through the guild tiebreak, and so
-		does one seen at a higher level, through their band and the gift cooldown.
-	]]
-	if changed > 0 then
-		poolsGeneration = poolsGeneration + 1
-	end
-	return changed
-end
-
--- How many candidates the level floor turned away this session, for the roster report.
-function MatchList:TooLowCount()
-	return tooLow
+function MatchList:ReleaseAutomatic()
+	KeepPinnedOnly(false)
 end

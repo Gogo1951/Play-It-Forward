@@ -35,16 +35,16 @@ ns.Data.OILS_AND_STONES = {
 How We Got the Data
 
 Last Validated
-	Not yet: built 2026-10-19 from wago.tools tables, awaiting a Validate Data run in game.
+	2026-10-29, Season of Discovery 1.15.9.70576
 
 Notes
 	- The oils, sharpening stones and weightstones any class can put on a weapon, taken from
 	  Thanks for the Buff's BUFF_WINDOW_WEAPON_ITEMS for this client
-	  (TFTB/Data/Discovery/Buff-Window-Spells-Discovery.lua), with quality, required level and binding
-	  read from ItemSparse.
+	  (TFTB/Data/Discovery/Buff-Window-Spells-Discovery.lua), with quality, required level and
+	  binding read from ItemSparse.
 	- enhances is who the item helps, and it decides who can receive it through
-	  ns.Data.CONSUMABLE_CLASSES in Data/Data.lua, so there is no per-item class list. MELEE
-	  for the stones; SPELL_DAMAGE for the wizard oils; MANA for the mana oils, which restore
+	  ns.Data.CONSUMABLE_CLASSES in this folder's Match-Classes file, so there is no per-item
+	  class list. MELEE for the stones; SPELL_DAMAGE for the wizard oils; MANA for the mana oils, which restore
 	  mana and, from Brilliant up, add healing.
 	- A sharpening stone only takes a bladed weapon and a weightstone only a blunt one. Every
 	  MELEE class carries both kinds of weapon, so both go to all of them.
@@ -60,9 +60,11 @@ Notes
 	  works inside Blackfathom Deeps, and the matcher cannot tell who is going there;
 	  Enchanted Repellent (233996) was cut by hand until somebody checks in game what it
 	  does and who it helps; Blackfathom Sharpening Stone (211845) and the Weapon Cleaning
-	  Cloth (221362) need no level; the
-	  season's own Blessed Wizard Oil (238234), Consecrated Sharpening Stone (238241) and
+	  Cloth (221362) need no level; the season's own Blessed Wizard Oil (238234), Consecrated Sharpening Stone (238241) and
 	  Weighted Consecrated Sharpening Stone (237810) bind on pickup.
+	- Rechecked against this client's tables at 1.15.9.70576 by name. Besides the items held
+	  out above, only 6213 Test Sharpening Stone, an internal item, and 22600 Craftsman's Writ
+	  - Dense Weightstone, a quest token rather than a stone, turn up.
 
 SQL (CMaNGOS)
 	TODO: Add SQL Query
@@ -71,7 +73,11 @@ Wowhead
 	None.
 
 wago.tools
-	https://wago.tools/db2/ItemSparse?build=1.15.9.70003
 	https://wago.tools/db2/ItemEffect?build=1.15.9.70003
 	https://wago.tools/db2/Spell?build=1.15.9.70003
+	https://wago.tools/db2/ItemSparse?build=1.15.9.70576
+	https://wago.tools/db2/Item?build=1.15.9.70576
+
+QuestieDB
+	None.
 ]]

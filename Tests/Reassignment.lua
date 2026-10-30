@@ -2,10 +2,9 @@
 	Re-matching everything the add-on chose, every time the roster grows.
 
 	Assignments used to be kept: a pass filled the items that had nobody and left the
-	rest alone. That is wrong the moment a rule is soft. An "of the Owl" staff prefers a
-	priest, a mage or a druid and falls back to a hunter, so a first press that finds
-	only a hunter gives him the staff -- and a second press that finds a priest never
-	revisits it. The item stays with its fallback because it is no longer "unassigned".
+	rest alone. That is wrong the moment a rule is soft. A cloth healing robe prefers a
+	priest and falls back to a druid, so a first press that finds only a druid gives him
+	the robe -- and a second press that finds a priest never revisits it. The item stays with its fallback because it is no longer "unassigned".
 
 	So every pass now clears what the add-on decided and decides again against the whole
 	roster. What it never touches is what the player decided: a row kept by
@@ -22,19 +21,19 @@ local function load()
 	return Harness.LoadAddon(ADDON_ROOT)
 end
 
--- Intellect and Spirit: priests, mages and druids, with everyone else behind them.
-local function owlStaff(ns, extra)
+-- Cloth healing: the priest's, with the druid behind him.
+local function healingRobe(ns, extra)
 	local bag = {
 		Stub.Item({
-			name = "Dwarven Magestaff of the Owl",
+			name = "Robe of Healing",
 			quality = 2,
 			reqLevel = 20,
 			itemLevel = 24,
-			equipLoc = "INVTYPE_2HWEAPON",
-			classID = 2,
-			subclassID = 10,
+			equipLoc = "INVTYPE_CHEST",
+			classID = 4,
+			subclassID = 1,
 			bindType = 2,
-			stats = { ITEM_MOD_INTELLECT_SHORT = 6, ITEM_MOD_SPIRIT_SHORT = 6 },
+			stats = { ITEM_MOD_SPELL_HEALING_DONE_SHORT = 20 },
 		}),
 	}
 	for _, item in ipairs(extra or {}) do
@@ -61,7 +60,7 @@ local function recipientOf(ns, name)
 	end
 end
 
-local HUNTER = { name = "Hunty", level = 18, class = "HUNTER" }
+local DRUID = { name = "Druidy", level = 18, class = "DRUID" }
 local PRIEST = { name = "Pri", level = 18, class = "PRIEST" }
 
 --------------------------------------------------------------------------------
@@ -71,18 +70,18 @@ local PRIEST = { name = "Pri", level = 18, class = "PRIEST" }
 ]]
 test("a fallback is reconsidered when a better class turns up", function()
 	local ns = load()
-	owlStaff(ns)
+	healingRobe(ns)
 
-	search(ns, { HUNTER })
-	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), "Hunty", "the hunter takes it when he is all there is")
+	search(ns, { DRUID })
+	equal(recipientOf(ns, "Robe of Healing"), "Druidy", "the druid takes it when he is all there is")
 
 	search(ns, { PRIEST })
-	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), "Pri", "and loses it the moment a priest turns up")
+	equal(recipientOf(ns, "Robe of Healing"), "Pri", "and loses it the moment a priest turns up")
 end)
 
 test("nobody ends up holding two items after a rebuild", function()
 	local ns = load()
-	owlStaff(ns, {
+	healingRobe(ns, {
 		Stub.Item({
 			name = "Ivycloth Robe",
 			quality = 2,
@@ -96,7 +95,7 @@ test("nobody ends up holding two items after a rebuild", function()
 		}),
 	})
 
-	search(ns, { HUNTER, PRIEST })
+	search(ns, { DRUID, PRIEST })
 
 	local seen = {}
 	for _, item in ipairs(ns.UI:Items()) do
@@ -113,35 +112,35 @@ end)
 
 test("a row kept by hand stays kept", function()
 	local ns = load()
-	owlStaff(ns)
-	search(ns, { HUNTER })
+	healingRobe(ns)
+	search(ns, { DRUID })
 
 	ns.UI:SetRecipient(ns.UI:Items()[1], nil) -- the Keep Item option
-	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), nil, "cleared")
+	equal(recipientOf(ns, "Robe of Healing"), nil, "cleared")
 
 	--[[
 		A priest arriving is exactly the case that would otherwise reclaim it, since the
-		rule says the staff is his.
+		rule says the robe is his.
 	]]
 	search(ns, { PRIEST })
-	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), nil, "and a later search does not undo it")
+	equal(recipientOf(ns, "Robe of Healing"), nil, "and a later search does not undo it")
 end)
 
 test("a recipient picked by hand is not replaced by a better one", function()
 	local ns = load()
-	owlStaff(ns)
-	search(ns, { HUNTER })
+	healingRobe(ns)
+	search(ns, { DRUID })
 
-	ns.UI:SetRecipient(ns.UI:Items()[1], HUNTER)
+	ns.UI:SetRecipient(ns.UI:Items()[1], DRUID)
 	search(ns, { PRIEST })
 
-	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), "Hunty", "the hand-picked hunter keeps it")
+	equal(recipientOf(ns, "Robe of Healing"), "Druidy", "the hand-picked druid keeps it")
 end)
 
 test("a tick taken off by hand stays off", function()
 	local ns = load()
-	owlStaff(ns)
-	search(ns, { HUNTER })
+	healingRobe(ns)
+	search(ns, { DRUID })
 
 	local staff = ns.UI:Items()[1]
 	ns.UI:ToggleRow(staff, false)
@@ -158,14 +157,14 @@ end)
 ]]
 test("a row unticked before any search stays out of matching until it is ticked again", function()
 	local ns = load()
-	owlStaff(ns)
+	healingRobe(ns)
 
 	local staff = ns.UI:Items()[1]
 	equal(staff.send, true, "every row starts ticked")
 	ns.UI:ToggleRow(staff, false)
 
 	for _ = 1, 3 do
-		search(ns, { PRIEST, HUNTER })
+		search(ns, { PRIEST, DRUID })
 	end
 	ns.UI:Rescan()
 
@@ -174,7 +173,7 @@ test("a row unticked before any search stays out of matching until it is ticked 
 	equal(staff.recipient, nil, "and nobody was handed it")
 
 	ns.UI:ToggleRow(staff, true)
-	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), "Pri", "ticked again, it is matched from the pool")
+	equal(recipientOf(ns, "Robe of Healing"), "Pri", "ticked again, it is matched from the pool")
 	equal(staff.send, true, "and ticked to send")
 end)
 
@@ -185,16 +184,16 @@ end)
 ]]
 test("a hand-set row survives a bag rescan", function()
 	local ns = load()
-	owlStaff(ns)
-	search(ns, { HUNTER })
+	healingRobe(ns)
+	search(ns, { DRUID })
 	ns.UI:SetRecipient(ns.UI:Items()[1], nil)
 
 	ns.fire("BAG_UPDATE", 0)
 	Stub.FireTimers()
 
-	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), nil, "still cleared after the rescan")
+	equal(recipientOf(ns, "Robe of Healing"), nil, "still cleared after the rescan")
 	search(ns, { PRIEST })
-	equal(recipientOf(ns, "Dwarven Magestaff of the Owl"), nil, "and still cleared after another search")
+	equal(recipientOf(ns, "Robe of Healing"), nil, "and still cleared after another search")
 end)
 
 --[[

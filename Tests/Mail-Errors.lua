@@ -130,6 +130,32 @@ test("a wrong-faction refusal fails its job and marks the recipient", function()
 end)
 
 --[[
+	A recipient who refused one parcel refuses the rest. Your own alt can hold several items in
+	one run, so a deleted alt was refused once per item, and the second refusal stopped the run
+	before anybody else was mailed.
+]]
+test("the rest of a refused recipient's items stay unsent and the run goes on", function()
+	local ns = load()
+	ns.db.global.characters["Sparkle-Test"] =
+		{ name = "Sparkle", realm = "Test", class = "MAGE", level = 12, faction = "Alliance" }
+	readyToSend(ns, 3)
+	local items = ns.UI:Items()
+	equal(items[1].recipient and items[1].recipient.name, "Sparkle", "the alt holds the first")
+	equal(items[2].recipient and items[2].recipient.name, "Sparkle", "and the second")
+	ns.UI:SetRecipient(items[3], { name = "Mage1", level = 18, class = "MAGE" })
+
+	ns.UI:Distribute()
+	equal(Stub.sent[1] and Stub.sent[1].recipient, "Sparkle", "the first goes to the alt")
+	ns.fire("UI_ERROR_MESSAGE", 1, ERR_MAIL_TARGET_NOT_FOUND)
+	Stub.FireTimers()
+
+	equal(#Stub.sent, 2, "one more mail went out")
+	equal(Stub.sent[2].recipient, "Mage1", "to somebody else, not the alt that refused")
+	check(not printed(ns.L["MAIL_ABORTED"]), "the run was not aborted")
+	equal(#ns.UI:Items(), 3, "nothing delivered yet, so every row is still listed")
+end)
+
+--[[
 	UI_ERROR_MESSAGE carries everything from "You are too far away" to "Your inventory
 	is full". Treating any of them as a mail failure because one happened to land mid
 	send would fail jobs for reasons that have nothing to do with the mail.
@@ -234,4 +260,63 @@ test("back-to-back MAIL_FAILED still abort the run", function()
 
 	check(printed(ns.L["MAIL_ABORTED"]), "the run was aborted")
 	equal(#Stub.sent, 2, "and the third job was never attempted")
+end)
+
+--[[
+	The client can report a refusal as a UI error inside the attach call itself. The handler
+	fails the job there and then, so the run must not also carry on with it, finish a second
+	time, or blame the recipient for a refusal about the item.
+]]
+test("a refusal raised inside the attach fails the job once", function()
+	local ns = load()
+	readyToSend(ns, 2)
+	local attach = C_Container.UseContainerItem
+	local refusedOnce = false
+	C_Container.UseContainerItem = function(bag, slot)
+		if not refusedOnce then
+			refusedOnce = true
+			ns.fire("UI_ERROR_MESSAGE", 449, ERR_MAIL_DATABASE_ERROR)
+			return
+		end
+		return attach(bag, slot)
+	end
+	ns.UI:Distribute()
+	local blamed = ns.Distributor._current.recipient
+
+	equal(#Stub.sent, 0, "the refused item was never sent")
+	check(not printed(ns.L["MAIL_ATTACH_FAILED"]:sub(1, 12)), "no second failure line for the same item")
+	check(ns.Fairness:IsReachable(blamed), "the recipient was not blamed for an item refusal")
+
+	Stub.FireTimers()
+	equal(#Stub.sent, 1, "the run moved on to the next item")
+	ns.fire("MAIL_SUCCESS")
+	local doneLines = 0
+	for _, message in ipairs(Stub.printed) do
+		if tostring(message):find("Done%.") then
+			doneLines = doneLines + 1
+		end
+	end
+	equal(doneLines, 1, "the run finished exactly once")
+	C_Container.UseContainerItem = attach
+end)
+
+--[[
+	A send that timed out waiting on its confirm can still land. Distribute pressed before it
+	does must not start a run whose first job would be credited with that late result.
+]]
+test("Distribute waits on a send still awaiting its result", function()
+	local ns = load()
+	readyToSend(ns, 2)
+	ns.UI:Distribute()
+	equal(#Stub.sent, 1, "the first mail went out")
+	Stub.FireTimers()
+	check(ns.Distributor._awaiting ~= nil, "the timeout left it awaiting its result")
+
+	ns.Distributor:Start({ { bag = 0, slot = 2, link = "x", recipient = "Someone" } })
+	equal(#Stub.sent, 1, "no new send started")
+	check(printed(ns.L["MAIL_STILL_SENDING"]), "and the player is told why")
+
+	Stub.now = Stub.now + 60
+	ns.Distributor:Start({})
+	check(ns.Distributor._awaiting == nil, "a send that never answered stops holding Distribute back")
 end)

@@ -152,7 +152,7 @@ ns.Data.FOOD_AND_WATER = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, Classic Era 1.15.9.70003
+	2026-10-29, Classic Era 1.15.9.70576
 
 Notes
 	- Food and drink a player can give away: Food & Drink consumables that restore health, mana
@@ -163,9 +163,9 @@ Notes
 	- Alcohol and drinks that only buff are out; the query drops the drunk-making spells by ID.
 	- useLevel is the level the item requires and quality its quality. restores is HEALTH, MANA
 	  or BOTH, from what the item's use text says it restores, never from a well-fed buff after
-	  it. It decides who can receive the food through ns.Data.CONSUMABLE_CLASSES in
-	  Data/Data.lua, so there is no per-item class list. Features/Scan-Bags.lua reads every
-	  field.
+	  it. It decides who can receive the food through ns.Data.CONSUMABLE_CLASSES in this
+	  folder's Match-Classes file, so there is no per-item class list. Features/Scan-Bags.lua
+	  reads every field.
 	- 12217 Dragonbreath Chili restores nothing: its use is a melee fire buff. It is filed as
 	  HEALTH, which every class receives.
 	- This client files every consumable as class 0, subclass 0, so the wago.tools check took
@@ -175,6 +175,10 @@ Notes
 	  belong in Data/Discovery/, never here.
 	- 4696 Lapidis Tankard of Tidesippe drinks like water but is an off-hand (Armor), so it
 	  stays out, as does 7676 Thistle Tea, which restores only energy.
+	- Rechecked against this client's tables at 1.15.9.70576: Food & Drink by TBC
+	  Anniversary's classification (2.5.6.70577), tradeable, not conjured, level 5 or more,
+	  and an eat or drink effect that restores health or mana. Only 4418 Deprecated Creeper
+	  Cakes is missing, and it is a retired item.
 
 SQL (CMaNGOS)
 	Database not recorded. It returned Wrath items, so it ran against a Wrath-era database,
@@ -226,11 +230,12 @@ Wowhead
 	None.
 
 wago.tools
-	https://wago.tools/db2/Item?build=1.15.9.70003
-	https://wago.tools/db2/ItemSparse?build=1.15.9.70003
-	https://wago.tools/db2/ItemEffect?build=1.15.9.70003
 	https://wago.tools/db2/Spell?build=1.15.9.70003
 	https://wago.tools/db2/SpellCategories?build=1.15.9.70003
+	https://wago.tools/db2/ItemSparse?build=1.15.9.70576
+	https://wago.tools/db2/ItemEffect?build=1.15.9.70576
+	https://wago.tools/db2/SpellEffect?build=1.15.9.70576
+	https://wago.tools/db2/Item?build=2.5.6.70577
 
 QuestieDB
 	https://raw.githubusercontent.com/Questie/QuestieDB/master/data/Classic/classicItemDB.lua

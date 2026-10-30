@@ -23,10 +23,6 @@ local FILES = {
 	"Data/Flavor.lua",
 	"Data/Data.lua",
 	"FLAVOR_FOLDER",
-	"Data/Match-Stats.lua",
-	"Data/Match-Armor.lua",
-	"Data/Match-Rules.lua",
-	"Data/Scan-Stats.lua",
 	"Data/Default-Settings.lua",
 	"Features/Utilities.lua",
 	"Features/Scan-Tooltip.lua",
@@ -35,15 +31,21 @@ local FILES = {
 	"Features/Match-Engine.lua",
 	"Features/Match-Ranking.lua",
 	"Features/Match-List.lua",
+	"Features/Match-Roster.lua",
+	"Features/Match-Search.lua",
 	"Features/Recipients-Who-Plan.lua",
+	"Features/Recipients-Zones.lua",
 	"Features/Recipients-Who.lua",
 	"Features/Recipients-Guild.lua",
+	"Features/Recipients-Alts.lua",
 	"Features/Recipients-Fairness.lua",
 	"Features/Mail-Sender.lua",
+	"Features/Mail-Copy.lua",
 	"Features/UI-Picker.lua",
 	"Features/UI-Window.lua",
 	"Features/UI-Assignment.lua",
 	"Features/UI-Mailbox.lua",
+	"Features/UI-Reopen-Button.lua",
 	"Features/Generosity.lua",
 	"Features/Generosity-Broadcast.lua",
 	"Features/Generosity-Tooltip.lua",
@@ -55,6 +57,11 @@ local FILES = {
 	"Diagnostics/Validate-Data.lua",
 	"Diagnostics/Localization-Reports.lua",
 	"Diagnostics/Report-Runner.lua",
+	-- Panel builders the stubbed libraries can run whole; the rest stay out, see below.
+	"Options/Options-Utilities.lua",
+	"Options/Options-Recipients.lua",
+	"Options/Options-Alts.lua",
+	"Options/Options-Guilds.lua",
 	--[[
 		Not only panels either: the /pif slash command and the combat gate in front of
 		the Settings panel live here, and Tests/Options-Open.lua drives both. The panel
@@ -76,9 +83,13 @@ local FLAVOR_TABLES = {
 	"Scan-Scrolls",
 	"Scan-Oils-Stones",
 	"Recipients-Zones",
+	"Recipients-Realms",
 	"Match-Weapons",
 	"Match-Armor",
 	"Match-Classes",
+	"Match-Specs",
+	"Match-Rules",
+	"Scan-Stats",
 }
 
 local function flavorFiles(flavor)
@@ -129,8 +140,8 @@ local function injectModules(ns, events)
 		real format lives in Features/Announcements.lua rather than being pinned a second time
 		here. The name and separator are present because callers render them as one string.
 	]]
-	ns.BuildBrandedLine = function(_, message)
-		return ((ns.L and ns.L["ADDON_TITLE"]) or "") .. " // " .. tostring(message)
+	ns.BuildBrandedLine = function(_, message, nameKey)
+		return ((ns.L and ns.L[nameKey or "ADDON_TITLE"]) or "") .. " // " .. tostring(message)
 	end
 
 	--[[
@@ -143,10 +154,14 @@ end
 
 --[[
 	A freshly loaded add-on, its saved variables at shipped defaults, plus a handle for
-	firing the events the client would.
+	firing the events the client would. setup, when given, runs between the stubs and the
+	add-on's files, for a case that needs a global the add-on reads at load.
 ]]
-function Harness.LoadAddon(root)
+function Harness.LoadAddon(root, setup)
 	Stub.Install()
+	if setup then
+		setup()
+	end
 
 	local ns = {}
 	local events = {}
@@ -202,6 +217,22 @@ end
 --------------------------------------------------------------------------------
 
 local cases = {}
+
+--[[
+	Every spec on, the way the add-on scored before hybrids were assumed to heal. For a case whose
+	point is a mechanism -- demotion, armor training, a band per group -- written with a Retribution
+	paladin or a Feral druid in it. Tests/Spec-Choices.lua pins the shipped defaults.
+]]
+function Harness.AllSpecs(ns)
+	for class, specs in pairs(ns.Data.SPECS) do
+		ns.db.profile.specs[class] = {}
+		for _, spec in ipairs(specs) do
+			ns.db.profile.specs[class][spec.key] = true
+		end
+	end
+	ns.Data.RebuildStatWeights()
+	return ns
+end
 
 function Harness.test(name, fn)
 	table.insert(cases, { name = name, fn = fn })
