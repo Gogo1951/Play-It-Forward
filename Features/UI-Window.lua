@@ -207,9 +207,15 @@ function UI:BuildFrame()
 		title white, the separator gray, the add-on name blue. Only the backdrop fallback has no slot, and
 		gets a font string.
 	]]
-	local titleText = GetColor("TEXT") .. L["WINDOW_TITLE"] .. "|r "
-		.. GetColor("SEPARATOR") .. "//" .. "|r "
-		.. GetColor("INFO") .. L["ADDON_TITLE"] .. "|r"
+	local titleText = GetColor("TEXT")
+		.. L["WINDOW_TITLE"]
+		.. "|r "
+		.. GetColor("SEPARATOR")
+		.. "//"
+		.. "|r "
+		.. GetColor("INFO")
+		.. L["ADDON_TITLE"]
+		.. "|r"
 	if window.SetTitle then
 		window:SetTitle(titleText)
 	elseif window.TitleText then
