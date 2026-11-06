@@ -58,11 +58,14 @@ end
 	retribution paladin alt holds strength plate though paladins default to Holy, and a mage alt
 	never holds healing cloth meant for a priest. A consumable asks only the class.
 
-	Gear is judged against the alt's own Lowest and Highest Gear Level (Alts:LevelRange), by the
-	level its class equips it at: at the defaults, anything from its own level up, so a level 1
-	hunter holds a level 50 bow. A consumable puts the alt in the same band as anyone else.
+	Judged against the alt's own Lowest and Highest Gear Level (Alts:LevelRange): gear by the level
+	its class equips it at, a consumable by its use level. At the defaults that is anything from
+	its own level up, so a level 1 hunter holds a level 50 bow, and a level 1 alt holds the level 5
+	scroll a stranger of 6 would otherwise take. The stranger's short band -- worth having to
+	somebody who can drink it now -- is a guess about people you do not know; your own alt will
+	reach the level, and the Highest dropdown caps how far ahead it is stocked.
 ]]
-local function AltWants(matcher, item, verdict, person, classToken, lo, hi)
+local function AltWants(matcher, item, verdict, person, classToken, lo)
 	local profile = ns.db and ns.db.profile
 	local entry = ns.Alts:Entry(person)
 	if not (profile and profile.sendToAlts) or (entry and not ns.Alts:Included(entry)) then
@@ -82,12 +85,10 @@ local function AltWants(matcher, item, verdict, person, classToken, lo, hi)
 		return false
 	end
 	local fit = judged.fits and judged.fits[classToken] or 0
-	if item.kind ~= "consumable" then
-		local equip = ns.Data.EquipLevelFor(item, classToken)
-		local low, high = ns.Alts:LevelRange(entry, person.level)
-		return equip >= low and equip <= high, fit
-	end
-	return person.level >= lo and person.level <= hi, fit
+	-- lo is a consumable's own use level: Matcher:LevelBand starts its band there.
+	local level = (item.kind == "consumable") and lo or ns.Data.EquipLevelFor(item, classToken)
+	local low, high = ns.Alts:LevelRange(entry, person.level)
+	return level >= low and level <= high, fit
 end
 
 --[[
@@ -174,7 +175,7 @@ function Matcher:RankCandidates(item, pools)
 				inRange = false
 			elseif person.alt then
 				local altFit
-				inRange, altFit = AltWants(self, item, verdict, person, class, lo, hi)
+				inRange, altFit = AltWants(self, item, verdict, person, class, lo)
 				personFit, personBucket = altFit or fit, 1
 			elseif admitted[class] then
 				inRange = person.level >= lo and person.level <= hi

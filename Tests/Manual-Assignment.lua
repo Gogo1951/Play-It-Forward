@@ -222,7 +222,8 @@ test("the notes beside a name stay short enough to fit", function()
 		note that broke this took entries to 63.
 	]]
 	for _, option in ipairs(ns.UI:PickerOptions(first)) do
-		local plain = (option.text or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+		-- An inline icon draws one glyph wide, so it is measured as one.
+		local plain = (option.text or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|T.-|t", "#")
 		check(#plain <= 50, ("entry is %d chars: %q"):format(#plain, plain))
 	end
 end)
@@ -294,17 +295,41 @@ end)
 	"Keep Item", not "vendor / disenchant": the add-on stopped telling the player what
 	to do with what stays. Keeping unchecks the row, clears its name and pins it, so it
 	sits under the Kept heading and nothing rebuilds over the choice.
+
+	The list reads in three blocks: the names, indented under their headings; then Disenchant
+	and Keep Item; then Rescan for Better Match.
 ]]
-test("the first entry is Keep Item, and picking it keeps the row", function()
+test("names come first, then Disenchant and Keep Item, then the rescan", function()
 	local ns = load()
 	local first = twoMatched(ns)
 	check(first.recipient ~= nil and first.send, "matched and ticked to start")
 
-	local options = ns.UI:PickerOptions(first)
-	check(options[1].clear, "the keep option leads the list")
-	check(options[1].text:find(ns.L["PICKER_KEEP_OPTION"], 1, true) ~= nil, "and says Keep Item")
+	local shape = {}
+	local keep
+	for _, option in ipairs(ns.UI:PickerOptions(first)) do
+		if option.header then
+			shape[#shape + 1] = "header"
+		elseif option.pick and not option.pick.disenchant then
+			check(option.indent, "a name sits indented under its heading")
+			if shape[#shape] ~= "name" then
+				shape[#shape + 1] = "name"
+			end
+		elseif option.separator then
+			shape[#shape + 1] = "---"
+		elseif option.text and option.text:find(ns.L["PICKER_DISENCHANT_OPTION"], 1, true) then
+			shape[#shape + 1] = "disenchant"
+			check(option.disabled, "with no enchanter picked, Disenchant is offered but disabled")
+		elseif option.clear then
+			shape[#shape + 1] = "keep"
+			keep = option
+		elseif option.findForItem then
+			shape[#shape + 1] = "rescan"
+		end
+	end
+	equal(table.concat(shape, " "), "header name --- disenchant keep --- rescan", "the three blocks")
+	check(keep and keep.text:find(ns.L["PICKER_KEEP_OPTION"], 1, true) ~= nil, "Keep Item says so")
 
-	ns.UI:PickerSelect(first, options[1])
+	ns.UI:PickerSelect(first, keep)
 	equal(first.recipient, nil, "the name is gone")
 	equal(first.send, false, "the row is unchecked")
 	check(first.pinned, "and the choice is pinned")

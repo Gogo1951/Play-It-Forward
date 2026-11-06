@@ -16,20 +16,56 @@ local Picker = ns.Picker
 	Split from opening the picker so Tests/Manual-Assignment.lua can read the options without a
 	frame. Nobody is hidden and nobody is gated: the notes beside a name ("has one", "refused",
 	"recent") are information for the player's judgment, and every candidate can be picked.
-	Grouped under Your Alts, Your Guild and Strangers, in that order, each group in ranked order
-	and an empty one left out. The list ends with a divider and a targeted search for this one item.
+
+	THREE BLOCKS, divided by a hairline:
+	  1. The names, grouped under Your Alts, Your Guild and Strangers and indented beneath each
+	     heading, an empty group left out. Your alts read alphabetically: they are your own
+	     characters, found by name. The other two keep ranked order, best match first.
+	  2. What to do instead of giving it away: Disenchant, on any gear row, and Keep Item.
+	  3. Rescan for Better Match, a targeted search for this one item.
 ]]
 local SECTIONS = {
-	{ rank = 1, key = "PICKER_SECTION_ALTS" },
+	{ rank = 1, key = "PICKER_SECTION_ALTS", alphabetical = true },
 	{ rank = 2, key = "PICKER_SECTION_GUILD" },
 	{ rank = 3, key = "PICKER_SECTION_STRANGERS" },
 }
 
+-- The disenchant icon, inline at the font's height: on a row's dropdown and on the picker's own Disenchant entry.
+UI.DISENCHANT_ICON = "|TInterface\\Icons\\INV_Enchant_Disenchant:0|t"
+
+local function ByName(a, b)
+	if (a.name or "") ~= (b.name or "") then
+		return (a.name or "") < (b.name or "")
+	end
+	return (a.level or 0) < (b.level or 0)
+end
+
+--[[
+	The Disenchant entry. Any gear row, not only a Kept one: whether a green is worth more as
+	dust than as somebody's upgrade is the player's call. Consumables never disenchant, so they
+	get none. With no enchanter picked it still shows, disabled, saying where one is picked.
+]]
+local function DisenchantOption(item)
+	if item.kind ~= "gear" then
+		return nil
+	end
+	local enchanter = ns.Alts:DisenchantRecipient()
+	if not enchanter then
+		return {
+			text = UI.DISENCHANT_ICON .. " " .. L["PICKER_DISENCHANT_OPTION"],
+			tooltip = L["PICKER_DISENCHANT_NONE_DESCRIPTION"],
+			disabled = true,
+		}
+	end
+	return {
+		text = UI.DISENCHANT_ICON .. " " .. L["PICKER_DISENCHANT_OPTION"],
+		tooltip = L["PICKER_DISENCHANT_DESCRIPTION"]:format(ns.ColorName(enchanter.name, enchanter.class)),
+		pick = enchanter,
+	}
+end
+
 function UI:PickerOptions(item)
-	local options = { {
-		text = GetColor("MUTED") .. L["PICKER_KEEP_OPTION"] .. "|r",
-		clear = true,
-	} }
+	local options = {}
 
 	local candidates = self:Candidates(item)
 	if #candidates == 0 then
@@ -50,39 +86,38 @@ function UI:PickerOptions(item)
 	end
 
 	for _, section in ipairs(SECTIONS) do
-		if bySection[section.rank] then
+		local people = bySection[section.rank]
+		if people then
+			if section.alphabetical then
+				-- A copy: Candidates hands out the cached ranked list, which must keep its order.
+				local sorted = {}
+				for index, person in ipairs(people) do
+					sorted[index] = person
+				end
+				table.sort(sorted, ByName)
+				people = sorted
+			end
 			table.insert(options, {
 				text = GetColor("TITLE") .. L[section.key] .. "|r",
 				header = true,
 				disabled = true,
 			})
-			for _, person in ipairs(bySection[section.rank]) do
+			for _, person in ipairs(people) do
 				self:AddCandidateOption(options, item, person)
 			end
 		end
 	end
 
-	--[[
-		A Kept gear row offers your enchanter too, while Disenchant Unmatched Items is on: the way
-		back to it after a Keep Item, or onto a row a fallback stranger took.
-	]]
-	local enchanter = ns.db.profile.disenchantUnmatched
-		and MatchList:Disenchantable(item)
-		and ns.Alts:DisenchantRecipient()
-	if enchanter then
-		table.insert(options, {
-			text = GetColor("TITLE") .. L["PICKER_SECTION_DISENCHANT"] .. "|r",
-			header = true,
-			disabled = true,
-		})
-		table.insert(options, {
-			text = ("%s " .. GetColor("MUTED") .. "(%d)|r"):format(
-				ns.ColorName(enchanter.name, enchanter.class),
-				enchanter.level or 0
-			),
-			pick = enchanter,
-		})
+	table.insert(options, { separator = true, disabled = true })
+	local disenchant = DisenchantOption(item)
+	if disenchant then
+		table.insert(options, disenchant)
 	end
+	-- Keep Item clears the name and unticks the row, the same as unticking its checkbox.
+	table.insert(options, {
+		text = L["PICKER_KEEP_OPTION"],
+		clear = true,
+	})
 
 	table.insert(options, { separator = true, disabled = true })
 	table.insert(options, {
@@ -118,7 +153,21 @@ function UI:AddCandidateOption(options, item, person)
 		),
 		tooltip = noteKey and L[noteKey .. "_DESCRIPTION"],
 		pick = person,
+		indent = true,
 	})
+end
+
+--[[
+	What a row's dropdown reads once it holds somebody: the name class-colored, then its level. A
+	row going to your enchanter leads with the disenchant icon, because the same character can
+	also be an alt the item was matched to and the name alone cannot tell the two apart.
+]]
+function UI:RecipientLabel(who)
+	local label = ("%s " .. GetColor("MUTED") .. "(%d)|r"):format(ns.ColorName(who.name, who.class), who.level or 0)
+	if who.disenchant then
+		return self.DISENCHANT_ICON .. " " .. label
+	end
+	return label
 end
 
 function UI:OpenPicker(row)

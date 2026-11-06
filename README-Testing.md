@@ -18,7 +18,7 @@ Play It Forward lists the gear and consumables you've outgrown when you open a m
 
 8. Walk up to a mailbox with an outgrown bind-on-equip green in your bags: the window should open by itself.
 9. Follow the line above the buttons: press **Find Recipients** (again if nobody turns up), then **Distribute**, and click Accept on each popup.
-10. Check each recipient suits their item, and click a name to pick someone else, **Keep Item**, or **Find Recipients for This Item**.
+10. Check each recipient suits their item, and click a name to pick someone else, **Disenchant**, **Keep Item**, or **Rescan for Better Match**.
 11. Untick a row or one of the switches at the top of the mail window, press **Find Recipients** again, and check it stays unticked.
 12. Type **/pif**, and also try Options > AddOns > Play It Forward: the options should open inside Blizzard's Options window.
 13. Type **/pif** in combat: the options should stay shut and chat should say why.

@@ -294,6 +294,129 @@ test("a character reaching the level cap unticks itself unless ticked by hand", 
 end)
 
 --[[
+	The recipient floor of 5 turns strangers away, never your own alts: a fresh level 1 alt is who
+	the player most wants to gear. A bank alt is unticked by hand.
+]]
+test("a level 1 alt is offered and mailed past the recipient floor", function()
+	local ns = load()
+	seedAlt(ns, { name = "Fresh", class = "WARRIOR", level = 1 })
+	local fresh = ns.db.global.characters["Fresh-Test"]
+	check(ns.Alts:Included(fresh), "ticked at level 1")
+	equal(names(ns.Alts:Read()), "Fresh", "offered")
+	atMailbox(ns, { strengthPlate() })
+	ns.UI:Distribute()
+	equal(Stub.sent[1] and Stub.sent[1].recipient, "Fresh", "and mailed past the level floor")
+
+	ns = load()
+	seedAlt(ns, { name = "Banky", class = "WARRIOR", level = 2 })
+	ns.db.global.characters["Banky-Test"].include = false
+	atMailbox(ns, { strengthPlate() })
+	ns.UI:Distribute()
+	check(Stub.sent[1] == nil or Stub.sent[1].recipient ~= "Banky", "an unticked bank alt gets nothing")
+end)
+
+--[[
+	A consumable is judged by the alt's own Gear Levels too, at its use level: a level 1 alt holds
+	the level 5 Scroll of Stamina a stranger of 6 would otherwise take, and a Highest of Their
+	Level +2 keeps it from being stocked further ahead than that.
+]]
+local function scrollRun(ns)
+	ns.db.profile.consumableLevelGap = 0
+	Stub.whoResults = { { name = "Stranger", level = 6, class = "WARRIOR" } }
+	local items = atMailbox(ns, {
+		Stub.Item({ id = 1180, name = "Scroll of Stamina", quality = 1, classID = 0, subclassID = 4, bindType = 0 }),
+	})
+	return items[1] and items[1].recipient
+end
+
+test("a consumable goes to your alt who will grow into it, ahead of a stranger", function()
+	local ns = load()
+	seedAlt(ns, { name = "Fresh", class = "WARRIOR", level = 1 })
+	local who = scrollRun(ns)
+	equal(who and who.name, "Fresh", "the level 1 alt holds the level 5 scroll")
+
+	ns = load()
+	seedAlt(ns, { name = "Fresh", class = "WARRIOR", level = 1 })
+	ns.db.global.characters["Fresh-Test"].levelsAbove = 2
+	who = scrollRun(ns)
+	equal(who and who.name, "Stranger", "past Their Level +2, the stranger takes it")
+end)
+
+--------------------------------------------------------------------------------
+-- WoW Forever's First Last Names
+--------------------------------------------------------------------------------
+
+--[[
+	WoW Forever names a character "First Last", unique across the region; UnitName answers the
+	first name alone, and mail only knows the full one. The stub's player is "Tester" with the
+	surname "Gogo" here.
+]]
+local function withSurnames(fn)
+	local ok, err = pcall(function()
+		local ns = Harness.LoadAddon(ADDON_ROOT, function()
+			RegionalUniqueNamesEnabled = function()
+				return true
+			end
+			UnitNameUnmodified = function(unit)
+				if unit == "player" then
+					return "Tester", "Gogo"
+				end
+			end
+		end)
+		fn(ns)
+	end)
+	RegionalUniqueNamesEnabled, UnitNameUnmodified = nil, nil
+	assert(ok, err)
+end
+
+test("on WoW Forever a character records itself by its full name", function()
+	withSurnames(function(ns)
+		ns.fire("PLAYER_LOGIN")
+		local me = ns.db.global.characters["Tester Gogo-Test"]
+		check(me ~= nil, "keyed by First Last")
+		equal(me and me.name, "Tester Gogo", "named in full")
+		check(ns.db.global.characters["Tester-Test"] == nil, "never by the first name alone")
+	end)
+end)
+
+test("on WoW Forever a first-name record grows into the full name, choices and all", function()
+	withSurnames(function(ns)
+		ns.db.global.characters["Tester-Test"] =
+			{ name = "Tester", realm = "Test", class = "MAGE", level = 60, levelsAbove = 5 }
+		seedAlt(ns, WARRIOR_ALT)
+		ns.db.global.characters["Brickhouse-Test"].specs = { Protection = true }
+		-- AceDB keys a surname client's characters "First Last"; another realm's key is "Name - Realm".
+		ns.db.sv.profileKeys["Tester Gogo"] = "Default"
+		ns.db.sv.profileKeys["Brickhouse Stone"] = "Default"
+		ns.db.sv.profileKeys["Brickhouse - Mankrik"] = "Default"
+		ns.fire("PLAYER_LOGIN")
+
+		local characters = ns.db.global.characters
+		local me = characters["Tester Gogo-Test"]
+		equal(me and me.levelsAbove, 5, "this one kept its choice")
+		check(characters["Tester-Test"] == nil, "its first-name record is gone")
+		local brick = characters["Brickhouse Stone-Test"]
+		check(brick and brick.specs and brick.specs.Protection, "an alt known from profileKeys kept its specs")
+		check(characters["Brickhouse-Test"] == nil, "and its first-name record is gone")
+
+		equal(names(ns.Alts:Read()), "Brickhouse Stone", "offered by the full name")
+		atMailbox(ns, { strengthPlate() })
+		ns.UI:Distribute()
+		equal(Stub.sent[1] and Stub.sent[1].recipient, "Brickhouse Stone", "and mailed as First Last")
+	end)
+end)
+
+test("an ambiguous first name is left as it was", function()
+	withSurnames(function(ns)
+		seedAlt(ns, WARRIOR_ALT)
+		ns.db.sv.profileKeys["Brickhouse Stone"] = "Default"
+		ns.db.sv.profileKeys["Brickhouse Clay"] = "Default"
+		ns.fire("PLAYER_LOGIN")
+		check(ns.db.global.characters["Brickhouse-Test"] ~= nil, "two full names fit, so neither is guessed")
+	end)
+end)
+
+--[[
 	An alt is judged by its own specs: paladins default to Holy, but an alt with no spec recorded
 	starts with every spec ticked, so it holds strength plate like any warrior until the player
 	narrows it. One that recorded a spec starts on that spec alone.

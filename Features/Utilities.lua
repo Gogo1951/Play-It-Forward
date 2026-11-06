@@ -397,6 +397,32 @@ function ns.PlayerRealm()
 end
 
 --[[
+	Whether this client names characters "First Last", unique across the region: WoW Forever
+	does. There a character's address is both names and no realm, as /who and the mail frame write
+	it, and UnitName("player") answers the first name alone. Every other client answers false or
+	has no such function.
+]]
+function ns.UsesSurnames()
+	return (RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled()) and true or false
+end
+
+--[[
+	The logged-in character's name as mail addresses it: "First Last" where surnames are on, read
+	from UnitNameUnmodified exactly as AceDB builds its profile key there, and UnitName's bare
+	name everywhere else.
+]]
+function ns.PlayerName()
+	if ns.UsesSurnames() and UnitNameUnmodified then
+		local name, surname = UnitNameUnmodified("player")
+		if name and surname and surname ~= "" then
+			return name .. " " .. surname
+		end
+		return name
+	end
+	return UnitName("player")
+end
+
+--[[
 	One character's identity as "Name-Realm", for telling two sightings of the same player
 	apart from two players. /who answers with a bare name for somebody on your own realm where
 	the guild roster qualifies them, so the raw strings differ for one person and only this

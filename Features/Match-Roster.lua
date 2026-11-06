@@ -68,8 +68,12 @@ function MatchList:AddResults(results)
 			a source added later inherits it without having to remember to. Counted before the
 			dedupe, so the number means "people this rule turned away", not "people it turned away
 			who were also new".
+
+			YOUR OWN ALTS EXCEPTED: the floor guesses at bank alts among strangers, but an alt only
+			arrives here while it is ticked on the My Alts panel, and that tick is the player's own
+			answer. A fresh level 1 alt is who they most want to gear.
 		]]
-		if (person.level or 0) < ns.Data.MIN_RECIPIENT_LEVEL then
+		if not person.alt and (person.level or 0) < ns.Data.MIN_RECIPIENT_LEVEL then
 			tooLow = tooLow + 1
 		else
 			--[[
