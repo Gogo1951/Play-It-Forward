@@ -81,6 +81,8 @@ L["STATUS_AWAY"] = "Open a mailbox to send %d item(s)."
 L["STATUS_SENDING"] = "Sending %d of %d. Click Accept on each popup."
 
 L["SECTION_MATCHED"] = "Matched"
+-- Rows going to your enchanter to be disenchanted, kept apart from gifts even when the enchanter is also a matched alt.
+L["SECTION_DISENCHANT"] = "Disenchant"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
 L["SECTION_NO_RECIPIENT"] = "Pending Match"
 L["SECTION_UNREADABLE"] = "Stats Couldn't Be Read"
@@ -122,13 +124,17 @@ L["PICKER_NOTE_RECENT_DESCRIPTION"] =
 	Below the divider at the bottom of the list: a /who aimed at the classes the verdict says
 	this item is for, their own bands first and the fallbacks a press behind them.
 ]]
-L["PICKER_FIND_FOR_ITEM"] = "Find Recipients for This Item"
+L["PICKER_FIND_FOR_ITEM"] = "Rescan for Better Match"
 -- Section headings in the recipient picker, in matching order: your alts, your guild, then everyone else.
 L["PICKER_SECTION_ALTS"] = "Your Alts"
 L["PICKER_SECTION_GUILD"] = "Your Guild"
 L["PICKER_SECTION_STRANGERS"] = "Strangers"
--- Under the other sections on a Kept gear row, holding the enchanter Disenchant Unmatched Items sends to.
-L["PICKER_SECTION_DISENCHANT"] = "Disenchant"
+-- Under the names on every gear row, beside Keep Item: send the item to your enchanter instead.
+L["PICKER_DISENCHANT_OPTION"] = "Disenchant"
+-- TRANSLATORS: %s is the enchanter's name, class-colored.
+L["PICKER_DISENCHANT_DESCRIPTION"] = "Send this to %s to disenchant."
+L["PICKER_DISENCHANT_NONE_DESCRIPTION"] =
+	"Tick Disenchant at the top of the window and pick one of your characters to send items to for disenchanting."
 
 -- A heading takes no full stop; every body line under it does.
 L["TOOLTIP_RECIPIENT"] = "Recipient"
@@ -403,7 +409,7 @@ L["OPTIONS_ALT_LEVEL_LOWEST_DESCRIPTION"] =
 	"The lowest-level gear this character is mailed. Their Level sends nothing below its level; Their Level -2 also sends gear up to two levels below, which it can wear now."
 L["OPTIONS_ALT_LEVEL_HIGHEST"] = "Highest"
 L["OPTIONS_ALT_LEVEL_HIGHEST_DESCRIPTION"] =
-	"The highest-level gear this character is mailed. Any Gear They Could Use sends anything it will grow into, so a level 1 hunter can be sent a level 50 bow."
+	"The highest-level gear this character is mailed. Any Gear They Could Use sends anything it will grow into, so a level 1 hunter can be sent a level 50 bow. Food, potions, scrolls, oils and stones follow the same levels, by the level they can be used at."
 L["OPTIONS_ALT_LEVEL_THEIRS"] = "Their Level"
 -- TRANSLATORS: %d is 1 to 3.
 L["OPTIONS_ALT_LEVEL_BELOW"] = "Their Level -%d"

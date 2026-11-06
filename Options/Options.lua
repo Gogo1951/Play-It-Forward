@@ -74,7 +74,7 @@ function ns:RegisterOptionsPanels()
 	AceConfig:RegisterOptionsTable(ns.OPTIONS_REGISTRY.Alts, ns.BuildAltsOptions)
 	local altsPanel = AceConfigDialog:AddToBlizOptions(ns.OPTIONS_REGISTRY.Alts, L["TAB_ALTS"], recipientsCategoryID)
 	PrepareListTree(ns.OPTIONS_REGISTRY.Alts, altsPanel, function()
-		return ns.QualifyPlayerName(UnitName("player"))
+		return ns.QualifyPlayerName(ns.PlayerName())
 	end)
 
 	AceConfig:RegisterOptionsTable(ns.OPTIONS_REGISTRY.Guilds, ns.BuildGuildsOptions)

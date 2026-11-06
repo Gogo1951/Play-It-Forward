@@ -781,20 +781,25 @@ local function GetRow(i)
 end
 
 --[[
-	Matched, then still-matchable, then unreadable, then kept: the list outruns the window, so
-	rows worth acting on must not fall below the fold. Unreadable outranks kept: it wants a look.
+	Matched, then disenchant, then still-matchable, then unreadable, then kept: the list outruns
+	the window, so rows worth acting on must not fall below the fold. Unreadable outranks kept: it
+	wants a look.
+
+	DISENCHANT IS ITS OWN SECTION. Your enchanter is often an alt as well, and a gift to Gogomage
+	and dust for Gogomage would otherwise sit side by side under Matched, the same name on both.
+	Its rows carry the disenchant icon on their dropdowns too (UI:RecipientLabel).
 ]]
 local function DisplayRank(item)
 	if item.recipient then
-		return 1
+		return item.recipient.disenchant and 2 or 1
 	end
 	if item.state == ns.Matcher.GIFT then
-		return 2 -- scored, just nobody in range yet
+		return 3 -- scored, just nobody in range yet
 	end
 	if item.state == ns.Matcher.UNREADABLE then
-		return 3
+		return 4
 	end
-	return 4
+	return 5
 end
 
 local function DisplayOrder()
@@ -817,10 +822,11 @@ end
 
 local SECTION = {
 	[1] = L["SECTION_MATCHED"],
-	[2] = L["SECTION_NO_RECIPIENT"],
-	[3] = L["SECTION_UNREADABLE"],
+	[2] = L["SECTION_DISENCHANT"],
+	[3] = L["SECTION_NO_RECIPIENT"],
+	[4] = L["SECTION_UNREADABLE"],
 	-- One key with the row label below: both surfaces read the same single word. See Locales/enUS.lua.
-	[4] = L["WINDOW_KEPT"],
+	[5] = L["WINDOW_KEPT"],
 }
 
 --[[
@@ -839,7 +845,9 @@ local function RenderList()
 	for _, entry in ipairs(order) do
 		local rank = DisplayRank(entry.item)
 		if rank ~= lastRank then
-			out[#out + 1] = { header = SECTION[rank], count = counts[rank] }
+			-- The Disenchant band wears the same icon as its rows' dropdowns.
+			local header = (rank == 2) and (UI.DISENCHANT_ICON .. " " .. SECTION[rank]) or SECTION[rank]
+			out[#out + 1] = { header = header, count = counts[rank] }
 			lastRank = rank
 		end
 		out[#out + 1] = { item = entry.item }
@@ -884,10 +892,7 @@ function UI:Refresh()
 			row.itemText:SetText(itemLabel)
 
 			if item.recipient then
-				local who = item.recipient
-				row.recipButton.text:SetText(
-					("%s " .. GetColor("MUTED") .. "(%d)|r"):format(ns.ColorName(who.name, who.class), who.level)
-				)
+				row.recipButton.text:SetText(UI:RecipientLabel(item.recipient))
 			else
 				-- Gold reads as "still working on it", muted as "nothing to do here".
 				local label

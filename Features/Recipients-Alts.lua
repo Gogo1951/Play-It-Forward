@@ -32,7 +32,8 @@ local Alts = ns.Alts
 --[[
 	NAME AND REALM APART. The qualified form is the key, so it compares with every other source the
 	way MatchList:AddResults dedupes them. The address is the bare name for an alt on this realm,
-	exactly as UnitName gave it, and "Name-Realm" for one on a connected realm (Alts:Address).
+	and "Name-Realm" for one on a connected realm (Alts:Address). On WoW Forever the name is
+	"First Last" (ns.PlayerName), the only form its mail and /who know.
 ]]
 local Normalize, Realm = ns.NormalizeRealm, ns.PlayerRealm
 
@@ -128,16 +129,84 @@ local function DetectSpec(classToken)
 	return best
 end
 
+--[[
+	FIRST NAMES GROWN INTO FULL ONES. Before surnames were read, a WoW Forever character recorded
+	itself under UnitName's first name alone: "Gogobank", where mail and /who know "Gogobank Gogo".
+	Such an entry is moved onto its full name, choices and all, so nothing the player set is lost.
+	Where both exist -- the character logged in again since -- the fresh one is kept and only
+	choices it never had are carried over.
+]]
+local CHOICES = { "include", "specs", "levelsBelow", "levelsAbove", "disenchanter" }
+
+local function Adopt(oldKey, newKey, fullName)
+	local characters = ns.db.global.characters
+	local old = characters[oldKey]
+	if not old or oldKey == newKey then
+		return
+	end
+	local entry = characters[newKey]
+	if entry then
+		for _, field in ipairs(CHOICES) do
+			if entry[field] == nil then
+				entry[field] = old[field]
+			end
+		end
+	else
+		entry = old
+		characters[newKey] = entry
+	end
+	entry.name = fullName
+	characters[oldKey] = nil
+end
+
+--[[
+	Every character on this realm still recorded by first name, given its full one where AceDB's
+	profileKeys name exactly one "First Last" for it: AceDB keys a surname client's characters that
+	way, so a character that loaded the add-on once is known in full before it logs in again.
+]]
+local function UpgradeFirstNames()
+	local profileKeys = ns.db.sv and ns.db.sv.profileKeys
+	if not profileKeys then
+		return
+	end
+	local fullNames = {}
+	for profileKey in pairs(profileKeys) do
+		local first, last = profileKey:match("^(%S+) (%S+)$")
+		if first then
+			fullNames[first] = (fullNames[first] == nil) and (first .. " " .. last) or false
+		end
+	end
+	local here, moves = Realm(), {}
+	for key, alt in pairs(ns.db.global.characters) do
+		local full = alt.name and alt.realm == here and fullNames[alt.name]
+		if full then
+			moves[key] = full
+		end
+	end
+	for oldKey, full in pairs(moves) do
+		Adopt(oldKey, ns.QualifyPlayerName(full), full)
+	end
+end
+
+-- The logged-in character's key: its full name where surnames are on, qualified like every other source.
+local function CurrentKey()
+	return ns.QualifyPlayerName(ns.PlayerName())
+end
+
 local function Record(level)
 	if not ns.db then
 		return
 	end
-	local name = UnitName("player")
+	local name = ns.PlayerName()
 	local _, classToken = UnitClass("player")
 	if not name or name == "" or not classToken then
 		return
 	end
 	local key = ns.QualifyPlayerName(name)
+	if ns.UsesSurnames() then
+		Adopt(ns.QualifyPlayerName(UnitName("player")), key, name)
+		UpgradeFirstNames()
+	end
 	local entry = ns.db.global.characters[key] or {}
 	entry.name = name
 	entry.realm = Realm()
@@ -201,6 +270,10 @@ end
 	Ticked below the level cap and unticked at it: a character at the cap has outgrown what this
 	add-on gives away, so it is left out until the player ticks it. Read at its recorded level, so
 	the default flips the session after it dings.
+
+	NO LEVEL FLOOR. A fresh level 1 alt is exactly who the player wants to gear, so it starts
+	ticked; MatchList:AddResults lets alts past ns.Data.MIN_RECIPIENT_LEVEL. A bank alt is unticked
+	once by hand on the My Alts panel.
 ]]
 function Alts:IncludedByDefault(alt)
 	local cap = MaxLevel()
@@ -310,7 +383,7 @@ local function Mailable()
 	if not ns.db then
 		return out
 	end
-	local current = ns.QualifyPlayerName(UnitName("player"))
+	local current = CurrentKey()
 	local faction = UnitFactionGroup("player")
 	for key, alt in pairs(ns.db.global.characters) do
 		if not Unmailable(key, alt, current, faction) then
@@ -335,7 +408,7 @@ function Alts:Read()
 		return out
 	end
 
-	local current = ns.QualifyPlayerName(UnitName("player"))
+	local current = CurrentKey()
 	local realm, faction = Realm(), UnitFactionGroup("player")
 	for key, alt in pairs(ns.db.global.characters) do
 		counts.known = counts.known + 1

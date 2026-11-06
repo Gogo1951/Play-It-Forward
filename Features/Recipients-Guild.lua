@@ -109,8 +109,8 @@ end
 local function OwnCharacters()
 	local out = {}
 
-	-- UnitName returns the player bare; the helper appends our realm, as it does for a roster row.
-	local current = ns.QualifyPlayerName(UnitName and UnitName("player"))
+	-- The player's name comes bare ("First Last" on WoW Forever); the helper appends our realm, as it does for a roster row.
+	local current = ns.QualifyPlayerName(ns.PlayerName())
 	if current then
 		out[current] = true
 	end
@@ -129,8 +129,15 @@ local function OwnCharacters()
 		if character and realm then
 			out[character .. "-" .. ns.NormalizeRealm(realm)] = true
 		else
-			-- An unexpected key shape is matched whole rather than dropped.
+			--[[
+				WoW Forever keys a character "First Last", no realm: qualified like a roster row so
+				the two meet. Any other unexpected shape is matched whole as well, rather than dropped.
+			]]
 			out[key] = true
+			local qualified = ns.QualifyPlayerName(key)
+			if qualified then
+				out[qualified] = true
+			end
 		end
 	end
 	return out

@@ -3,6 +3,8 @@ local _, ns = ...
 -- The recipient dropdown, reused by the rarity and level-rule controls. The UI files call in through ns.Picker.
 
 local ENTRY_HEIGHT = 18
+-- How far a name sits in from its section heading.
+local ENTRY_INDENT = 14
 local PICKER_MIN_WIDTH = 190
 local PICKER_MAX = 240 -- max picker height before the list scrolls
 -- Wider runs off the screen, and SetClampedToScreen shoves the list back over its own button.
@@ -143,7 +145,7 @@ end
 
 --[[
 	options = { { text = "...", tooltip = "..."|nil, pick = candidate|nil,
-	clear/disabled/separator/header/findForItem = bool }, ... }
+	clear/disabled/separator/header/findForItem/indent = bool }, ... }
 ]]
 function Picker:Open(anchor, options, onSelect)
 	local frame = self:Build()
@@ -160,13 +162,17 @@ function Picker:Open(anchor, options, onSelect)
 			self.ruler:Hide() -- never drawn; it exists only to be measured
 		end
 		self.ruler:SetText(option.text or "")
-		width = math.max(width, self.ruler:GetStringWidth() + 24)
+		width = math.max(width, self.ruler:GetStringWidth() + 24 + (option.indent and ENTRY_INDENT or 0))
 	end
 	width = math.min(PICKER_MAX_WIDTH, width)
 
 	for i, option in ipairs(options) do
 		local entry = self:GetEntry(i)
 		entry.text:SetText(option.text or "")
+		-- A name sits indented under its section heading. Re-anchored every time: entries are pooled.
+		entry.text:ClearAllPoints()
+		entry.text:SetPoint("LEFT", option.indent and ENTRY_INDENT or 4, 0)
+		entry.text:SetPoint("RIGHT", -4, 0)
 		if option.separator then
 			entry.line:Show()
 		else

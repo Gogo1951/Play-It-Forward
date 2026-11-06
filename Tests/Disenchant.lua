@@ -183,3 +183,81 @@ test("with no character in reach the window's list says why, and offers nothing"
 	equal(#options, 1, "one line")
 	check(options[1].disabled and not options[1].altKey, "that cannot be picked")
 end)
+
+--------------------------------------------------------------------------------
+-- Telling Dust From Gifts
+--------------------------------------------------------------------------------
+
+-- Level 50 strength plate: a warrior alt holds it to grow into, so the row is a gift.
+local function strengthPlate()
+	return Stub.Item({
+		name = "Bulwark Breastplate",
+		reqLevel = 50,
+		equipLoc = "INVTYPE_CHEST",
+		classID = 4,
+		subclassID = 4, -- PLATE
+		stats = { ITEM_MOD_STRENGTH_SHORT = 15, ITEM_MOD_STAMINA_SHORT = 10 },
+	})
+end
+
+local function disenchantOption(ns, item)
+	for _, option in ipairs(ns.UI:PickerOptions(item)) do
+		if option.text and option.text:find(ns.L["PICKER_DISENCHANT_OPTION"], 1, true) and not option.header then
+			return option
+		end
+	end
+end
+
+test("every gear row offers Disenchant, not only a Kept one", function()
+	local ns = load()
+	withEnchanter(ns)
+	seedAlt(ns, { name = "Brickhouse", class = "WARRIOR", level = 12 })
+	local item = atMailbox(ns, { strengthPlate() })[1]
+	equal(item.recipient and item.recipient.name, "Brickhouse", "matched to the warrior alt")
+
+	local option = disenchantOption(ns, item)
+	check(option and option.pick and option.pick.disenchant, "Disenchant is on the matched row's list")
+	ns.UI:PickerSelect(item, option)
+	equal(item.recipient and item.recipient.name, "Dusty", "picking it sends the row to the enchanter")
+	check(item.recipient and item.recipient.disenchant and item.pinned, "flagged disenchant, and pinned")
+end)
+
+test("a consumable offers no Disenchant", function()
+	local ns = load()
+	withEnchanter(ns)
+	ns.db.profile.consumableLevelGap = 0
+	local scroll = atMailbox(ns, {
+		Stub.Item({ id = 1180, name = "Scroll of Stamina", quality = 1, classID = 0, subclassID = 4, bindType = 0 }),
+	})[1]
+	equal(scroll and scroll.kind, "consumable", "a real scroll off the scanner")
+	check(scroll and disenchantOption(ns, scroll) == nil, "nothing to disenchant")
+end)
+
+--[[
+	Your enchanter is often an alt too, so the same name can take a gift and dust. The dropdown
+	leads with the disenchant icon only when the row is going to be disenchanted.
+]]
+test("a row going to be disenchanted wears the icon, a gift to the same character does not", function()
+	local ns = load()
+	local dusty = withEnchanter(ns)
+	local enchanter = ns.Alts:DisenchantRecipient()
+	local asAlt = { name = "Dusty", class = "MAGE", level = 40, alt = true, altKey = dusty }
+	check(ns.UI:RecipientLabel(enchanter):find(ns.UI.DISENCHANT_ICON, 1, true) == 1, "dust: icon first")
+	check(ns.UI:RecipientLabel(asAlt):find(ns.UI.DISENCHANT_ICON, 1, true) == nil, "a gift: no icon")
+end)
+
+test("your alts read alphabetically in the picker, whatever their rank", function()
+	local ns = load()
+	seedAlt(ns, { name = "Zed", class = "WARRIOR", level = 30 })
+	seedAlt(ns, { name = "Abe", class = "WARRIOR", level = 12 })
+	local item = atMailbox(ns, { strengthPlate() })[1]
+	equal(item.recipient and item.recipient.name, "Zed", "the closer level ranks first and is matched")
+
+	local listed = {}
+	for _, option in ipairs(ns.UI:PickerOptions(item)) do
+		if option.pick and option.pick.alt and not option.pick.disenchant then
+			listed[#listed + 1] = option.pick.name
+		end
+	end
+	equal(table.concat(listed, ","), "Abe,Zed", "but the list reads by name")
+end)

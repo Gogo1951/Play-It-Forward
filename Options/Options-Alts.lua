@@ -60,8 +60,19 @@ end
 
 local AltsOff = ns.OptionsProfileOff("sendToAlts")
 
--- The left column: the character as Magic Eraser lists one, "Name - Realm" in its class color.
+--[[
+	A "First Last" name, as WoW Forever gives, is unique across the region and never wears a realm:
+	Forever's realm is an internal code ("CAMWOWUS1Realm1PvE") nobody would recognize.
+]]
+local function HasSurname(alt)
+	return (alt.name or ""):find(" ", 1, true) ~= nil
+end
+
+-- The left column: the character as Magic Eraser lists one, "Name - Realm" in its class color, or "First Last" alone.
 local function TreeLabel(alt)
+	if HasSurname(alt) then
+		return ns.ColorName(alt.name, alt.class)
+	end
 	return ns.ColorName((alt.name or "?") .. " - " .. (alt.realm or "?"), alt.class)
 end
 
@@ -71,7 +82,7 @@ local function PaneTitle(alt)
 		.. ns.ColorName(alt.name or "?", alt.class)
 		.. " "
 		.. Help("(" .. (alt.level or "?") .. ")")
-	if alt.realm ~= ns.PlayerRealm() then
+	if alt.realm ~= ns.PlayerRealm() and not HasSurname(alt) then
 		label = label .. " " .. Help(alt.realm or "")
 	end
 	return label
