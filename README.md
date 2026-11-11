@@ -22,8 +22,10 @@ Mail outgrown BoE gear, food, potions, scrolls, oils, and stones to your alts, g
 
 ### Badge of Generosity
 
+<img width="800" alt="README-Infographic-Badge-of-Generosity" src="https://github.com/user-attachments/assets/f6b4b6cf-1450-403a-b766-97d527e0b87a" />
+
 * **A Lifetime Tally** // The gifts, items, and gold value you've given away, counted across all your characters.
-* **Show It Off in Town** // Other givers see your totals on your tooltip in cities and inns, and you see theirs.
+* **Show It Off in Town** // Other givers see your totals on your tooltip in cities and inns, and you see theirs. This can be turned off.
 
 ## Setup
 
@@ -77,7 +79,7 @@ Rather say it your way? Write your own on the **Mail Message Text** panel.
 ### 🟢 Pairs With
 
 * Gogo1951's [Come & Get It](https://www.curseforge.com/wow/addons/come-get-it)
-* Gogo1951's [Connoisseur & Restocker](https://www.curseforge.com/wow/addons/connoisseur-restocker)
+* Gogo1951's [GogoLoot](https://www.curseforge.com/wow/addons/gogoloot)
+* Gogo1951's [Good to Go](https://www.curseforge.com/wow/addons/good-to-go)
 * Gogo1951's [Magic Eraser](https://www.curseforge.com/wow/addons/magic-eraser)
-* Gogo1951's [Open Sesame](https://www.curseforge.com/wow/addons/open-sesame)
 * Gogo1951's [Thanks for the Buff](https://www.curseforge.com/wow/addons/thanks-for-the-buff-revisited)
