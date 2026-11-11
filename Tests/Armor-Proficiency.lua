@@ -222,7 +222,7 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	"Find Recipients for This Item" is meant to answer "who would be best for this", and
+	"Rescan for Better Match" is meant to answer "who would be best for this", and
 	the only shape /who can be filtered on is one class at a time. So every class gets a
 	group of its own, the contender first, over its own band -- which is what turns the
 	first press into his zones under `38-39 c-"Hunter"`, and asks for him anywhere after.
@@ -248,7 +248,7 @@ test("a targeted search asks for the contender first, by name and in its own ban
 	local query = Stub.whoQueries[1]
 	check(query:find('c%-"Hunter"'), "the query names the hunter: " .. query)
 	check(query:find("38%-39"), "over his band, not the item's: " .. query)
-	check(query:find('z%-"'), "out in his levelling zones first: " .. query)
+	check(query:find('z%-"'), "out in his leveling zones first: " .. query)
 	local last = ns.Who.plan[#ns.Who.plan]
 	check(#(last.zones or {}) == 0 and last.classes[1] ~= nil, "and some class asked anywhere last: " .. last.label)
 end)
@@ -332,7 +332,7 @@ test("a best-fit contender at his anchor ends the search", function()
 	equal(ns.Who:Remaining(), 0, "nobody left to find could outrank him")
 end)
 
--- The same hunter in a capital: somebody out levelling would still rank above him.
+-- The same hunter in a capital: somebody out leveling would still rank above him.
 test("a best-fit contender in a capital keeps the search going", function()
 	local ns = load()
 	local item = targetedSearch(ns, { { name = "Ready", level = 39, class = "HUNTER", area = "Orgrimmar" } })

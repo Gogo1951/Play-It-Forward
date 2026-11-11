@@ -62,13 +62,61 @@ ns.MESSAGE_ID_FILTERED_EVENTS = {
 }
 
 --[[
+    A secret value (WoW Forever) errors when compared, concatenated or used as
+    a table key, so the log never turns one into text. Clients without secret
+    values have no issecretvalue, and every value there is plain.
+]]
+local IsSecretValue = rawget(_G, "issecretvalue")
+
+local function IsPlain(value)
+	return not (IsSecretValue and IsSecretValue(value))
+end
+
+--[[
+	The counter id a secret id folds into, since a secret can't key a table. A string no event
+	argument here can be: a bag ID of 0 is the backpack, so a numeric sentinel would merge it.
+]]
+local SECRET_ID = "<secret>"
+
+--[[
+    Folds one uncorrelated firing into its counter: the first-seen text plus a
+    count. Counters are keyed by event, then id, so one id arriving on two
+    events stays two rows. A secret id counts under SECRET_ID with the text
+    <secret>.
+]]
+local function CountUncorrelated(event, id, text)
+	local suppressed = ns.diagnostics.suppressed
+	if not suppressed then
+		return
+	end
+	if not IsPlain(id) then
+		id, text = SECRET_ID, "<secret>"
+	elseif not IsPlain(text) then
+		text = "<secret>"
+	end
+	local counters = suppressed[event]
+	if not counters then
+		counters = {}
+		suppressed[event] = counters
+	end
+	local entry = counters[id]
+	if entry then
+		entry.count = entry.count + 1
+		return
+	end
+	local raw = string.sub(tostring(text or ""), 1, EVENT_LOG_MAX_ARG_LENGTH)
+	counters[id] = { text = (raw:gsub("|", "||")), count = 1 }
+end
+
+--[[
 	Whether this firing folds into a counter instead of reaching the buffer. Applied AT CAPTURE, in
 	ns:LogEvent below, never at render: filtering at display time still lets spam push real entries
-	out of a bounded buffer.
+	out of a bounded buffer. A secret id counts too, without asking the rule, which would compare it.
 
 	UNCLASSIFIABLE IS SIGNAL. A firing with nothing at the id position is logged verbatim rather
-	than counted, because the thing that would have decided is missing. So is one with nowhere to
-	count it: this never deletes an entry it did not record.
+	than counted, because the thing that would have decided is missing. So is one the rule cannot
+	read, such as a secret message text: the log runs ahead of the real handlers, so a rule that
+	throws here would stop them too.
 ]]
 function ns:SuppressUncorrelatedMessage(event, ...)
 	local rule = ns.MESSAGE_ID_FILTERED_EVENTS[event]
@@ -76,33 +124,24 @@ function ns:SuppressUncorrelatedMessage(event, ...)
 		return false
 	end
 
-	local id = (select(rule.id, ...))
+	local id = select(rule.id, ...)
+	local text
+	if select("#", ...) > rule.id then
+		text = select(rule.id + 1, ...)
+	end
+	if not IsPlain(id) then
+		CountUncorrelated(event, id, text)
+		return true
+	end
 	if id == nil or id == "" then
 		return false
 	end
-	if rule.correlated(...) then
+	local ok, correlated = pcall(rule.correlated, ...)
+	if not ok or correlated then
 		return false
 	end
 
-	local suppressed = ns.diagnostics.suppressed
-	if not suppressed then
-		return false
-	end
-
-	local key = string.format("%s(%s)", event, tostring(id))
-	local entry = suppressed[key]
-	if entry then
-		entry.count = entry.count + 1
-		return true
-	end
-
-	--[[
-		First-seen text only, cut and escaped the way a logged argument is: this is what tells a
-		tester an id the add-on SHOULD be correlating from one it is right to ignore.
-	]]
-	local text = (select(rule.id + 1, ...))
-	text = string.sub(tostring(text == nil and "" or text), 1, EVENT_LOG_MAX_ARG_LENGTH)
-	suppressed[key] = { event = event, id = id, text = (text:gsub("|", "||")), count = 1 }
+	CountUncorrelated(event, id, text)
 	return true
 end
 
@@ -121,6 +160,8 @@ end
     Snapshots arguments to strings immediately -- never retain references, since
     some events carry frames or tables that would leak memory or go stale. Caps
     the arg count and per-argument byte length so a single entry can't run away.
+    A secret argument (WoW Forever) can't be turned into text, so it records as
+    <secret>.
 
     Pipes are escaped (| -> ||) AFTER the length cut so each argument shows
     verbatim in the report editbox instead of rendering as a clickable item
@@ -137,8 +178,13 @@ local function AppendEntry(event, ...)
 		if index > EVENT_LOG_MAX_ARGS then
 			break
 		end
-		local raw = string.sub(tostring((select(index, ...))), 1, EVENT_LOG_MAX_ARG_LENGTH)
-		parts[index] = (raw:gsub("|", "||"))
+		local value = select(index, ...)
+		if IsPlain(value) then
+			local raw = string.sub(tostring(value), 1, EVENT_LOG_MAX_ARG_LENGTH)
+			parts[index] = (raw:gsub("|", "||"))
+		else
+			parts[index] = "<secret>"
+		end
 	end
 	log[#log + 1] = string.format("%.3f %s(%s)", GetTime(), event, table.concat(parts, ", "))
 	if #log > EVENT_LOG_SIZE then
@@ -181,25 +227,34 @@ local function AppendSuppressedSummary(lines)
 	if not suppressed then
 		return
 	end
-	local entries = {}
-	for _, entry in pairs(suppressed) do
-		entries[#entries + 1] = entry
+	local rows = {}
+	for event, counters in pairs(suppressed) do
+		for id, entry in pairs(counters) do
+			rows[#rows + 1] = { event = event, id = id, entry = entry }
+		end
 	end
-	if #entries == 0 then
+	if #rows == 0 then
 		return
 	end
-	-- Biggest offender first; the key breaks ties so the block holds still between renders.
-	table.sort(entries, function(a, b)
-		if a.count ~= b.count then
-			return a.count > b.count
+	-- Ids compare as text: one event's ids can be numbers beside the SECRET_ID string.
+	table.sort(rows, function(a, b)
+		if a.entry.count ~= b.entry.count then
+			return a.entry.count > b.entry.count
 		end
-		return string.format("%s%s", a.event, tostring(a.id)) < string.format("%s%s", b.event, tostring(b.id))
+		if a.event ~= b.event then
+			return a.event < b.event
+		end
+		return tostring(a.id) < tostring(b.id)
 	end)
-
 	lines[#lines + 1] = ""
 	lines[#lines + 1] = "Suppressed uncorrelated traffic:"
-	for _, entry in ipairs(entries) do
-		lines[#lines + 1] = string.format("%s(%s, %s) x%d", entry.event, tostring(entry.id), entry.text, entry.count)
+	for _, row in ipairs(rows) do
+		if row.id == SECRET_ID then
+			lines[#lines + 1] = string.format("%s(<secret>) x%d", row.event, row.entry.count)
+		else
+			lines[#lines + 1] =
+				string.format("%s(%s, %s) x%d", row.event, tostring(row.id), row.entry.text, row.entry.count)
+		end
 	end
 end
 

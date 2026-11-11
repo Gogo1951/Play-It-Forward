@@ -316,6 +316,35 @@ test("closing the window at a mailbox offers the way back", function()
 	equal(ns.UI:ReopenButtonShown(), false, "and hides the button")
 end)
 
+--[[
+	Menus, Not Tooltips: hovering the button opens a menu of rows rather than a tooltip, headed by
+	the add-on's name, with the window and the options to open. A click on the button itself still
+	opens the window.
+]]
+test("hovering the button opens its menu, and its first row opens the window", function()
+	local ns = load()
+	Stub.SetBackpack({ casterCloth() })
+	MailFrame:Show()
+	ns.fire("MAIL_SHOW")
+	ns.UI:Close()
+
+	local kinds, labels = {}, {}
+	for _, entry in ipairs(ns.UI:ReopenMenuEntries()) do
+		kinds[#kinds + 1] = entry.kind
+		labels[#labels + 1] = entry.left or ""
+	end
+	equal(table.concat(kinds, " "), "header separator action separator action", "header, then two rows")
+	equal(labels[1], ns.L["ADDON_TITLE"], "named for the add-on")
+	equal(labels[3], ns.L["REOPEN_MENU_OPEN"], "the window first")
+	equal(labels[5], ns.L["REOPEN_MENU_OPTIONS"], "then the options")
+
+	PlayItForwardReopenButton:GetScript("OnEnter")(PlayItForwardReopenButton)
+	check(ns.UI:ReopenMenuShown(), "the mouse over the button opens the menu")
+	ns.UI:ReopenMenuEntries()[3].action()
+	check(windowShown(ns), "and Open Distribution Window opens it")
+	check(not ns.UI:ReopenMenuShown(), "the menu goes with the button")
+end)
+
 test("a mailbox that listed nothing still offers the window", function()
 	local ns = load()
 	Stub.SetBackpack({})

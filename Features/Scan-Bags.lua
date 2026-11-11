@@ -39,6 +39,7 @@ local REJECT = {
 	BIND_ON_USE = "BIND_ON_USE",
 	QUEST_ITEM = "QUEST_ITEM",
 	SOULBOUND = "SOULBOUND",
+	REPUTATION_LOCKED = "REPUTATION_LOCKED",
 }
 Scanner.REJECT = REJECT
 
@@ -94,6 +95,25 @@ local function ConsumableIndex()
 		end
 	end
 	return consumableByID
+end
+
+--[[
+	Whether a consumable needs a faction standing, by item ID. The requirement belongs to the item,
+	so one tooltip read answers it for the session; a read that rendered nothing is not kept, since
+	an item still loading would otherwise pass for one with no requirement.
+]]
+local reputationLocked = {}
+
+local function IsReputationLocked(itemID, link)
+	local known = reputationLocked[itemID]
+	if known ~= nil then
+		return known
+	end
+	local line, rendered = ns.Tooltip:RequiredReputation(link)
+	if rendered then
+		reputationLocked[itemID] = line ~= nil
+	end
+	return line ~= nil
 end
 
 -- Any one switch on is enough: a food that restores mana too is listed under Food or Drink.
@@ -215,6 +235,13 @@ local function FilterSlot(bag, slot)
 		if isBound then
 			return nil, REJECT.SOULBOUND
 		end
+		--[[
+			"Requires Argent Dawn - Friendly": most recipients lack the standing, so the mail would
+			deliver food they can't eat. Checked last, as the one test that reads a tooltip.
+		]]
+		if IsReputationLocked(itemID, link) then
+			return nil, REJECT.REPUTATION_LOCKED
+		end
 		return {
 			kind = "consumable",
 			link = link,
@@ -271,7 +298,7 @@ local function FilterSlot(bag, slot)
 		count = 1,
 		quality = quality,
 		reqLevel = reqLevel or 1,
-		-- Read here rather than per eligible class: Matcher:Score folds it into every score.
+		-- Read here rather than per eligible class: Matcher:Score adds it to weapon-matrix items' scores.
 		itemLevel = itemLevel,
 		equipLoc = equipLoc,
 		classID = classID,

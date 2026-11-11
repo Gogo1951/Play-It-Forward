@@ -43,7 +43,7 @@ ns.Data.UNIVERSAL_EQUIP_LOC = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, Classic Era 1.15.9.70576
+	2026-11-11, Classic Era 1.15.9.70576
 
 Notes
 	- ARMOR_WEIGHT ranks the materials. ns.Data.ArmorPriorityFor derives the priority groups by

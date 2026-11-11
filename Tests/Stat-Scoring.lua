@@ -3,7 +3,7 @@
 
 	Spirit used to score nothing for anybody. That was a deliberate choice and it had a
 	consequence the author wanted changed: "of the Whale", Stamina and Spirit, scored
-	zero for every class in the game and went to the vendor pile, when a levelling
+	zero for every class in the game and went to the vendor pile, when a leveling
 	priest would have worn it.
 
 	Weighting it moves more than the score. Matcher:Coverage measures a class against
@@ -130,7 +130,7 @@ end)
 
 --[[
 	The reason for weighting it. A plain Stamina green scored zero for every class in
-	the game and went to the vendor; a levelling warlock wears it.
+	the game and went to the vendor; a leveling warlock wears it.
 ]]
 test("a plain stamina item reaches a warlock instead of the vendor", function()
 	local ns = load()

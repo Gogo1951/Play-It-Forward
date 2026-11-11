@@ -1,5 +1,5 @@
 ## Title: Play It Forward
-## Notes: Mail outgrown BoE gear, food, potions, scrolls, oils, and stones to your alts, guildmates, and leveling players. Every item goes to the class it suits best, turning bag clutter into somebody else's next upgrade. Pay it forward, one green at a time.
+## Notes: Mail outgrown BoE gear, food, potions, scrolls, oils, and stones to your alts, guildmates, and leveling players, and gear nobody can use to your enchanter to disenchant. Every gift goes to the class it suits best. Pay it forward, one green at a time.
 ## Author: Gogo1951
 
 ## IconTexture: Interface/AddOns/Play-It-Forward/Includes/Images/Play-It-Forward.tga
@@ -66,6 +66,7 @@ Data/Vanilla/Match-Classes-Vanilla.lua
 Data/Vanilla/Match-Specs-Vanilla.lua
 Data/Vanilla/Match-Rules-Vanilla.lua
 Data/Vanilla/Scan-Stats-Vanilla.lua
+Data/Vanilla/Game-IDs-Vanilla.lua
 Data/Discovery/Match-Stat-Budget-Discovery.lua
 Data/Discovery/Scan-Food-Discovery.lua
 Data/Discovery/Scan-Potions-Discovery.lua
@@ -79,6 +80,7 @@ Data/Discovery/Match-Classes-Discovery.lua
 Data/Discovery/Match-Specs-Discovery.lua
 Data/Discovery/Match-Rules-Discovery.lua
 Data/Discovery/Scan-Stats-Discovery.lua
+Data/Discovery/Game-IDs-Discovery.lua
 Data/Default-Settings.lua
 
 # Play It Forward
@@ -103,6 +105,8 @@ Features/Mail-Sender.lua
 Features/Mail-Copy.lua
 Features/UI-Picker.lua
 Features/UI-Window.lua
+Features/UI-Top-Bar.lua
+Features/UI-Status.lua
 Features/UI-Assignment.lua
 Features/UI-Mailbox.lua
 Features/UI-Reopen-Button.lua

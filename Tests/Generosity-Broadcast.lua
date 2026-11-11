@@ -257,3 +257,25 @@ test("a peer heard from again after expiry is cached afresh", function()
 	check(peer ~= nil, "back in the cache")
 	equal(peer.gifts, 9, "carrying the totals from the new message")
 end)
+
+-- A YELL comes back to its sender: our own ping draws no answer, and our own totals are not cached.
+test("our own echoed messages are ignored", function()
+	local ns = load()
+	ns.db.profile.shareStats = true
+	local me = ns.PlayerName()
+
+	ns.fire("CHAT_MSG_ADDON", ns.ADDON_MESSAGE_PREFIX, "1|?", "YELL", me)
+	ns.fire("CHAT_MSG_ADDON", ns.ADDON_MESSAGE_PREFIX, "1|S|1|2|3|4", "YELL", me)
+
+	equal(#Stub.addonMessages, 0, "our own ping drew no broadcast")
+	check(ns.Generosity:Peer(me) == nil, "and our own totals were not cached")
+end)
+
+-- Totals come from anyone in range: anything but plain non-negative integers is thrown away whole.
+test("malformed totals from a peer are ignored", function()
+	local ns = load()
+	for _, payload in ipairs({ "1|S|-1|2|3|4", "1|S|nan|2|3|4", "1|S|1|1e999|3|4", "1|S|1|2|0x10|4", "1|S|1|2|3" }) do
+		ns.fire("CHAT_MSG_ADDON", ns.ADDON_MESSAGE_PREFIX, payload, "YELL", "Robin-Grobbulus")
+		check(ns.Generosity:Peer("Robin-Grobbulus") == nil, "not cached: " .. payload)
+	end
+end)

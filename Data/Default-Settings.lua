@@ -70,7 +70,7 @@ ns.DATABASE_DEFAULTS = {
 		--[[
 			Skip strangers who are warlocks in ns.Data.SUMMONER_MIN_LEVEL to SUMMONER_MAX_LEVEL, the
 			band summoning alts park in. Off by default: /who cannot tell a parked alt from a real
-			one, and most warlocks there are levelling. The guild roster's own summoner rule is
+			one, and most warlocks there are leveling. The guild roster's own summoner rule is
 			separate and always on (Features/Recipients-Guild.lua).
 		]]
 		ignoreSummonerWarlocks = false,
@@ -111,14 +111,18 @@ ns.DATABASE_DEFAULTS = {
 	global = {
 		--[[
 			Every character that has logged in with the add-on, keyed by qualified name: { name,
-			realm, class, level, faction }. Written by Features/Recipients-Alts.lua at login and
-			level up, the only way to offer an alt that is logged out.
+			realm, class, level, faction }, plus the player's choices from the My Alts panel
+			(include, specs, levelsBelow, levelsAbove, disenchanter). Written by
+			Features/Recipients-Alts.lua at login and level up, the only way to offer an alt that is
+			logged out.
 		]]
 		characters = {},
 		--[[
-			Every guild any character is in, keyed by ns.Guild:Key: { name, realm, faction, scanned,
-			scannedBy, members = { { name, level, class, area, days } }, include }. Written by
-			Features/Recipients-Guild.lua at login and at each live roster read.
+			Every guild any character is in, and every guild added by name on My Guilds, keyed by
+			ns.Guild:Key: { name, realm, faction, scanned, scannedBy, members = { { name, level,
+			class, area, days } }, include, ignored, added, removed }. Written by
+			Features/Recipients-Guild.lua at login, at each live roster read, and by the My Guilds
+			Add and Remove controls.
 		]]
 		guilds = {},
 		stats = {

@@ -31,7 +31,7 @@ ns.Data.OILS_AND_STONES = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, WoW Forever 1.60.1.70450
+	2026-11-11, WoW Forever 1.60.1.70888
 
 Notes
 	- The oils, sharpening stones and weightstones any class can put on a weapon, taken from
@@ -56,6 +56,7 @@ Notes
 	  need no level; the level 1 copies of Rough Sharpening Stone (287978), Lesser Wizard Oil
 	  (287979) and Elemental Sharpening Stone (287980) bind on pickup; the Scrolls of Imbue
 	  (274947, 275067) take only a staff or only a dagger and are one class's business.
+	- Rechecked at 1.60.1.70888 against build 70450: the new build adds no oil or stone.
 
 SQL (CMaNGOS)
 	TODO: Add SQL Query
@@ -67,6 +68,8 @@ wago.tools
 	https://wago.tools/db2/ItemSparse?build=1.60.1.70291
 	https://wago.tools/db2/Item?build=1.60.1.70450
 	https://wago.tools/db2/ItemSparse?build=1.60.1.70450
+	https://wago.tools/db2/Item?build=1.60.1.70888
+	https://wago.tools/db2/ItemSparse?build=1.60.1.70888
 
 QuestieDB
 	None.

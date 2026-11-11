@@ -193,7 +193,7 @@ test("the verdict report reads a pasted item id", function()
 end)
 
 --[[
-	Find Recipients for This Item pressed inside the throttle cannot send, so it must not
+	Rescan for Better Match pressed inside the throttle cannot send, so it must not
 	retask the plan or cancel the query already out: it says how long to wait instead.
 ]]
 test("a too-early targeted press leaves the plan standing", function()
@@ -216,4 +216,34 @@ test("a too-early targeted press leaves the plan standing", function()
 	end
 	check(told, "the player is told to wait")
 	equal(ns.Who.targeted, false, "and the plan was not retasked")
+end)
+
+--[[
+	One of your alts is admitted by its own specs, and RankCandidates ranks it with the contenders
+	whatever the class defaults say: an Enhancement shaman alt holding a Strength mail chest the
+	defaults call a warrior's. The search must not keep hunting warriors who could never take it.
+]]
+local function altHeldChest()
+	return {
+		recipient = { name = "Zapper", class = "SHAMAN", level = 40, alt = true },
+		verdict = {
+			admitted = { "WARRIOR", "SHAMAN" },
+			eligible = { "WARRIOR", "SHAMAN" },
+			contenders = { "WARRIOR" },
+			fits = { WARRIOR = 10, SHAMAN = 8 },
+		},
+	}
+end
+
+test("an alt holding gear its class defaults leave out does not narrow the hunt", function()
+	local ns = load()
+	local item = altHeldChest()
+	local classes = ns.MatchSearch.BandClasses(item, item.verdict)
+	equal(#classes, 2, "asks for everybody admitted, as for a contender holder")
+end)
+
+test("a stranger never outranks an alt holding gear its class defaults leave out", function()
+	local ns = load()
+	local item = altHeldChest()
+	equal(ns.Matcher:CouldOutrank(item, item.recipient, "WARRIOR"), false, "a warrior search cannot take it")
 end)

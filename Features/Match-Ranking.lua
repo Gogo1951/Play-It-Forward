@@ -54,9 +54,9 @@ end
 
 --[[
 	Whether one of your alts may receive this item, by its row on the My Alts panel, and
-	its fit when it may. Only where the item suits the alt best, JUDGED BY THE ALT'S OWN SPECS: a
-	retribution paladin alt holds strength plate though paladins default to Holy, and a mage alt
-	never holds healing cloth meant for a priest. A consumable asks only the class.
+	its fit when it may. Only where the item suits the alt best, JUDGED BY THE ALT'S OWN SPECS: an
+	Enhancement shaman alt holds strength mail though shamans are assumed to heal or cast, and a
+	mage alt never holds healing cloth meant for a priest. A consumable asks only the class.
 
 	Judged against the alt's own Lowest and Highest Gear Level (Alts:LevelRange): gear by the level
 	its class equips it at, a consumable by its use level. At the defaults that is anything from
@@ -68,7 +68,8 @@ end
 local function AltWants(matcher, item, verdict, person, classToken, lo)
 	local profile = ns.db and ns.db.profile
 	local entry = ns.Alts:Entry(person)
-	if not (profile and profile.sendToAlts) or (entry and not ns.Alts:Included(entry)) then
+	-- No entry is an alt deleted on My Alts this session: Alts:Included(nil) answers false.
+	if not (profile and profile.sendToAlts) or not ns.Alts:Included(entry) then
 		return false
 	end
 	local judged = verdict
@@ -125,12 +126,6 @@ function Matcher:RankCandidates(item, pools)
 	end
 
 	--[[
-		PER CLASS, NEVER item.bandLo: a class that trains the armor material later searches higher
-		up, and reading one band off the item would either hand a hunter mail he cannot wear for
-		six levels or never look for him at all. Matcher:LevelBand answers the item's own band for
-		everything else, so this is the same numbers for nearly every item.
-	]]
-	--[[
 		Every admitted class, plus any class one of your alts plays: an alt is judged by its own
 		specs, so it can want an item the class's defaults never admitted.
 	]]
@@ -155,6 +150,12 @@ function Matcher:RankCandidates(item, pools)
 
 	for _, class in ipairs(classes) do
 		local fit, tier = verdict.fits[class] or 0, self:Priority(item, class)
+		--[[
+			PER CLASS, NEVER item.bandLo: a class that trains the armor material later searches higher
+			up, and reading one band off the item would either hand a hunter mail he cannot wear for
+			six levels or never look for him at all. Matcher:LevelBand answers the item's own band for
+			everything else, so this is the same numbers for nearly every item.
+		]]
 		local lo, hi = self:LevelBand(item, class)
 		--[[
 			The level this item is worth most at, and what proximity is measured against. Gear
@@ -209,7 +210,7 @@ function Matcher:RankCandidates(item, pools)
 		end
 		--[[
 			Where they stand, right behind who the item is for: out in a zone made for their level
-			beats a capital, because that is the evidence they are levelling and will use it, and a
+			beats a capital, because that is the evidence they are leveling and will use it, and a
 			dungeon ranks last, where they may be getting boosted. Ahead of level, which only splits
 			a band two levels wide.
 		]]
@@ -424,7 +425,8 @@ function Matcher:CouldOutrank(item, person, classToken)
 		contenders[class] = true
 	end
 	local bucket = contenders[classToken] and 1 or 2
-	local heldBucket = contenders[person.class] and 1 or 2
+	-- An alt holder ranks with the contenders by its own specs, as RankCandidates buckets it.
+	local heldBucket = (person.alt or contenders[person.class]) and 1 or 2
 	if bucket ~= heldBucket then
 		return bucket < heldBucket
 	end

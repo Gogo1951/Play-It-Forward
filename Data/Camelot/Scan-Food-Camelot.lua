@@ -198,7 +198,7 @@ ns.Data.FOOD_AND_WATER = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, WoW Forever 1.60.1.70450
+	2026-11-11, WoW Forever 1.60.1.70888
 
 Notes
 	- Food and drink a player can give away: Food & Drink consumables that restore health, mana
@@ -227,6 +227,7 @@ Notes
 	  Food & Drink, and QuestieDB lists no source for any of them, so they stay out. So do the
 	  raw fish (Trade Goods), 6458 Oil Covered Fish, 7676 Thistle Tea, which restores only
 	  energy, and 17405 Green Garden Tea, a holiday item.
+	- Rechecked at 1.60.1.70888 against build 70450: the new build adds no Food & Drink item.
 
 SQL (CMaNGOS)
 	Database not recorded. It returned Wrath items, so it ran against a Wrath-era database,
@@ -287,6 +288,8 @@ wago.tools
 	https://wago.tools/db2/ItemEffect?build=1.60.1.70450
 	https://wago.tools/db2/Spell?build=1.60.1.70450
 	https://wago.tools/db2/SpellCategories?build=1.60.1.70450
+	https://wago.tools/db2/Item?build=1.60.1.70888
+	https://wago.tools/db2/ItemSparse?build=1.60.1.70888
 
 QuestieDB
 	https://raw.githubusercontent.com/Questie/QuestieDB/master/data/Forever/foreverItemDB.lua

@@ -55,11 +55,12 @@ ns.Data.STAT_MAP = {
 How We Got the Data
 
 Last Validated
-	Never. Copied from Data/Scan-Stats.lua.
+	2026-11-11, WoW Forever 1.60.1.70888
 
 Notes
 	- GetItemStats keys this client can answer with, mapped to the add-on's stat tokens.
 	-   Features/Scan-Bags.lua and Features/Scan-Tooltip.lua read it. No IDs.
+	- Copied from Data/Scan-Stats.lua.
 
 SQL (CMaNGOS)
 	None.

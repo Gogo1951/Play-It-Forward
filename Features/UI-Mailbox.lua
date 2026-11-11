@@ -167,8 +167,7 @@ end
 	plan for every item. Runs off the picker click, which is the hardware event SendWho demands.
 ]]
 function UI:FindRecipientsForItem(item)
-	local verdict = item.verdict or ns.Matcher:VerdictFor(item)
-	if #((verdict and verdict.eligible) or {}) == 0 then
+	if not self:RescanCanHelp(item) then
 		return
 	end
 	--[[
@@ -273,8 +272,14 @@ function UI:Distribute()
 					class = item.recipient.class,
 					-- Your own alt: no Generosity credit for mailing yourself.
 					alt = item.recipient.alt,
-					subject = ns.Distributor:BuildSubject(),
-					body = body,
+					--[[
+						No copy to your own alts. A letter with text stays in the mailbox after
+						its item is taken, so every item sent with a note leaves one more letter
+						to delete by hand. With no body the letter clears itself once emptied, and
+						the subject is left to the item name the client writes on attach.
+					]]
+					subject = (not item.recipient.alt) and ns.Distributor:BuildSubject() or nil,
+					body = (not item.recipient.alt) and body or nil,
 				})
 			end
 		end
@@ -422,7 +427,7 @@ end
 	So it opens on the mailbox and never auto-closes. Match-List holds items, roster and pairings
 	at file scope, so matches survive walking away. On the module so the Mailbox diagnostics report
 	asks the same question the mailbox does. Unticked rows do not count: a mailbox holding only
-	rows the player is keeping opens nothing. Kept gear counts while Disenchant Unmatched Items has
+	rows the player is keeping opens nothing. Kept gear counts while Disenchant Unmatched Gear has
 	an enchanter to send it to.
 ]]
 function UI:HasSomethingToDo()
@@ -437,10 +442,6 @@ function UI:HasSomethingToDo()
 end
 
 --[[
-	Nothing to hand out means nothing happens, and nothing is said: no spare gear is the ordinary
-	state of a mailbox visit.
-]]
---[[
 	ONCE A VISIT. MAIL_SHOW, MailFrame's OnShow and the interaction manager all report one
 	mailbox, and the sender's own MailFrame:Show mid-run reports it again; a mail add-on handing
 	the frame back is one more. Handled once, a player who closed the window at this mailbox is
@@ -448,6 +449,10 @@ end
 ]]
 local visitHandled = false
 
+--[[
+	Nothing to hand out means nothing happens, and nothing is said: no spare gear is the ordinary
+	state of a mailbox visit.
+]]
 local function MailboxOpened()
 	ns.mailboxOpen = true
 	if visitHandled or ns.Distributor.busy then

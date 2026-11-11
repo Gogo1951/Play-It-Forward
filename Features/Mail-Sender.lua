@@ -37,8 +37,30 @@ local function FillMailPanel(job)
 		end
 	end
 	Fill(SendMailNameEditBox, job.recipient)
-	Fill(SendMailSubjectEditBox, job.subject)
+	-- A job with no subject (mail to your own alt) keeps the item name the attach wrote there.
+	if job.subject then
+		Fill(SendMailSubjectEditBox, job.subject)
+	end
 	Fill(MailBodyBox(), job.body)
+end
+
+--[[
+	The subject a letter goes out under. Ours when the job carries one; otherwise the item name
+	the client wrote into the box on attach, which is what a hand-sent parcel would carry. The
+	server wants a subject, so the bare item name from the link is the last resort.
+]]
+local function SubjectOf(job)
+	if job.subject then
+		return job.subject
+	end
+	local box = SendMailSubjectEditBox
+	if box and box.GetText then
+		local ok, text = pcall(box.GetText, box)
+		if ok and type(text) == "string" and text:match("%S") then
+			return text
+		end
+	end
+	return (job.link and job.link:match("%[(.-)%]")) or ""
 end
 
 local MAIL_COST = 30 -- copper per mail
@@ -183,7 +205,7 @@ local function OnUiErrorMessage(_, message)
 		if inFlight._sent then
 			MarkRefused(inFlight)
 		end
-		Distributor:Result(false, message, RECIPIENT_ONLY_ERRORS[errorName])
+		Distributor:Result(false, message, RECIPIENT_ONLY_ERRORS[errorName], inFlight._sent)
 		return
 	end
 	if not settling._sent then
@@ -303,6 +325,13 @@ function Distributor:Next()
 	if ClearSendMail then
 		pcall(ClearSendMail)
 	end
+	--[[
+		Emptied so the attach writes this item's name: the client only fills an empty subject box,
+		and the last letter's subject would otherwise carry over to a letter for your own alt.
+	]]
+	if SendMailSubjectEditBox and SendMailSubjectEditBox.SetText then
+		pcall(SendMailSubjectEditBox.SetText, SendMailSubjectEditBox, "")
+	end
 
 	--[[
 		Stack size captured here, through the same shim Features/Scan-Bags.lua reads: by MAIL_SUCCESS
@@ -344,17 +373,14 @@ function Distributor:Next()
 	FillMailPanel(job)
 
 	--[[
-		Guarded for the reason the attach above is, and the attachment is released on the way out:
-		the item is on the panel by this point, and abandoning the run with it still there leaves
-		the player to work out why a slot looks empty.
-	]]
-	--[[
 		From here a refusal is about the recipient, not the item: OnUiErrorMessage marks a name
 		unreachable only for a job that got this far. The same in-call refusal as the attach's is
-		checked for straight after.
+		checked for straight after. SendMail is guarded for the reason the attach above is, and a
+		throw releases the attachment on the way out: the item is on the panel by this point, and
+		abandoning the run with it still there leaves the player to work out why a slot looks empty.
 	]]
 	job._sent = true
-	local sent = pcall(SendMail, job.recipient, job.subject or "", job.body or "")
+	local sent = pcall(SendMail, job.recipient, SubjectOf(job), job.body or "")
 	if not self.busy or self._current ~= job then
 		return
 	end
@@ -382,11 +408,13 @@ function Distributor:Next()
 end
 
 --[[
-	Everything else queued for a recipient who just refused a parcel: they will refuse the rest,
-	and those repeats would count toward the two-error abort, so one bad name -- an alt deleted
-	since it was recorded, holding every item that suits its class -- stopped the whole run.
-	Released like a failure, so the rows stay listed. Not counted as skips, which Finish reports
-	as items that moved in the bags; they are simply among those not sent.
+	Everything else queued for a recipient the server just refused, once the job reached SendMail:
+	they will refuse the rest, and those repeats would count toward the two-error abort, so one bad
+	name -- an alt deleted since it was recorded, holding every item that suits its class -- would
+	end the run. Only a refusal: an attach error is about the item and a bare MAIL_FAILED says
+	nothing about who, so neither releases anything else. Released like a failure, so the rows stay
+	listed. Not counted as skips, which Finish reports as items that moved in the bags; they are
+	simply among those not sent.
 ]]
 function Distributor:DropRepeats(job)
 	for index = #self.queue, 1, -1 do
@@ -411,7 +439,7 @@ local function Credit(job)
 	end
 end
 
-function Distributor:Result(ok, reason, recipientOnly)
+function Distributor:Result(ok, reason, recipientOnly, refused)
 	-- A stopped or timed-out run can still have a send in flight: record it, then stay stopped.
 	if not self.busy then
 		local pending = self._awaiting
@@ -452,8 +480,14 @@ function Distributor:Result(ok, reason, recipientOnly)
 		end
 		ns:PrintMessage(L["MAIL_SEND_FAILED"]:format(RecipientOf(job), reason or "?"))
 		-- Before the abort check, so only a failure to somebody else can end the run.
-		self:DropRepeats(job)
+		if refused then
+			self:DropRepeats(job)
+		end
 		if not recipientOnly and self.errors > 1 then
+			-- The failed item is still on Blizzard's panel with the name in To: one Send would re-mail it.
+			if ClearSendMail then
+				pcall(ClearSendMail)
+			end
 			ns:PrintMessage(L["MAIL_ABORTED"])
 			return self:Finish()
 		end

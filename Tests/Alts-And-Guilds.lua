@@ -3,12 +3,16 @@
 	2026-10-29).
 
 	Every guild any of your characters is in is saved account-wide at that character's login, so
-	whichever character you are on reaches the levelling players in all of them. A saved roster
+	whichever character you are on reaches the leveling players in all of them. A saved roster
 	counts members active in the 3 days before the scan, and is ignored once it is older than the
 	Ignore Saved Guilds setting. Both panels are trees, one node per alt or guild. Each alt has a
 	tick, a Delete, the specs it is mailed gear for and whether it holds gear it has yet to grow
-	into; each guild has a tick and an Include beside every active member, ticked by default, and no
-	Delete. Alts and members are listed alphabetically, members as "Name - Realm".
+	into; each guild has a remove icon, a tick and an Include beside every active member, ticked by
+	default. Alts and members are listed alphabetically, members as "Name - Realm".
+
+	Any other guild can be added by name, TFTB's way (maintainer ruling, 2026-11-11). It has no
+	roster, so its members are found by /who: a g-"Name" query opens each search, and anybody a
+	/who answer places in one of your guilds ranks as a guildmate.
 ]]
 
 local Harness = require("Harness")
@@ -186,6 +190,16 @@ test("each panel has a tree node per alt and per saved guild", function()
 	check(guildPane(ns) ~= nil, "the guild has a node")
 end)
 
+test("an alt's and a guild's subsections are headers, like every other panel's", function()
+	local ns = load()
+	ns.db.global.characters["Brickhouse-Test"] = { name = "Brickhouse", realm = "Test", class = "WARRIOR", level = 12 }
+	seedGuild(ns)
+	local alt = altPane(ns, "Brickhouse-Test")
+	equal(alt.levelsLabel.type, "header", "Gear Levels")
+	equal(alt.specsLabel.type, "header", "Specs")
+	equal(guildPane(ns).membersLabel.type, "header", "Members")
+end)
+
 test("an alt's switches write to its saved entry", function()
 	local ns = load()
 	ns.db.global.characters["Hammertime-Test"] =
@@ -229,13 +243,21 @@ test("an alt's switches write to its saved entry", function()
 	check(alt.spec1.get() and alt.spec2.get() and alt.spec3.get(), "with no spec recorded, every spec starts ticked")
 end)
 
-test("delete forgets the alt, and a guild has no delete", function()
+test("delete forgets the alt; removing a saved guild hides it until it is added again", function()
 	local ns = load()
 	ns.db.global.characters["Brickhouse-Test"] = { name = "Brickhouse", realm = "Test", class = "WARRIOR", level = 12 }
 	seedGuild(ns)
 	altPane(ns, "Brickhouse-Test").delete.func()
 	equal(ns.db.global.characters["Brickhouse-Test"], nil, "the alt is gone")
-	equal(guildPane(ns).delete, nil, "the guild pane offers no delete")
+
+	guildPane(ns).title.args.remove.func()
+	check(ns.db.global.guilds[GUILD_KEY] ~= nil, "a guild one of yours is in is kept, or its next login brings it back")
+	equal(guildPane(ns), nil, "but it leaves the list")
+	equal(#ns.Guild:ReadSaved(), 0, "and nobody in it is offered anything")
+
+	ns.Guild:Add("far guild")
+	check(guildPane(ns) ~= nil, "typing its name, in any capitals, brings it back")
+	equal(#ns.Guild:ReadSaved(), 1, "with its members")
 end)
 
 test("alts and guildmates are listed alphabetically", function()
@@ -312,4 +334,133 @@ test("the guild you are in honors its ignores on the live read", function()
 	ns.Guild:SetIgnored(ns.db.global.guilds["Test:Alliance:Test Guild"], "Bankalt", true)
 	equal(#ns.Guild:Read(), 0, "the live roster leaves the bank out")
 	equal(ns.Guild:Stats().ignored, 1, "and counts it as ignored")
+end)
+
+test("the guild you are in, unticked, is not read live", function()
+	local ns = load()
+	Stub.guild = { { name = "Plateguy", level = 48, class = "WARRIOR", online = true } }
+	ns.Guild:Save()
+	ns.db.global.guilds["Test:Alliance:Test Guild"].include = false
+	equal(#ns.Guild:Read(), 0, "Include This Guild off means nobody in it")
+end)
+
+--------------------------------------------------------------------------------
+-- Guilds added by name
+--------------------------------------------------------------------------------
+
+local OWLS_KEY = "Test:Alliance:Night Owls"
+
+test("a guild added by name is listed with no roster, and removing it forgets it", function()
+	local ns = load()
+	equal(ns.Guild:Add(" Night  Owls , Far Guild"), 2, "two names, split on the comma")
+	local owls = ns.db.global.guilds[OWLS_KEY]
+	check(owls ~= nil and owls.added, "saved under its tidied name, marked added")
+	check(ns.Guild:ByNameOnly(owls), "known only through /who")
+	equal(ns.Guild:Add("night owls"), 0, "the same guild in other capitals is not added twice")
+
+	local pane = guildPane(ns, OWLS_KEY)
+	check(pane ~= nil, "it has a node")
+	check(pane.status.name:find(ns.L["OPTIONS_GUILD_ADDED"], 1, true) ~= nil, "saying how its members are found")
+	equal(pane.membersLabel, nil, "with no member list")
+
+	pane.title.args.remove.func()
+	equal(ns.db.global.guilds[OWLS_KEY], nil, "never saved by one of yours, so it is gone for good")
+end)
+
+test("a guild added by name on another faction says mail can't reach it", function()
+	local ns = load()
+	ns.Guild:Add("Night Owls")
+	ns.db.global.guilds[OWLS_KEY].faction = "Horde"
+	local status = guildPane(ns, OWLS_KEY).status.name
+	check(status:find(ns.L["OPTIONS_GUILD_ADDED"], 1, true) ~= nil, "still says how it is found")
+	check(status:find(ns.L["OPTIONS_GUILD_SKIPPED_FACTION"], 1, true) ~= nil, "and that it is out of reach")
+end)
+
+test("joining a guild added in other capitals takes it over rather than listing it twice", function()
+	local ns = load()
+	ns.Guild:Add("test guild")
+	Stub.guild = { { name = "Plateguy", level = 48, class = "WARRIOR", online = true } }
+	ns.Guild:Save()
+	local count = 0
+	for _ in pairs(ns.db.global.guilds) do
+		count = count + 1
+	end
+	equal(count, 1, "one entry")
+	check(ns.db.global.guilds["Test:Alliance:Test Guild"] ~= nil, "under the roster's spelling")
+end)
+
+test("a search opens with a query for each guild added by name", function()
+	local ns = load()
+	ns.Guild:Add("Night Owls")
+	atMailbox(ns, { strengthPlate() })
+	local first = Stub.whoQueries[1] or ""
+	check(first:find('g-"Night Owls"', 1, true) ~= nil, "the guild is asked first, got: " .. first)
+end)
+
+test("no guild added by name, no guild query", function()
+	local ns = load()
+	seedGuild(ns)
+	atMailbox(ns, { strengthPlate() })
+	for _, query in ipairs(Stub.whoQueries) do
+		check(not query:find("g-", 1, true), "a saved roster is read, never searched for: " .. query)
+	end
+end)
+
+test("somebody /who places in one of your guilds ranks as a guildmate", function()
+	local ns = load()
+	ns.Guild:Add("Night Owls")
+	Stub.whoResults = { { name = "Owlet", level = 48, class = "WARRIOR", guild = "Night Owls" } }
+	local items = atMailbox(ns, { strengthPlate() })
+	equal(recipient(items), "Owlet", "found by the guild query")
+	check(items[1].recipient.guild, "and offered as a guildmate")
+end)
+
+test("a guildmate you unticked is never offered, however /who finds them", function()
+	local ns = load()
+	seedGuild(ns, { members = {} })
+	ns.Guild:SetIgnored(ns.db.global.guilds[GUILD_KEY], "Bankalt", true)
+	Stub.whoResults = { { name = "Bankalt", level = 48, class = "WARRIOR", guild = "Far Guild" } }
+	local items = atMailbox(ns, { strengthPlate() })
+	equal(recipient(items), nil, "left out")
+	equal(ns.Who:ResultStats().ignoredGuild, 1, "and counted")
+end)
+
+test("a guildmate you unticked stays ignored after the whole guild is unticked", function()
+	local ns = load()
+	seedGuild(ns, { members = {} })
+	local entry = ns.db.global.guilds[GUILD_KEY]
+	ns.Guild:SetIgnored(entry, "Bankalt", true)
+	entry.include = false
+	Stub.whoResults = { { name = "Bankalt", level = 48, class = "WARRIOR", guild = "Far Guild" } }
+	local items = atMailbox(ns, { strengthPlate() })
+	equal(recipient(items), nil, "still left out, not mailed as a stranger")
+	equal(ns.Who:ResultStats().ignoredGuild, 1, "and counted")
+end)
+
+--[[
+	A change on My Guilds reaches players already pooled this session, not only the next search:
+	the pool keeps everybody found until /reload.
+]]
+test("unticking a pooled guildmate takes them off the row at once", function()
+	local ns = load()
+	seedGuild(ns)
+	equal(recipient(atMailbox(ns, { strengthPlate() })), "Guildy", "offered first")
+	memberRow(guildPane(ns), "Guildy").args.include.set(nil, false)
+	equal(recipient(ns.UI:Items()), nil, "gone without a reload")
+end)
+
+test("unticking a guild takes its pooled members off at once", function()
+	local ns = load()
+	seedGuild(ns)
+	equal(recipient(atMailbox(ns, { strengthPlate() })), "Guildy", "offered first")
+	guildPane(ns).include.set(nil, false)
+	equal(recipient(ns.UI:Items()), nil, "gone without a reload")
+end)
+
+test("removing a guild takes its pooled members off at once", function()
+	local ns = load()
+	seedGuild(ns)
+	equal(recipient(atMailbox(ns, { strengthPlate() })), "Guildy", "offered first")
+	guildPane(ns).title.args.remove.func()
+	equal(recipient(ns.UI:Items()), nil, "gone without a reload")
 end)

@@ -223,7 +223,7 @@ ns.Data.FOOD_AND_WATER = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, TBC Anniversary 2.5.6.70577
+	2026-11-11, TBC Anniversary 2.5.6.70577
 
 Notes
 	- Food and drink a player can give away: Food & Drink consumables that restore health, mana

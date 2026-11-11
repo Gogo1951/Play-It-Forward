@@ -192,7 +192,7 @@ ns.Data.SPECS = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, TBC Anniversary 2.5.6.70577
+	2026-11-11, TBC Anniversary 2.5.6.70577
 
 Notes
 	- Every spec this client has, in talent-tab order, as the player levelling it. Read by

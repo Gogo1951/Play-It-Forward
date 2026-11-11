@@ -146,14 +146,11 @@ function ns.BuildGiveAwayOptions()
 
 		--[[
 			The Distribute Gear shape again: one setting, so the toggle is its caption with the
-			select beside it. The characters are read each time the panel draws, so one that just
-			logged in for the first time is there.
+			select beside it, and no header or paragraph of its own -- the tooltip carries the
+			explanation, as Distribute Gear's does. The characters are read each time the panel
+			draws, so one that just logged in for the first time is there.
 		]]
-		spacerDisenchant0 = ns.OptionsSpacer(20),
-		headerDisenchant = ns.OptionsHeader(L["OPTIONS_DISENCHANT_HEADER"], 21),
-		spacerDisenchant1 = ns.OptionsSpacer(22),
-		descDisenchant = ns.OptionsDesc(L["OPTIONS_DISENCHANT_DESCRIPTION"], 23),
-		spacerDisenchant2 = ns.OptionsSpacer(24),
+		spacerDisenchant = ns.OptionsSpacer(20),
 		toggleDisenchant = ns.OptionsProfileToggle(
 			"disenchantUnmatched",
 			L["OPTIONS_DISENCHANT_SEND"],

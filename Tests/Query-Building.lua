@@ -244,7 +244,7 @@ test("a single tight band is one zone query", function()
 end)
 
 --[[
-	The ladder, in order. The levelling zones first, because somebody out there at their own
+	The ladder, in order. The leveling zones first, because somebody out there at their own
 	level is who a gift is for; then bare levels, the fallback that fills a press but reaches
 	the capitals and dungeons too; then a class at a time, for a class the cap crowded out.
 ]]

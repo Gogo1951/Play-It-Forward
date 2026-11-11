@@ -6,7 +6,7 @@ local _, ns = ...
 	ns.Matcher and reads these.
 
 	Load order is not load-bearing except where a table is read as this file loads: the stat
-	weights below read the flavor folder's TALENT_TREES, and COLUMN reads WEAPON_CLASS_ORDER, so
+	weights below read the flavor folder's ns.Data.SPECS, and COLUMN reads WEAPON_CLASS_ORDER, so
 	this file comes after the whole Data block.
 ]]
 

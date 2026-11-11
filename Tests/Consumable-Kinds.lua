@@ -136,3 +136,46 @@ test("a soulbound consumable is held back as SOULBOUND", function()
 	equal(record, nil, "a bound water is not listed, since the mail would refuse it")
 	equal(reason, ns.Scanner.REJECT.SOULBOUND, "and the reason says why")
 end)
+
+test("a food that needs a faction standing is held back as REPUTATION_LOCKED", function()
+	local ns = load()
+	local Stub = Harness.Stub
+	local biscuit = row(ns.Data.FOOD_AND_WATER, "BOTH")
+	Stub.playerLevel = 60
+	ns.db.profile.consumableLevelGap = 0
+	local def = Stub.Item({
+		id = biscuit[1],
+		name = "Enriched Manna Biscuit",
+		quality = 1,
+		classID = 0,
+		bindType = 0,
+		tooltipLines = {
+			"Enriched Manna Biscuit",
+			"Requires Level 45",
+			"|cffff2020Requires Argent Dawn - Friendly|r",
+			"Use: Restores 2148 health and 4410 mana over 30 sec.",
+		},
+	})
+	Stub.SetBackpack({ def })
+
+	local record, reason = ns.Scanner:Classify(0, 1)
+	equal(record, nil, "not listed, since most recipients could not eat it")
+	equal(reason, ns.Scanner.REJECT.REPUTATION_LOCKED, "and the reason says why")
+	equal(#ns.Scanner:Scan(), 0, "so it stays in the bags")
+end)
+
+test("a level or skill requirement is not a faction standing", function()
+	local ns = load()
+	local line = ns.Tooltip:ReputationFromLines({
+		"Some Food",
+		"Requires Level 45",
+		"Requires Cooking (300)",
+		"Use: Restores 2148 health over 30 sec.",
+	})
+	equal(line, nil, "no reputation line found")
+	equal(
+		ns.Tooltip:ReputationFromLines({ "Some Juice", "Requires Sha'tari Skyguard - Friendly" }),
+		"Requires Sha'tari Skyguard - Friendly",
+		"while a faction line is"
+	)
+end)

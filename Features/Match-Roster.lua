@@ -90,10 +90,12 @@ function MatchList:AddResults(results)
 				local entryChanged = false
 				if person.alt and not known.alt then
 					known.alt = true
+					known.altKey = known.altKey or person.altKey
 					entryChanged = true
 				end
 				if person.guild and not known.guild then
 					known.guild = true
+					known.guildName = person.guildName
 					entryChanged = true
 				end
 				if type(person.level) == "number" and person.level > (known.level or 0) then
@@ -128,6 +130,35 @@ function MatchList:AddResults(results)
 		poolsGeneration = poolsGeneration + 1
 	end
 	return changed
+end
+
+--[[
+	Guild state is read only as a player enters the pool, so a change on My Guilds -- a member or a
+	whole guild unticked, a guild removed -- would otherwise reach nobody already pooled until a
+	/reload. Asks the same lookup /who answers go through and drops anyone it no longer calls a
+	guildmate, or calls ignored. Dropped rather than demoted: a roster member was never found by
+	/who, so is not a stranger anybody searched for, and /who can pool them again as one.
+]]
+function MatchList:RecheckGuildmates()
+	local guildOf = ns.Guild:WhoLookup()
+	local dropped = 0
+	for _, pool in pairs(pools) do
+		for index = #pool, 1, -1 do
+			local person = pool[index]
+			if person.guild and not person.alt and person.guildName then
+				local guildmate, ignored = guildOf(person.guildName, person.name)
+				if ignored or not guildmate then
+					table.remove(pool, index)
+					seenPlayer[ns.QualifyPlayerName(person.name) or person.name] = nil
+					dropped = dropped + 1
+				end
+			end
+		end
+	end
+	if dropped > 0 then
+		poolsGeneration = poolsGeneration + 1
+	end
+	return dropped
 end
 
 -- How many candidates the level floor turned away this session, for the roster report.

@@ -16,7 +16,7 @@ local GetColor = ns.GetColor
 ]]
 local WIDGET = "PlayItForwardBadgePreview"
 local PAD = 8
-local COLUMN_GAP = 20
+local COLUMN_GAP = 16
 local LINE_GAP = 2
 
 local BACKDROP_TEMPLATE = ns.PickTemplate("TooltipBackdropTemplate", "BackdropTemplate")

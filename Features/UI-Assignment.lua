@@ -17,12 +17,16 @@ local Picker = ns.Picker
 	frame. Nobody is hidden and nobody is gated: the notes beside a name ("has one", "refused",
 	"recent") are information for the player's judgment, and every candidate can be picked.
 
-	THREE BLOCKS, divided by a hairline:
-	  1. The names, grouped under Your Alts, Your Guild and Strangers and indented beneath each
+	FOUR BLOCKS, divided by a hairline:
+	  1. Why the row reads as it does (UI:PickerHeader): how many candidates and the classes it
+	     best fits, or the reason nobody can be offered it. The button itself has no hover tooltip;
+	     opening the list is how the player gets to the reasoning, right beside the names.
+	  2. The names, grouped under Your Alts, Your Guild and Strangers and indented beneath each
 	     heading, an empty group left out. Your alts read alphabetically: they are your own
 	     characters, found by name. The other two keep ranked order, best match first.
-	  2. What to do instead of giving it away: Disenchant, on any gear row, and Keep Item.
-	  3. Rescan for Better Match, a targeted search for this one item.
+	  3. What to do instead of giving it away: Disenchant, on any gear row, and Keep Item.
+	  4. Rescan for Better Match, a targeted search for this one item. Left out where it cannot
+	     help (UI:RescanCanHelp), since the press would spend a /who on names nobody could pick.
 ]]
 local SECTIONS = {
 	{ rank = 1, key = "PICKER_SECTION_ALTS", alphabetical = true },
@@ -52,30 +56,142 @@ local function DisenchantOption(item)
 	local enchanter = ns.Alts:DisenchantRecipient()
 	if not enchanter then
 		return {
-			text = UI.DISENCHANT_ICON .. " " .. L["PICKER_DISENCHANT_OPTION"],
+			text = UI.DISENCHANT_ICON .. " " .. ns.DisenchantName(),
 			tooltip = L["PICKER_DISENCHANT_NONE_DESCRIPTION"],
 			disabled = true,
 		}
 	end
 	return {
-		text = UI.DISENCHANT_ICON .. " " .. L["PICKER_DISENCHANT_OPTION"],
+		text = UI.DISENCHANT_ICON .. " " .. ns.DisenchantName(),
 		tooltip = L["PICKER_DISENCHANT_DESCRIPTION"]:format(ns.ColorName(enchanter.name, enchanter.class)),
 		pick = enchanter,
 	}
 end
 
+--[[
+	Whether a targeted search could put a stranger on this row: Matcher:RankCandidates places
+	strangers only from admitted classes, and an unreadable item admits nobody whatever it lists
+	as eligible. Shared with UI:FindRecipientsForItem, so the entry and the press cannot disagree.
+]]
+function UI:RescanCanHelp(item)
+	if item.state == ns.Matcher.UNREADABLE then
+		return false
+	end
+	local verdict = item.verdict or ns.Matcher:VerdictFor(item)
+	return #((verdict and verdict.admitted) or {}) > 0
+end
+
+-- A shortlist, never the whole field: past three names the line stops saying who it is for.
+local BEST_FIT_MAX = 3
+
+--[[
+	The classes the verdict ranks highest for this item, best first, so a match shows its
+	reasoning. Read from the contenders, never the eligible list: every class can wear cloth, but
+	healing pants are a priest's. Gear ranks by fit and then by how close the class is to the
+	armor type. A consumable has no ranking, so one that suits more than three classes equally
+	shows no line rather than three picked at random. Class names come from the client.
+]]
+function UI:BestFitLine(item)
+	local verdict = item.verdict
+	local contenders = verdict and verdict.contenders or {}
+	if #contenders == 0 then
+		return nil
+	end
+	local ranked = {}
+	for index, class in ipairs(contenders) do
+		ranked[index] = class
+	end
+	if item.kind == "consumable" then
+		if #ranked > BEST_FIT_MAX then
+			return nil
+		end
+	else
+		local order = {}
+		for index, class in ipairs(contenders) do
+			order[class] = index
+		end
+		local fits = verdict.fits or {}
+		table.sort(ranked, function(a, b)
+			if (a == verdict.best) ~= (b == verdict.best) then
+				return a == verdict.best
+			end
+			if (fits[a] or 0) ~= (fits[b] or 0) then
+				return (fits[a] or 0) > (fits[b] or 0)
+			end
+			local tierA, tierB = ns.Matcher:Priority(item, a), ns.Matcher:Priority(item, b)
+			if tierA ~= tierB then
+				return tierA < tierB
+			end
+			return order[a] < order[b]
+		end)
+	end
+	local names = {}
+	local body = GetColor("BODY")
+	for index = 1, math.min(BEST_FIT_MAX, #ranked) do
+		local class = ranked[index]
+		local name = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[class]) or class
+		names[#names + 1] = ns.ColorName(name, class) .. body
+	end
+	return L["TOOLTIP_RECIPIENT_BEST_FIT"]:format(table.concat(names, ", "))
+end
+
+--[[
+	The list's opening lines, in the body color. A Kept row going to your enchanter, an unreadable
+	row and a Kept row no class can take each say why in one line, since no count or class list
+	applies to them. Every other row gives its candidate count and level band, then the classes
+	it suits best, a row the player sent to Disenchant by hand included.
+]]
+function UI:PickerHeader(item)
+	local body = GetColor("BODY")
+	if item.recipient and item.recipient.disenchant and item.state == ns.Matcher.LEFTOVER then
+		local who = ns.ColorName(item.recipient.name, item.recipient.class) .. body
+		return { L["TOOLTIP_RECIPIENT_DISENCHANT"]:format(who) }
+	end
+	if item.state == ns.Matcher.UNREADABLE then
+		return { L["ITEM_STATS_UNREADABLE"] }
+	end
+	if item.state == ns.Matcher.LEFTOVER and not self:RescanCanHelp(item) then
+		return { L["TOOLTIP_RECIPIENT_KEPT"] }
+	end
+	local lines = {
+		L["TOOLTIP_RECIPIENT_CANDIDATES"]:format(#self:Candidates(item), item.bandLo or 0, item.bandHi or 0),
+	}
+	local bestFit = self:BestFitLine(item)
+	if bestFit then
+		lines[#lines + 1] = bestFit
+	end
+	return lines
+end
+
+--[[
+	The line an empty list shows, or nil when the header already said why. Each cause names the one
+	thing that can change it: a search for a row still waiting, the Rescan below for a Kept row
+	some class could still take. Find Recipients never fills a Kept row, so a Kept row never
+	points there.
+]]
+local function EmptyLine(item)
+	if item.state == ns.Matcher.UNREADABLE then
+		return nil
+	end
+	if item.state == ns.Matcher.LEFTOVER then
+		return UI:RescanCanHelp(item) and L["PICKER_NONE_KEPT"] or nil
+	end
+	return L["PICKER_NONE_IN_RANGE"]
+end
+
 function UI:PickerOptions(item)
 	local options = {}
 
+	local body = GetColor("BODY")
+	for _, line in ipairs(self:PickerHeader(item)) do
+		table.insert(options, { text = body .. line .. "|r", info = true, disabled = true })
+	end
+	table.insert(options, { separator = true, disabled = true })
+
 	local candidates = self:Candidates(item)
-	if #candidates == 0 then
-		-- An empty list has two causes and only one is fixed by querying again, so say which.
-		table.insert(options, {
-			text = GetColor("TITLE")
-				.. ((item.state == ns.Matcher.UNREADABLE) and L["ITEM_STATS_UNREADABLE"] or L["PICKER_NONE_IN_RANGE"])
-				.. "|r",
-			disabled = true,
-		})
+	local empty = (#candidates == 0) and EmptyLine(item)
+	if empty then
+		table.insert(options, { text = GetColor("TITLE") .. empty .. "|r", info = true, disabled = true })
 	end
 
 	local bySection = {}
@@ -108,7 +224,10 @@ function UI:PickerOptions(item)
 		end
 	end
 
-	table.insert(options, { separator = true, disabled = true })
+	-- Skipped when nothing came between it and the header's own.
+	if not options[#options].separator then
+		table.insert(options, { separator = true, disabled = true })
+	end
 	local disenchant = DisenchantOption(item)
 	if disenchant then
 		table.insert(options, disenchant)
@@ -119,11 +238,13 @@ function UI:PickerOptions(item)
 		clear = true,
 	})
 
-	table.insert(options, { separator = true, disabled = true })
-	table.insert(options, {
-		text = GetColor("INFO") .. L["PICKER_FIND_FOR_ITEM"] .. "|r",
-		findForItem = true,
-	})
+	if self:RescanCanHelp(item) then
+		table.insert(options, { separator = true, disabled = true })
+		table.insert(options, {
+			text = GetColor("INFO") .. L["PICKER_FIND_FOR_ITEM"] .. "|r",
+			findForItem = true,
+		})
+	end
 
 	return options
 end

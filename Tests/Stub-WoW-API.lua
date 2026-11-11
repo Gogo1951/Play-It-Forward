@@ -54,6 +54,14 @@ local function newStub(numeric)
 				rawset(self, key, setter)
 				return setter
 			end
+			-- Reads back what SetText kept, so code that reads a box sees what was written to it.
+			if key == "GetText" then
+				local getter = function(this)
+					return rawget(this, "shownText") or ""
+				end
+				rawset(self, key, getter)
+				return getter
+			end
 			local child = newStub(NUMERIC[key])
 			rawset(self, key, child)
 			return child
@@ -479,6 +487,12 @@ function Stub.Install()
 	ITEM_QUALITY2_DESC = "Uncommon"
 	ITEM_QUALITY3_DESC = "Rare"
 	ITEM_QUALITY4_DESC = "Epic"
+	-- The prefixes the stat reader skips: a use, a proc or a set bonus is not a stat.
+	ITEM_SPELL_TRIGGER_ONUSE = "Use:"
+	ITEM_SPELL_TRIGGER_ONPROC = "Chance on hit:"
+	ITEM_SET_BONUS = "Set: %s"
+	-- The faction-standing line Features/Scan-Tooltip.lua holds a consumable back on.
+	ITEM_REQ_REPUTATION = "Requires %s - %s"
 
 	ITEM_MOD_STRENGTH_SHORT = "Strength"
 	ITEM_MOD_AGILITY_SHORT = "Agility"
@@ -587,7 +601,12 @@ function Stub.Install()
 	end
 
 	-- The Diagnostics validator resolves its spell and quest readers at load; absent ones leave blank cells.
-	C_Spell = {}
+	-- The one spell the add-on names, by the ID in each flavor folder's Game-IDs file.
+	C_Spell = {
+		GetSpellName = function(spellID)
+			return ({ [13262] = "Disenchant" })[spellID]
+		end,
+	}
 	C_QuestLog = {}
 
 	C_Item = {
@@ -900,6 +919,8 @@ function Stub.Install()
 					holding an item, which only the placement cases want.
 				]]
 				area = person.area,
+				-- The guild a result is in, by name; unset is none.
+				fullGuildName = person.guild,
 			}
 		end,
 	}

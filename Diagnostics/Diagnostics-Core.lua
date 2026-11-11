@@ -119,7 +119,7 @@ ns.DiagnosticsStrings = {
 		.. TITLE
 		.. " relies on is present on this client.",
 	CODE_RUN_ALL = "Run All Code Reports",
-	DATA_INTRO = "Checks every item and zone the add-on ships against this client. Paste a result into a spreadsheet and sort by STATUS to find what needs pruning.",
+	DATA_INTRO = "Checks every item, spell and zone the add-on ships against this client. Paste a result into a spreadsheet and sort by STATUS to find what needs pruning.",
 	DATA_RUN_ALL = "Validate All Data Files",
 	LOCALIZATION_INTRO = "Playing in a language other than English and a name or prompt reads wrong? These show what your client calls everything "
 		.. TITLE
@@ -157,6 +157,7 @@ ns.DiagnosticsStrings = {
 	WHO_LABEL_IN_ZONE = "%s (%s)",
 	WHO_LABEL_ZONES = "%d zones (%s)",
 	WHO_LABEL_ANYWHERE = "anywhere (%s)",
+	WHO_LABEL_GUILD = "<%s> (%s)",
 	WHO_LABEL_FOR_CLASSES = "%s, for %s",
 	VALIDATE_TITLE = "Validate Data: %s",
 	VALIDATE_DESCRIPTION = "Checks every id in this data file against this client and exports the results as tab-separated text.",

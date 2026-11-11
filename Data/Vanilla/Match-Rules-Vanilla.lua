@@ -203,7 +203,7 @@ ns.Data.ITEM_RULES = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, Classic Era 1.15.9.70576
+	2026-11-11, Classic Era 1.15.9.70576
 
 Notes
 	- Stat combinations that name their own class, on top of the talent-tree points in

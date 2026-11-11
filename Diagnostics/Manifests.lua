@@ -249,6 +249,37 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return false, "neither GetNormalizedRealmName nor GetRealmName answered"
 		end,
 	},
+	--[[
+		The other half of the identity key, and the name your own characters are told apart from
+		strangers by: ns.PlayerName reads "First Last" where the client names characters that way
+		(WoW Forever) and the bare name everywhere else. Reports which route answered.
+	]]
+	{
+		"This character's name as mail addresses it",
+		function()
+			local name = ns.PlayerName()
+			if not name or name == "" then
+				return false, "no name answered"
+			end
+			if not ns.UsesSurnames() then
+				return true, "via UnitName, no surnames on this client"
+			end
+			if not UnitNameUnmodified then
+				return false, "surnames on, but no UnitNameUnmodified: the first name alone"
+			end
+			if not name:find(" ", 1, true) then
+				return false, "surnames on, but UnitNameUnmodified gave no surname: the first name alone"
+			end
+			return true, "via UnitNameUnmodified, with surnames"
+		end,
+	},
+	-- The Disenchant label on the window's tick, its section band and the picker; blank without it.
+	{
+		"C_Spell.GetSpellName",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.GetSpellName) == "function"
+		end,
+	},
 	{
 		"C_FriendList.SendWho",
 		function()
@@ -1151,6 +1182,23 @@ function ns:BuildMailboxReport()
 	)
 	lines[#lines + 1] = "items holding a recipient = " .. holding
 	lines[#lines + 1] = "items ticked to send = " .. ticked
+	--[[
+		Kept gear opens the window only while Disenchant Unmatched Gear has a character to mail it
+		to, so a mailbox holding nothing but Kept rows opens or not on these two reads.
+	]]
+	local enchanter = ns.db and ns.db.profile.disenchantUnmatched and ns.Alts:Disenchanter()
+	local disenchantable = 0
+	for _, item in ipairs(items) do
+		if item.send and ns.MatchList:Disenchantable(item) then
+			disenchantable = disenchantable + 1
+		end
+	end
+	lines[#lines + 1] = string.format(
+		"disenchant unmatched gear = %s, to %s, kept gear ticked for it = %d",
+		tostring((ns.db and ns.db.profile.disenchantUnmatched) == true),
+		tostring(enchanter or "nobody"),
+		disenchantable
+	)
 	lines[#lines + 1] = "list is stale, rescans at the next mailbox = " .. tostring(ns.MatchList:IsStale() == true)
 	--[[
 		False while a mail run is busy, or the window is shut with no mailbox waiting on it: a loot
@@ -1531,7 +1579,7 @@ function ns:BuildRosterReport()
 	-- Who Kept gear is mailed to, of the characters in reach here; nobody when none is picked.
 	local enchanterKey = ns.Alts:Disenchanter()
 	lines[#lines + 1] = string.format(
-		"Disenchant Unmatched Items %s, to %s (%d in reach).",
+		"Disenchant Unmatched Gear %s, to %s (%d in reach).",
 		tostring(profile.disenchantUnmatched == true),
 		enchanterKey or "nobody",
 		#ns.Alts:DisenchantChoices()
@@ -1558,26 +1606,40 @@ function ns:BuildRosterReport()
 		client
 	)
 
-	-- Saved guilds, the third source: what each one is and whether this character can read it.
+	--[[
+		Saved guilds, the third source: what each one is and whether this character can read it. A
+		guild added by name on My Guilds has no roster until one of your characters joins it, and
+		is searched by a g-"Name" /who query instead, so it says so rather than reading as empty.
+	]]
 	local saved = ns.db and ns.db.global.guilds or {}
 	local savedCount = 0
 	for key, entry in pairs(saved) do
 		savedCount = savedCount + 1
 		local usable, why = ns.Guild:Usable(entry)
-		lines[#lines + 1] = string.format(
-			"  Saved guild %s: %d members, %d active, saved %ds ago by %s; %s.",
-			key,
-			#(entry.members or {}),
-			ns.Guild:ActiveCount(entry),
-			time() - (entry.scanned or 0),
-			tostring(entry.scannedBy),
-			key == ns.Guild:CurrentKey() and "current, read live"
-				or (usable and "read" or ("skipped, " .. tostring(why)))
-		)
+		local standing = key == ns.Guild:CurrentKey() and "current, read live"
+			or (usable and "read" or ("skipped, " .. tostring(why)))
+		if ns.Guild:ByNameOnly(entry) then
+			lines[#lines + 1] = string.format(
+				"  Saved guild %s: added by name, no roster; %s.",
+				key,
+				usable and "searched with /who" or ("skipped, " .. tostring(why))
+			)
+		else
+			lines[#lines + 1] = string.format(
+				"  Saved guild %s: %d members, %d active, saved %ds ago by %s; %s.",
+				key,
+				#(entry.members or {}),
+				ns.Guild:ActiveCount(entry),
+				time() - (entry.scanned or 0),
+				tostring(entry.scannedBy),
+				standing
+			)
+		end
 	end
 	lines[#lines + 1] = string.format(
-		"Saved guilds: %d, ignoring members offline longer than %s.",
+		"Saved guilds: %d, %d searched by name, ignoring members offline longer than %s.",
 		savedCount,
+		#ns.Guild:SearchNames(),
 		tostring(profile.guildOfflineLimit)
 	)
 
@@ -1876,6 +1938,11 @@ function ns:BuildGenerosityReport()
 	local gifts, items, itemLevels, value = ns.Generosity:Get()
 	lines[#lines + 1] =
 		string.format("my totals: gifts=%d items=%d itemLevels=%d value=%d", gifts, items, itemLevels, value)
+	--[[
+		The key a broadcast of ours is recognized by when it comes back, the same one the handler
+		builds. Your own name in the list below means the two did not match.
+	]]
+	lines[#lines + 1] = "my identity key = " .. tostring(ns.QualifyPlayerName(ns.PlayerName()))
 	lines[#lines + 1] = ""
 
 	--[[
@@ -1951,7 +2018,8 @@ end
 	NIL here is a name that feature cannot show or match on this client. The rows are built here
 	from the add-on's own data, so a stat, class, spec or area added there gets its row without an edit
 	here. Classes are every one either faction can roll on this client, since the faction gate is
-	not known at load. The add-on names no items or spells by ID, so no row waits on a load.
+	not known at load. The one spell named by ID, Disenchant, is read straight from the client's
+	spell data, and the add-on names no items by ID, so no row waits on a load.
 ]]
 local function UiLabel(constant)
 	return {
@@ -1994,6 +2062,16 @@ ns.DIAGNOSTIC_NAME_LOOKUPS = {
 	-- The role labels on the Recipients panel's Tank and Healer spec tooltips.
 	UiLabel("TANK"),
 	UiLabel("HEALER"),
+	-- The Disenchant tick, section band and picker row, through ns.DisenchantName.
+	{
+		constant = "SPELL_IDS.DISENCHANT",
+		kind = "spell",
+		id = ns.Data.SPELL_IDS.DISENCHANT,
+		lookup = function()
+			local name = ns.DisenchantName()
+			return name ~= "" and name or nil
+		end,
+	},
 }
 
 -- The stat names Features/Scan-Tooltip.lua reads a "+9 Intellect" line by.
@@ -2084,9 +2162,16 @@ AreaRows("ns.Data.INSTANCE_AREAS", ns.Data.INSTANCE_AREAS, 1)
 	Scan-Stats and Recipients-Realms are keyed by tokens, stat globals, subclass numbers and realm
 	names no client API looks up by ID, so they are "other" rows: each table's row count, and
 	TABLE MISSING when this client's folder never built it.
+
+	Game-IDs is { [constant] = spellId }, so each value is the id, checked as a spell.
 ]]
 local function FirstField(_, row)
 	return type(row) == "table" and row[1] or nil
+end
+
+-- For a map whose values are the IDs themselves: Game-IDs' { [constant] = spellId }.
+local function RowValue(_, row)
+	return type(row) == "number" and row or nil
 end
 
 local function RowField(position)
@@ -2213,6 +2298,12 @@ ns.DIAGNOSTIC_DATA_SOURCES = {
 		sources = {
 			{ table = "FACTION_CLASSES", kind = "other" },
 			{ table = "CONSUMABLE_CLASSES", kind = "other" },
+		},
+	},
+	{
+		label = "Game-IDs",
+		sources = {
+			{ table = "SPELL_IDS", kind = "spell", rowId = RowValue },
 		},
 	},
 }

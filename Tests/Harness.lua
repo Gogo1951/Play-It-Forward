@@ -43,6 +43,8 @@ local FILES = {
 	"Features/Mail-Copy.lua",
 	"Features/UI-Picker.lua",
 	"Features/UI-Window.lua",
+	"Features/UI-Top-Bar.lua",
+	"Features/UI-Status.lua",
 	"Features/UI-Assignment.lua",
 	"Features/UI-Mailbox.lua",
 	"Features/UI-Reopen-Button.lua",
@@ -90,6 +92,7 @@ local FLAVOR_TABLES = {
 	"Match-Specs",
 	"Match-Rules",
 	"Scan-Stats",
+	"Game-IDs",
 }
 
 local function flavorFiles(flavor)

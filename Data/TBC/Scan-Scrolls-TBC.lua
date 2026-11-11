@@ -47,7 +47,7 @@ ns.Data.SCROLLS = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, TBC Anniversary 2.5.6.70577
+	2026-11-11, TBC Anniversary 2.5.6.70577
 
 Notes
 	- The six stat scroll lines: Strength, Agility, Stamina, Intellect, Spirit and Protection.
