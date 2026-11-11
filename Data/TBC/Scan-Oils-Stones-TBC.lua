@@ -37,7 +37,7 @@ ns.Data.OILS_AND_STONES = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, TBC Anniversary 2.5.6.70577
+	2026-11-11, TBC Anniversary 2.5.6.70577
 
 Notes
 	- The oils, sharpening stones and weightstones any class can put on a weapon, taken from

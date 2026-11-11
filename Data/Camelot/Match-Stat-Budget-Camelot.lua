@@ -29,7 +29,7 @@ ns.Data.STAT_BUDGET = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, WoW Forever 1.60.1.70450
+	2026-11-11, WoW Forever 1.60.1.70888
 
 Notes
 	- What one point of each stat costs on an item, in primary-stat points, so a weight

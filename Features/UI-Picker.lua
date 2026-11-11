@@ -2,13 +2,13 @@ local _, ns = ...
 
 -- The recipient dropdown, reused by the rarity and level-rule controls. The UI files call in through ns.Picker.
 
-local ENTRY_HEIGHT = 18
+local ENTRY_HEIGHT = 16
 -- How far a name sits in from its section heading.
-local ENTRY_INDENT = 14
-local PICKER_MIN_WIDTH = 190
+local ENTRY_INDENT = 16
+local PICKER_MIN_WIDTH = 192
 local PICKER_MAX = 240 -- max picker height before the list scrolls
 -- Wider runs off the screen, and SetClampedToScreen shoves the list back over its own button.
-local PICKER_MAX_WIDTH = 360
+local PICKER_MAX_WIDTH = 352
 
 local POPUP_TEMPLATE = ns.PickTemplate("TooltipBorderedFrameTemplate", "BackdropTemplate")
 
@@ -118,7 +118,7 @@ function Picker:GetEntry(i)
 	--[[
 		Anchored on both sides: with only a LEFT anchor a font string draws at whatever width its
 		text wants and runs out of the list. SetWordWrap(false) ellipsizes rather than wrapping into
-		a second line inside an 18-pixel row.
+		a second line inside a 16-pixel row.
 	]]
 	entry.text = entry:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	entry.text:SetPoint("LEFT", 4, 0)
@@ -145,7 +145,8 @@ end
 
 --[[
 	options = { { text = "...", tooltip = "..."|nil, pick = candidate|nil,
-	clear/disabled/separator/header/findForItem/indent = bool }, ... }
+	clear/disabled/separator/header/info/findForItem/indent = bool }, ... }
+	info is a line of explanation at the top of the list: not clickable, drawn at full strength.
 ]]
 function Picker:Open(anchor, options, onSelect)
 	local frame = self:Build()
@@ -178,14 +179,21 @@ function Picker:Open(anchor, options, onSelect)
 		else
 			entry.line:Hide()
 		end
-		-- An entry that will not respond to a click has to look like it; a divider or a section heading is furniture.
-		entry:SetAlpha((option.disabled and not option.separator and not option.header) and 0.45 or 1)
+		-- An entry that will not respond to a click has to look like it; a divider, a heading or an info line is furniture.
+		local furniture = option.separator or option.header or option.info
+		entry:SetAlpha((option.disabled and not furniture) and 0.45 or 1)
 		entry:SetScript("OnClick", function()
 			if option.disabled then
 				return
 			end
-			Picker:Close()
+			--[[
+				The pick runs before the list closes, never after. "Rescan for Better Match"
+				sends SendWho straight from this click, and on WoW Forever hiding the list and its
+				click catcher first left the call blocked (issue #16). The Find Recipients button,
+				which works, sends with nothing hidden in between.
+			]]
 			onSelect(option)
+			Picker:Close()
 		end)
 		-- Entries are pooled, so one without a tooltip clears the scripts the last list gave it.
 		if option.tooltip then

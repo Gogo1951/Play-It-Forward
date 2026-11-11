@@ -27,8 +27,6 @@ L["CHAT_OPTIONS_IN_COMBAT"] = "안전을 위해 전투 중에는 설정 창을 �
 ]]
 L["WINDOW_GEAR_LABEL"] = "장비"
 L["WINDOW_CONSUMABLES_LABEL"] = "소모품"
--- Under Gear: the twin of Disenchant Unmatched Items, with your enchanter's name beside it.
-L["WINDOW_DISENCHANT_LABEL"] = "마력 추출"
 -- In the enchanter dropdown while no character is picked, and in its list while none exists.
 L["WINDOW_DISENCHANT_PICK"] = "캐릭터 선택"
 L["WINDOW_DISENCHANT_NONE"] = "각 캐릭터는 Play It Forward를 사용해 접속하면 여기에 표시됩니다."
@@ -57,21 +55,22 @@ L["BUTTON_SENDING"] = "보내는 중..."
 	nothing is being sent when it prints. SendWho only answers from a real button press, so a
 	blocked call is explained instead of reading as a dead press.
 ]]
--- From Find Recipients for This Item, pressed while the last search is still out or throttled.
+-- From Rescan for Better Match, pressed while the last search is still out or throttled.
 L["WHO_WAIT"] =
 	"%d초 후 다시 검색합니다. 버튼에 받을 사람 찾기가 표시되면 다시 시도하세요."
 L["WHO_BLOCKED"] =
 	"받을 사람 찾기를 다시 누르세요. Blizzard는 버튼을 직접 눌렀을 때만 이 검색을 허용하는데, 이번에는 무언가가 방해했습니다."
 
--- On the button beside Blizzard's mail frame that brings the closed window back.
-L["REOPEN_TOOLTIP"] = "가방에서 나눠 줄 수 있는 것을 보여 줍니다."
+-- The menu under the button beside Blizzard's mail frame, which brings the closed window back.
+L["REOPEN_MENU_OPEN"] = "나눠 주기 창 열기"
+L["REOPEN_MENU_OPTIONS"] = "설정"
 
 -- In the list while it is empty.
 L["WINDOW_EMPTY"] = "더 이상 나눠 줄 것이 없습니다."
 L["WINDOW_EMPTY_HINT"] = "더 보려면 위의 설정을 바꾸세요."
 
 --[[
-	The line above the two buttons: always the next step. One line 622 points wide, cut short
+	The line above the two buttons: always the next step. One line 624 points wide, cut short
 	rather than wrapped, so keep translations about this long.
 ]]
 L["STATUS_START"] = "받을 사람 찾기를 눌러 아이템 %d개를 받을 플레이어를 찾으세요."
@@ -81,6 +80,9 @@ L["STATUS_DONE"] =
 L["STATUS_READY"] = "나눠 주기를 눌러 아이템 %d개를 보내세요."
 L["STATUS_AWAY"] = "아이템 %d개를 보내려면 우편함을 여세요."
 L["STATUS_SENDING"] = "%d/%d 보내는 중. 각 확인 창에서 수락을 클릭하세요."
+-- Only Kept gear is left and Disenchant is off: the one switch that sends it anywhere.
+L["STATUS_KEPT_DISENCHANT"] =
+	"보낼 것이 없습니다. 남은 장비를 마법부여사에게 보내려면 위에서 마력 추출을 체크하세요."
 
 L["SECTION_MATCHED"] = "배정됨"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
@@ -91,12 +93,13 @@ L["SECTION_UNREADABLE"] = "능력치를 읽을 수 없음"
 	"Kept", never "vendor / disenchant": the add-on does not tell the player what to do with what
 	stays. Covers the leftover rows: items no class wants, or that score too low to be worth sending.
 	A Kept gear row only goes to be disenchanted when the player turned on Disenchant Unmatched
-	Items, and then it shows under Matched with the enchanter's name.
+	Gear, and then it moves to its own Disenchant section with the enchanter's name.
 
 	ONE KEY FOR TWO SURFACES, and the only section and row pair that shares one: the band and
-	the row label read the same single word, so two keys could only drift apart. Every other
-	section and row pair deliberately says something different on each -- "Pending Match" over
-	a band of rows that each read "No Recipient".
+	the row label read the same single word, so two keys could only drift apart. Disenchant also
+	reads one word on both, but it is the client's spell name, not a key. Every other section and
+	row pair deliberately says something different on each -- "Pending Match" over a band of rows
+	that each read "No Recipient".
 ]]
 L["WINDOW_KEPT"] = "보관"
 
@@ -107,8 +110,11 @@ L["ROW_UNREADABLE"] = "능력치 읽기 실패"
 
 L["PICKER_KEEP_OPTION"] = "아이템 보관"
 L["PICKER_NONE_IN_RANGE"] = "레벨 범위에 아무도 없습니다. 받을 사람 찾기를 누르세요."
+-- A Kept row some class could still take: Find Recipients never fills one, the per-item search below can.
+L["PICKER_NONE_KEPT"] =
+	"레벨 범위에 아무도 없습니다. 이 아이템의 받을 사람을 찾으려면 아래의 더 나은 받을 사람 다시 찾기를 누르세요."
 --[[
-	KEPT SHORT. A note shares one 18-pixel row with a cross-realm name, a level and a class, and
+	KEPT SHORT. A note shares one 16-pixel row with a cross-realm name, a level and a class, and
 	anything longer is cut off. Notes are information, never gates: every name can be picked.
 ]]
 L["PICKER_NOTE_HAS_ONE"] = "(보유 중)"
@@ -125,28 +131,28 @@ L["PICKER_NOTE_RECENT_DESCRIPTION"] =
 	Below the divider at the bottom of the list: a /who aimed at the classes the verdict says
 	this item is for, their own bands first and the fallbacks a press behind them.
 ]]
-L["PICKER_FIND_FOR_ITEM"] = "이 아이템의 받을 사람 찾기"
+L["PICKER_FIND_FOR_ITEM"] = "더 나은 받을 사람 다시 찾기"
 -- Section headings in the recipient picker, in matching order: your alts, your guild, then everyone else.
 L["PICKER_SECTION_ALTS"] = "내 부캐"
 L["PICKER_SECTION_GUILD"] = "내 길드"
 L["PICKER_SECTION_STRANGERS"] = "낯선 사람"
--- Under the other sections on a Kept gear row, holding the enchanter Disenchant Unmatched Items sends to.
-L["PICKER_SECTION_DISENCHANT"] = "마력 추출"
+-- TRANSLATORS: %s is the enchanter's name, class-colored.
+L["PICKER_DISENCHANT_DESCRIPTION"] = "마력 추출을 위해 이 아이템을 %s에게 보냅니다."
+L["PICKER_DISENCHANT_NONE_DESCRIPTION"] =
+	"창 위쪽에서 마력 추출을 체크하고, 마력 추출할 아이템을 받을 내 캐릭터를 하나 고르세요."
 
--- A heading takes no full stop; every body line under it does.
-L["TOOLTIP_RECIPIENT"] = "받는 사람"
+-- The recipient list's opening lines, above the names. Each is a full sentence with a period.
 L["TOOLTIP_RECIPIENT_CANDIDATES"] = "후보 %d명, 레벨 %d-%d."
-L["TOOLTIP_RECIPIENT_HINT"] = "클릭하여 다시 지정합니다."
 -- TRANSLATORS: %s is one to three class names, comma-separated, each from the game itself.
 L["TOOLTIP_RECIPIENT_BEST_FIT"] = "%s에게 가장 잘 맞습니다."
 --[[
-	In place of the count and hint on a row nobody can ever be offered, where the count is always
-	zero. The unreadable line is also the picker's info line for that row: the add-on's failure,
-	not an empty realm, so Find Recipients is not pressed forever.
+	In place of the count on a row nobody can ever be offered, where the count is always zero. The
+	unreadable line says it is the add-on's failure, not an empty realm, so Find Recipients is not
+	pressed forever.
 ]]
 L["ITEM_STATS_UNREADABLE"] = "이 아이템의 능력치를 읽을 수 없어 배정하지 않습니다."
 L["TOOLTIP_RECIPIENT_KEPT"] = "원하는 직업이 없어 가방에 남겨 둡니다."
--- On a Kept row Disenchant Unmatched Items sent to your enchanter. %s is that character's name.
+-- Opens the list on a Kept row going to your enchanter; a row sent there by hand keeps its count instead. %s is that character's name.
 L["TOOLTIP_RECIPIENT_DISENCHANT"] = "아무도 쓸 수 없어 마력 추출을 위해 %s에게 보냅니다."
 
 -- The row's tick box. Every row starts ticked; unticking keeps the item, and stays unticked.
@@ -170,8 +176,9 @@ L["TOOLTIP_CHECK_UNREADABLE"] = "능력치를 읽을 수 있을 때까지 보낼
 	THE ACTION NAMES A BUTTON, SPELLED OUT. Nothing ties these mentions to the BUTTON_* keys above,
 	so renaming a button here leaves the messages telling the player to press something that is no
 	longer on screen. Change BUTTON_FIND_RECIPIENTS or BUTTON_DISTRIBUTE and read this block through,
-	along with WHO_WAIT, WHO_BLOCKED, STATUS_START, STATUS_MORE, STATUS_READY, PICKER_NONE_IN_RANGE,
-	PICKER_FIND_FOR_ITEM and TOOLTIP_CHECK_SEND above, which name those buttons too.
+	along with WHO_WAIT, WHO_BLOCKED, STATUS_START, STATUS_MORE, STATUS_READY, PICKER_NONE_IN_RANGE
+	and TOOLTIP_CHECK_SEND above and OPTIONS_GUILD_ADD_DESCRIPTION and OPTIONS_GUILD_ADDED below,
+	which name those buttons too. PICKER_NONE_KEPT names PICKER_FIND_FOR_ITEM the same way.
 ]]
 L["MAIL_STILL_SENDING"] = "아직 보내는 중입니다. 잠깐만 기다려 주세요."
 L["MAIL_NOTHING_TO_DISTRIBUTE"] = "나눠 줄 것이 없습니다."
@@ -235,7 +242,7 @@ L["MAIL_POWERED_BY"] = "Powered by Play It Forward, on CurseForge and Wago."
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"더 이상 쓰지 않는 착용 시 귀속 장비, 음식, 물약, 두루마리, 오일, 숫돌을 부캐, 길드원, 레벨업 중인 플레이어에게 우편으로 보내세요. 모든 아이템은 가장 잘 맞는 직업에게 가고, 가방 속 잡동사니가 누군가의 다음 업그레이드가 됩니다. 녹색 아이템 하나씩, 받은 만큼 베푸세요."
+	"더 이상 쓰지 않는 착용 시 귀속 장비, 음식, 물약, 두루마리, 오일, 숫돌을 부캐, 길드원, 레벨업 중인 플레이어에게 우편으로 보내고, 아무도 쓸 수 없는 장비는 마력 추출용으로 마법부여사에게 보내세요. 모든 선물은 가장 잘 맞는 직업에게 갑니다. 녹색 아이템 하나씩, 받은 만큼 베푸세요."
 L["OPTIONS_WELCOME"] = "환영 메시지 사용"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "접속할 때 버전과 설정 안내를 표시합니다."
 
@@ -291,16 +298,15 @@ L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
 	"레벨이 지나 쓰지 않는 무기 오일, 숫돌, 무게추를 제공합니다. 마법사 오일은 주문 시전자에게, 마나 오일은 마나를 쓰는 직업에게, 숫돌과 무게추, 그 밖의 오일은 근접 직업에게 갑니다."
 
 --[[
-	Kept gear mailed to one of your own characters instead of staying in your bags. Gear only:
-	consumables do not disenchant. The dropdown lists every character on this realm or a
-	connected one, on this faction, that has logged in with the add-on.
+	Kept gear mailed to one of your own characters instead of staying in your bags: one toggle with
+	the enchanter beside it, no header, and the explanation in the tooltip. Gear only, consumables do
+	not disenchant, so the label says Gear. The window's Disenchant tick shares the description. The
+	dropdown lists every character on this realm or a connected one, on this faction, that has
+	logged in with the add-on.
 ]]
-L["OPTIONS_DISENCHANT_HEADER"] = "배정되지 않은 아이템 마력 추출"
-L["OPTIONS_DISENCHANT_DESCRIPTION"] =
-	"아무에게도 배정되지 않은 장비를 가방에 남겨 두는 대신 내 캐릭터 중 하나에게 우편으로 보내 마력 추출할 수 있습니다. 이 기능을 켠 다음 받을 캐릭터를 고르세요. 서버와 진영마다 선택이 따로 저장됩니다."
-L["OPTIONS_DISENCHANT_SEND"] = "배정되지 않은 아이템을 마법부여사에게 보내기"
+L["OPTIONS_DISENCHANT_SEND"] = "배정되지 않은 장비 마력 추출"
 L["OPTIONS_DISENCHANT_SEND_DESCRIPTION"] =
-	"아무도 쓸 수 없는 장비를 가방에 남겨 두는 대신 내 캐릭터 중 하나에게 보내 마력 추출합니다. 소모품은 절대 보내지 않습니다."
+	"아무도 쓸 수 없는 장비를 가방에 남겨 두는 대신 내 캐릭터 중 하나에게 우편으로 보내 마력 추출합니다. 서버와 진영마다 선택이 따로 저장됩니다. 소모품은 절대 보내지 않습니다."
 L["OPTIONS_DISENCHANTER_DESCRIPTION"] =
 	"내 마법부여사입니다. 이 서버와 연합 서버에 있는 이 진영의 내 캐릭터 중 Play It Forward를 사용해 접속한 적이 있는 캐릭터가 표시됩니다."
 
@@ -341,6 +347,7 @@ L["OPTIONS_SPECS_INTRO"] =
 	"다른 플레이어의 전문화는 볼 수 없으므로 장비는 아래 가정에 따라 보내집니다. 내 캐릭터는 내 부캐에서 설정한 전문화를 사용합니다."
 L["OPTIONS_SPECS_RESET"] = "기본값 복원"
 L["OPTIONS_SPECS_RESET_DESCRIPTION"] = "모든 전문화를 애드온의 기본 설정으로 되돌립니다."
+L["OPTIONS_SPECS_RESET_CONFIRM"] = "모든 전문화를 애드온의 기본 설정으로 되돌릴까요?"
 -- The damage roles only: Tank and Healer come from the game's TANK and HEALER labels.
 L["ROLE_CASTER"] = "주문 공격"
 L["ROLE_MELEE"] = "근접 공격"
@@ -413,7 +420,7 @@ L["OPTIONS_ALT_LEVEL_LOWEST_DESCRIPTION"] =
 	"이 캐릭터에게 보낼 장비의 최저 레벨입니다. 캐릭터 레벨은 그 레벨보다 낮은 장비를 보내지 않고, 캐릭터 레벨 -2는 지금 착용할 수 있는 2레벨 아래까지의 장비도 보냅니다."
 L["OPTIONS_ALT_LEVEL_HIGHEST"] = "최고"
 L["OPTIONS_ALT_LEVEL_HIGHEST_DESCRIPTION"] =
-	"이 캐릭터에게 보낼 장비의 최고 레벨입니다. 쓸 수 있는 모든 장비는 앞으로 착용하게 될 장비까지 모두 보내므로, 1레벨 사냥꾼도 50레벨 활을 받을 수 있습니다."
+	"이 캐릭터에게 보낼 장비의 최고 레벨입니다. 쓸 수 있는 모든 장비는 앞으로 착용하게 될 장비까지 모두 보내므로, 1레벨 사냥꾼도 50레벨 활을 받을 수 있습니다. 음식, 물약, 두루마리, 오일, 숫돌도 사용할 수 있는 레벨을 기준으로 같은 레벨 범위를 따릅니다."
 L["OPTIONS_ALT_LEVEL_THEIRS"] = "캐릭터 레벨"
 -- TRANSLATORS: %d is 1 to 3.
 L["OPTIONS_ALT_LEVEL_BELOW"] = "캐릭터 레벨 -%d"
@@ -422,7 +429,7 @@ L["OPTIONS_ALT_LEVEL_ANY"] = "쓸 수 있는 모든 장비"
 -- Under the two dropdowns, in real levels at the character's last recorded level.
 L["OPTIONS_ALT_LEVELS_RANGE"] = "%d레벨부터 %d레벨까지의 장비를 보냅니다."
 L["OPTIONS_ALT_LEVELS_FROM"] = "%d레벨 이상의 장비를 보냅니다."
-L["OPTIONS_DELETE"] = "삭제"
+L["OPTIONS_DELETE"] = "목록에서 삭제"
 -- TRANSLATORS: %s is a character's name.
 L["OPTIONS_ALT_DELETE_CONFIRM"] =
 	"%s 캐릭터를 목록에서 삭제할까요? 다음에 접속하면 다시 추가됩니다."
@@ -435,7 +442,7 @@ L["OPTIONS_ALT_DELETE_DESCRIPTION"] =
 
 L["TAB_GUILDS"] = "내 길드"
 L["OPTIONS_GUILDS_INTRO"] =
-	"내 캐릭터가 속한 모든 길드입니다. 캐릭터가 접속할 때마다 저장되므로, 어느 캐릭터로 플레이하든 레벨업 중인 길드원에게 우편을 보낼 수 있습니다."
+	"내 캐릭터가 속한 모든 길드입니다. 캐릭터가 접속할 때마다 저장되므로, 어느 캐릭터로 플레이하든 레벨업 중인 길드원에게 우편을 보낼 수 있습니다. 다른 길드도 이름으로 추가하면 그 길드의 구성원도 길드원으로 취급합니다."
 L["OPTIONS_GUILD_OFFLINE"] = "오프라인 길드원 제외"
 L["OPTIONS_GUILD_OFFLINE_DESCRIPTION"] =
 	"이 기간보다 오래 접속하지 않은 길드원을 건너뜁니다. 지금 속한 길드와 저장된 길드 모두에 적용됩니다. 안 함을 선택하면 얼마나 오래 접속하지 않았든 모두 포함합니다."
@@ -443,8 +450,18 @@ L["OPTIONS_GUILD_OFFLINE_WEEK"] = "1주 넘게 미접속"
 L["OPTIONS_GUILD_OFFLINE_TWO_WEEKS"] = "2주 넘게 미접속"
 L["OPTIONS_GUILD_OFFLINE_NEVER"] = "안 함"
 L["OPTIONS_GUILDS_EMPTY"] =
-	"아직 길드가 없습니다. 길드에 속한 내 캐릭터가 접속하면 여기에 표시됩니다."
-L["OPTIONS_GUILD_INCLUDE"] = "이 길드의 길드원에게 보내기"
+	"아직 길드가 없습니다. 위에서 추가하거나, 길드에 속한 캐릭터로 접속하면 여기에 표시됩니다."
+-- TFTB's Add Guild box, above the list of guilds.
+L["OPTIONS_GUILD_ADD"] = "길드 추가"
+L["OPTIONS_GUILD_ADD_DESCRIPTION"] =
+	"길드 이름을 입력한 뒤 Enter 키를 누르세요. 여러 길드는 쉼표로 구분합니다. 대소문자는 상관없습니다. 받을 사람 찾기를 누르면 이 서버와 진영에서 접속 중인 길드원을 찾으며, 이들은 낯선 사람보다 먼저 받습니다."
+-- The remove icon beside a guild's name.
+L["OPTIONS_GUILD_REMOVE"] =
+	"이 길드를 목록에서 제거합니다. 이름으로 다시 추가하면 돌아옵니다."
+-- In place of the roster status on a guild added by name: there is no roster, only /who.
+L["OPTIONS_GUILD_ADDED"] =
+	"이름으로 추가했습니다. 받을 사람 찾기가 접속 중인 길드원을 찾습니다."
+L["OPTIONS_GUILD_INCLUDE"] = "이 길드 포함"
 L["OPTIONS_GUILD_INCLUDE_DESCRIPTION"] = "이 길드의 길드원에게 장비를 보냅니다."
 L["OPTIONS_GUILD_MEMBERS"] = "활동 중인 길드원"
 L["OPTIONS_GUILD_MEMBERS_EMPTY"] =
@@ -499,7 +516,7 @@ L["OPTIONS_GENEROSITY_ITEM_LEVELS"] = "아이템 레벨"
 L["OPTIONS_GENEROSITY_VALUE"] = "골드 가치"
 
 -- Sharing the tally with nearby players.
-L["OPTIONS_SHARE_STATS"] = "베풂의 휘장 플레이어 툴팁 사용"
+L["OPTIONS_SHARE_STATS"] = "베풂의 휘장 공유"
 L["OPTIONS_SHARE_STATS_DESCRIPTION"] =
 	"도시와 여관에서 근처 플레이어가 내 툴팁에서 합계를 볼 수 있습니다. 끄면 공유가 멈추지만 다른 사람의 합계는 계속 보이며, 내 합계는 어느 쪽이든 계속 집계됩니다."
 

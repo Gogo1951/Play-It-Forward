@@ -7,7 +7,7 @@ ns.Data.LINKED_REALMS = {}
 How We Got the Data
 
 Last Validated
-	2026-10-29, TBC Anniversary 2.5.6.70577
+	2026-11-11, TBC Anniversary 2.5.6.70577
 
 Notes
 	- TBC Anniversary runs on megaservers, with no connected realms to list: an alt is in reach

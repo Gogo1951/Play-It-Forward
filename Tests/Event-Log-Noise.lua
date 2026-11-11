@@ -133,3 +133,68 @@ test("stopping keeps the log, and switching diagnostics off releases it", functi
 	equal(ns.diagnostics.log, nil, "switched off, the buffer is gone")
 	equal(ns.diagnostics.suppressed, nil, "and so are the counters")
 end)
+
+--[[
+	WoW Forever hands some arguments over as secret values, which error when compared, joined or
+	used as a key. The log runs ahead of the real handlers, so one reaching it must neither throw
+	nor turn into text. The stand-in secret is a table the stubbed issecretvalue recognizes.
+]]
+local SECRET = setmetatable({}, {
+	__tostring = function()
+		error("a secret value was turned into text")
+	end,
+})
+
+local function loadWithSecrets()
+	return Harness.LoadAddon(ADDON_ROOT, function()
+		issecretvalue = function(value)
+			return value == SECRET
+		end
+	end)
+end
+
+test("a secret id is counted as one secret row, apart from a real id of 0", function()
+	local ns = loadWithSecrets()
+	ns:StartEventLog()
+
+	ns:LogEvent("BAG_UPDATE", SECRET)
+	ns:LogEvent("BAG_UPDATE", SECRET)
+	ns:LogEvent("BAG_UPDATE", 0)
+	local report = ns:BuildEventLogReport()
+	issecretvalue = nil
+
+	equal(#ns.diagnostics.log, 0, "nothing reached the buffer")
+	check(report:find("BAG_UPDATE%(<secret>%) x2"), "the secret ids share one row: " .. report)
+	check(report:find("BAG_UPDATE%(0, %) x1"), "and the backpack keeps its own: " .. report)
+end)
+
+test("a secret argument is logged or counted as <secret>, never as text", function()
+	local ns = loadWithSecrets()
+	ns:StartEventLog()
+
+	ns:LogEvent("MAIL_FAILED", SECRET)
+	ns:LogEvent("UI_ERROR_MESSAGE", 56, SECRET)
+	local report = ns:BuildEventLogReport()
+	issecretvalue = nil
+
+	equal(#ns.diagnostics.log, 1, "the unfiltered event reached the buffer")
+	check(ns.diagnostics.log[1]:find("MAIL_FAILED(<secret>)", 1, true), "its secret reads as <secret>")
+	check(report:find("UI_ERROR_MESSAGE%(56, <secret>%) x1"), "the counted one's text too: " .. report)
+end)
+
+--[[
+	In the game a secret message text throws inside the live test it is handed to. The log runs
+	before the real handlers, so a throw there would stop them; the firing is kept instead.
+]]
+test("a firing the live test cannot read is logged verbatim, not thrown", function()
+	local ns = load()
+	ns.MESSAGE_ID_FILTERED_EVENTS.UI_ERROR_MESSAGE.correlated = function()
+		error("attempt to index a secret value")
+	end
+	ns:StartEventLog()
+
+	ns:LogEvent("UI_ERROR_MESSAGE", 56, "Ability is not ready yet.")
+
+	equal(#ns.diagnostics.log, 1, "kept")
+	equal(next(ns.diagnostics.suppressed), nil, "and not counted")
+end)

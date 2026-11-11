@@ -27,8 +27,6 @@ L["CHAT_OPTIONS_IN_COMBAT"] = "Por precaução, a interface de opções não pod
 ]]
 L["WINDOW_GEAR_LABEL"] = "Equipamento"
 L["WINDOW_CONSUMABLES_LABEL"] = "Consumíveis"
--- Under Gear: the twin of Disenchant Unmatched Items, with your enchanter's name beside it.
-L["WINDOW_DISENCHANT_LABEL"] = "Desencantar"
 -- In the enchanter dropdown while no character is picked, and in its list while none exists.
 L["WINDOW_DISENCHANT_PICK"] = "Escolha um personagem"
 L["WINDOW_DISENCHANT_NONE"] = "Seus personagens aparecem depois que cada um entra no jogo com o Play It Forward."
@@ -57,20 +55,21 @@ L["BUTTON_SENDING"] = "Enviando..."
 	nothing is being sent when it prints. SendWho only answers from a real button press, so a
 	blocked call is explained instead of reading as a dead press.
 ]]
--- From Find Recipients for This Item, pressed while the last search is still out or throttled.
+-- From Rescan for Better Match, pressed while the last search is still out or throttled.
 L["WHO_WAIT"] = "Nova busca em %d s. Tente de novo quando o botão mostrar Buscar destinatários."
 L["WHO_BLOCKED"] =
 	"Pressione Buscar destinatários de novo. A Blizzard só permite essa busca diretamente ao pressionar um botão, e algo interrompeu esta."
 
--- On the button beside Blizzard's mail frame that brings the closed window back.
-L["REOPEN_TOOLTIP"] = "Mostra o que você pode doar das suas bolsas."
+-- The menu under the button beside Blizzard's mail frame, which brings the closed window back.
+L["REOPEN_MENU_OPEN"] = "Abrir janela de distribuição"
+L["REOPEN_MENU_OPTIONS"] = "Opções"
 
 -- In the list while it is empty.
 L["WINDOW_EMPTY"] = "Nada mais para doar."
 L["WINDOW_EMPTY_HINT"] = "Altere as configurações acima para listar mais."
 
 --[[
-	The line above the two buttons: always the next step. One line 622 points wide, cut short
+	The line above the two buttons: always the next step. One line 624 points wide, cut short
 	rather than wrapped, so keep translations about this long.
 ]]
 L["STATUS_START"] = "Pressione Buscar destinatários e ache jogadores para %d item(ns)."
@@ -79,6 +78,9 @@ L["STATUS_DONE"] = "Busca concluída. %d item(ns) sem ninguém na faixa de níve
 L["STATUS_READY"] = "Pressione Distribuir para enviar %d item(ns)."
 L["STATUS_AWAY"] = "Abra uma caixa de correio para enviar %d item(ns)."
 L["STATUS_SENDING"] = "Enviando %d de %d. Clique em Aceitar em cada janela."
+-- Only Kept gear is left and Disenchant is off: the one switch that sends it anywhere.
+L["STATUS_KEPT_DISENCHANT"] =
+	"Nada para enviar. Marque Desencantar acima para enviar o equipamento que sobrou ao seu encantador."
 
 L["SECTION_MATCHED"] = "Atribuídos"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
@@ -89,12 +91,13 @@ L["SECTION_UNREADABLE"] = "Atributos ilegíveis"
 	"Kept", never "vendor / disenchant": the add-on does not tell the player what to do with what
 	stays. Covers the leftover rows: items no class wants, or that score too low to be worth sending.
 	A Kept gear row only goes to be disenchanted when the player turned on Disenchant Unmatched
-	Items, and then it shows under Matched with the enchanter's name.
+	Gear, and then it moves to its own Disenchant section with the enchanter's name.
 
 	ONE KEY FOR TWO SURFACES, and the only section and row pair that shares one: the band and
-	the row label read the same single word, so two keys could only drift apart. Every other
-	section and row pair deliberately says something different on each -- "Pending Match" over
-	a band of rows that each read "No Recipient".
+	the row label read the same single word, so two keys could only drift apart. Disenchant also
+	reads one word on both, but it is the client's spell name, not a key. Every other section and
+	row pair deliberately says something different on each -- "Pending Match" over a band of rows
+	that each read "No Recipient".
 ]]
 L["WINDOW_KEPT"] = "Mantido"
 
@@ -105,8 +108,11 @@ L["ROW_UNREADABLE"] = "Atributos não lidos"
 
 L["PICKER_KEEP_OPTION"] = "Manter item"
 L["PICKER_NONE_IN_RANGE"] = "Ninguém na faixa de nível. Pressione Buscar destinatários."
+-- A Kept row some class could still take: Find Recipients never fills one, the per-item search below can.
+L["PICKER_NONE_KEPT"] =
+	"Ninguém na faixa de nível. Use Buscar um destinatário melhor abaixo para procurar um para este item."
 --[[
-	KEPT SHORT. A note shares one 18-pixel row with a cross-realm name, a level and a class, and
+	KEPT SHORT. A note shares one 16-pixel row with a cross-realm name, a level and a class, and
 	anything longer is cut off. Notes are information, never gates: every name can be picked.
 ]]
 L["PICKER_NOTE_HAS_ONE"] = "(já tem)"
@@ -123,28 +129,28 @@ L["PICKER_NOTE_RECENT_DESCRIPTION"] =
 	Below the divider at the bottom of the list: a /who aimed at the classes the verdict says
 	this item is for, their own bands first and the fallbacks a press behind them.
 ]]
-L["PICKER_FIND_FOR_ITEM"] = "Buscar destinatários para este item"
+L["PICKER_FIND_FOR_ITEM"] = "Buscar um destinatário melhor"
 -- Section headings in the recipient picker, in matching order: your alts, your guild, then everyone else.
 L["PICKER_SECTION_ALTS"] = "Seus alts"
 L["PICKER_SECTION_GUILD"] = "Sua guilda"
 L["PICKER_SECTION_STRANGERS"] = "Desconhecidos"
--- Under the other sections on a Kept gear row, holding the enchanter Disenchant Unmatched Items sends to.
-L["PICKER_SECTION_DISENCHANT"] = "Desencantar"
+-- TRANSLATORS: %s is the enchanter's name, class-colored.
+L["PICKER_DISENCHANT_DESCRIPTION"] = "Enviar isto a %s para desencantar."
+L["PICKER_DISENCHANT_NONE_DESCRIPTION"] =
+	"Marque Desencantar no topo da janela e escolha um dos seus personagens para receber os itens a desencantar."
 
--- A heading takes no full stop; every body line under it does.
-L["TOOLTIP_RECIPIENT"] = "Destinatário"
+-- The recipient list's opening lines, above the names. Each is a full sentence with a period.
 L["TOOLTIP_RECIPIENT_CANDIDATES"] = "%d candidato(s), níveis %d-%d."
-L["TOOLTIP_RECIPIENT_HINT"] = "Clique para reatribuir."
 -- TRANSLATORS: %s is one to three class names, comma-separated, each from the game itself.
 L["TOOLTIP_RECIPIENT_BEST_FIT"] = "Mais indicado para %s."
 --[[
-	In place of the count and hint on a row nobody can ever be offered, where the count is always
-	zero. The unreadable line is also the picker's info line for that row: the add-on's failure,
-	not an empty realm, so Find Recipients is not pressed forever.
+	In place of the count on a row nobody can ever be offered, where the count is always zero. The
+	unreadable line says it is the add-on's failure, not an empty realm, so Find Recipients is not
+	pressed forever.
 ]]
 L["ITEM_STATS_UNREADABLE"] = "Não foi possível ler os atributos deste item, então ele não é atribuído."
 L["TOOLTIP_RECIPIENT_KEPT"] = "Nenhuma classe quer este, então ele fica nas suas bolsas."
--- On a Kept row Disenchant Unmatched Items sent to your enchanter. %s is that character's name.
+-- Opens the list on a Kept row going to your enchanter; a row sent there by hand keeps its count instead. %s is that character's name.
 L["TOOLTIP_RECIPIENT_DISENCHANT"] = "Ninguém pode usar isto, então vai para %s desencantar."
 
 -- The row's tick box. Every row starts ticked; unticking keeps the item, and stays unticked.
@@ -167,8 +173,9 @@ L["TOOLTIP_CHECK_UNREADABLE"] = "Este não pode ser enviado até que seus atribu
 	THE ACTION NAMES A BUTTON, SPELLED OUT. Nothing ties these mentions to the BUTTON_* keys above,
 	so renaming a button here leaves the messages telling the player to press something that is no
 	longer on screen. Change BUTTON_FIND_RECIPIENTS or BUTTON_DISTRIBUTE and read this block through,
-	along with WHO_WAIT, WHO_BLOCKED, STATUS_START, STATUS_MORE, STATUS_READY, PICKER_NONE_IN_RANGE,
-	PICKER_FIND_FOR_ITEM and TOOLTIP_CHECK_SEND above, which name those buttons too.
+	along with WHO_WAIT, WHO_BLOCKED, STATUS_START, STATUS_MORE, STATUS_READY, PICKER_NONE_IN_RANGE
+	and TOOLTIP_CHECK_SEND above and OPTIONS_GUILD_ADD_DESCRIPTION and OPTIONS_GUILD_ADDED below,
+	which name those buttons too. PICKER_NONE_KEPT names PICKER_FIND_FOR_ITEM the same way.
 ]]
 L["MAIL_STILL_SENDING"] = "Ainda enviando. Só um instante."
 L["MAIL_NOTHING_TO_DISTRIBUTE"] = "Nada para distribuir."
@@ -229,7 +236,7 @@ L["MAIL_POWERED_BY"] = "Powered by Play It Forward, on CurseForge and Wago."
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Envie pelo correio o equipamento vinculado ao equipar, a comida, as poções, os pergaminhos, os óleos e as pedras que você já superou para seus alts, colegas de guilda e jogadores que estão subindo de nível. Cada item vai para a classe que mais combina com ele, transformando a bagunça das suas bolsas na próxima melhoria de outra pessoa. Passe adiante, um item verde de cada vez."
+	"Envie pelo correio o equipamento vinculado ao equipar, a comida, as poções, os pergaminhos, os óleos e as pedras que você já superou para seus alts, colegas de guilda e jogadores que estão subindo de nível, e o equipamento que ninguém pode usar para seu encantador desencantar. Cada presente vai para a classe que mais combina com ele. Passe adiante, um item verde de cada vez."
 L["OPTIONS_WELCOME"] = "Ativar mensagem de boas-vindas"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "Exibe a versão e o lembrete de configurações ao entrar no jogo."
 
@@ -284,16 +291,15 @@ L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
 	"Oferecer óleos para armas, pedras de amolar e pedras de peso que você já superou. Os óleos de mago vão para os conjuradores, os óleos de mana para quem usa mana, e as pedras e os demais óleos para quem luta corpo a corpo."
 
 --[[
-	Kept gear mailed to one of your own characters instead of staying in your bags. Gear only:
-	consumables do not disenchant. The dropdown lists every character on this realm or a
-	connected one, on this faction, that has logged in with the add-on.
+	Kept gear mailed to one of your own characters instead of staying in your bags: one toggle with
+	the enchanter beside it, no header, and the explanation in the tooltip. Gear only, consumables do
+	not disenchant, so the label says Gear. The window's Disenchant tick shares the description. The
+	dropdown lists every character on this realm or a connected one, on this faction, that has
+	logged in with the add-on.
 ]]
-L["OPTIONS_DISENCHANT_HEADER"] = "Desencantar itens não atribuídos"
-L["OPTIONS_DISENCHANT_DESCRIPTION"] =
-	"Equipamento que ninguém recebeu pode ser enviado a um dos seus próprios personagens para desencantar, em vez de ficar nas suas bolsas. Ative a opção e escolha qual personagem recebe. Cada reino e facção guarda sua própria escolha."
-L["OPTIONS_DISENCHANT_SEND"] = "Enviar itens não atribuídos para desencantar"
+L["OPTIONS_DISENCHANT_SEND"] = "Desencantar equipamento não atribuído"
 L["OPTIONS_DISENCHANT_SEND_DESCRIPTION"] =
-	"Equipamento que ninguém pode usar vai para um dos seus personagens desencantar, em vez de ficar nas suas bolsas. Consumíveis nunca são enviados."
+	"Equipamento que ninguém pode usar é enviado pelo correio a um dos seus personagens para desencantar, em vez de ficar nas suas bolsas. Cada reino e facção guarda a própria escolha. Consumíveis nunca são enviados."
 L["OPTIONS_DISENCHANTER_DESCRIPTION"] =
 	"Seu encantador. Lista seus personagens neste reino e nos reinos conectados a ele, nesta facção, depois que cada um entra no jogo com o Play It Forward."
 
@@ -334,6 +340,7 @@ L["OPTIONS_SPECS_INTRO"] =
 	"Ninguém consegue ver a especialização de outro jogador, então o equipamento é enviado com base nestas suposições. Seus próprios personagens usam as especializações definidas em Meus alts."
 L["OPTIONS_SPECS_RESET"] = "Restaurar padrões"
 L["OPTIONS_SPECS_RESET_DESCRIPTION"] = "Volta todas as especializações à configuração original do add-on."
+L["OPTIONS_SPECS_RESET_CONFIRM"] = "Voltar todas as especializações à configuração original do add-on?"
 -- The damage roles only: Tank and Healer come from the game's TANK and HEALER labels.
 L["ROLE_CASTER"] = "Dano mágico"
 L["ROLE_MELEE"] = "Dano corpo a corpo"
@@ -406,7 +413,7 @@ L["OPTIONS_ALT_LEVEL_LOWEST_DESCRIPTION"] =
 	"O equipamento de nível mais baixo enviado a este personagem. Nível do personagem não envia nada abaixo do nível dele; Nível do personagem -2 também envia equipamento de até dois níveis abaixo, que ele já pode usar."
 L["OPTIONS_ALT_LEVEL_HIGHEST"] = "Máximo"
 L["OPTIONS_ALT_LEVEL_HIGHEST_DESCRIPTION"] =
-	"O equipamento de nível mais alto enviado a este personagem. Qualquer equipamento que possa usar envia tudo o que ele vai poder usar no futuro, então um caçador de nível 1 pode receber um arco de nível 50."
+	"O equipamento de nível mais alto enviado a este personagem. Qualquer equipamento que possa usar envia tudo o que ele vai poder usar no futuro, então um caçador de nível 1 pode receber um arco de nível 50. Comida, poções, pergaminhos, óleos e pedras seguem os mesmos níveis, pelo nível em que podem ser usados."
 L["OPTIONS_ALT_LEVEL_THEIRS"] = "Nível do personagem"
 -- TRANSLATORS: %d is 1 to 3.
 L["OPTIONS_ALT_LEVEL_BELOW"] = "Nível do personagem -%d"
@@ -415,7 +422,7 @@ L["OPTIONS_ALT_LEVEL_ANY"] = "Qualquer equipamento que possa usar"
 -- Under the two dropdowns, in real levels at the character's last recorded level.
 L["OPTIONS_ALT_LEVELS_RANGE"] = "Recebe equipamento dos níveis %d a %d."
 L["OPTIONS_ALT_LEVELS_FROM"] = "Recebe equipamento a partir do nível %d."
-L["OPTIONS_DELETE"] = "Excluir"
+L["OPTIONS_DELETE"] = "Esquecer"
 -- TRANSLATORS: %s is a character's name.
 L["OPTIONS_ALT_DELETE_CONFIRM"] = "Esquecer %s? Ele volta a ser adicionado na próxima vez que entrar no jogo."
 L["OPTIONS_ALT_DELETE_DESCRIPTION"] =
@@ -427,7 +434,7 @@ L["OPTIONS_ALT_DELETE_DESCRIPTION"] =
 
 L["TAB_GUILDS"] = "Minhas guildas"
 L["OPTIONS_GUILDS_INTRO"] =
-	"Todas as guildas em que seus personagens estão, salvas cada vez que um deles entra no jogo, para que o personagem que você estiver usando possa enviar correio aos colegas de guilda que estão subindo de nível."
+	"Todas as guildas em que seus personagens estão, salvas cada vez que um deles entra no jogo, para que o personagem que você estiver usando possa enviar correio aos colegas de guilda que estão subindo de nível. Adicione qualquer outra guilda pelo nome para que os membros dela também contem como colegas de guilda."
 L["OPTIONS_GUILD_OFFLINE"] = "Ignorar membros da guilda offline"
 L["OPTIONS_GUILD_OFFLINE_DESCRIPTION"] =
 	"Pular colegas de guilda que não entram no jogo há mais tempo que isso, na guilda em que você está agora e nas salvas. Escolha Nunca para incluir todos, não importa há quanto tempo estejam ausentes."
@@ -435,8 +442,16 @@ L["OPTIONS_GUILD_OFFLINE_WEEK"] = "Há mais de 1 semana"
 L["OPTIONS_GUILD_OFFLINE_TWO_WEEKS"] = "Há mais de 2 semanas"
 L["OPTIONS_GUILD_OFFLINE_NEVER"] = "Nunca"
 L["OPTIONS_GUILDS_EMPTY"] =
-	"Nenhuma guilda ainda. Uma guilda aparece aqui depois que um dos seus personagens nela entra no jogo."
-L["OPTIONS_GUILD_INCLUDE"] = "Enviar aos membros desta guilda"
+	"Nenhuma guilda ainda. Adicione uma acima, ou entre no jogo com um personagem que está em uma guilda e ela aparece aqui."
+-- TFTB's Add Guild box, above the list of guilds.
+L["OPTIONS_GUILD_ADD"] = "Adicionar guilda"
+L["OPTIONS_GUILD_ADD_DESCRIPTION"] =
+	"Digite o nome de uma guilda e pressione Enter. Separe várias guildas com vírgulas. Maiúsculas não importam. Os membros delas neste reino e nesta facção são procurados online quando você pressiona Buscar destinatários, e vêm antes dos desconhecidos."
+-- The remove icon beside a guild's name.
+L["OPTIONS_GUILD_REMOVE"] = "Remove esta guilda da lista. Adicione-a de novo pelo nome para trazê-la de volta."
+-- In place of the roster status on a guild added by name: there is no roster, only /who.
+L["OPTIONS_GUILD_ADDED"] = "Adicionada pelo nome. Buscar destinatários procura os membros dela online."
+L["OPTIONS_GUILD_INCLUDE"] = "Incluir esta guilda"
 L["OPTIONS_GUILD_INCLUDE_DESCRIPTION"] = "Enviar equipamento aos membros desta guilda."
 L["OPTIONS_GUILD_MEMBERS"] = "Membros ativos"
 L["OPTIONS_GUILD_MEMBERS_EMPTY"] = "Ninguém nesta lista esteve ativo recentemente o bastante para receber itens."
@@ -490,7 +505,7 @@ L["OPTIONS_GENEROSITY_ITEM_LEVELS"] = "Níveis de item"
 L["OPTIONS_GENEROSITY_VALUE"] = "Valor em ouro"
 
 -- Sharing the tally with nearby players.
-L["OPTIONS_SHARE_STATS"] = "Ativar dicas de jogador da Insígnia da Generosidade"
+L["OPTIONS_SHARE_STATS"] = "Compartilhar Insígnia da Generosidade"
 L["OPTIONS_SHARE_STATS_DESCRIPTION"] =
 	"Jogadores perto de você em cidades e estalagens podem ver seus totais na sua dica. Desativar interrompe o compartilhamento, mas você continua vendo os deles, e seus próprios totais continuam contando de qualquer forma."
 

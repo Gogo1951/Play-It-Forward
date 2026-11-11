@@ -5,7 +5,7 @@ local Tooltip = ns.Tooltip
 
 --[[
 	Why this file exists. GetItemStats resolves the base item and ignores the random-suffix half of
-	a link ("of the Eagle"), so a levelling green -- which carries all its stats in that suffix --
+	a link ("of the Eagle"), so a leveling green -- which carries all its stats in that suffix --
 	comes back statless and lands in the vendor pile. The tooltip renders the item as the player
 	sees it, suffix included. Where a read came from travels with its result rather than being
 	parked on this table: a "most recent call" field is only true for a caller reading it at once.
@@ -208,9 +208,11 @@ local EQUIP_PATTERNS = {
 }
 
 --[[
-	Strips the display escapes Blizzard wraps some stat lines in. LOAD-BEARING: removing it
-	puts every rolled green back in the vendor pile. A base stat is a bare "+4 Intellect", but
-	a random-suffix roll or an enchant arrives color-wrapped and newline-terminated:
+	Strips the display escapes Blizzard wraps some stat lines in. ns.ReadTooltip already strips
+	the color escapes on the live scan, so this is what keeps text handed straight to
+	StatsFromLines (the Diagnostics probe, Tests/) reading the same. A base stat is a bare
+	"+4 Intellect", but a random-suffix roll or an enchant arrives color-wrapped and
+	newline-terminated:
 
 	  base            +4 Intellect
 	  "of the Owl"    |cffffffff+15 Intellect|r\n
@@ -260,13 +262,46 @@ local function SplitStats(text, names)
 	return out, complete
 end
 
+--[[
+	Lines that only look like stats: a Use: or Chance on hit: effect lasts seconds, and a set
+	bonus counts only with the rest of the set, so "Use: Increases attack power by 120" is no
+	attack power. Prefixes from the client's GlobalStrings, so every locale skips its own.
+]]
+local function NonStatPrefixes()
+	local prefixes = {}
+	for _, text in ipairs({ ITEM_SPELL_TRIGGER_ONUSE, ITEM_SPELL_TRIGGER_ONPROC }) do
+		if type(text) == "string" and text ~= "" then
+			prefixes[#prefixes + 1] = text
+		end
+	end
+	local setPrefix = type(ITEM_SET_BONUS) == "string" and ITEM_SET_BONUS:match("^(.-)%%s")
+	if setPrefix and setPrefix ~= "" then
+		prefixes[#prefixes + 1] = setPrefix
+	end
+	return prefixes
+end
+
+local function IsNonStatLine(text, prefixes)
+	-- An inactive set bonus, ITEM_SET_BONUS_GRAY's "(2) Set: ..." shape.
+	if text:find("^%(%d+%)") then
+		return true
+	end
+	for _, prefix in ipairs(prefixes) do
+		if text:sub(1, #prefix) == prefix then
+			return true
+		end
+	end
+	return false
+end
+
 -- Pure: no tooltip, no item cache, no client state, so the API report can feed it either format.
 function Tooltip:StatsFromLines(lines)
 	local out, unread = {}, {}
 	local names = StatNames()
+	local nonStat = NonStatPrefixes()
 	for i = 2, #lines do -- line 1 is the item name
 		local text = CleanLine(lines[i])
-		if text ~= "" then
+		if text ~= "" and not IsNonStatLine(text, nonStat) then
 			-- Plain stat line: "+9 Intellect"
 			local amount, stat = text:match("^%s*%+(%d+)%s+(.+)$")
 			local token = amount and names[strtrim(stat):lower()]
@@ -325,6 +360,57 @@ function Tooltip:StatsFromLines(lines)
 		end
 	end
 	return out, unread
+end
+
+--[[
+	The client's "Requires %s - %s" (ITEM_REQ_REPUTATION) as an anchored pattern, built once, or
+	false where the client has no such format. Built from the global rather than English text, so
+	every locale finds its own line.
+]]
+local REPUTATION_PATTERN
+
+local function ReputationPattern()
+	if REPUTATION_PATTERN == nil then
+		local format = ITEM_REQ_REPUTATION
+		REPUTATION_PATTERN = false
+		if type(format) == "string" and format:find("%%%d*%$?s") then
+			local marked = format:gsub("%%%d*%$?s", "\001")
+			local escaped = marked:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")
+			REPUTATION_PATTERN = "^" .. escaped:gsub("\001", ".+") .. "$"
+		end
+	end
+	return REPUTATION_PATTERN
+end
+
+--[[
+	The line saying an item needs a faction standing ("Requires Argent Dawn - Friendly"), or nil.
+	No API reports the requirement, and most recipients lack the standing. Pure, like
+	StatsFromLines.
+]]
+function Tooltip:ReputationFromLines(lines)
+	local pattern = ReputationPattern()
+	if not pattern then
+		return nil
+	end
+	for i = 2, #lines do -- line 1 is the item name
+		local text = CleanLine(lines[i])
+		if text:find(pattern) then
+			return text
+		end
+	end
+	return nil
+end
+
+--[[
+	The item's reputation line off its rendered tooltip, and whether the tooltip rendered at all:
+	an item not yet in the cache renders nothing, which is not the same as needing no standing.
+]]
+function Tooltip:RequiredReputation(link)
+	if not link then
+		return nil, false
+	end
+	local lines = TooltipLines(link)
+	return self:ReputationFromLines(lines), #lines > 0
 end
 
 --[[

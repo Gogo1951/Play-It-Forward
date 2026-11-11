@@ -12,7 +12,7 @@
 	a stranger reads as spam -- so the automatic passes never double up. The player
 	overriding that by hand is the player's business.
 
-	The list ends with a divider and "Find Recipients for This Item": one press of a
+	The list ends with a divider and "Rescan for Better Match": one press of a
 	targeted search over just that item's band, for when the names on offer are not
 	good enough.
 ]]
@@ -296,10 +296,10 @@ end)
 	to do with what stays. Keeping unchecks the row, clears its name and pins it, so it
 	sits under the Kept heading and nothing rebuilds over the choice.
 
-	The list reads in three blocks: the names, indented under their headings; then Disenchant
-	and Keep Item; then Rescan for Better Match.
+	The list reads in four blocks: why the row reads as it does; the names, indented under their
+	headings; then Disenchant and Keep Item; then Rescan for Better Match.
 ]]
-test("names come first, then Disenchant and Keep Item, then the rescan", function()
+test("the reasoning comes first, then names, then Disenchant and Keep Item, then the rescan", function()
 	local ns = load()
 	local first = twoMatched(ns)
 	check(first.recipient ~= nil and first.send, "matched and ticked to start")
@@ -307,7 +307,12 @@ test("names come first, then Disenchant and Keep Item, then the rescan", functio
 	local shape = {}
 	local keep
 	for _, option in ipairs(ns.UI:PickerOptions(first)) do
-		if option.header then
+		if option.info then
+			check(option.disabled, "an info line is not clickable")
+			if shape[#shape] ~= "info" then
+				shape[#shape + 1] = "info"
+			end
+		elseif option.header then
 			shape[#shape + 1] = "header"
 		elseif option.pick and not option.pick.disenchant then
 			check(option.indent, "a name sits indented under its heading")
@@ -316,7 +321,7 @@ test("names come first, then Disenchant and Keep Item, then the rescan", functio
 			end
 		elseif option.separator then
 			shape[#shape + 1] = "---"
-		elseif option.text and option.text:find(ns.L["PICKER_DISENCHANT_OPTION"], 1, true) then
+		elseif option.text and option.text:find(ns.DisenchantName(), 1, true) then
 			shape[#shape + 1] = "disenchant"
 			check(option.disabled, "with no enchanter picked, Disenchant is offered but disabled")
 		elseif option.clear then
@@ -326,7 +331,9 @@ test("names come first, then Disenchant and Keep Item, then the rescan", functio
 			shape[#shape + 1] = "rescan"
 		end
 	end
-	equal(table.concat(shape, " "), "header name --- disenchant keep --- rescan", "the three blocks")
+	equal(table.concat(shape, " "), "info --- header name --- disenchant keep --- rescan", "the four blocks")
+	local countWords = ns.L["TOOLTIP_RECIPIENT_CANDIDATES"]:match("^%%d(.-)%%d")
+	check(ns.UI:PickerOptions(first)[1].text:find(countWords, 1, true) ~= nil, "it opens on the candidate count")
 	check(keep and keep.text:find(ns.L["PICKER_KEEP_OPTION"], 1, true) ~= nil, "Keep Item says so")
 
 	ns.UI:PickerSelect(first, keep)
@@ -426,6 +433,36 @@ test("the targeted search plans only this item's band", function()
 	check(query and query:find("18%-19") ~= nil, "the robe's band went out: " .. tostring(query))
 	check(query and not query:find("43%-44"), "and the sword's did not")
 	equal(robe.recipient, nil, "picking the search changes nothing on the row")
+end)
+
+--[[
+	Issue #16: on WoW Forever the targeted search's SendWho was blocked when the list hid itself
+	and its click catcher before the pick ran. Driven through the entry's own OnClick, the query
+	goes out while the list is still up, and the list closes after.
+]]
+test("the targeted search sends before the list closes", function()
+	local ns = load()
+	local first = twoMatched(ns)
+	Stub.now = Stub.now + 60
+
+	local shownAtSend
+	local send = C_FriendList.SendWho
+	C_FriendList.SendWho = function(filter)
+		shownAtSend = ns.Picker.frame:IsShown()
+		return send(filter)
+	end
+
+	local options = ns.UI:PickerOptions(first)
+	ns.Picker:Open(CreateFrame("Button"), options, function(option)
+		ns.UI:PickerSelect(first, option)
+	end)
+	local queries = #Stub.whoQueries
+	ns.Picker.entries[#options]:GetScript("OnClick")()
+	C_FriendList.SendWho = send
+
+	equal(#Stub.whoQueries, queries + 1, "the click sent one query")
+	equal(shownAtSend, true, "with the list still up")
+	equal(ns.Picker.frame:IsShown(), false, "and the list closed after")
 end)
 
 test("nothing is reassigned behind the player's back", function()

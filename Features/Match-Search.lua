@@ -78,6 +78,16 @@ local function InContention(item, classToken)
 end
 
 --[[
+	Whether the holder is somebody the verdict puts in contention. One of your alts always is: it
+	was admitted by its own specs and RankCandidates ranks it with the contenders, so the
+	class-default contenders must not read it as a fallback.
+]]
+local function HolderInContention(item)
+	local holder = item.recipient
+	return holder.alt == true or InContention(item, holder.class)
+end
+
+--[[
 	A gift is still worth searching for while nobody holds it -- or while only a fallback does.
 	The contenders are who the verdict says the item is FOR, and a fallback pairing must not
 	read as the search having found them, or the plan clears before the contenders' bands are
@@ -87,7 +97,7 @@ end
 	on spending the /who throttle for the whole session.
 
 	A holder standing in a capital or a dungeon counts as a fallback too (Who:KeepsSearching): the
-	zones still on the plan may turn up somebody out levelling, who is who the gift is for. The
+	zones still on the plan may turn up somebody out leveling, who is who the gift is for. The
 	plan running dry is what ends that search, so it costs at most the presses already planned.
 ]]
 local function StillSearching(item)
@@ -100,7 +110,7 @@ local function StillSearching(item)
 	if ns.Who:KeepsSearching(item.recipient) then
 		return true
 	end
-	return not InContention(item, item.recipient.class)
+	return not HolderInContention(item)
 end
 
 --[[
@@ -110,7 +120,7 @@ end
 	eligible when nothing was admitted: narrowing on an empty set asks for no classes at all.
 ]]
 local function BandClasses(item, verdict)
-	if item.recipient and not item.pinned and not InContention(item, item.recipient.class) then
+	if item.recipient and not item.pinned and not HolderInContention(item) then
 		return verdict.contenders
 	end
 	return (#verdict.admitted > 0) and verdict.admitted or verdict.eligible

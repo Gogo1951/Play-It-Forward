@@ -29,7 +29,7 @@ ns.Data.POTIONS = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, WoW Forever 1.60.1.70450
+	2026-11-11, WoW Forever 1.60.1.70888
 
 Notes
 	- Healing, mana and rejuvenation potions a player can give away: Potion consumables that can
@@ -47,6 +47,10 @@ Notes
 	- Forever's Discolored and Perishable healing potions were added from the wago.tools
 	  tables by the query's own test, and wait on the next Validate Data run to confirm them.
 	  4596 is Minor Discolored Healing Potion on this client.
+	- Rechecked at 1.60.1.70888 against build 70450: the new build adds 288896 Superior Healing
+	  Potion, 288897 Superior Mana Potion and 288898 Swiftness Potion, copies needing only level
+	  1, so they stay out with the other level 1 potions. Its Elixirs of Endless are elixirs, not
+	  potions.
 
 SQL (CMaNGOS)
 	Database not recorded. It returned Wrath items, so it ran against a Wrath-era database,
@@ -85,6 +89,8 @@ wago.tools
 	https://wago.tools/db2/ItemSparse?build=1.60.1.70291
 	https://wago.tools/db2/Item?build=1.60.1.70450
 	https://wago.tools/db2/ItemSparse?build=1.60.1.70450
+	https://wago.tools/db2/Item?build=1.60.1.70888
+	https://wago.tools/db2/ItemSparse?build=1.60.1.70888
 
 QuestieDB
 	None.

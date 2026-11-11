@@ -41,7 +41,7 @@ ns.Data.SCROLLS = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, WoW Forever 1.60.1.70450
+	2026-11-11, WoW Forever 1.60.1.70888
 
 Notes
 	- The six stat scroll lines: Strength, Agility, Stamina, Intellect, Spirit and Protection.
@@ -55,6 +55,9 @@ Notes
 	  out below ns.Data.MIN_RECIPIENT_LEVEL and they would reach nobody.
 	- Hand-picked from the maintainer's Wowhead list and a Validate Data run of it, not from a
 	  query.
+	- Rechecked at 1.60.1.70888 against build 70450: the new build adds 289088 Scroll of Endless
+	  Fortitude and 289330 Scroll of Endless Speed, both needing only level 1, so they stay out
+	  like 1181 and 3013.
 
 SQL (CMaNGOS)
 	TODO: Add SQL Query
@@ -67,6 +70,8 @@ wago.tools
 	https://wago.tools/db2/ItemSparse?build=1.60.1.70291
 	https://wago.tools/db2/Item?build=1.60.1.70450
 	https://wago.tools/db2/ItemSparse?build=1.60.1.70450
+	https://wago.tools/db2/Item?build=1.60.1.70888
+	https://wago.tools/db2/ItemSparse?build=1.60.1.70888
 
 QuestieDB
 	None.

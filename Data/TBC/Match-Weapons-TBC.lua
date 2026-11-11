@@ -68,7 +68,7 @@ ns.Data.WEAPON_SPECS = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, TBC Anniversary 2.5.6.70577
+	2026-11-11, TBC Anniversary 2.5.6.70577
 
 Notes
 	- WEAPON_SUBCLASS turns the weapon subclass the client reports for an item into the add-on's

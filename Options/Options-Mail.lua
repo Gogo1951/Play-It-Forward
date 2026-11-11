@@ -23,12 +23,15 @@ local AceGUI = LibStub("AceGUI-3.0")
 ]]
 local WIDGET_TYPE, WIDGET_VERSION = "PlayItForward-MailEditor", 1
 
-local HEADING_HEIGHT = 22
+-- On the Spacing Scale, as every gap in the add-on's own layout is.
+local HEADING_HEIGHT = 16
 local COLUMN_GAP = 16
 local BODY_LINES = 16
 -- The subject EditBox's label sits above its input; the preview box lines up with the input.
-local SUBJECT_LABEL_HEIGHT = 18
-local PREVIEW_PADDING = 10
+local SUBJECT_LABEL_HEIGHT = 16
+local PREVIEW_PADDING = 8
+-- Between the subject box and the body box below it.
+local BODY_GAP = 8
 
 local PREVIEW_BACKDROP = {
 	bgFile = [[Interface\Tooltips\UI-Tooltip-Background]],
@@ -177,7 +180,7 @@ local function Constructor()
 	body:SetLabel(L["OPTIONS_MAIL_BODY"])
 	body:DisableButton(true)
 	body:SetNumLines(BODY_LINES)
-	body.frame:SetPoint("TOPLEFT", subject.frame, "BOTTOMLEFT", 0, -6)
+	body.frame:SetPoint("TOPLEFT", subject.frame, "BOTTOMLEFT", 0, -BODY_GAP)
 	body.frame:SetPoint("RIGHT", frame, "CENTER", -COLUMN_GAP / 2, 0)
 	body:SetCallback("OnTextChanged", OnChanged(widget, "mailBody"))
 
@@ -217,8 +220,8 @@ local function Constructor()
 	widget.subject, widget.body, widget.count = subject, body, count
 	widget.preview, widget.previewSubject, widget.previewBody = preview, previewSubject, previewBody
 	-- The editor's own extent: the shortest the row, and the box, are ever drawn.
-	widget.baseHeight = HEADING_HEIGHT + subject.frame:GetHeight() + 6 + body.frame:GetHeight() + 24
-	widget.minPreviewHeight = subject.frame:GetHeight() + 6 + body.frame:GetHeight() - SUBJECT_LABEL_HEIGHT - 4
+	widget.baseHeight = HEADING_HEIGHT + subject.frame:GetHeight() + BODY_GAP + body.frame:GetHeight() + 24
+	widget.minPreviewHeight = subject.frame:GetHeight() + BODY_GAP + body.frame:GetHeight() - SUBJECT_LABEL_HEIGHT - 4
 	widget.rowHeight = widget.baseHeight
 
 	--[[

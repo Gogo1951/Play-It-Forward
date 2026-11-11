@@ -156,7 +156,7 @@ end)
 
 --[[
 	Which zones lead is the zone table's job and is checked above. This is about the
-	shape of the plan: the levelling zones first, because that is where the people who
+	shape of the plan: the leveling zones first, because that is where the people who
 	will use a gift are; bare levels behind them as the fallback. Zones arrive lumped into
 	one query, so their label names a count rather than a place -- see
 	Tests/Query-Building.lua.
@@ -249,9 +249,9 @@ test("the server's total marks an answer as capped even under fifty", function()
 end)
 
 --[[
-	Find Recipients for This Item exists to ask for the class it names; leading with the
+	Rescan for Better Match exists to ask for the class it names; leading with the
 	bare query would only repeat what the main button already sent. The class out in its
-	levelling zones goes first, and the class anywhere is the fallback behind it.
+	leveling zones goes first, and the class anywhere is the fallback behind it.
 ]]
 test("a targeted plan asks the class in its zones before anywhere", function()
 	local ns = load()

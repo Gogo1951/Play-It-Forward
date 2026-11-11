@@ -23,7 +23,7 @@ ns.Data.STAT_BUDGET = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, TBC Anniversary 2.5.6.70577
+	2026-11-11, TBC Anniversary 2.5.6.70577
 
 Notes
 	- What one point of each stat costs on an item, in primary-stat points, so a weight

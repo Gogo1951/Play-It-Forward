@@ -196,7 +196,7 @@ ns.Data.SPECS = {
 How We Got the Data
 
 Last Validated
-	WoW Forever 1.60, which plays Classic Era's stats. 2026-10-29 against Icy Veins.
+	2026-11-11, WoW Forever 1.60.1.70888
 
 Notes
 	- Stat priorities from Icy Veins' PvE stat priority page for each spec, read as a levelling
@@ -204,6 +204,8 @@ Notes
 	  higher than the endgame page, the levelling page wins, except where the add-on has a rule
 	  of its own (no Spirit for paladins or shamans).
 	- Policy rather than game records: no IDs, so Validate Data counts the rows only.
+	- WoW Forever 1.60 plays Classic Era's stats. The priorities were last read from Icy Veins on
+	  2026-10-29.
 
 SQL (CMaNGOS)
 	None.

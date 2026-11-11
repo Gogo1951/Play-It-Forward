@@ -83,6 +83,22 @@ test("an equip-effect line still parses", function()
 	equal(stats.FIRE, 11, "fire off an equip line")
 end)
 
+test("use, chance-on-hit and set-bonus lines add no stats", function()
+	local ns = load()
+	local stats = parse(
+		ns,
+		"Use: Increases attack power by 120 for 20 sec.",
+		"Chance on hit: Increases your attack power by 50 for 10 sec.",
+		"Set: Restores 3 mana per 5 sec.",
+		"(2) Set: Improves your chance to hit by 2%.",
+		"Equip: Improves your chance to hit by 1%."
+	)
+
+	equal(stats.ATTACK_POWER, nil, "no attack power from a use or a proc")
+	equal(stats.MP5, nil, "no mp5 from an active set bonus")
+	equal(stats.HIT, 1, "hit from the equip line only, not the inactive set bonus")
+end)
+
 test("two lines of the same stat add up", function()
 	local ns = load()
 	local stats = parse(ns, "+4 Intellect", "+3 Intellect")

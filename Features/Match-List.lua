@@ -82,7 +82,7 @@ local function ScanSoon()
 
 			An open window is re-matched from the pools already found, since the rescan brings a
 			new row in with nobody on it. The search plan is left alone: re-planning on every bag
-			change would throw away a Find Recipients for This Item search mid-run, and the next
+			change would throw away a Rescan for Better Match search mid-run, and the next
 			Find Recipients press picks up a new item's band anyway.
 		]]
 		if WouldRescan() then
@@ -402,7 +402,7 @@ function MatchList:AssignedTo()
 end
 
 --[[
-	A Kept row Disenchant Unmatched Items may send off: gear, since every weapon and armor piece the
+	A Kept row Disenchant Unmatched Gear may send off: gear, since every weapon and armor piece the
 	scan admits is green or better and so disenchants, and nothing a consumable turns into. Never
 	a Pending Match row, which a later search may still fill, nor an unreadable one, which may yet
 	suit somebody once its stats read.

@@ -1,5 +1,5 @@
 --[[
-	Disenchant Unmatched Items, on the What to Give Away panel.
+	Disenchant Unmatched Gear, on the What to Give Away panel.
 
 	Gear nobody can use -- the Kept rows -- goes to one of your own characters to disenchant,
 	chosen per realm cluster and faction and saved on that character's entry. It only ever takes
@@ -101,6 +101,42 @@ end)
 -- Matching
 --------------------------------------------------------------------------------
 
+local function optionTexts(ns, item)
+	local texts, rescan = {}, false
+	for _, option in ipairs(ns.UI:PickerOptions(item)) do
+		texts[#texts + 1] = option.text or ""
+		rescan = rescan or option.findForItem == true
+	end
+	return table.concat(texts, "\n"), rescan
+end
+
+test("a Kept row no class can take says why, and offers no rescan that would do nothing", function()
+	local ns = load()
+	local items = atMailbox(ns, { lowLevelPlate() })
+	local item = items[1]
+	equal(item.state, ns.Matcher.LEFTOVER, "kept")
+	local texts, rescan = optionTexts(ns, item)
+	check(texts:find(ns.L["TOOLTIP_RECIPIENT_KEPT"], 1, true) ~= nil, "the list opens on the reason")
+	check(texts:find(ns.L["PICKER_NONE_IN_RANGE"], 1, true) == nil, "never sends the player to Find Recipients")
+	check(not rescan, "and no Rescan for Better Match")
+end)
+
+test("with only Kept gear left and Disenchant off, the status line names Disenchant", function()
+	local ns = load()
+	local items = atMailbox(ns, { lowLevelPlate() })
+	equal(ns.UI:StatusLine(), ns.L["STATUS_KEPT_DISENCHANT"], "the one switch that sends it")
+
+	ns.UI:SetRecipient(items[1], nil)
+	equal(ns.UI:StatusLine(), "", "a Keep Item by hand is never nagged about")
+end)
+
+test("with Disenchant on, kept gear is ready to send instead", function()
+	local ns = load()
+	withEnchanter(ns)
+	atMailbox(ns, { lowLevelPlate() })
+	equal(ns.UI:StatusLine(), ns.L["STATUS_READY"]:format(1), "Distribute is the next step")
+end)
+
 test("kept gear goes to the enchanter, and opens the window", function()
 	local ns = load()
 	withEnchanter(ns)
@@ -154,6 +190,20 @@ test("mail to the enchanter adds nothing to the Generosity totals", function()
 	equal(ns.db.global.stats.gifts, 0, "not counted as a gift")
 end)
 
+-- The gift letter is for strangers: "Hit Return and it'll find a new home" is wrong advice for dust.
+test("mail to the enchanter carries no gift letter", function()
+	local ns = load()
+	withEnchanter(ns)
+	local items = atMailbox(ns, { lowLevelPlate() })
+	local name = items[1] and items[1].link and items[1].link:match("%[(.-)%]")
+	Stub.sent = {}
+	ns.UI:Distribute()
+	local mail = Stub.sent[1]
+	equal(mail and mail.recipient, "Dusty", "mailed to the enchanter")
+	equal(mail and mail.subject, name, "under the item's own name")
+	equal(mail and mail.body, "", "with no note")
+end)
+
 test("a consumable is never disenchantable", function()
 	local ns = load()
 	check(not ns.MatchList:Disenchantable({ kind = "consumable", state = ns.Matcher.LEFTOVER }), "consumable")
@@ -202,7 +252,7 @@ end
 
 local function disenchantOption(ns, item)
 	for _, option in ipairs(ns.UI:PickerOptions(item)) do
-		if option.text and option.text:find(ns.L["PICKER_DISENCHANT_OPTION"], 1, true) and not option.header then
+		if option.text and option.text:find(ns.DisenchantName(), 1, true) and not option.header then
 			return option
 		end
 	end
@@ -220,6 +270,67 @@ test("every gear row offers Disenchant, not only a Kept one", function()
 	ns.UI:PickerSelect(item, option)
 	equal(item.recipient and item.recipient.name, "Dusty", "picking it sends the row to the enchanter")
 	check(item.recipient and item.recipient.disenchant and item.pinned, "flagged disenchant, and pinned")
+end)
+
+test("a row sent to Disenchant by hand keeps its count rather than claiming nobody can use it", function()
+	local ns = load()
+	withEnchanter(ns)
+	seedAlt(ns, { name = "Brickhouse", class = "WARRIOR", level = 12 })
+	local item = atMailbox(ns, { strengthPlate() })[1]
+	ns.UI:PickerSelect(item, disenchantOption(ns, item))
+	local claim = ns.L["TOOLTIP_RECIPIENT_DISENCHANT"]:match("^(.-)%%s")
+	local header = table.concat(ns.UI:PickerHeader(item), "\n")
+	check(not header:find(claim, 1, true), "no 'No one can use this' on a row somebody can")
+end)
+
+-- A suffixed item whose stats read as nothing: the parse failed, so no class is admitted.
+local function unreadableGreen()
+	return Stub.Item({
+		name = "Rugged Vest of the Bear",
+		reqLevel = 20,
+		equipLoc = "INVTYPE_CHEST",
+		classID = 4,
+		subclassID = 2,
+		suffix = 1200,
+		stats = {},
+	})
+end
+
+-- Scanned at the mailbox with no search: a mailbox holding only these rows opens no window to press in.
+local function scanned(ns, defs)
+	Stub.SetBackpack(defs)
+	ns.fire("MAIL_SHOW")
+	ns.UI:Rescan()
+	return ns.UI:Items()
+end
+
+local function separatorsBackToBack(ns, item)
+	local last = false
+	for _, option in ipairs(ns.UI:PickerOptions(item)) do
+		if option.separator and last then
+			return true
+		end
+		last = option.separator == true
+	end
+	return false
+end
+
+test("an unreadable row offers no rescan, which could never place anybody", function()
+	local ns = load()
+	local item = scanned(ns, { unreadableGreen() })[1]
+	equal(item.state, ns.Matcher.UNREADABLE, "unreadable")
+	local _, rescan = optionTexts(ns, item)
+	check(not rescan, "no Rescan for Better Match")
+	check(not ns.UI:RescanCanHelp(item), "and the press itself refuses")
+end)
+
+test("the picker never stacks two dividers", function()
+	local ns = load()
+	local items = scanned(ns, { lowLevelPlate(), unreadableGreen() })
+	equal(#items, 2, "both rows listed")
+	for _, item in ipairs(items) do
+		check(not separatorsBackToBack(ns, item), "one divider at a time on " .. tostring(item.state))
+	end
 end)
 
 test("a consumable offers no Disenchant", function()

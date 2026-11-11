@@ -266,6 +266,11 @@ function ns.QualityName(quality)
 	return name
 end
 
+-- The Disenchant spell's own name, from the client in every locale: the label wherever the add-on offers disenchanting.
+function ns.DisenchantName()
+	return C_Spell.GetSpellName(ns.Data.SPELL_IDS.DISENCHANT) or ""
+end
+
 --------------------------------------------------------------------------------
 -- Consumable Level Gap
 --------------------------------------------------------------------------------

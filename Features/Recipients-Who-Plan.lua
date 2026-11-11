@@ -29,6 +29,8 @@ Who.plan = {}
 	that never answered and went back on the plan; blocked counts SendWho calls the client refused
 	because the press did not reach it as a click. panelOpened counts the Who panel showing while a
 	query was out when it was closed before -- nonzero means some route still reaches it.
+	guildmates counts results in one of your guilds on My Guilds, ranked as guildmates;
+	ignoredGuild counts results dropped because you unticked that member there.
 ]]
 Who.counts = {
 	seen = 0,
@@ -41,6 +43,8 @@ Who.counts = {
 	timedOut = 0,
 	blocked = 0,
 	panelOpened = 0,
+	guildmates = 0,
+	ignoredGuild = 0,
 }
 
 local plan, counts = Who.plan, Who.counts
@@ -68,7 +72,7 @@ local function FilterPlan(map)
 end
 
 --[[
-	Whether the plan standing is a targeted one, Find Recipients for This Item's. MatchList:Assign
+	Whether the plan standing is a targeted one, Rescan for Better Match's. MatchList:Assign
 	reads it: the "every gift has a contender" rule that ends a full search must not end a targeted
 	one, which is pressed exactly when the contender holding the item is not good enough. Reset by
 	every Who:Plan and by Who:Clear.
@@ -108,8 +112,6 @@ local function FemaleName(token)
 	return nil
 end
 
-Who.FemaleName = FemaleName
-
 --------------------------------------------------------------------------------
 -- Query Planning
 --------------------------------------------------------------------------------
@@ -129,9 +131,9 @@ Who.FemaleName = FemaleName
 	honors only the first, the query still answers correctly from its first zone, and the
 	per-class widening behind it is what the search actually relies on.
 
-	THE ZONES GO FIRST. Somebody out in a zone made for their level is levelling, and that is who
+	THE ZONES GO FIRST. Somebody out in a zone made for their level is leveling, and that is who
 	a gift is for; a bare level query fills its 50 mostly with people standing in a capital. So
-	the levelling zones are asked before anywhere, and the bare and per-class queries follow as
+	the leveling zones are asked before anywhere, and the bare and per-class queries follow as
 	the fallback for a band the zones could not fill. One level-21 mage can receive the cloak as
 	well as forty can, so the search stops once somebody in contention holds each item, out in
 	the world (Who:Placement) -- a fallback pairing keeps its band on the plan, narrowed to the
@@ -186,14 +188,17 @@ end
 	The readable form of a query, for the roster report. ns.DiagnosticsStrings is read at call
 	time rather than aliased at file scope, because Diagnostics/Diagnostics-Core.lua loads after this one.
 ]]
-local function NewAttempt(lo, hi, zones, classes, female)
+local function NewAttempt(lo, hi, zones, classes, female, guild)
 	local DiagnosticsStrings = ns.DiagnosticsStrings
 	local classPart, classNames = ClassFilter(classes, female)
 	local levels = ("%d-%d"):format(lo, hi)
 	local query = levels
 	local label
 
-	if zones and #zones > 0 then
+	if guild then
+		query = ('%s g-"%s"'):format(levels, guild)
+		label = DiagnosticsStrings.WHO_LABEL_GUILD:format(guild, levels)
+	elseif zones and #zones > 0 then
 		local parts = {}
 		for _, name in ipairs(zones) do
 			parts[#parts + 1] = ('z-"%s"'):format(name)
@@ -225,6 +230,7 @@ local function NewAttempt(lo, hi, zones, classes, female)
 		zones = zones,
 		classes = classes or {},
 		female = female or nil,
+		guild = guild,
 	}
 end
 
@@ -325,7 +331,7 @@ end
 	classes those items can go to. Neighbouring bands share a span (SPAN_MAX above). Per span:
 
 	  1  the zones covering it, packed into as few queries as fit, best zone first -- the people
-	     out there levelling. Unfiltered by class unless exactly one is wanted, per the
+	     out there leveling. Unfiltered by class unless exactly one is wanted, per the
 	     single-filter rule at the top of this file. A zoned answer never ends anything
 	     (Who:Exhausted), so every zone gets its press before the fallback.
 	  2  bare levels, no filters -- the fallback, and the query most likely to fill all 50: it
@@ -334,8 +340,11 @@ end
 	     span outright.
 	  3  one query per wanted class, no zones, for a class the capped answer crowded out
 
+	Ahead of all three, one g-"Name" query per guild added by name on My Guilds, spanning every
+	band (Guild:SearchNames).
+
 	TARGETED skips the coalescing and the bare stage, and asks each class in its zones before
-	asking for it anywhere: Find Recipients for This Item exists to ask for the classes it names,
+	asking for it anywhere: Rescan for Better Match exists to ask for the classes it names,
 	and a bare query is what the main button already sent. See TargetedPlan below. The count returned is not a countdown: the
 	search stops at the first match in contention, or for a targeted search once nothing left on
 	the plan could outrank whoever holds the row.
@@ -379,6 +388,23 @@ function Who:Plan(groups, targeted)
 		bare[#bare + 1] = { Step(lo, hi, nil, nil) }
 	end
 
+	--[[
+		Guilds added by name on My Guilds go first: their members rank with your guildmates, ahead
+		of anyone the zones turn up. One query per guild across every band at once, since a guild
+		rarely fills the 50 a level range would, and each band asked apart would cost a press each.
+	]]
+	local names = ns.Guild:SearchNames()
+	if #names > 0 and #groups > 0 then
+		local lo, hi = math.huge, 0
+		for _, group in ipairs(groups) do
+			lo = math.min(lo, math.max(1, group.lo or 1))
+			hi = math.max(hi, group.hi or group.lo or 1)
+		end
+		for _, name in ipairs(names) do
+			plan[#plan + 1] = NewAttempt(lo, math.max(lo, hi), nil, nil, nil, name)
+		end
+	end
+
 	-- Interleaved by step, so a female twin is never split from its male form by another band.
 	for _, stage in ipairs({ zoned, bare, widened }) do
 		for _, step in ipairs(Interleave(stage)) do
@@ -396,7 +422,7 @@ end
 	Matcher:TargetedBands hands over one class per group, best fit first. Two stages, each in that
 	order and never interleaved, because the order IS the ranking:
 
-	  1  the zones, under the class filter -- that class out levelling, which is who the gift is
+	  1  the zones, under the class filter -- that class out leveling, which is who the gift is
 	     for (Who:Placement)
 	  2  one class-filtered query per group, no zones -- everybody of that class at those levels,
 	     wherever they stand, as the fallback for a class the zones turned up nobody for
@@ -448,7 +474,8 @@ end
 	cap" there says nothing about the rest.
 ]]
 function Who:Exhausted(attempt)
-	if not attempt or #(attempt.zones or {}) > 0 or #plan == 0 then
+	-- A guild's answer under the cap is everybody in that guild, which says nothing about anyone else.
+	if not attempt or #(attempt.zones or {}) > 0 or attempt.guild or #plan == 0 then
 		return 0
 	end
 	local asked = {}
@@ -549,7 +576,7 @@ function Who:Prune(groups)
 		if #narrowed == #attempt.classes then
 			return attempt
 		end
-		return NewAttempt(attempt.lo, attempt.hi, attempt.zones, narrowed, attempt.female)
+		return NewAttempt(attempt.lo, attempt.hi, attempt.zones, narrowed, attempt.female, attempt.guild)
 	end
 
 	local dropped = FilterPlan(Survivor)

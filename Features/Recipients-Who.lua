@@ -106,6 +106,7 @@ end
 
 local function ParseResults()
 	local list = {}
+	local guildOf = ns.Guild:WhoLookup()
 	-- The second return is how many matched server-side, which is what tells a full answer apart.
 	local raw, total = C_FriendList.GetNumWhoResults()
 	for i = 1, raw do
@@ -120,14 +121,27 @@ local function ParseResults()
 				whether they can wear the item, or for a faction mail cannot reach.
 			]]
 			local token = info.filename or classTokenByName[info.classStr]
+			--[[
+				Somebody in one of your guilds on My Guilds, saved or added by name, ranks with your
+				guildmates however /who found them; a member you unticked there is never offered
+				anything, even once the whole guild is unticked or removed.
+			]]
+			local guildmate, ignored = guildOf(info.fullGuildName, info.fullName)
 			if OtherFaction(info.raceStr) then
 				counts.otherFaction = counts.otherFaction + 1
+			elseif ignored then
+				counts.ignoredGuild = counts.ignoredGuild + 1
 			elseif token then
+				if guildmate then
+					counts.guildmates = counts.guildmates + 1
+				end
 				table.insert(list, {
 					name = info.fullName,
 					level = info.level,
 					class = token,
 					area = info.area,
+					guild = guildmate or nil,
+					guildName = guildmate and info.fullGuildName or nil,
 				})
 			else
 				counts.unknownClass = counts.unknownClass + 1

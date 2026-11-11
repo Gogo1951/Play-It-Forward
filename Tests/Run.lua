@@ -52,6 +52,7 @@ require("Generosity-Tooltip")
 require("Mists")
 require("Spec-Choices")
 require("Alts-And-Guilds")
+require("Other-Client-Characters")
 require("Outcomes")
 
 os.exit(Harness.run() == 0 and 0 or 1)

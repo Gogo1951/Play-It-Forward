@@ -63,8 +63,9 @@ function Matcher:EligibleClasses(item)
 			return AllClasses()
 		end
 		--[[
-			CONSUMABLE_CLASSES is a client-agnostic roster of who has a mana bar, so returning it
-			whole names the phantom classes described at the top of this file.
+			CONSUMABLE_CLASSES is the flavor folder's roster of who each consumable kind is for --
+			mana, scroll stats, oil and stone targets -- so returning it whole names the phantom
+			classes described at the top of this file.
 		]]
 		local available = {}
 		for _, class in ipairs(AllClasses()) do
@@ -347,7 +348,7 @@ function Matcher:Verdict(item)
 		outrank the half of the item the class genuinely wants, or "of the Owl" buys a warlock back
 		in through the Intellect and a healing roll buys a mage back in through the spell damage.
 	]]
-	-- A class with every spec turned off goes too: the player said nobody of that class is levelling.
+	-- A class with every spec turned off goes too: the player said nobody of that class is leveling.
 	if item.kind ~= "consumable" then
 		local vetoed = ns.Data.VetoedClasses(item) or {}
 		local kept = {}

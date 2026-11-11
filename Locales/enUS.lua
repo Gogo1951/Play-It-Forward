@@ -27,8 +27,6 @@ L["CHAT_OPTIONS_IN_COMBAT"] = "As a safety precaution, the Options Interface can
 ]]
 L["WINDOW_GEAR_LABEL"] = "Gear"
 L["WINDOW_CONSUMABLES_LABEL"] = "Consumables"
--- Under Gear: the twin of Disenchant Unmatched Items, with your enchanter's name beside it.
-L["WINDOW_DISENCHANT_LABEL"] = "Disenchant"
 -- In the enchanter dropdown while no character is picked, and in its list while none exists.
 L["WINDOW_DISENCHANT_PICK"] = "Pick a Character"
 L["WINDOW_DISENCHANT_NONE"] = "Your characters appear once each logs in with Play It Forward."
@@ -57,20 +55,21 @@ L["BUTTON_SENDING"] = "Sending..."
 	nothing is being sent when it prints. SendWho only answers from a real button press, so a
 	blocked call is explained instead of reading as a dead press.
 ]]
--- From Find Recipients for This Item, pressed while the last search is still out or throttled.
+-- From Rescan for Better Match, pressed while the last search is still out or throttled.
 L["WHO_WAIT"] = "Searching again in %d sec. Try again once the button reads Find Recipients."
 L["WHO_BLOCKED"] =
 	"Press Find Recipients again. Blizzard only allows that search straight from a button press, and something interrupted this one."
 
--- On the button beside Blizzard's mail frame that brings the closed window back.
-L["REOPEN_TOOLTIP"] = "Shows what you can give away from your bags."
+-- The menu under the button beside Blizzard's mail frame, which brings the closed window back.
+L["REOPEN_MENU_OPEN"] = "Open Distribution Window"
+L["REOPEN_MENU_OPTIONS"] = "Options"
 
 -- In the list while it is empty.
 L["WINDOW_EMPTY"] = "Nothing left to give away."
 L["WINDOW_EMPTY_HINT"] = "Change the settings above to list more."
 
 --[[
-	The line above the two buttons: always the next step. One line 622 points wide, cut short
+	The line above the two buttons: always the next step. One line 624 points wide, cut short
 	rather than wrapped, so keep translations about this long.
 ]]
 L["STATUS_START"] = "Press Find Recipients to look for players for %d item(s)."
@@ -79,10 +78,10 @@ L["STATUS_DONE"] = "Search finished. %d item(s) still have no one in range. Try 
 L["STATUS_READY"] = "Press Distribute to send %d item(s)."
 L["STATUS_AWAY"] = "Open a mailbox to send %d item(s)."
 L["STATUS_SENDING"] = "Sending %d of %d. Click Accept on each popup."
+-- Only Kept gear is left and Disenchant is off: the one switch that sends it anywhere.
+L["STATUS_KEPT_DISENCHANT"] = "Nothing to send. Tick Disenchant above to mail unmatched gear to your enchanter."
 
 L["SECTION_MATCHED"] = "Matched"
--- Rows going to your enchanter to be disenchanted, kept apart from gifts even when the enchanter is also a matched alt.
-L["SECTION_DISENCHANT"] = "Disenchant"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
 L["SECTION_NO_RECIPIENT"] = "Pending Match"
 L["SECTION_UNREADABLE"] = "Stats Couldn't Be Read"
@@ -91,12 +90,13 @@ L["SECTION_UNREADABLE"] = "Stats Couldn't Be Read"
 	"Kept", never "vendor / disenchant": the add-on does not tell the player what to do with what
 	stays. Covers the leftover rows: items no class wants, or that score too low to be worth sending.
 	A Kept gear row only goes to be disenchanted when the player turned on Disenchant Unmatched
-	Items, and then it shows under Matched with the enchanter's name.
+	Gear, and then it moves to its own Disenchant section with the enchanter's name.
 
 	ONE KEY FOR TWO SURFACES, and the only section and row pair that shares one: the band and
-	the row label read the same single word, so two keys could only drift apart. Every other
-	section and row pair deliberately says something different on each -- "Pending Match" over
-	a band of rows that each read "No Recipient".
+	the row label read the same single word, so two keys could only drift apart. Disenchant also
+	reads one word on both, but it is the client's spell name, not a key. Every other section and
+	row pair deliberately says something different on each -- "Pending Match" over a band of rows
+	that each read "No Recipient".
 ]]
 L["WINDOW_KEPT"] = "Kept"
 
@@ -107,8 +107,10 @@ L["ROW_UNREADABLE"] = "Couldn't Read Stats"
 
 L["PICKER_KEEP_OPTION"] = "Keep Item"
 L["PICKER_NONE_IN_RANGE"] = "No one in range. Press Find Recipients."
+-- A Kept row some class could still take: Find Recipients never fills one, the per-item search below can.
+L["PICKER_NONE_KEPT"] = "No one in range. Rescan for Better Match below to look for this one."
 --[[
-	KEPT SHORT. A note shares one 18-pixel row with a cross-realm name, a level and a class, and
+	KEPT SHORT. A note shares one 16-pixel row with a cross-realm name, a level and a class, and
 	anything longer is cut off. Notes are information, never gates: every name can be picked.
 ]]
 L["PICKER_NOTE_HAS_ONE"] = "(has one)"
@@ -129,27 +131,23 @@ L["PICKER_FIND_FOR_ITEM"] = "Rescan for Better Match"
 L["PICKER_SECTION_ALTS"] = "Your Alts"
 L["PICKER_SECTION_GUILD"] = "Your Guild"
 L["PICKER_SECTION_STRANGERS"] = "Strangers"
--- Under the names on every gear row, beside Keep Item: send the item to your enchanter instead.
-L["PICKER_DISENCHANT_OPTION"] = "Disenchant"
 -- TRANSLATORS: %s is the enchanter's name, class-colored.
 L["PICKER_DISENCHANT_DESCRIPTION"] = "Send this to %s to disenchant."
 L["PICKER_DISENCHANT_NONE_DESCRIPTION"] =
 	"Tick Disenchant at the top of the window and pick one of your characters to send items to for disenchanting."
 
--- A heading takes no full stop; every body line under it does.
-L["TOOLTIP_RECIPIENT"] = "Recipient"
+-- The recipient list's opening lines, above the names. Each is a full sentence with a period.
 L["TOOLTIP_RECIPIENT_CANDIDATES"] = "%d candidate(s), levels %d-%d."
-L["TOOLTIP_RECIPIENT_HINT"] = "Click to reassign."
 -- TRANSLATORS: %s is one to three class names, comma-separated, each from the game itself.
 L["TOOLTIP_RECIPIENT_BEST_FIT"] = "Best fit for %s."
 --[[
-	In place of the count and hint on a row nobody can ever be offered, where the count is always
-	zero. The unreadable line is also the picker's info line for that row: the add-on's failure,
-	not an empty realm, so Find Recipients is not pressed forever.
+	In place of the count on a row nobody can ever be offered, where the count is always zero. The
+	unreadable line says it is the add-on's failure, not an empty realm, so Find Recipients is not
+	pressed forever.
 ]]
 L["ITEM_STATS_UNREADABLE"] = "Couldn't read this item's stats, so it isn't matched."
 L["TOOLTIP_RECIPIENT_KEPT"] = "No class wants this one, so it stays in your bags."
--- On a Kept row Disenchant Unmatched Items sent to your enchanter. %s is that character's name.
+-- Opens the list on a Kept row going to your enchanter; a row sent there by hand keeps its count instead. %s is that character's name.
 L["TOOLTIP_RECIPIENT_DISENCHANT"] = "No one can use this, so it goes to %s to disenchant."
 
 -- The row's tick box. Every row starts ticked; unticking keeps the item, and stays unticked.
@@ -172,17 +170,18 @@ L["TOOLTIP_CHECK_UNREADABLE"] = "This one can't be sent until its stats can be r
 	THE ACTION NAMES A BUTTON, SPELLED OUT. Nothing ties these mentions to the BUTTON_* keys above,
 	so renaming a button here leaves the messages telling the player to press something that is no
 	longer on screen. Change BUTTON_FIND_RECIPIENTS or BUTTON_DISTRIBUTE and read this block through,
-	along with WHO_WAIT, WHO_BLOCKED, STATUS_START, STATUS_MORE, STATUS_READY, PICKER_NONE_IN_RANGE,
-	PICKER_FIND_FOR_ITEM and TOOLTIP_CHECK_SEND above, which name those buttons too.
+	along with WHO_WAIT, WHO_BLOCKED, STATUS_START, STATUS_MORE, STATUS_READY, PICKER_NONE_IN_RANGE
+	and TOOLTIP_CHECK_SEND above and OPTIONS_GUILD_ADD_DESCRIPTION and OPTIONS_GUILD_ADDED below,
+	which name those buttons too. PICKER_NONE_KEPT names PICKER_FIND_FOR_ITEM the same way.
 ]]
 L["MAIL_STILL_SENDING"] = "Still sending. Give it a sec."
 L["MAIL_NOTHING_TO_DISTRIBUTE"] = "Nothing to distribute."
 L["MAIL_DISTRIBUTING"] = "Click Accept on each confirmation popup to send %d item(s)."
-L["MAIL_ITEM_MOVED"] = "Press Find Recipients to re-scan. %s moved in your bags."
+L["MAIL_ITEM_MOVED"] = "Press Find Recipients to rescan. %s moved in your bags."
 -- Named rather than dropped quietly: a silent skip looks like the row was never ticked.
 L["MAIL_ALREADY_HAS_ONE"] = "Pick someone else for %s. %s is already getting one."
 L["MAIL_NOT_AT_MAILBOX"] = "Walk back to a mailbox and press Distribute to send the rest."
-L["MAIL_MAILBOX_CLOSED"] = "Open a mailbox and press Distribute to send the rest. The mailbox closed part-way through."
+L["MAIL_MAILBOX_CLOSED"] = "Open a mailbox and press Distribute to send the rest. The mailbox closed partway through."
 L["MAIL_NO_POSTAGE"] = "Add a little copper for postage, then press Distribute to send the rest."
 L["MAIL_PANEL_CLOSED"] = "Open Blizzard's Send Mail panel and press Distribute again. Nothing was sent or touched."
 L["MAIL_PANEL_CLOSED_HINT"] =
@@ -232,7 +231,7 @@ L["MAIL_POWERED_BY"] = "Powered by Play It Forward, on CurseForge and Wago."
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Mail outgrown BoE gear, food, potions, scrolls, oils, and stones to your alts, guildmates, and leveling players. Every item goes to the class it suits best, turning bag clutter into somebody else's next upgrade. Pay it forward, one green at a time."
+	"Mail outgrown BoE gear, food, potions, scrolls, oils, and stones to your alts, guildmates, and leveling players, and gear nobody can use to your enchanter to disenchant. Every gift goes to the class it suits best. Pay it forward, one green at a time."
 L["OPTIONS_WELCOME"] = "Enable Welcome Message"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "Print the version and settings reminder when you log in."
 
@@ -287,16 +286,15 @@ L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
 	"Offer weapon oils, sharpening stones, and weightstones you have outgrown. Wizard oils go to spellcasters, mana oils to anyone with mana, and stones and other oils to melee fighters."
 
 --[[
-	Kept gear mailed to one of your own characters instead of staying in your bags. Gear only:
-	consumables do not disenchant. The dropdown lists every character on this realm or a
-	connected one, on this faction, that has logged in with the add-on.
+	Kept gear mailed to one of your own characters instead of staying in your bags: one toggle with
+	the enchanter beside it, no header, and the explanation in the tooltip. Gear only, consumables do
+	not disenchant, so the label says Gear. The window's Disenchant tick shares the description. The
+	dropdown lists every character on this realm or a connected one, on this faction, that has
+	logged in with the add-on.
 ]]
-L["OPTIONS_DISENCHANT_HEADER"] = "Disenchant Unmatched Items"
-L["OPTIONS_DISENCHANT_DESCRIPTION"] =
-	"Gear no one matched can be mailed to one of your own characters to disenchant, instead of staying in your bags. Turn it on, then choose which character gets it. Each realm and faction keeps its own choice."
-L["OPTIONS_DISENCHANT_SEND"] = "Send Unmatched Items to Disenchanter"
+L["OPTIONS_DISENCHANT_SEND"] = "Disenchant Unmatched Gear"
 L["OPTIONS_DISENCHANT_SEND_DESCRIPTION"] =
-	"Gear no one can use goes to one of your characters to disenchant, instead of staying in your bags. Consumables are never sent."
+	"Gear no one can use is mailed to one of your characters to disenchant, instead of staying in your bags. Each realm and faction keeps its own choice. Consumables are never sent."
 L["OPTIONS_DISENCHANTER_DESCRIPTION"] =
 	"Your enchanter. Lists your characters on this realm and its connected realms, on this faction, once each has logged in with Play It Forward."
 
@@ -311,10 +309,10 @@ L["OPTIONS_RECIPIENTS_INTRO"] =
 L["OPTIONS_PRIORITY_HEADER"] = "Who Comes First"
 L["OPTIONS_PRIORITY_DESCRIPTION"] =
 	"Your own characters and guildmates can go to the front of the line for anything that suits them as well as it suits a stranger. Untick either and they compete with everyone else on level and location."
-L["OPTIONS_PRIORITIZE_ALTS"] = "Prioritize My Alts over Strangers and My Guilds"
+L["OPTIONS_PRIORITIZE_ALTS"] = "Prioritize My Alts Over Strangers and My Guilds"
 L["OPTIONS_PRIORITIZE_ALTS_DESCRIPTION"] =
 	"Your own characters get first pick of anything that suits them as well as anyone else. Unticked, they compete with everyone else on level and location."
-L["OPTIONS_PRIORITIZE_GUILDS"] = "Prioritize My Guilds over Strangers"
+L["OPTIONS_PRIORITIZE_GUILDS"] = "Prioritize My Guilds Over Strangers"
 L["OPTIONS_PRIORITIZE_GUILDS_DESCRIPTION"] =
 	"Your guildmates get first pick over strangers of anything that suits them as well. Unticked, they compete with strangers on level and location."
 
@@ -337,10 +335,11 @@ L["OPTIONS_SPECS_INTRO"] =
 	"Nobody can see another player's spec, so gear goes out on these assumptions. Your own characters use the specs set on My Alts."
 L["OPTIONS_SPECS_RESET"] = "Restore Defaults"
 L["OPTIONS_SPECS_RESET_DESCRIPTION"] = "Put every spec back to how the add-on ships."
+L["OPTIONS_SPECS_RESET_CONFIRM"] = "Put every spec back to how the add-on ships?"
 -- The damage roles only: Tank and Healer come from the game's TANK and HEALER labels.
-L["ROLE_CASTER"] = "Spell damage"
-L["ROLE_MELEE"] = "Melee damage"
-L["ROLE_RANGED"] = "Ranged damage"
+L["ROLE_CASTER"] = "Spell Damage"
+L["ROLE_MELEE"] = "Melee Damage"
+L["ROLE_RANGED"] = "Ranged Damage"
 
 -- Talent trees and specializations, by the key each flavor folder's Match-Specs file uses.
 L["SPEC_Arms"] = "Arms"
@@ -377,9 +376,9 @@ L["SPEC_Windwalker"] = "Windwalker"
 L["SPEC_PALADIN_Protection"] = "Protection"
 L["SPEC_DRUID_Restoration"] = "Restoration"
 -- Season of Discovery roles that runes added on top of the three trees.
-L["SPEC_Tank"] = "Tank (runes)"
-L["SPEC_Healer"] = "Healer (runes)"
-L["SPEC_Melee"] = "Melee (runes)"
+L["SPEC_Tank"] = "Tank (Runes)"
+L["SPEC_Healer"] = "Healer (Runes)"
+L["SPEC_Melee"] = "Melee (Runes)"
 
 --------------------------------------------------------------------------------
 -- Options: My Alts Panel
@@ -409,7 +408,7 @@ L["OPTIONS_ALT_LEVEL_LOWEST_DESCRIPTION"] =
 	"The lowest-level gear this character is mailed. Their Level sends nothing below its level; Their Level -2 also sends gear up to two levels below, which it can wear now."
 L["OPTIONS_ALT_LEVEL_HIGHEST"] = "Highest"
 L["OPTIONS_ALT_LEVEL_HIGHEST_DESCRIPTION"] =
-	"The highest-level gear this character is mailed. Any Gear They Could Use sends anything it will grow into, so a level 1 hunter can be sent a level 50 bow. Food, potions, scrolls, oils and stones follow the same levels, by the level they can be used at."
+	"The highest-level gear this character is mailed. Any Gear They Could Use sends anything it will grow into, so a level 1 hunter can be sent a level 50 bow. Food, potions, scrolls, oils, and stones follow the same levels, by the level they can be used at."
 L["OPTIONS_ALT_LEVEL_THEIRS"] = "Their Level"
 -- TRANSLATORS: %d is 1 to 3.
 L["OPTIONS_ALT_LEVEL_BELOW"] = "Their Level -%d"
@@ -418,7 +417,7 @@ L["OPTIONS_ALT_LEVEL_ANY"] = "Any Gear They Could Use"
 -- Under the two dropdowns, in real levels at the character's last recorded level.
 L["OPTIONS_ALT_LEVELS_RANGE"] = "Mailed gear for levels %d to %d."
 L["OPTIONS_ALT_LEVELS_FROM"] = "Mailed gear from level %d up."
-L["OPTIONS_DELETE"] = "Delete"
+L["OPTIONS_DELETE"] = "Forget"
 -- TRANSLATORS: %s is a character's name.
 L["OPTIONS_ALT_DELETE_CONFIRM"] = "Forget %s? It's added back the next time it logs in."
 L["OPTIONS_ALT_DELETE_DESCRIPTION"] = "Forget this character. It's added back the next time it logs in."
@@ -429,15 +428,23 @@ L["OPTIONS_ALT_DELETE_DESCRIPTION"] = "Forget this character. It's added back th
 
 L["TAB_GUILDS"] = "My Guilds"
 L["OPTIONS_GUILDS_INTRO"] =
-	"Every guild your characters are in, saved each time one of them logs in, so whichever character you're on can mail their leveling guildmates."
+	"Every guild your characters are in, saved each time one of them logs in, so whichever character you're on can mail their leveling guildmates. Add any other guild by name to count its members as guildmates too."
 L["OPTIONS_GUILD_OFFLINE"] = "Ignore Offline Guild Members"
 L["OPTIONS_GUILD_OFFLINE_DESCRIPTION"] =
 	"Skip guildmates who haven't logged in for longer than this, in the guild you're in now and in your saved ones. Choose Never to include everyone, however long they've been away."
-L["OPTIONS_GUILD_OFFLINE_WEEK"] = "Longer than 1 Week"
-L["OPTIONS_GUILD_OFFLINE_TWO_WEEKS"] = "Longer than 2 Weeks"
+L["OPTIONS_GUILD_OFFLINE_WEEK"] = "Longer Than 1 Week"
+L["OPTIONS_GUILD_OFFLINE_TWO_WEEKS"] = "Longer Than 2 Weeks"
 L["OPTIONS_GUILD_OFFLINE_NEVER"] = "Never"
-L["OPTIONS_GUILDS_EMPTY"] = "No guilds yet. A guild appears here once one of your characters in it logs in."
-L["OPTIONS_GUILD_INCLUDE"] = "Mail This Guild's Members"
+L["OPTIONS_GUILDS_EMPTY"] = "No guilds yet. Add one above, or log in on a character in a guild and it appears here."
+-- TFTB's Add Guild box, above the list of guilds.
+L["OPTIONS_GUILD_ADD"] = "Add Guild"
+L["OPTIONS_GUILD_ADD_DESCRIPTION"] =
+	"Type a guild's name, then press Enter. Separate several guilds with commas. Capitals don't matter. Their members on this realm and faction are found online when you press Find Recipients, and come before strangers."
+-- The remove icon beside a guild's name.
+L["OPTIONS_GUILD_REMOVE"] = "Removes this guild from the list. Add it again by name to bring it back."
+-- In place of the roster status on a guild added by name: there is no roster, only /who.
+L["OPTIONS_GUILD_ADDED"] = "Added by name. Find Recipients looks for its members online."
+L["OPTIONS_GUILD_INCLUDE"] = "Include This Guild"
 L["OPTIONS_GUILD_INCLUDE_DESCRIPTION"] = "Mail gear to this guild's members."
 L["OPTIONS_GUILD_MEMBERS"] = "Active Members"
 L["OPTIONS_GUILD_MEMBERS_EMPTY"] = "Nobody in this roster was active recently enough to get items."
@@ -491,7 +498,7 @@ L["OPTIONS_GENEROSITY_ITEM_LEVELS"] = "Item Levels"
 L["OPTIONS_GENEROSITY_VALUE"] = "Gold Value"
 
 -- Sharing the tally with nearby players.
-L["OPTIONS_SHARE_STATS"] = "Enable Badge of Generosity Player Tooltips"
+L["OPTIONS_SHARE_STATS"] = "Share Badge of Generosity"
 L["OPTIONS_SHARE_STATS_DESCRIPTION"] =
 	"Players near you in cities and inns can see your totals on your tooltip. Turning this off stops sharing, but you still see theirs, and your own totals keep counting either way."
 

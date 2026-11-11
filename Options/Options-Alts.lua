@@ -24,7 +24,7 @@ local Help = ns.OptionsHelp
 local SPEC_WIDTH = 0.8
 -- The pane is narrower than a panel, so the gear level rows use their own label and control widths.
 local LEVEL_LABEL_WIDTH = 1.2
-local LEVEL_CONTROL_WIDTH = 1.4
+local LEVEL_CONTROL_WIDTH = ns.OPTIONS_TREE_ROW_WIDTH - LEVEL_LABEL_WIDTH
 
 -- The words for each stop, counted from the alt's own level so they read the same whatever it is.
 local function BelowValues()
@@ -121,12 +121,7 @@ local function AltPane(key, alt)
 			Stored only off the default.
 		]]
 		spacerLevels = ns.OptionsSpacer(4),
-		levelsLabel = {
-			type = "description",
-			name = ns.GetColor("TITLE") .. L["OPTIONS_ALT_LEVELS"] .. "|r",
-			fontSize = "medium",
-			order = 5,
-		},
+		levelsLabel = ns.OptionsHeader(L["OPTIONS_ALT_LEVELS"], 5),
 		levelsBelowLabel = ns.OptionsRowLabel(L["OPTIONS_ALT_LEVEL_LOWEST"], 6, LEVEL_LABEL_WIDTH),
 		levelsBelow = {
 			type = "select",
@@ -174,12 +169,7 @@ local function AltPane(key, alt)
 			order = 12,
 		},
 		spacerSpecs = ns.OptionsSpacer(13),
-		specsLabel = {
-			type = "description",
-			name = ns.GetColor("TITLE") .. L["OPTIONS_ALT_SPECS"] .. "|r",
-			fontSize = "medium",
-			order = 14,
-		},
+		specsLabel = ns.OptionsHeader(L["OPTIONS_ALT_SPECS"], 14),
 	}
 	for index, spec in ipairs(ns.Data.SPECS[alt.class] or {}) do
 		args["spec" .. index] = {

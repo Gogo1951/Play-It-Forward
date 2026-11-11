@@ -45,7 +45,7 @@ ns.Data.UNIVERSAL_EQUIP_LOC = {
 How We Got the Data
 
 Last Validated
-	2026-10-20, WoW Forever 1.60.1.70450
+	2026-11-11, WoW Forever 1.60.1.70888
 
 Notes
 	- ARMOR_WEIGHT ranks the materials for ns.Data.ArmorPriorityFor; UNIVERSAL_EQUIP_LOC lists the equip slots any class can use whatever its armor, where stats alone decide.

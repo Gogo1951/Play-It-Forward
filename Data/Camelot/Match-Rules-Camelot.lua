@@ -226,11 +226,12 @@ ns.Data.ITEM_RULES = {
 How We Got the Data
 
 Last Validated
-	Never. Copied from Data/Match-Rules.lua.
+	2026-11-11, WoW Forever 1.60.1.70888
 
 Notes
 	- Stat combinations that name their own class, on top of the talent-tree points; see the
 	-   comments above the table for the fields and the order. Policy rather than game records: no IDs.
+	- Copied from Data/Match-Rules.lua.
 
 SQL (CMaNGOS)
 	None.

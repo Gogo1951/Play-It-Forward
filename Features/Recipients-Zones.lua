@@ -96,7 +96,7 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	Where a candidate is standing, as the best evidence there is that they are levelling. Somebody
+	Where a candidate is standing, as the best evidence there is that they are leveling. Somebody
 	out in a zone made for their level is questing their way up and will use the gift; somebody in
 	a capital may be an alt parked at the bank, and somebody in a dungeon may be getting boosted
 	through it. Four places, best first:

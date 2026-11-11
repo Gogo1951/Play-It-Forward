@@ -38,7 +38,7 @@ end
 --[[
 	One row per class this client can roll, either faction, and one switch per spec. A spec that
 	is off counts for nothing when an item is matched: a paladin with Retribution off is never
-	offered Strength plate. Protection paladins, Enhancement shamans, Arms and Balance start off.
+	offered Strength plate. Some specs start off, as each flavor folder's Match-Specs ships them.
 
 	Stored only where the player differs from the default (Data/Default-Settings.lua), so a
 	default changed in a release still reaches everyone who left it alone.
@@ -57,8 +57,20 @@ local CLASS_ORDER = {
 	"DRUID",
 }
 
-local SPEC_WIDTH = 0.85
 local CLASS_WIDTH = 0.8
+
+--[[
+	The rest of the row split evenly between the most specs any class has on this client, at
+	least three, so a four-spec class (Season of Discovery's rune roles, the Mists druid) still
+	fits on one line beside its name.
+]]
+local function SpecWidth()
+	local most = 3
+	for _, specs in pairs(ns.Data.SPECS or {}) do
+		most = math.max(most, #specs)
+	end
+	return (ns.OPTIONS_ROW_WIDTH - CLASS_WIDTH) / most
+end
 
 local function Rollable()
 	local out = {}
@@ -100,7 +112,7 @@ local function ClassRow(class, order)
 			type = "toggle",
 			name = ns.SpecName(class, index, spec),
 			desc = ROLE_LABELS[spec.role],
-			width = SPEC_WIDTH,
+			width = SpecWidth(),
 			order = index,
 			get = function()
 				return ns.Data.SpecEnabled(class, spec)
@@ -177,6 +189,8 @@ function ns.BuildRecipientsOptions()
 		type = "execute",
 		name = L["OPTIONS_SPECS_RESET"],
 		desc = L["OPTIONS_SPECS_RESET_DESCRIPTION"],
+		confirm = true,
+		confirmText = L["OPTIONS_SPECS_RESET_CONFIRM"],
 		order = order + 1,
 		func = function()
 			wipe(ns.db.profile.specs)

@@ -166,7 +166,7 @@ end
 --[[
 	Every guild any of your characters is in, saved account-wide in ns.db.global.guilds each time
 	that character reads its roster -- at login, and at every Find Recipients -- so a character in
-	no guild, or in a small one, still reaches the levelling players in your others. Mail never
+	no guild, or in a small one, still reaches the leveling players in your others. Mail never
 	crosses realms or factions, so a saved guild is only read on its own realm and side.
 
 	A SAVED ROSTER IS A PHOTOGRAPH, so a member's time offline is what it recorded plus the days
@@ -218,12 +218,24 @@ function Guild:Save()
 			}
 		end
 	end
-	local entry = ns.db.global.guilds[key] or {}
+	local entry = ns.db.global.guilds[key]
+	--[[
+		A guild added by name in other capitals is this one: taken over under the roster's own
+		spelling, ticks and ignores and all, so it is never listed twice.
+	]]
+	if not entry then
+		local found, oldKey = self:Find(GetGuildInfo("player"))
+		if found then
+			ns.db.global.guilds[oldKey] = nil
+			entry = found
+		end
+	end
+	entry = entry or {}
 	entry.name = GetGuildInfo("player")
 	entry.realm = Realm()
 	entry.faction = UnitFactionGroup("player")
 	entry.scanned = time()
-	entry.scannedBy = UnitName("player")
+	entry.scannedBy = ns.PlayerName()
 	entry.members = members
 	ns.db.global.guilds[key] = entry
 	return entry, online
@@ -302,8 +314,11 @@ local function Eligible(entry, member, mine)
 	return Classify(entry, member, mine) == nil
 end
 
--- A member in the shape /who results arrive in. The name is verbatim: it is the address.
-local function AsCandidate(member)
+--[[
+	A member in the shape /who results arrive in. The name is verbatim: it is the address. The
+	guild's name rides along so MatchList:RecheckGuildmates can ask again after My Guilds changes.
+]]
+local function AsCandidate(member, entry)
 	return {
 		name = member.name,
 		level = member.level,
@@ -311,6 +326,7 @@ local function AsCandidate(member)
 		area = member.area,
 		-- Where they rank in Matcher:RankCandidates, and the only trace of the source.
 		guild = true,
+		guildName = entry.name,
 	}
 end
 
@@ -345,10 +361,14 @@ end
 
 --[[
 	Whether a saved guild can be read from this character, and why not when it cannot: "realm" or
-	"faction" for one mail cannot reach, "off" for one the player unticked. An old roster is not
+	"faction" for one mail cannot reach, "off" for one the player unticked, "removed" for one
+	taken off My Guilds. An old roster is not
 	skipped whole: its members age out one by one. The guild this character is in is read live instead.
 ]]
 function Guild:Usable(entry)
+	if entry.removed then
+		return false, "removed"
+	end
 	if entry.realm ~= Realm() then
 		return false, "realm"
 	end
@@ -375,7 +395,7 @@ function Guild:ReadSaved()
 		if key ~= current and self:Usable(entry) then
 			for _, member in ipairs(entry.members or {}) do
 				if Eligible(entry, member, mine) then
-					out[#out + 1] = AsCandidate(member)
+					out[#out + 1] = AsCandidate(member, entry)
 				end
 			end
 		end
@@ -405,6 +425,10 @@ function Guild:Read()
 		return out
 	end
 	counts.unreadable = counts.rows - #entry.members
+	-- Unticked or removed on My Guilds: saved for the panel, but nobody in it is offered anything.
+	if not self:Usable(entry) then
+		return out
+	end
 
 	local mine = OwnCharacters()
 	for _, member in ipairs(entry.members) do
@@ -413,11 +437,151 @@ function Guild:Read()
 			counts[why] = counts[why] + 1
 		else
 			counts.eligible = counts.eligible + 1
-			out[#out + 1] = AsCandidate(member)
+			out[#out + 1] = AsCandidate(member, entry)
 		end
 	end
 
 	return out
+end
+
+--------------------------------------------------------------------------------
+-- Guilds Added by Name
+--------------------------------------------------------------------------------
+
+--[[
+	The My Guilds panel's Add Guild box, TFTB's way: type a guild's name and its members count as
+	guildmates. A roster can only be read by a member, so a guild added by name has none. Its
+	members are found by /who instead -- each Find Recipients plan opens with a g-"Name" query for
+	it (Who:Plan), and any /who answer naming one of your guilds ranks that player with your
+	guildmates (Guild:WhoLookup). Stored beside the saved rosters in ns.db.global.guilds, keyed the
+	same way, with added = true and no members.
+
+	REMOVING HIDES, IT DOES NOT FORGET, for a guild one of your characters is in: that character
+	saves it again at its next login, so deleting the entry would bring it back on its own. It is
+	flagged removed instead, and typing its name into Add Guild brings it back. A guild added by
+	name and never saved is deleted outright.
+]]
+
+-- One spelling for comparing guild names: trimmed, inner spaces collapsed, lower case.
+local function NameKey(name)
+	local trimmed = (name or ""):gsub("%s+", " "):match("^%s*(.-)%s*$")
+	if trimmed == "" then
+		return nil
+	end
+	return trimmed:lower(), trimmed
+end
+
+-- The saved entry for a guild name on this realm and side, whatever its capitals, and its key.
+function Guild:Find(name)
+	local wanted = NameKey(name)
+	if not wanted or not ns.db then
+		return nil
+	end
+	local realm, faction = Realm(), UnitFactionGroup("player")
+	for key, entry in pairs(ns.db.global.guilds) do
+		if entry.realm == realm and entry.faction == faction and NameKey(entry.name) == wanted then
+			return entry, key
+		end
+	end
+	return nil
+end
+
+--[[
+	Adds every guild named in text: commas, semicolons or new lines split several. A guild already
+	listed is ticked again and brought back if it was removed. Returns how many it changed.
+]]
+function Guild:Add(text)
+	if not ns.db then
+		return 0
+	end
+	local changed = 0
+	for piece in (text or ""):gmatch("[^,;\n]+") do
+		local _, name = NameKey(piece)
+		if name then
+			local entry = self:Find(name)
+			if entry then
+				if entry.removed or entry.include == false then
+					entry.removed, entry.include = nil, nil
+					changed = changed + 1
+				end
+			else
+				local key = self:Key(name, Realm(), UnitFactionGroup("player"))
+				ns.db.global.guilds[key] = {
+					name = name,
+					realm = Realm(),
+					faction = UnitFactionGroup("player"),
+					added = true,
+					members = {},
+				}
+				changed = changed + 1
+			end
+		end
+	end
+	return changed
+end
+
+function Guild:Remove(key)
+	local entry = ns.db and ns.db.global.guilds[key]
+	if not entry then
+		return
+	end
+	if entry.added and not entry.scanned then
+		ns.db.global.guilds[key] = nil
+	else
+		entry.removed = true
+	end
+end
+
+-- Whether this guild's members are known only through /who: added by name, no roster saved.
+function Guild:ByNameOnly(entry)
+	return entry ~= nil and entry.added == true and not entry.scanned
+end
+
+--[[
+	The guilds Who:Plan opens each Find Recipients with a g-"Name" query for: added by name, usable
+	from here, and with no roster to read instead. Alphabetical, so the plan is the same each time.
+]]
+function Guild:SearchNames()
+	local out = {}
+	if not ns.db then
+		return out
+	end
+	for _, entry in pairs(ns.db.global.guilds) do
+		if self:ByNameOnly(entry) and self:Usable(entry) then
+			out[#out + 1] = entry.name
+		end
+	end
+	table.sort(out)
+	return out
+end
+
+--[[
+	For reading a /who answer: a function taking the guild name a result carries and the player's
+	name, answering whether they rank with your guildmates and whether you ignored them. Every
+	usable guild on My Guilds counts as guildmates, saved or added, along with the one this
+	character is in. A member unticked by hand stays ignored in any saved guild, usable or not, so
+	unticking or removing the whole guild never hands them back as a stranger. Built once per
+	answer, so fifty results cost one pass over the saved guilds.
+]]
+function Guild:WhoLookup()
+	local byName = {}
+	if ns.db then
+		for _, entry in pairs(ns.db.global.guilds) do
+			local wanted = NameKey(entry.name)
+			if wanted then
+				byName[wanted] = byName[wanted] or {}
+				table.insert(byName[wanted], entry)
+			end
+		end
+	end
+	return function(guildName, playerName)
+		local guildmate, ignored = false, false
+		for _, entry in ipairs(byName[NameKey(guildName) or ""] or {}) do
+			guildmate = guildmate or (self:Usable(entry) and true or false)
+			ignored = ignored or self:Ignored(entry, playerName)
+		end
+		return guildmate, ignored
+	end
 end
 
 --------------------------------------------------------------------------------

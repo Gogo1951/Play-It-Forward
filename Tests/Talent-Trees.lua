@@ -1,7 +1,7 @@
 --[[
 	Class weights summed from talent trees, and the budget that makes every stat count.
 
-	Each Classic folder's Match-Specs file writes each tree as the player levelling it: a stat it builds
+	Each Classic folder's Match-Specs file writes each tree as the player leveling it: a stat it builds
 	around is worth 2, one that helps it 1, and three trees sum to a class weight of 0 to
 	6. The cases below pin the sums worth pinning, then the reason the budget exists --
 	a Classic "+1% hit" reads as 1 beside "+10 Strength", and before the conversion hit
@@ -64,7 +64,7 @@ test("a stat every tree builds on sums to the top of the scale", function()
 
 	equal(weights.ROGUE.AGILITY, 6, "rogue agility")
 	equal(weights.HUNTER.AGILITY, 6, "hunter agility")
-	equal(weights.WARRIOR.STRENGTH, 6, "warrior strength, protection levelling on it too")
+	equal(weights.WARRIOR.STRENGTH, 6, "warrior strength, protection leveling on it too")
 	equal(weights.MAGE.INTELLECT, 6, "mage intellect")
 end)
 

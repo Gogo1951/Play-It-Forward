@@ -27,8 +27,6 @@ L["CHAT_OPTIONS_IN_COMBAT"] = "基於安全考量，戰鬥中無法開啟設定�
 ]]
 L["WINDOW_GEAR_LABEL"] = "裝備"
 L["WINDOW_CONSUMABLES_LABEL"] = "消耗品"
--- Under Gear: the twin of Disenchant Unmatched Items, with your enchanter's name beside it.
-L["WINDOW_DISENCHANT_LABEL"] = "分解"
 -- In the enchanter dropdown while no character is picked, and in its list while none exists.
 L["WINDOW_DISENCHANT_PICK"] = "選擇角色"
 L["WINDOW_DISENCHANT_NONE"] = "你的每個角色使用 Play It Forward 登入後就會出現在這裡。"
@@ -57,20 +55,21 @@ L["BUTTON_SENDING"] = "寄送中..."
 	nothing is being sent when it prints. SendWho only answers from a real button press, so a
 	blocked call is explained instead of reading as a dead press.
 ]]
--- From Find Recipients for This Item, pressed while the last search is still out or throttled.
+-- From Rescan for Better Match, pressed while the last search is still out or throttled.
 L["WHO_WAIT"] = "%d 秒後再次搜尋。等按鈕顯示為尋找收件者時再試。"
 L["WHO_BLOCKED"] =
 	"請再按一次尋找收件者。暴雪只允許直接透過點擊按鈕發起這種搜尋，而這次被打斷了。"
 
--- On the button beside Blizzard's mail frame that brings the closed window back.
-L["REOPEN_TOOLTIP"] = "顯示你背包裡可以贈送的物品。"
+-- The menu under the button beside Blizzard's mail frame, which brings the closed window back.
+L["REOPEN_MENU_OPEN"] = "開啟分發視窗"
+L["REOPEN_MENU_OPTIONS"] = "選項"
 
 -- In the list while it is empty.
 L["WINDOW_EMPTY"] = "沒有可贈送的物品了。"
 L["WINDOW_EMPTY_HINT"] = "變更上方的設定以列出更多。"
 
 --[[
-	The line above the two buttons: always the next step. One line 622 points wide, cut short
+	The line above the two buttons: always the next step. One line 624 points wide, cut short
 	rather than wrapped, so keep translations about this long.
 ]]
 L["STATUS_START"] = "按下尋找收件者，為 %d 件物品尋找玩家。"
@@ -79,6 +78,9 @@ L["STATUS_DONE"] = "搜尋完畢。仍有 %d 件物品在範圍內無人可收�
 L["STATUS_READY"] = "按下分發以寄出 %d 件物品。"
 L["STATUS_AWAY"] = "開啟信箱以寄出 %d 件物品。"
 L["STATUS_SENDING"] = "正在寄出第 %d 件，共 %d 件。請在每個彈出視窗中點擊接受。"
+-- Only Kept gear is left and Disenchant is off: the one switch that sends it anywhere.
+L["STATUS_KEPT_DISENCHANT"] =
+	"沒有可寄出的物品。勾選上方的分解，即可把剩餘裝備寄給你的附魔師。"
 
 L["SECTION_MATCHED"] = "已配對"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
@@ -89,12 +91,13 @@ L["SECTION_UNREADABLE"] = "無法讀取屬性"
 	"Kept", never "vendor / disenchant": the add-on does not tell the player what to do with what
 	stays. Covers the leftover rows: items no class wants, or that score too low to be worth sending.
 	A Kept gear row only goes to be disenchanted when the player turned on Disenchant Unmatched
-	Items, and then it shows under Matched with the enchanter's name.
+	Gear, and then it moves to its own Disenchant section with the enchanter's name.
 
 	ONE KEY FOR TWO SURFACES, and the only section and row pair that shares one: the band and
-	the row label read the same single word, so two keys could only drift apart. Every other
-	section and row pair deliberately says something different on each -- "Pending Match" over
-	a band of rows that each read "No Recipient".
+	the row label read the same single word, so two keys could only drift apart. Disenchant also
+	reads one word on both, but it is the client's spell name, not a key. Every other section and
+	row pair deliberately says something different on each -- "Pending Match" over a band of rows
+	that each read "No Recipient".
 ]]
 L["WINDOW_KEPT"] = "保留"
 
@@ -105,8 +108,11 @@ L["ROW_UNREADABLE"] = "屬性讀取失敗"
 
 L["PICKER_KEEP_OPTION"] = "保留物品"
 L["PICKER_NONE_IN_RANGE"] = "等級範圍內沒有人。請按尋找收件者。"
+-- A Kept row some class could still take: Find Recipients never fills one, the per-item search below can.
+L["PICKER_NONE_KEPT"] =
+	"等級範圍內沒有人。按下方的重新尋找更合適的收件者，為這件物品尋找收件者。"
 --[[
-	KEPT SHORT. A note shares one 18-pixel row with a cross-realm name, a level and a class, and
+	KEPT SHORT. A note shares one 16-pixel row with a cross-realm name, a level and a class, and
 	anything longer is cut off. Notes are information, never gates: every name can be picked.
 ]]
 L["PICKER_NOTE_HAS_ONE"] = "(已有)"
@@ -122,28 +128,28 @@ L["PICKER_NOTE_RECENT_DESCRIPTION"] = "本次登入期間已經收過你的禮�
 	Below the divider at the bottom of the list: a /who aimed at the classes the verdict says
 	this item is for, their own bands first and the fallbacks a press behind them.
 ]]
-L["PICKER_FIND_FOR_ITEM"] = "為此物品尋找收件者"
+L["PICKER_FIND_FOR_ITEM"] = "重新尋找更合適的收件者"
 -- Section headings in the recipient picker, in matching order: your alts, your guild, then everyone else.
 L["PICKER_SECTION_ALTS"] = "你的分身"
 L["PICKER_SECTION_GUILD"] = "你的公會"
 L["PICKER_SECTION_STRANGERS"] = "陌生人"
--- Under the other sections on a Kept gear row, holding the enchanter Disenchant Unmatched Items sends to.
-L["PICKER_SECTION_DISENCHANT"] = "分解"
+-- TRANSLATORS: %s is the enchanter's name, class-colored.
+L["PICKER_DISENCHANT_DESCRIPTION"] = "將此物品寄給 %s 分解。"
+L["PICKER_DISENCHANT_NONE_DESCRIPTION"] =
+	"勾選視窗頂端的分解，並選擇你的一個角色來接收要分解的物品。"
 
--- A heading takes no full stop; every body line under it does.
-L["TOOLTIP_RECIPIENT"] = "收件者"
+-- The recipient list's opening lines, above the names. Each is a full sentence with a period.
 L["TOOLTIP_RECIPIENT_CANDIDATES"] = "%d 名候選人，等級 %d-%d。"
-L["TOOLTIP_RECIPIENT_HINT"] = "點擊以重新指派。"
 -- TRANSLATORS: %s is one to three class names, comma-separated, each from the game itself.
 L["TOOLTIP_RECIPIENT_BEST_FIT"] = "最適合%s。"
 --[[
-	In place of the count and hint on a row nobody can ever be offered, where the count is always
-	zero. The unreadable line is also the picker's info line for that row: the add-on's failure,
-	not an empty realm, so Find Recipients is not pressed forever.
+	In place of the count on a row nobody can ever be offered, where the count is always zero. The
+	unreadable line says it is the add-on's failure, not an empty realm, so Find Recipients is not
+	pressed forever.
 ]]
 L["ITEM_STATS_UNREADABLE"] = "無法讀取此物品的屬性，因此不進行配對。"
 L["TOOLTIP_RECIPIENT_KEPT"] = "沒有職業需要它，所以它會留在你的背包裡。"
--- On a Kept row Disenchant Unmatched Items sent to your enchanter. %s is that character's name.
+-- Opens the list on a Kept row going to your enchanter; a row sent there by hand keeps its count instead. %s is that character's name.
 L["TOOLTIP_RECIPIENT_DISENCHANT"] = "沒有人能使用它，所以會寄給 %s 分解。"
 
 -- The row's tick box. Every row starts ticked; unticking keeps the item, and stays unticked.
@@ -166,8 +172,9 @@ L["TOOLTIP_CHECK_UNREADABLE"] = "在能讀取其屬性之前，此物品無法�
 	THE ACTION NAMES A BUTTON, SPELLED OUT. Nothing ties these mentions to the BUTTON_* keys above,
 	so renaming a button here leaves the messages telling the player to press something that is no
 	longer on screen. Change BUTTON_FIND_RECIPIENTS or BUTTON_DISTRIBUTE and read this block through,
-	along with WHO_WAIT, WHO_BLOCKED, STATUS_START, STATUS_MORE, STATUS_READY, PICKER_NONE_IN_RANGE,
-	PICKER_FIND_FOR_ITEM and TOOLTIP_CHECK_SEND above, which name those buttons too.
+	along with WHO_WAIT, WHO_BLOCKED, STATUS_START, STATUS_MORE, STATUS_READY, PICKER_NONE_IN_RANGE
+	and TOOLTIP_CHECK_SEND above and OPTIONS_GUILD_ADD_DESCRIPTION and OPTIONS_GUILD_ADDED below,
+	which name those buttons too. PICKER_NONE_KEPT names PICKER_FIND_FOR_ITEM the same way.
 ]]
 L["MAIL_STILL_SENDING"] = "仍在寄送。請稍等一下。"
 L["MAIL_NOTHING_TO_DISTRIBUTE"] = "沒有可分發的物品。"
@@ -227,7 +234,7 @@ L["MAIL_POWERED_BY"] = "Powered by Play It Forward, on CurseForge and Wago."
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"把你用不到的裝綁裝備、食物、藥水、卷軸、油和磨石，郵寄給你的分身、公會成員和正在練功的玩家。每件物品都會送給最適合它的職業，把背包裡的雜物變成別人的下一次升級。傳遞善意，一次一件綠裝。"
+	"把你用不到的裝綁裝備、食物、藥水、卷軸、油和磨石，郵寄給你的分身、公會成員和正在練功的玩家，沒人能用的裝備則寄給你的附魔師分解。每份禮物都會送給最適合它的職業。傳遞善意，一次一件綠裝。"
 L["OPTIONS_WELCOME"] = "啟用歡迎訊息"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "登入時顯示版本和設定提醒。"
 
@@ -282,16 +289,15 @@ L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
 	"提供你已用不到的武器油、磨刀石和平衡石。巫師之油給施法者，法力之油給使用法力的職業，磨刀石、平衡石和其他武器油給近戰職業。"
 
 --[[
-	Kept gear mailed to one of your own characters instead of staying in your bags. Gear only:
-	consumables do not disenchant. The dropdown lists every character on this realm or a
-	connected one, on this faction, that has logged in with the add-on.
+	Kept gear mailed to one of your own characters instead of staying in your bags: one toggle with
+	the enchanter beside it, no header, and the explanation in the tooltip. Gear only, consumables do
+	not disenchant, so the label says Gear. The window's Disenchant tick shares the description. The
+	dropdown lists every character on this realm or a connected one, on this faction, that has
+	logged in with the add-on.
 ]]
-L["OPTIONS_DISENCHANT_HEADER"] = "分解未配對物品"
-L["OPTIONS_DISENCHANT_DESCRIPTION"] =
-	"無人配對的裝備可以寄給你自己的某個角色進行分解，而不是留在你的背包裡。開啟此功能，然後選擇由哪個角色接收。每個伺服器和陣營會分別保存各自的選擇。"
-L["OPTIONS_DISENCHANT_SEND"] = "將未配對物品寄給附魔師"
+L["OPTIONS_DISENCHANT_SEND"] = "分解未配對的裝備"
 L["OPTIONS_DISENCHANT_SEND_DESCRIPTION"] =
-	"無人能用的裝備會寄給你的某個角色進行分解，而不是留在你的背包裡。消耗品永遠不會被寄出。"
+	"無人能用的裝備會透過郵件寄給你的某個角色進行分解，而不是留在你的背包裡。每個伺服器和陣營各自保存自己的選擇。消耗品永遠不會被寄出。"
 L["OPTIONS_DISENCHANTER_DESCRIPTION"] =
 	"你的附魔師。列出你在此伺服器及其連結伺服器上、同一陣營的角色，每個角色需先使用 Play It Forward 登入過。"
 
@@ -332,6 +338,7 @@ L["OPTIONS_SPECS_INTRO"] =
 	"沒有人能看到其他玩家的專精，所以裝備會依以下假設寄出。你自己的角色使用我的分身中設定的專精。"
 L["OPTIONS_SPECS_RESET"] = "恢復預設"
 L["OPTIONS_SPECS_RESET_DESCRIPTION"] = "將所有專精恢復為插件的預設設定。"
+L["OPTIONS_SPECS_RESET_CONFIRM"] = "將所有專精恢復為插件的預設設定？"
 -- The damage roles only: Tank and Healer come from the game's TANK and HEALER labels.
 L["ROLE_CASTER"] = "法術傷害"
 L["ROLE_MELEE"] = "近戰傷害"
@@ -403,7 +410,7 @@ L["OPTIONS_ALT_LEVEL_LOWEST_DESCRIPTION"] =
 	"寄給此角色的裝備的最低等級。角色等級不會寄送低於其等級的裝備；角色等級 -2 還會寄送最多低兩級、它現在就能穿的裝備。"
 L["OPTIONS_ALT_LEVEL_HIGHEST"] = "最高"
 L["OPTIONS_ALT_LEVEL_HIGHEST_DESCRIPTION"] =
-	"寄給此角色的裝備的最高等級。所有可用裝備會寄送它日後能用上的一切，所以 1 級獵人也能收到 50 級的弓。"
+	"寄給此角色的裝備的最高等級。所有可用裝備會寄送它日後能用上的一切，所以 1 級獵人也能收到 50 級的弓。食物、藥水、卷軸、油和磨石也依照相同的等級範圍，以其可使用的等級為準。"
 L["OPTIONS_ALT_LEVEL_THEIRS"] = "角色等級"
 -- TRANSLATORS: %d is 1 to 3.
 L["OPTIONS_ALT_LEVEL_BELOW"] = "角色等級 -%d"
@@ -412,7 +419,7 @@ L["OPTIONS_ALT_LEVEL_ANY"] = "所有可用裝備"
 -- Under the two dropdowns, in real levels at the character's last recorded level.
 L["OPTIONS_ALT_LEVELS_RANGE"] = "寄送 %d 到 %d 級的裝備。"
 L["OPTIONS_ALT_LEVELS_FROM"] = "寄送 %d 級及以上的裝備。"
-L["OPTIONS_DELETE"] = "刪除"
+L["OPTIONS_DELETE"] = "忘記"
 -- TRANSLATORS: %s is a character's name.
 L["OPTIONS_ALT_DELETE_CONFIRM"] = "忘記 %s？它下次登入時會重新加入。"
 L["OPTIONS_ALT_DELETE_DESCRIPTION"] = "忘記此角色。它下次登入時會重新加入。"
@@ -423,7 +430,7 @@ L["OPTIONS_ALT_DELETE_DESCRIPTION"] = "忘記此角色。它下次登入時會�
 
 L["TAB_GUILDS"] = "我的公會"
 L["OPTIONS_GUILDS_INTRO"] =
-	"你的角色所在的每個公會，會在其中任一角色登入時保存，這樣無論你在玩哪個角色，都能給正在練功的公會成員寄送物品。"
+	"你的角色所在的每個公會，會在其中任一角色登入時保存，這樣無論你在玩哪個角色，都能給正在練功的公會成員寄送物品。也可以依名稱新增其他公會，讓其成員同樣算作公會成員。"
 L["OPTIONS_GUILD_OFFLINE"] = "忽略離線公會成員"
 L["OPTIONS_GUILD_OFFLINE_DESCRIPTION"] =
 	"略過超過此時長未登入的公會成員，包括你目前所在的公會和已保存的公會。選擇從不則包含所有人，無論他們離開了多久。"
@@ -431,8 +438,16 @@ L["OPTIONS_GUILD_OFFLINE_WEEK"] = "超過 1 週"
 L["OPTIONS_GUILD_OFFLINE_TWO_WEEKS"] = "超過 2 週"
 L["OPTIONS_GUILD_OFFLINE_NEVER"] = "從不"
 L["OPTIONS_GUILDS_EMPTY"] =
-	"還沒有公會。當你在某個公會中的角色登入後，該公會就會出現在這裡。"
-L["OPTIONS_GUILD_INCLUDE"] = "寄送給此公會的成員"
+	"還沒有公會。在上方新增一個，或用在公會中的角色登入，該公會就會出現在這裡。"
+-- TFTB's Add Guild box, above the list of guilds.
+L["OPTIONS_GUILD_ADD"] = "新增公會"
+L["OPTIONS_GUILD_ADD_DESCRIPTION"] =
+	"輸入公會名稱，然後按 Enter 鍵。多個公會用逗號分隔。不分大小寫。按下尋找收件者時，會尋找這些公會在此伺服器和陣營的線上成員，他們排在陌生人之前。"
+-- The remove icon beside a guild's name.
+L["OPTIONS_GUILD_REMOVE"] = "將此公會從清單中移除。依名稱重新新增即可恢復。"
+-- In place of the roster status on a guild added by name: there is no roster, only /who.
+L["OPTIONS_GUILD_ADDED"] = "依名稱新增。尋找收件者會尋找其線上成員。"
+L["OPTIONS_GUILD_INCLUDE"] = "包含此公會"
 L["OPTIONS_GUILD_INCLUDE_DESCRIPTION"] = "向此公會的成員寄送裝備。"
 L["OPTIONS_GUILD_MEMBERS"] = "活躍成員"
 L["OPTIONS_GUILD_MEMBERS_EMPTY"] = "此名單中沒有最近活躍到足以接收物品的成員。"
@@ -486,7 +501,7 @@ L["OPTIONS_GENEROSITY_ITEM_LEVELS"] = "物品等級"
 L["OPTIONS_GENEROSITY_VALUE"] = "金幣價值"
 
 -- Sharing the tally with nearby players.
-L["OPTIONS_SHARE_STATS"] = "啟用慷慨徽章玩家滑鼠提示"
+L["OPTIONS_SHARE_STATS"] = "分享慷慨徽章"
 L["OPTIONS_SHARE_STATS_DESCRIPTION"] =
 	"在城市和旅店中，你附近的玩家可以在你的滑鼠提示中看到你的統計。關閉後將停止分享，但你仍能看到他們的統計，而你自己的統計無論如何都會繼續累計。"
 

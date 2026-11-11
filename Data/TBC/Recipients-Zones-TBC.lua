@@ -123,7 +123,7 @@ ns.Data.INSTANCE_AREAS = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, TBC Anniversary 2.5.6.70577
+	2026-11-11, TBC Anniversary 2.5.6.70577
 
 Notes
 	- Levelling zones, and who is in them: input to the /who queries in

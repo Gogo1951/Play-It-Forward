@@ -160,6 +160,21 @@ local function Split(message)
 end
 
 --[[
+	A peer's totals arrive from anyone in yelling range, so only plain non-negative integers up to
+	PEER_TOTAL_MAX are believed; "-1", "nan", "1e999" or "0x10" would otherwise reach the tooltip.
+]]
+local PEER_TOTAL_MAX = 1e12
+local STATS_FIELDS = 6
+
+local function ReadTotal(field)
+	if type(field) ~= "string" or not field:match("^%d+$") then
+		return nil
+	end
+	local value = tonumber(field)
+	return (value and value <= PEER_TOTAL_MAX) and value or nil
+end
+
+--[[
 	Handler args are prefix, message, channel, sender. Ignore other add-ons' prefixes and unknown
 	payload versions; on "S" cache the sender's four totals, on "?" answer with our own (throttled).
 ]]
@@ -171,9 +186,22 @@ local function OnChatMsgAddon(prefix, message, _, sender)
 	if parts[1] ~= PAYLOAD_VERSION then
 		return
 	end
+	--[[
+		A YELL comes back to its sender. Answering our own ping would spend the broadcast interval
+		on nobody, leaving a real ping later that minute unanswered.
+	]]
+	local senderKey = ns.QualifyPlayerName(sender)
+	if senderKey and senderKey == ns.QualifyPlayerName(ns.PlayerName()) then
+		return
+	end
 	local kind = parts[2]
 	if kind == "S" then
 		local key = ns.QualifyPlayerName(sender)
+		local gifts, items, itemLevels, value =
+			ReadTotal(parts[3]), ReadTotal(parts[4]), ReadTotal(parts[5]), ReadTotal(parts[6])
+		if #parts ~= STATS_FIELDS or not (gifts and items and itemLevels and value) then
+			return
+		end
 		if key then
 			--[[
 				Swept here because this is the only place the table grows, so nothing needs a timer.
@@ -187,10 +215,10 @@ local function OnChatMsgAddon(prefix, message, _, sender)
 				end
 			end
 			peers[key] = {
-				gifts = tonumber(parts[3]) or 0,
-				items = tonumber(parts[4]) or 0,
-				itemLevels = tonumber(parts[5]) or 0,
-				value = tonumber(parts[6]) or 0,
+				gifts = gifts,
+				items = items,
+				itemLevels = itemLevels,
+				value = value,
 				t = now,
 			}
 		end

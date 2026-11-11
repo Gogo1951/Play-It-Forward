@@ -1,7 +1,7 @@
 --[[
 	Where a recipient is standing, and what that is worth.
 
-	A gift is for somebody levelling, and the best evidence of that /who gives is a player out
+	A gift is for somebody leveling, and the best evidence of that /who gives is a player out
 	in a zone made for their level. A capital is full of bank alts and people idling; a dungeon
 	may be a boost. So placement ranks right behind who the item is for, and a holder found
 	in a capital or a dungeon leaves the search running for somebody out in the world.
@@ -39,7 +39,7 @@ end
 -- Placement
 --------------------------------------------------------------------------------
 
-test("a zone made for their level is levelling", function()
+test("a zone made for their level is leveling", function()
 	local ns = load()
 	local Who = ns.Who
 	equal(Who:Placement({ level = 15, area = "Westfall" }), Who.PLACED_LEVELING, "Westfall at 15")
@@ -69,7 +69,7 @@ end)
 -- Ranking
 --------------------------------------------------------------------------------
 
-test("somebody out levelling outranks a capital and a dungeon", function()
+test("somebody out leveling outranks a capital and a dungeon", function()
 	local ns = load()
 	Stub.SetBackpack({ casterCloth() })
 	local item = ns.Scanner:Scan()[1]
@@ -115,7 +115,7 @@ local function searchOnce(ns, results)
 	return ns.UI:Items()[1]
 end
 
-test("a holder out levelling ends the search", function()
+test("a holder out leveling ends the search", function()
 	local ns = load()
 	local item = searchOnce(ns, { { name = "Quester", level = 19, class = "MAGE", area = "Redridge Mountains" } })
 
@@ -133,7 +133,7 @@ end)
 
 --[[
 	Pooled once with no zone, as an offline guildmate or a first sighting in a capital, a player
-	found out levelling later has to be placed where they are now, or they rank as a banker
+	found out leveling later has to be placed where they are now, or they rank as a banker
 	all session and a holder found that way keeps the search running for nothing.
 ]]
 test("a later sighting moves a pooled player to where they are now", function()
@@ -150,5 +150,5 @@ test("a later sighting moves a pooled player to where they are now", function()
 		{ name = "Guildie", level = 19, class = "MAGE", area = "Redridge Mountains" },
 	})
 	equal(changed, 1, "the new zone counts as a change")
-	equal(ns.Who:Placement(pooled), ns.Who.PLACED_LEVELING, "and places them out levelling")
+	equal(ns.Who:Placement(pooled), ns.Who.PLACED_LEVELING, "and places them out leveling")
 end)

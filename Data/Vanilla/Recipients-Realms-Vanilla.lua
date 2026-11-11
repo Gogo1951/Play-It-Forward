@@ -79,7 +79,7 @@ ns.Data.LINKED_REALMS = CLUSTERS[GetCurrentRegion and GetCurrentRegion()] or {}
 How We Got the Data
 
 Last Validated
-	2026-10-29, Classic Era 1.15.9.70576
+	2026-11-11, Classic Era 1.15.9.70576
 
 Notes
 	- Classic Era's connected realms: mail reaches any character of the same faction on a realm

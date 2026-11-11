@@ -178,6 +178,16 @@ test("a low level alt holds plate it has yet to grow into", function()
 	equal(items[1].recipient and items[1].recipient.name, "Brickhouse", "the warrior alt takes it")
 end)
 
+test("an alt deleted on My Alts stops being offered at once", function()
+	local ns = load()
+	seedAlt(ns, WARRIOR_ALT)
+	local items = atMailbox(ns, { strengthPlate() })
+	equal(items[1].recipient and items[1].recipient.name, "Brickhouse", "the warrior alt takes it")
+	ns.BuildAltsOptions().args["Brickhouse-Test"].args.delete.func()
+	items = ns.UI:Items()
+	check(not (items[1].recipient and items[1].recipient.name == "Brickhouse"), "deleted, it gets nothing")
+end)
+
 test("an alt can take several items in one run", function()
 	local ns = load()
 	seedAlt(ns, WARRIOR_ALT)
@@ -316,6 +326,49 @@ test("a level 1 alt is offered and mailed past the recipient floor", function()
 end)
 
 --[[
+	No copy to your own alts. A letter with text stays in the mailbox once its item is taken, so a
+	run to an alt left a stack of identical notes behind. The alt's letter goes out under the item
+	name the client writes on attach, with no body, even straight after a stranger's letter has
+	left our subject in the box.
+]]
+test("a letter to your own alt carries no subject or note of ours", function()
+	local ns = load()
+	ns.db.profile.mailSubject = "A gift from Gogo"
+	ns.db.profile.mailBody = "Have fun out there"
+	seedAlt(ns, WARRIOR_ALT)
+	Stub.whoResults = { { name = "Sparks", level = 18, class = "MAGE" } }
+	atMailbox(ns, {
+		Stub.Item({
+			name = "Sentry Cloak",
+			reqLevel = 19,
+			equipLoc = "INVTYPE_CLOAK",
+			classID = 4,
+			subclassID = 1,
+			stats = { ITEM_MOD_INTELLECT_SHORT = 5 },
+		}),
+		strengthPlate(),
+	})
+	Stub.sent = {}
+	ns.UI:Distribute()
+	ns.fire("MAIL_SUCCESS")
+
+	local stranger, alt
+	for _, mail in ipairs(Stub.sent) do
+		if mail.recipient == "Brickhouse" then
+			alt = mail
+		else
+			stranger = mail
+		end
+	end
+	check(alt, "the alt's letter went out")
+	equal(alt and alt.subject, "Bulwark Breastplate", "under the item's own name")
+	equal(alt and alt.body, "", "with no note")
+	equal(Stub.sent[1] and Stub.sent[1].recipient, "Sparks", "the stranger's letter went first")
+	equal(stranger and stranger.subject, "A gift from Gogo", "a stranger still gets the player's subject")
+	check(stranger and stranger.body:find("Have fun out there", 1, true), "and the player's note")
+end)
+
+--[[
 	A consumable is judged by the alt's own Gear Levels too, at its use level: a level 1 alt holds
 	the level 5 Scroll of Stamina a stranger of 6 would otherwise take, and a Highest of Their
 	Level +2 keeps it from being stocked further ahead than that.
@@ -379,6 +432,7 @@ test("on WoW Forever a character records itself by its full name", function()
 	end)
 end)
 
+-- MIGRATION (remove after 2026-12-05)
 test("on WoW Forever a first-name record grows into the full name, choices and all", function()
 	withSurnames(function(ns)
 		ns.db.global.characters["Tester-Test"] =
@@ -406,6 +460,7 @@ test("on WoW Forever a first-name record grows into the full name, choices and a
 	end)
 end)
 
+-- MIGRATION (remove after 2026-12-05)
 test("an ambiguous first name is left as it was", function()
 	withSurnames(function(ns)
 		seedAlt(ns, WARRIOR_ALT)

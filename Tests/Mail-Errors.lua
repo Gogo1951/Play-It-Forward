@@ -255,11 +255,14 @@ test("back-to-back MAIL_FAILED still abort the run", function()
 
 	ns.fire("MAIL_FAILED")
 	Stub.FireTimers()
+	-- A failed send leaves its item on the client's panel; the stub's SendMail always empties it.
+	Stub.attached = Stub.sent[2] and Stub.sent[2].link
 	ns.fire("MAIL_FAILED")
 	Stub.FireTimers()
 
 	check(printed(ns.L["MAIL_ABORTED"]), "the run was aborted")
 	equal(#Stub.sent, 2, "and the third job was never attempted")
+	check(Stub.attached == nil, "and the failed item is not left on the Send Mail panel")
 end)
 
 --[[
@@ -297,6 +300,35 @@ test("a refusal raised inside the attach fails the job once", function()
 		end
 	end
 	equal(doneLines, 1, "the run finished exactly once")
+	C_Container.UseContainerItem = attach
+end)
+
+--[[
+	An attach error is about the item, not the person: the rest of what is going to that same alt
+	stays queued and goes out.
+]]
+test("an attach error on one item leaves the rest for that alt queued", function()
+	local ns = load()
+	ns.db.global.characters["Sparkle-Test"] =
+		{ name = "Sparkle", realm = "Test", class = "MAGE", level = 12, faction = "Alliance" }
+	readyToSend(ns, 3)
+	local items = ns.UI:Items()
+	ns.UI:SetRecipient(items[3], { name = "Sparkle", level = 12, class = "MAGE", alt = true })
+	local attach = C_Container.UseContainerItem
+	local refusedOnce = false
+	C_Container.UseContainerItem = function(bag, slot)
+		if not refusedOnce then
+			refusedOnce = true
+			ns.fire("UI_ERROR_MESSAGE", 449, ERR_MAIL_DATABASE_ERROR)
+			return
+		end
+		return attach(bag, slot)
+	end
+	ns.UI:Distribute()
+	equal(#Stub.sent, 0, "the item that failed to attach was never sent")
+
+	Stub.FireTimers()
+	equal(Stub.sent[1] and Stub.sent[1].recipient, "Sparkle", "the next item still goes to the same alt")
 	C_Container.UseContainerItem = attach
 end)
 

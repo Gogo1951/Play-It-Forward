@@ -58,7 +58,7 @@ ns.OPTIONS_ROW_WIDTH = 3.4
 ns.OPTIONS_LABEL_WIDTH = 2.1
 ns.OPTIONS_CONTROL_WIDTH = ns.OPTIONS_ROW_WIDTH - ns.OPTIONS_LABEL_WIDTH
 
--- The remove column of a player-managed item list, sized to its icon. This add-on ships no list.
+-- The remove column of a player-managed list, sized to its icon: the My Guilds remove icon.
 ns.OPTIONS_REMOVE_ICON_WIDTH = 0.25
 
 -- The blank cell a sub-option row leads with, so its control indents.

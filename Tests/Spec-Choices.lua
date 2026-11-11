@@ -196,3 +196,25 @@ test("spec names come from the game where it has them", function()
 	equal(ns.SpecName("WARRIOR", 1, arms), "Spec 1", "any class's spec where the client names them")
 	C_CreatureInfo.GetClassInfo, GetSpecializationInfoForClassID = nil, nil
 end)
+
+--------------------------------------------------------------------------------
+-- Layout
+--------------------------------------------------------------------------------
+
+local function rowWidth(row)
+	local total = 0
+	for _, control in pairs(row.args) do
+		total = total + (control.width or 0)
+	end
+	return total
+end
+
+test("a class row fits one line, a four-spec class too", function()
+	local ns = load()
+	local row = ns.BuildRecipientsOptions().args.classWARRIOR
+	check(rowWidth(row) <= ns.OPTIONS_ROW_WIDTH + 1e-9, "three specs fit")
+
+	table.insert(ns.Data.SPECS.WARRIOR, { key = "Tank", role = "TANK", rune = true, main = { "STAMINA" } })
+	row = ns.BuildRecipientsOptions().args.classWARRIOR
+	check(rowWidth(row) <= ns.OPTIONS_ROW_WIDTH + 1e-9, "four specs fit")
+end)

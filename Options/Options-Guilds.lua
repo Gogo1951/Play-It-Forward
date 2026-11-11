@@ -8,23 +8,29 @@ local Help = ns.OptionsHelp
 --------------------------------------------------------------------------------
 
 --[[
-	Every guild your characters are in, nested under Recipients. childGroups = "tree" splits the
-	panel in two, Magic Eraser's list layout: the guilds down the left, the one picked on the right
-	with a tick to include it, how fresh its roster is, and its active members, each with an Include
-	tick to untick for a guild bank or anybody else who should not get mail. No Delete: a guild is saved
-	again the next time one of your characters in it logs in, so unticking it is the lasting
-	choice. The choices live on the saved entries themselves (ns.db.global.guilds), account-wide.
+	Every guild your characters are in, plus any added by name, nested under Recipients. Above the
+	list, TFTB's Add Guild box: type a guild's name and its members rank with your guildmates,
+	found online by /who (Features/Recipients-Guild.lua). childGroups = "tree" splits the panel in
+	two, Magic Eraser's list layout: the guilds down the left, the one picked on the right with its
+	name and a remove icon, a tick to include it, how fresh its roster is, and its active members,
+	each with an Include tick to untick for a guild bank or anybody else who should not get mail. A
+	guild added by name has no roster, so it shows a line saying how its members are found instead.
+	Removing a guild one of your characters is in only hides it (Guild:Remove), since that
+	character would save it again at login. The choices live on the saved entries themselves
+	(ns.db.global.guilds), account-wide.
 
 	REGISTERED AS A BUILDER FUNCTION, so the rows are read again each time the panel is drawn: a
 	guild being saved adds a row without a reload.
 ]]
 
 local DAY = 24 * 60 * 60
+local REMOVE_ICON = "Interface/Buttons/UI-GroupLoot-Pass-Up"
 local MEMBER_LABEL_WIDTH = 1.8
 local MEMBER_INCLUDE_WIDTH = ns.OPTIONS_TREE_ROW_WIDTH - MEMBER_LABEL_WIDTH
 
--- A change to who is offered what re-reads the bags, and redraws this panel.
+-- A change to who is offered what drops pooled players it took away, re-reads the bags, and redraws this panel.
 local function Changed()
+	ns.MatchList:RecheckGuildmates()
 	ns.RefreshMailWindow()
 	LibStub("AceConfigRegistry-3.0"):NotifyChange(ns.OPTIONS_REGISTRY.Guilds)
 end
@@ -46,12 +52,18 @@ local SKIPPED = {
 }
 
 local function GuildStatus(key, guild)
+	local _, why = ns.Guild:Usable(guild)
+	if ns.Guild:ByNameOnly(guild) then
+		if SKIPPED[why] then
+			return L["OPTIONS_GUILD_ADDED"] .. " " .. L[SKIPPED[why]]
+		end
+		return L["OPTIONS_GUILD_ADDED"]
+	end
 	local text =
 		L["OPTIONS_GUILD_STATUS"]:format(ns.Guild:ActiveCount(guild), SavedWhen(guild.scanned), guild.scannedBy or "?")
 	if key == ns.Guild:CurrentKey() then
 		return text .. " " .. L["OPTIONS_GUILD_CURRENT"]
 	end
-	local _, why = ns.Guild:Usable(guild)
 	if SKIPPED[why] then
 		text = text .. " " .. L[SKIPPED[why]]
 	end
@@ -123,7 +135,36 @@ local function GuildPane(key, guild)
 		return not ns.Guild:Included(guild)
 	end
 	local args = {
-		title = { type = "description", name = GuildLabel(guild), fontSize = "large", order = 1 },
+		-- TFTB's row: the name, and the remove icon beside it.
+		title = {
+			type = "group",
+			name = "",
+			inline = true,
+			order = 1,
+			args = {
+				name = {
+					type = "description",
+					name = GuildLabel(guild),
+					fontSize = "large",
+					width = ns.OPTIONS_TREE_ROW_WIDTH - ns.OPTIONS_REMOVE_ICON_WIDTH,
+					order = 1,
+				},
+				remove = {
+					type = "execute",
+					name = "",
+					desc = L["OPTIONS_GUILD_REMOVE"],
+					image = REMOVE_ICON,
+					imageWidth = 16,
+					imageHeight = 16,
+					width = ns.OPTIONS_REMOVE_ICON_WIDTH,
+					order = 2,
+					func = function()
+						ns.Guild:Remove(key)
+						Changed()
+					end,
+				},
+			},
+		},
 		spacerTitle = ns.OptionsSpacer(2),
 		include = {
 			type = "toggle",
@@ -144,15 +185,19 @@ local function GuildPane(key, guild)
 			end,
 		},
 		status = { type = "description", name = Help(GuildStatus(key, guild)), fontSize = "medium", order = 4 },
+	}
+	-- No roster to list: its members are found online by Find Recipients.
+	if ns.Guild:ByNameOnly(guild) then
+		return args
+	end
+	local memberArgs = {
 		spacerMembers = ns.OptionsSpacer(5),
-		membersLabel = {
-			type = "description",
-			name = ns.GetColor("TITLE") .. L["OPTIONS_GUILD_MEMBERS"] .. "|r",
-			fontSize = "medium",
-			order = 6,
-		},
+		membersLabel = ns.OptionsHeader(L["OPTIONS_GUILD_MEMBERS"], 6),
 		spacerMemberRows = ns.OptionsSpacer(8),
 	}
+	for name, option in pairs(memberArgs) do
+		args[name] = option
+	end
 	local members = ns.Guild:ListedMembers(guild)
 	if #members == 0 then
 		args.membersEmpty =
@@ -167,7 +212,9 @@ end
 local function SortedGuilds()
 	local out = {}
 	for key, guild in pairs(ns.db.global.guilds) do
-		out[#out + 1] = { key = key, guild = guild }
+		if not guild.removed then
+			out[#out + 1] = { key = key, guild = guild }
+		end
 	end
 	table.sort(out, function(a, b)
 		return (a.guild.name or "") < (b.guild.name or "")
@@ -204,6 +251,23 @@ function ns.BuildGuildsOptions()
 			set = function(_, value)
 				ns.db.profile.guildOfflineLimit = value
 				Changed()
+			end,
+		},
+		spacerAdd = ns.OptionsSpacer(4.5),
+		addLabel = ns.OptionsRowLabel(L["OPTIONS_GUILD_ADD"], 4.6),
+		add = {
+			type = "input",
+			name = "",
+			desc = L["OPTIONS_GUILD_ADD_DESCRIPTION"],
+			width = ns.OPTIONS_CONTROL_WIDTH,
+			order = 4.7,
+			get = function()
+				return ""
+			end,
+			set = function(_, value)
+				if ns.Guild:Add(value) > 0 then
+					Changed()
+				end
 			end,
 		},
 		spacerTree = ns.OptionsSpacer(5),

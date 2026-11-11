@@ -20,8 +20,8 @@ local Alts = ns.Alts
 	it records itself again at its next login, so nothing is lost for good. The My Alts
 	panel forgets one the same way.
 
-	THE PLAYER'S CHOICES LIVE ON THE SAME ENTRY: include, specs, levelsBelow and levelsAbove, set
-	on that panel.
+	THE PLAYER'S CHOICES LIVE ON THE SAME ENTRY: include, specs, levelsBelow, levelsAbove and
+	disenchanter, set on that panel.
 	A login rewrites what the character is -- level, class, spec -- and never those.
 ]]
 
@@ -129,6 +129,7 @@ local function DetectSpec(classToken)
 	return best
 end
 
+-- MIGRATION (remove after 2026-12-05)
 --[[
 	FIRST NAMES GROWN INTO FULL ONES. Before surnames were read, a WoW Forever character recorded
 	itself under UnitName's first name alone: "Gogobank", where mail and /who know "Gogobank Gogo".
@@ -138,6 +139,7 @@ end
 ]]
 local CHOICES = { "include", "specs", "levelsBelow", "levelsAbove", "disenchanter" }
 
+-- MIGRATION (remove after 2026-12-05)
 local function Adopt(oldKey, newKey, fullName)
 	local characters = ns.db.global.characters
 	local old = characters[oldKey]
@@ -159,6 +161,7 @@ local function Adopt(oldKey, newKey, fullName)
 	characters[oldKey] = nil
 end
 
+-- MIGRATION (remove after 2026-12-05)
 --[[
 	Every character on this realm still recorded by first name, given its full one where AceDB's
 	profileKeys name exactly one "First Last" for it: AceDB keys a surname client's characters that
@@ -204,7 +207,9 @@ local function Record(level)
 	end
 	local key = ns.QualifyPlayerName(name)
 	if ns.UsesSurnames() then
+		-- MIGRATION (remove after 2026-12-05)
 		Adopt(ns.QualifyPlayerName(UnitName("player")), key, name)
+		-- MIGRATION (remove after 2026-12-05)
 		UpgradeFirstNames()
 	end
 	local entry = ns.db.global.characters[key] or {}
@@ -259,10 +264,16 @@ ns.On("PLAYER_LEVEL_UP", OnPlayerLevelUp)
 
 --[[
 	The level cap on this client, or nil when it cannot say. GetMaxPlayerLevel answers the
-	expansion's cap on every Classic client; MAX_PLAYER_LEVEL is the older global.
+	expansion's cap on every Classic client and is used alone wherever it exists; MAX_PLAYER_LEVEL
+	is the older global, read only on a client without it.
 ]]
 local function MaxLevel()
-	local cap = (GetMaxPlayerLevel and GetMaxPlayerLevel()) or MAX_PLAYER_LEVEL
+	local cap
+	if type(GetMaxPlayerLevel) == "function" then
+		cap = GetMaxPlayerLevel()
+	else
+		cap = MAX_PLAYER_LEVEL
+	end
 	return (type(cap) == "number" and cap > 0) and cap or nil
 end
 
@@ -440,7 +451,7 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	The character the What to Give Away panel's Disenchant Unmatched Items mails kept gear to. A
+	The character the What to Give Away panel's Disenchant Unmatched Gear mails kept gear to. A
 	choice, like include and specs, so it lives on the entry, as disenchanter = true. One per
 	cluster and faction rather than one per profile: the Default profile is shared by every
 	character on the account, and an enchanter on one cluster is out of mail's reach from every

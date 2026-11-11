@@ -16,6 +16,12 @@
 - **Instead:** the Mail Message Text panel's one Restore Default button resets the subject and the body together.
 - **Why:** maintainer decision: the subject and body are one message, so they are restored as one.
 
+### Spec Restore Defaults
+
+- **Departs from:** SAVED VARIABLES → Reset, no control resets settings Reset Profile can reach.
+- **Instead:** the Recipients panel's Classes & Specs section keeps a confirmed Restore Defaults button that resets the spec choices and nothing else.
+- **Why:** maintainer decision: the spec grid is many hand-set choices, restored together without wiping the rest of the profile.
+
 ### English mail
 
 - **Departs from:** LOCALIZATION, every string translated in every locale.
