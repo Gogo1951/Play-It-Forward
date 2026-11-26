@@ -45,7 +45,7 @@ ns.Data.UNIVERSAL_EQUIP_LOC = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, WoW Forever 1.60.1.70888
+	2026-11-26, wago.tools, WoW Forever 1.60.1.71139
 
 Notes
 	- ARMOR_WEIGHT ranks the materials for ns.Data.ArmorPriorityFor; UNIVERSAL_EQUIP_LOC lists the equip slots any class can use whatever its armor, where stats alone decide.
@@ -80,6 +80,7 @@ Wowhead
 
 wago.tools
 	https://wago.tools/db2/ItemSubClass?build=1.60.1.70291
+	https://wago.tools/db2/SkillRaceClassInfo?build=1.60.1.71139
 
 QuestieDB
 	None.

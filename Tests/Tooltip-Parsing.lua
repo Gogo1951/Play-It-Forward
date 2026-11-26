@@ -83,6 +83,17 @@ test("an equip-effect line still parses", function()
 	equal(stats.FIRE, 11, "fire off an equip line")
 end)
 
+test("an English EU client reads equip-effect lines too", function()
+	local ns = Harness.LoadAddon(ADDON_ROOT, function()
+		GetLocale = function()
+			return "enGB"
+		end
+	end)
+	local stats = parse(ns, "Equip: Increases damage done by Fire spells and effects by up to 11.")
+
+	equal(stats.FIRE, 11, "fire off an equip line on enGB")
+end)
+
 test("use, chance-on-hit and set-bonus lines add no stats", function()
 	local ns = load()
 	local stats = parse(

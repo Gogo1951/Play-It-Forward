@@ -1,18 +1,8 @@
 local _, ns = ...
 
 --[[
-	Shares this account's Given Away totals with nearby Play It Forward users and caches what theirs
-	report, so Features/Generosity-Tooltip.lua can show a peer's totals on their unit tooltip.
-
-	THESE ARE ADDON MESSAGES, NEVER PLAYER-VISIBLE CHAT. Nothing here goes through SendChatMessage,
-	so the player-only chat rule and the target-marker convention do not apply -- there is no target
-	marker to add. Blizzard removed custom addon channels in 1.13.3 and does not deliver addon
-	whispers to non-social strangers, so SAY/YELL is the only sanctioned reach to nearby strangers.
-	That is why the feature is proximity-scoped by design: a peer sees your totals only when near you.
-
-	AND TOWN-SCOPED: every send is gated on ns.AtRest(), so this add-on puts nothing on the wire
-	outside a city or an inn. Resting is the cheap, reliable proxy for "somewhere nobody is fighting",
-	which keeps the feature clear of raids, dungeons and open-world combat entirely.
+	Add-on messages, never chat, so the player-only chat rule does not apply. YELL because Classic
+	has no custom channels and drops add-on whispers to strangers; every send is gated on ns.AtRest().
 ]]
 
 local Generosity = ns.Generosity
@@ -24,50 +14,27 @@ local PREFIX = ns.ADDON_MESSAGE_PREFIX
 local PAYLOAD_VERSION = "1"
 local CHANNEL = "YELL"
 
---[[
-	Two throttles, both seconds against GetTime(). BROADCAST_MIN_INTERVAL caps how often our own
-	totals go out, a ping's answer included, so a crowd of pings cannot make us storm the channel.
-	The hover-ping throttle is the tooltip's, since that is where a hover happens.
-]]
+-- Covers ping answers too, so a crowd of pings cannot storm the channel.
 local BROADCAST_MIN_INTERVAL = 60
 
---[[
-	How long a cached peer stays good, seconds like the throttles above. Generous rather than tight:
-	an expired entry reads as never-heard-from, and the only thing that refills it is
-	Features/Generosity-Tooltip.lua firing a presence ping on a hover that found nothing -- which
-	happens in a rest area alone, since the town gate returns before the lookup. Too short and a
-	peer standing beside you flickers out between hovers with no way back until you are both in town.
-]]
+-- Generous: too short and a peer standing beside you flickers out between hovers.
 local PEER_MAX_AGE = 1800
 
 -- Exposed so the diagnostics sharing report measures against the same numbers this file does.
 Generosity.BROADCAST_MIN_INTERVAL = BROADCAST_MIN_INTERVAL
 Generosity.PEER_MAX_AGE = PEER_MAX_AGE
 
---[[
-	Registered so CHAT_MSG_ADDON delivers messages carrying this prefix. Guarded and remembered:
-	a missing API just means no sharing, and the diagnostics report prints whether it took. Treats
-	"the call existed and did not throw" as registered, since the return shape varies across clients.
-]]
+-- "Did not throw" counts as registered: the return shape varies across clients.
 Generosity.prefixRegistered = false
 if RegisterPrefix then
 	local ok = pcall(RegisterPrefix, PREFIX)
 	Generosity.prefixRegistered = ok and true or false
 end
 
---[[
-	Peers we have heard from, keyed by ns.QualifyPlayerName: { gifts, items, itemLevels, value, t },
-	t from GetTime() and what PEER_MAX_AGE is measured against. CHAT_MSG_ADDON's sender carries a
-	realm from a connected realm and none from your own, which is exactly the gap that helper
-	closes. The tooltip reads this; the diagnostics report prints the age.
-]]
+-- Keyed by ns.QualifyPlayerName: the sender carries a realm only from a connected realm.
 local peers = {}
 
---[[
-	A peer's cached totals, or nil once the entry is past PEER_MAX_AGE -- an expired peer is reported
-	as one we have never heard from, which is what puts the tooltip back on its ping-and-refresh path.
-	The key is normalized the same way the handler stores it. Reads only; the sweep is on the write.
-]]
+-- Expired reads as never heard from, which puts the tooltip back on its ping path. The sweep is on the write.
 function Generosity:Peer(nameRealm)
 	local key = ns.QualifyPlayerName(nameRealm)
 	local peer = key and peers[key]
@@ -77,27 +44,19 @@ function Generosity:Peer(nameRealm)
 	return peer
 end
 
---[[
-	The raw peers cache, for the diagnostics report only. Not for the tooltip, which asks by name.
-	Expired entries are still in it until the next message sweeps them; the report marks them
-	against PEER_MAX_AGE.
-]]
+-- Diagnostics only: still holds expired entries until the next message sweeps them.
 function Generosity:AllPeers()
 	return peers
 end
 
 local lastBroadcast = 0
 
--- When our totals last went out, a ping's answer included, GetTime() or 0 for never. For the diagnostics report.
+-- Diagnostics only: GetTime() of our last send, ping answers included, or 0.
 function Generosity:LastSends()
 	return lastBroadcast
 end
 
---[[
-	What the last send answered: the pcall's ok, then the API's own first return as text, or
-	nil before any send. A refused channel comes back as a result here rather than an error, and
-	nothing else would show it, since the send is otherwise fire-and-forget.
-]]
+-- A refused channel is a return value, not an error, and nothing else would show it.
 Generosity.lastSendResult = nil
 
 local function Send(payload)
@@ -108,21 +67,12 @@ local function Send(payload)
 	Generosity.lastSendResult = { ok = ok, result = tostring(result) }
 end
 
---[[
-	Send our totals, if sharing is on. Versioned payload "1|S|gifts|items|itemLevels|value" from
-	Get. A share-on user with zero gifts still broadcasts, so presence shows before their first gift.
-	Throttled so nothing that calls this can exceed one send per BROADCAST_MIN_INTERVAL, which is
-	also what guards the PLAYER_ENTERING_WORLD refire on every loading screen.
-]]
+-- Zero gifts still broadcast, so presence shows before a first gift.
 function Generosity:Broadcast()
 	if not (ns.db and ns.db.profile.shareStats) then
 		return
 	end
-	--[[
-		TOWN ONLY. Nothing goes over the wire outside a rest area, so a raid, a dungeon or a fight in
-		the open world never carries this add-on's traffic. Checked before the throttle, so a run that
-		finishes out in the world does not burn the interval on a send that never happens.
-	]]
+	-- Town gate before the throttle, so a send that never happens does not burn the interval.
 	if not ns.AtRest() then
 		return
 	end
@@ -135,22 +85,15 @@ function Generosity:Broadcast()
 	Send(table.concat({ PAYLOAD_VERSION, "S", gifts, items, itemLevels, value }, "|"))
 end
 
---[[
-	Ask nearby clients to broadcast. Independent of shareStats: a ping reveals presence, not totals,
-	and turning sharing off must still let you see theirs. The tooltip throttles how often it fires.
-]]
+-- Ignores shareStats: a ping reveals presence, not totals, and sharing off must still see theirs.
 function Generosity:Ping()
-	-- Town only, for the same reason Broadcast is: a ping is wire traffic like any other.
 	if not ns.AtRest() then
 		return
 	end
 	Send(PAYLOAD_VERSION .. "|?")
 end
 
---[[
-	Split "a|b|c" into fields. A trailing separator is appended so gmatch yields the last field, and
-	an empty field comes back as "" rather than being skipped, so positions stay aligned.
-]]
+-- An empty field comes back as "", keeping positions aligned.
 local function Split(message)
 	local parts = {}
 	for field in (message .. "|"):gmatch("([^|]*)|") do
@@ -159,10 +102,7 @@ local function Split(message)
 	return parts
 end
 
---[[
-	A peer's totals arrive from anyone in yelling range, so only plain non-negative integers up to
-	PEER_TOTAL_MAX are believed; "-1", "nan", "1e999" or "0x10" would otherwise reach the tooltip.
-]]
+-- Anyone in yelling range can send these, so only plain integers are believed ("nan", "1e999", "0x10" are not).
 local PEER_TOTAL_MAX = 1e12
 local STATS_FIELDS = 6
 
@@ -174,11 +114,12 @@ local function ReadTotal(field)
 	return (value and value <= PEER_TOTAL_MAX) and value or nil
 end
 
---[[
-	Handler args are prefix, message, channel, sender. Ignore other add-ons' prefixes and unknown
-	payload versions; on "S" cache the sender's four totals, on "?" answer with our own (throttled).
-]]
 local function OnChatMsgAddon(prefix, message, _, sender)
+	-- On WoW Forever a payload can arrive secret, and comparing one throws. Other clients lack the check.
+	local IsSecretValue = rawget(_G, "issecretvalue")
+	if IsSecretValue and (IsSecretValue(prefix) or IsSecretValue(message) or IsSecretValue(sender)) then
+		return
+	end
 	if prefix ~= PREFIX or not message then
 		return
 	end
@@ -186,10 +127,7 @@ local function OnChatMsgAddon(prefix, message, _, sender)
 	if parts[1] ~= PAYLOAD_VERSION then
 		return
 	end
-	--[[
-		A YELL comes back to its sender. Answering our own ping would spend the broadcast interval
-		on nobody, leaving a real ping later that minute unanswered.
-	]]
+	-- Our own YELL echoes back; answering it would spend the interval on nobody.
 	local senderKey = ns.QualifyPlayerName(sender)
 	if senderKey and senderKey == ns.QualifyPlayerName(ns.PlayerName()) then
 		return
@@ -203,11 +141,7 @@ local function OnChatMsgAddon(prefix, message, _, sender)
 			return
 		end
 		if key then
-			--[[
-				Swept here because this is the only place the table grows, so nothing needs a timer.
-				Clearing fields of a table being traversed with pairs is defined behavior; adding
-				would not be, and this only ever clears.
-			]]
+			-- Swept where the table grows, so no timer. Clearing during pairs is defined; adding is not.
 			local now = GetTime()
 			for name, peer in pairs(peers) do
 				if now - (peer.t or 0) > PEER_MAX_AGE then
@@ -223,11 +157,7 @@ local function OnChatMsgAddon(prefix, message, _, sender)
 			}
 		end
 	elseif kind == "?" then
-		--[[
-			Answered through Broadcast, whose own interval, town gate and Share switch decide whether
-			the answer goes out: a crowd of pings draws at most one broadcast a minute, and a ping
-			heard out in the world is not answered from there.
-		]]
+		-- Through Broadcast, so its interval, town gate and Share switch decide the answer.
 		Generosity:Broadcast()
 	end
 end
@@ -239,11 +169,7 @@ local function OnPlayerEnteringWorld()
 end
 ns.On("PLAYER_ENTERING_WORLD", OnPlayerEnteringWorld)
 
---[[
-	The moment the town gate opens. Walking from a field into a city fires no loading screen, so
-	PLAYER_ENTERING_WORLD alone would leave a player silent until something else happened to send.
-	This fires on leaving a rest area too, where Broadcast simply returns on the gate.
-]]
+-- Walking into a city fires no loading screen; this is what catches the town gate opening.
 local function OnPlayerUpdateResting()
 	Generosity:Broadcast()
 end

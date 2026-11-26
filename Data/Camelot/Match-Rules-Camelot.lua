@@ -171,8 +171,7 @@ ns.Data.ITEM_RULES = {
 	},
 	--[[
 		The two classes that fight one-handed, and the matrix decides which kinds each may hold:
-		a rogue reaches swords, maces and fists, and axes only from Wrath, so naming him costs
-		nothing there.
+		on this client a rogue reaches swords, maces, fists and axes.
 	]]
 	-- FIST is 1H melee like the rest; move it to the dagger rule above if rogues turn out to want it more.
 	{
@@ -226,7 +225,7 @@ ns.Data.ITEM_RULES = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, WoW Forever 1.60.1.70888
+	2026-11-26, wago.tools, WoW Forever 1.60.1.71139
 
 Notes
 	- Stat combinations that name their own class, on top of the talent-tree points; see the

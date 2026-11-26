@@ -100,7 +100,7 @@ ns.Data.INSTANCE_AREAS = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, Season of Discovery 1.15.9.70576
+	2026-11-26, wago.tools, Season of Discovery 1.15.9.70576
 
 Notes
 	- Levelling zones, and who is in them: input to the /who queries in

@@ -1,5 +1,5 @@
 --[[
-	The status line above the window's two buttons says the next step, whatever state the window
+	The status line beside the window's two buttons says the next step, whatever state the window
 	is in. Each case reads UI:StatusLine, the words the line is set to.
 ]]
 
@@ -28,7 +28,7 @@ local KEEFE = { name = "Keefe", level = 18, class = "MAGE" }
 local function atMailbox(defs)
 	local ns = load()
 	Stub.SetBackpack(defs)
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	return ns
 end
 
@@ -75,7 +75,7 @@ test("mid-plan it says how many searches are left", function()
 	end
 end)
 
-test("a matched row at the mailbox says to press Distribute", function()
+test("a matched row at the mailbox says to press Distribute, with no postage", function()
 	local ns = atMailbox({ cloak() })
 	ns.UI:SetRecipient(ns.UI:Items()[1], KEEFE)
 	equal(ns.UI:StatusLine(), ns.L["STATUS_READY"]:format(1), "ready")
@@ -99,4 +99,14 @@ test("rows the player is keeping say nothing", function()
 	local ns = atMailbox({ cloak() })
 	ns.UI:ToggleRow(ns.UI:Items()[1], false)
 	equal(ns.UI:StatusLine(), "", "nothing to do")
+end)
+
+test("after a run it says Done, in place of a blank line", function()
+	local ns = atMailbox({ cloak() })
+	ns.UI:SetRecipient(ns.UI:Items()[1], KEEFE)
+	ns.UI:Distribute()
+	ns.fire("MAIL_SUCCESS")
+	equal(ns.Distributor:IsRunning(), false, "the run is over")
+	equal(ns.UI:StatusLine(), ns.L["MAIL_DONE"]:format(1, 1), "one of one sent")
+	equal(ns.UI.frame.statusText.shownText, ns.L["MAIL_DONE"]:format(1, 1), "and the window shows it")
 end)

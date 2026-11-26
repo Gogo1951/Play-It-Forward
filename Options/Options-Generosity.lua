@@ -3,17 +3,9 @@ local L = ns.L
 
 local AceGUI = LibStub("AceGUI-3.0")
 local GetColor = ns.GetColor
+local Kit = ns.OptionsKit
 
---[[
-	Your totals drawn as the unit tooltip draws them, so the panel shows exactly what other players
-	see when they hover over you: a tooltip backdrop, the top of your own tooltip, the branded
-	header, and each label left with its value right. AceConfig cannot right-align a description, so this is a small AceGUI widget
-	the panel's one description row names as its dialogControl. The lines come from
-	Generosity:BlockLines, the tooltip's own, and are read again on every redraw of the panel.
-
-	It answers the calls AceConfig makes on a description's Label (SetText, SetFontObject, the
-	image setters) and sizes itself to its lines, as a tooltip does.
-]]
+-- AceConfig cannot right-align a description, so the preview is an AceGUI widget the row names as its dialogControl.
 local WIDGET = "PlayItForwardBadgePreview"
 local PAD = 8
 local COLUMN_GAP = 16
@@ -28,11 +20,6 @@ local function NewLine(box, justify, font)
 	return line
 end
 
---[[
-	The top of your own unit tooltip, read when the panel draws so it is the character you are on:
-	your name in your class color, with your PvP title where the client gives one, then your level,
-	race and class.
-]]
 local function PlayerLines()
 	local className, classToken = UnitClass("player")
 	local race = UnitRace("player") or ""
@@ -61,12 +48,16 @@ local methods = {
 		local name, info = PlayerLines()
 		self.nameLine:SetText(name)
 		self.infoLine:SetText(info)
-		self.header:SetText(header)
+		self.header:SetText(header[1])
+		self.headerRight:SetText(header[2])
 		local lineHeight = self.header:GetStringHeight() + LINE_GAP
-		local width =
-			math.max(self.nameLine:GetStringWidth(), self.infoLine:GetStringWidth(), self.header:GetStringWidth())
+		local width = math.max(
+			self.nameLine:GetStringWidth(),
+			self.infoLine:GetStringWidth(),
+			self.header:GetStringWidth() + COLUMN_GAP + self.headerRight:GetStringWidth()
+		)
 
-		-- Name, then level, race and class, then a blank line, as the tooltip spaces its own block.
+		-- The unit's own lines, then a blank line, as the tooltip spaces its block.
 		local y = -PAD
 		self.nameLine:SetPoint("TOPLEFT", PAD, y)
 		y = y - self.nameLine:GetStringHeight() - LINE_GAP
@@ -74,6 +65,8 @@ local methods = {
 		y = y - lineHeight * 2
 		self.header:ClearAllPoints()
 		self.header:SetPoint("TOPLEFT", PAD, y)
+		self.headerRight:ClearAllPoints()
+		self.headerRight:SetPoint("TOPRIGHT", -PAD, y)
 		y = y - lineHeight
 		for index, row in ipairs(rows) do
 			local left, right = self.lefts[index], self.rights[index]
@@ -123,6 +116,7 @@ local function Constructor()
 		nameLine = NewLine(box, "LEFT", "GameTooltipHeaderText"),
 		infoLine = NewLine(box, "LEFT"),
 		header = NewLine(box, "LEFT"),
+		headerRight = NewLine(box, "RIGHT"),
 		lefts = {},
 		rights = {},
 	}
@@ -140,37 +134,35 @@ AceGUI:RegisterWidgetType(WIDGET, Constructor, 1)
 
 function ns.BuildGenerosityOptions()
 	local args = {
-		descIntro = ns.OptionsDesc(L["OPTIONS_GENEROSITY_DESCRIPTION"], 1),
-		spacerIntro = ns.OptionsSpacer(2),
+		descIntro = Kit.Desc(L["OPTIONS_GENEROSITY_DESCRIPTION"], 1),
+		spacerIntro = Kit.Spacer(2),
 
-		--[[
-			The intro, the toggle, then the totals as the tooltip shows them. It is proximity-scoped sharing: nearby players
-			running the add-on see these totals on your tooltip, and you see theirs on the same
-			terms. Off stops your own broadcasts but not your view of theirs, and the totals below
-			keep counting either way, which is why they are not gated on it.
-		]]
+		-- Off stops only your broadcasts: theirs still show and the totals still count, so the preview isn't gated on it.
 		toggleShareStats = ns.OptionsProfileToggle(
 			"shareStats",
 			L["OPTIONS_SHARE_STATS"],
 			L["OPTIONS_SHARE_STATS_DESCRIPTION"],
 			3
 		),
-		spacerShare = ns.OptionsSpacer(4),
-		-- Your totals as other players see them on your tooltip; the name changes so a redraw refreshes it.
-		preview = {
-			type = "description",
-			name = function()
-				return tostring((ns.Generosity:Get()))
-			end,
-			dialogControl = WIDGET,
-			width = "full",
-			order = 5,
-		},
+		spacerShare = Kit.Spacer(4),
+		-- Kit.Example's shape built from kit pieces: Kit.Example draws text, and the preview is a widget.
+		exampleLabel = Kit.Desc(Kit.Color("HELP", L["SAMPLE_EXAMPLE"]), 5),
+		example = Kit.SubRow(6, nil, {
+			-- The name changes with the gift count, so a gift forces a redraw.
+			{
+				type = "description",
+				name = function()
+					return tostring((ns.Generosity:Get()))
+				end,
+				dialogControl = WIDGET,
+				width = Kit.ROW_WIDTH - Kit.SUB_INDENT_WIDTH,
+			},
+		}),
 	}
 
 	return {
 		type = "group",
-		name = L["TAB_GENEROSITY"],
+		name = L["BADGE_OF_GENEROSITY"],
 		args = args,
 	}
 end

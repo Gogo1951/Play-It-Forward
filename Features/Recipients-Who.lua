@@ -9,7 +9,7 @@ local plan, counts = Who.plan, Who.counts
 -- Class Names
 --------------------------------------------------------------------------------
 
--- A result's localized class name back to its token, either gender. Built once at load.
+-- A result's localized class name back to its token, either gender.
 local classTokenByName = {}
 do
 	for token, name in pairs(LOCALIZED_CLASS_NAMES_MALE or {}) do
@@ -25,14 +25,9 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	Mail does not cross factions, and /who on Forever 1.60.1 answers with both: a Horde search
-	paired a Horde player with an Alliance one and the send came back "Target is unfriendly."
-	(2026-10-06). Era and TBC answer same-faction, so this drops nobody there.
-
-	A result carries only its localized race, so faction is read off the race table. A race this
-	client cannot place -- unknown, or one name shared by races of two factions -- is KEPT: a
-	wrong drop loses a recipient for good, where a wrong keep costs one refused send, which
-	Features/Mail-Sender.lua recognizes and moves past. Built on first use, then kept.
+	Mail does not cross factions, and /who on Forever answers with both (Era and TBC answer
+	same-faction). A race this client cannot place, unknown or shared by two factions, is KEPT: a
+	wrong drop loses a recipient for good, where a wrong keep costs one refused send.
 ]]
 local factionByRace
 
@@ -75,10 +70,7 @@ end
 -- Querying
 --------------------------------------------------------------------------------
 
---[[
-	The server sends at most this many results and says nothing about the rest. Counted, never
-	acted on: the roster report reads it to tell a thin realm from a thin sample.
-]]
+-- The server sends at most this many results and says nothing about the rest.
 local WHO_RESULT_CAP = 50
 
 -- Exposed so the roster report names the same number this file tests against.
@@ -87,9 +79,8 @@ Who.RESULT_CAP = WHO_RESULT_CAP
 local RESULT_TIMEOUT = 6 -- give up on a query that never answers (i.e. was blocked)
 
 --[[
-	Neither is a setting. The panel opening on every press is a side effect of reading results
-	at all, and the server rate-limits /who independently, so lowering the throttle only turns
-	a query into a silent no-op that reads as the add-on being broken.
+	Neither is a setting. The server rate-limits /who on its own, so a lower throttle only turns a
+	press into a silent no-op that reads as the add-on being broken.
 ]]
 local SUPPRESS_WHO_UI = true
 local WHO_THROTTLE = 5
@@ -97,7 +88,7 @@ local WHO_THROTTLE = 5
 -- UI-Mailbox locks its button for exactly this long; re-enabling early offers a dead press.
 Who.THROTTLE = WHO_THROTTLE
 
-local pending = nil -- the query awaiting a result
+local pending = nil
 local lastSent = 0
 
 function Who:ResultStats()
@@ -116,16 +107,8 @@ local function ParseResults()
 			if info.fullName:find("-", 1, true) then
 				counts.connectedRealm = counts.connectedRealm + 1
 			end
-			--[[
-				Discarded for an unreadable class token, without which there is no way to tell
-				whether they can wear the item, or for a faction mail cannot reach.
-			]]
 			local token = info.filename or classTokenByName[info.classStr]
-			--[[
-				Somebody in one of your guilds on My Guilds, saved or added by name, ranks with your
-				guildmates however /who found them; a member you unticked there is never offered
-				anything, even once the whole guild is unticked or removed.
-			]]
+			-- A member unticked on My Guilds is never offered anything, even once the whole guild is unticked or removed.
 			local guildmate, ignored = guildOf(info.fullGuildName, info.fullName)
 			if OtherFaction(info.raceStr) then
 				counts.otherFaction = counts.otherFaction + 1
@@ -148,23 +131,15 @@ local function ParseResults()
 			end
 		end
 	end
-	--[[
-		raw travels with the list because the cap is about what the server sent, not what
-		survived the class filter: #list would miss a truncated band on one unreadable class.
-	]]
+	-- raw, not #list: the cap is about what the server sent, and #list misses a band truncated by an unreadable class.
 	return list, raw, total
 end
 
 --[[
-	SetWhoToUi(true) routes results to the list GetWhoInfo reads; false prints them to chat, where
-	there is nothing to read. Restored to false so a /who the player types behaves as expected.
-
-	THE WHO PANEL MUST NEVER LEARN A QUERY ANSWERED. The stock UI opens it on WHO_LIST_UPDATE
-	whenever results were routed to the list -- and the panel is a UIPanel, so opening it over an
-	open mailbox makes the panel manager close MailFrame, whose OnHide ends the mailbox
-	interaction. So every frame that would react is unregistered for exactly the life of one query
-	and put back on the way out. The hide below is only a safety net for a client that routes the
-	event some other way: by the time it fires the mailbox is already gone.
+	SetWhoToUi(true) routes results to the list GetWhoInfo reads; restored to false so a /who the
+	player types prints to chat. The stock UI opens the Who panel on WHO_LIST_UPDATE, and as a
+	UIPanel it closes MailFrame, ending the mailbox interaction. So every listener is deaf for
+	exactly one query; the hide in EndQuery is only a safety net, too late to save the mailbox.
 ]]
 local panelWasOpen = false
 local deafened = {}
@@ -174,11 +149,9 @@ local function WhoPanel()
 end
 
 --[[
-	Every frame listening but this add-on's own, asked of the client rather than named. Forever's
-	Retail-based UI opened the panel over the mailbox with FriendsFrame and WhoFrame both deaf
-	(2026-10-29), so whatever raises it there is neither. Another add-on's listener is quieted too:
-	the answer is ours, and a who-list add-on opening its own window on it is the same bug. The
-	named pair is the fallback for a client without GetFramesRegisteredForEvent.
+	Asked of the client rather than named: Forever opened the panel with FriendsFrame and WhoFrame
+	both deaf. Other add-ons' listeners are quieted too. The named pair is the fallback for a client
+	without GetFramesRegisteredForEvent.
 ]]
 local function Listeners()
 	local frames
@@ -242,13 +215,8 @@ local function OnWhoListUpdate()
 	pending = nil
 
 	--[[
-		Read before restoring, then close the window this add-on caused to open.
-
-		THE RESTORE RUNS WHETHER OR NOT THE READ SUCCEEDED, which is why the read is guarded. By
-		here `pending` is already nil, so Who:Step's timeout will not fire either: a throw inside
-		ParseResults would leave SetWhoToUi routed at a list nothing reads and WHO_LIST_UPDATE
-		still unregistered from the Blizzard frames, and the player's own /who would answer with
-		silence until they reloaded. EndQuery is the only path back.
+		Guarded because EndQuery must run either way: pending is already nil, so no timeout will
+		restore SetWhoToUi or the deafened frames, and the player's own /who would stay silent.
 	]]
 	local ok, results, raw, total = pcall(ParseResults)
 	EndQuery()
@@ -262,19 +230,12 @@ local function OnWhoListUpdate()
 		counts.capped = counts.capped + 1
 	end
 
-	--[[
-		An abandoned query is still read this far, because EndQuery is the only thing that puts
-		SetWhoToUi back and closes the panel. What it does not get is its callback: the plan is
-		gone, and handing results to it would assign recipients in a window already closed.
-	]]
+	-- Canceled: read this far only for EndQuery; a callback would assign recipients in a window already closed.
 	if job.canceled then
 		return
 	end
 
-	--[[
-		Everybody the server had for this question arrived, so whatever else the plan meant to
-		ask inside it is already answered. Not on an unreadable answer: empty there means unknown.
-	]]
+	-- Not on an unreadable answer: empty there means unknown.
 	if ok and not capped then
 		Who:Exhausted(job.attempt)
 	end
@@ -285,11 +246,7 @@ local function OnWhoListUpdate()
 end
 ns.On("WHO_LIST_UPDATE", OnWhoListUpdate)
 
---[[
-	Counts, never acts: hiding it here is too late, the panel manager has already closed MailFrame.
-	What it buys is evidence from a client nobody here can reach -- the roster report says whether
-	the deafening held.
-]]
+-- Counts, never acts: by OnShow the panel manager has already closed MailFrame. Evidence for the roster report.
 local function OnPlayerLogin()
 	local panel = WhoPanel()
 	if not (panel and panel.HookScript) then
@@ -316,11 +273,8 @@ end
 ns.On("ADDON_ACTION_BLOCKED", OnAddonActionBlocked)
 
 --[[
-	Abandons what is in flight without forgetting it. The client still answers, and that answer
-	runs EndQuery -- the only thing that restores SetWhoToUi and re-registers the Who panel's
-	WHO_LIST_UPDATE. Drop the reference and the player's own /who stays broken for the session:
-	results routed to a list nothing reads, on a panel that no longer hears them. A canceled job
-	answers nobody, and Who:Step will not send while one is pending.
+	Marks, never drops: the answer still has to run EndQuery, or the player's own /who stays
+	silent for the session. Who:Step will not send while one is pending.
 ]]
 function Who:CancelPending()
 	if pending then
@@ -328,10 +282,7 @@ function Who:CancelPending()
 	end
 end
 
---[[
-	A canceled query is not a place left to look: counting it would leave the next press of Find
-	Recipients stepping an empty plan, down its mid-plan branch to a press that cannot send.
-]]
+-- A canceled query is not a place left to look: counting it sends the next press down a branch that cannot send.
 function Who:Remaining()
 	return #plan + ((pending and not pending.canceled) and 1 or 0)
 end
@@ -340,10 +291,7 @@ end
 -- Reading the state
 --------------------------------------------------------------------------------
 
---[[
-	For the diagnostics roster report, reads only. The query still waiting on the server, or nil:
-	its label, whether it was canceled, and how long ago it went out.
-]]
+-- For the diagnostics roster report: the query still out, whether it was canceled, and seconds since it went.
 function Who:InFlight()
 	if not pending then
 		return nil
@@ -351,23 +299,16 @@ function Who:InFlight()
 	return pending.label, pending.canceled == true, GetTime() - lastSent
 end
 
--- Seconds until the throttle lets the next query out, never below zero.
 function Who:ThrottleLeft()
 	return math.max(0, WHO_THROTTLE - (GetTime() - lastSent))
 end
 
---[[
-	How many Blizzard frames are deaf to WHO_LIST_UPDATE right now. Nonzero with nothing in flight
-	means a query's restore never ran, and the player's own /who answers with silence.
-]]
+-- Nonzero with nothing in flight means a query's restore never ran, and the player's own /who is silent.
 function Who:QuietedFrames()
 	return #deafened
 end
 
---[[
-	Sends the next planned query. Must be called from a click or keypress handler.
-	Returns sent, then either the query string or the seconds left to wait.
-]]
+-- Must be called from a click or keypress. Returns sent, then the attempt's label or the seconds left to wait.
 function Who:Step(callback)
 	if pending then
 		return false, 0
@@ -390,12 +331,7 @@ function Who:Step(callback)
 	BeginQuery()
 	C_FriendList.SendWho(attempt.query)
 
-	--[[
-		A blocked call never fires WHO_LIST_UPDATE, so this timeout stops the UI waiting on an
-		answer that is not coming. The band goes back on the front of the plan, or it is lost for
-		good and Remaining counts down as though it had succeeded. An empty answer is not
-		requeued.
-	]]
+	-- A blocked call never answers: requeued at the front, or Remaining counts it as done.
 	C_Timer.After(RESULT_TIMEOUT, function()
 		if pending ~= job then
 			return
@@ -416,7 +352,7 @@ function Who:Step(callback)
 	return true, job.label
 end
 
--- Drops the plan. A query in flight is canceled, not forgotten -- see Who:CancelPending above.
+-- Drops the plan. A query in flight is canceled, not forgotten (Who:CancelPending).
 function Who:Clear()
 	wipe(plan)
 	Who.targeted = false

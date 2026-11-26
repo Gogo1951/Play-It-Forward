@@ -40,7 +40,7 @@ local function copies(ns, count)
 		bag[index] = robe
 	end
 	Stub.SetBackpack(bag)
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	return robe
 end
 

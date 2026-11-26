@@ -1,11 +1,5 @@
 local _, ns = ...
 
---[[
-	What a search is still looking for: the bands a scan or a press of Find Recipients asks /who
-	about, which gifts are still searching, and the one row a targeted search is for.
-	Features/Match-List.lua calls in through ns.MatchSearch.
-]]
-
 local MatchList = ns.MatchList
 
 ns.MatchSearch = {}
@@ -96,9 +90,11 @@ end
 	unreadables are excluded, or the plan never empties and every press of Find Recipients goes
 	on spending the /who throttle for the whole session.
 
-	A holder standing in a capital or a dungeon counts as a fallback too (Who:KeepsSearching): the
-	zones still on the plan may turn up somebody out leveling, who is who the gift is for. The
-	plan running dry is what ends that search, so it costs at most the presses already planned.
+	A stranger holder standing in a capital or a dungeon counts as a fallback too
+	(Who:KeepsSearching): the zones still on the plan may turn up somebody out leveling, who is who
+	the gift is for. The plan running dry is what ends that search, so it costs at most the presses
+	already planned. Never an alt or guildmate holder: a search turns up only strangers, and a
+	stranger never outranks them (Matcher:CouldOutrank).
 ]]
 local function StillSearching(item)
 	if item.state ~= ns.Matcher.GIFT or item.pinned then
@@ -107,7 +103,7 @@ local function StillSearching(item)
 	if not item.recipient then
 		return true
 	end
-	if ns.Who:KeepsSearching(item.recipient) then
+	if ns.Matcher:SourceRank(item.recipient) >= 3 and ns.Who:KeepsSearching(item.recipient) then
 		return true
 	end
 	return not HolderInContention(item)

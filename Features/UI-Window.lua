@@ -7,109 +7,125 @@ ns.UI = {}
 local UI = ns.UI
 
 local MatchList = ns.MatchList
+local Kit = ns.MenuKit
+
+-- Before Kit.WindowTitle, which draws the Short Name.
+Kit.SetText({
+	shortName = L["ADDON_SHORT_NAME"],
+	loading = L["LOADING_ITEM"],
+})
 
 --[[
-	EVERY SIZE AND GAP HERE IS ON THE SPACING SCALE (2, 4, 8, 16, 32, 64, 128, then multiples of 16),
-	except what fits Blizzard's own art: the 22-tall buttons, the 26-wide scrollbar gutter, and
-	ROW_INSET and ITEM_SLACK, which are sums of those rather than gaps of their own.
+	On the Spacing Scale, except the 20-point item icon and row (the maintainer's numbers) and the
+	title strip, fitted to the frame template's art.
 ]]
-local ROW_HEIGHT = 32
--- A tick in the top bar and on every row. Features/UI-Top-Bar.lua reads it from here.
+local EDGE = 16
+local ROW_HEIGHT = 20
+local ROW_GAP = 8
+local GROUP_GAP = 16
+-- Features/UI-Top-Bar.lua captures it at load.
 local TICK_SIZE = 16
 UI.TICK_SIZE = TICK_SIZE
--- A dropdown's height, in the top bar and on every row.
-local DROPDOWN_HEIGHT = 16
-local LIST_GAP = 8
-local LIST_BOTTOM = 64
-local LIST_RIGHT = 4
-local SCROLL_INSET = 8
-local SCROLLBAR_GUTTER = 26 -- Blizzard's scrollbar art
-local STATUS_SIDE = 16
-local STATUS_BOTTOM = 32
-local BUTTON_LEFT = 8
-local BUTTON_RIGHT = 32 -- clear of the corner grip
-local BUTTON_BOTTOM = 8
-local FRAME_WIDTH = 656
+local ICON_SIZE = 20
+local ICON_GAP = 8
+local NAME_GAP = 4
+local FIELD_GAP = 16
+local HEADING_GAP = 8
+local FIELD_HEIGHT = 20
+UI.FIELD_HEIGHT = FIELD_HEIGHT
+local FIELD_PAD = 4
+-- The menus' own highlight strength.
+local HOVER_ALPHA = 0.16
+-- Puts the hover glow 8 clear of the text, as a menu row's is.
+local FIELD_GLOW = 4
+local LIST_GAP = 16
+local BUTTON_HEIGHT = 32
+local BUTTON_STACK_GAP = 8
+local BUTTONS_TOP = EDGE + 2 * BUTTON_HEIGHT + BUTTON_STACK_GAP
+-- Sets the status's first line level with Find Recipients' label.
+local STATUS_INSET = 8
+local LIST_BOTTOM = BUTTONS_TOP + EDGE
+-- The scrollbar and the wheel's step match Menu-Kit's menus.
+local SCROLL_GUTTER = 8
+local THUMB_WIDTH = 2
+local THUMB_ALPHA = 0.6
+local SCROLL_ROWS = 3
+local FRAME_WIDTH = 720
 local FRAME_HEIGHT = 512
---[[
-	The corner grip's limits. The default width is also the narrowest, because the top bar is laid
-	out for it; the shortest still shows a few rows between the top bar and the buttons.
-]]
+-- No minimum width: FRAME_WIDTH is the narrowest, since the top bar is laid out for it.
 local MIN_HEIGHT = 320
 local MAX_WIDTH = 1200
 local MAX_HEIGHT = 1008
--- The row's width less the scrollbar and the frame's border, as the inset leaves it.
-local ROW_INSET = 44
+local ROW_INSET = 2 * EDGE + SCROLL_GUTTER
 --[[
-	The item column gets the room, and all of a wider window: a random suffix ("of the Monkey")
-	ends the name and is what says who the item is for. The widest recipient label is a cross-realm
-	name with its level, "Bubbafrances-Ashkandi (26)" shaped, which fits in 208. The tick and the
-	gaps take ITEM_SLACK, so the two columns stay inside window.rowWidth, clear of the scrollbar.
+	The item column takes all spare width: a random suffix ("of the Monkey") ends the name and says
+	who the item is for. 208 fits a cross-realm name with its level.
 ]]
 local RECIPIENT_WIDTH = 208
-local ITEM_SLACK = 56
-
-local function ItemWidth(rowWidth)
-	return rowWidth - RECIPIENT_WIDTH - ITEM_SLACK
-end
--- A floor, not the width: both buttons are sized to the widest label either can show.
+-- A floor: BuildFrame widens both buttons to the widest label.
 local BUTTON_WIDTH = 160
-local BUTTON_PAD = 32 -- room around the label
--- Neither button may pass half the space between the margins. A too-long label is clipped instead.
+local BUTTON_PAD = 32
 local BUTTON_GAP = 16
+local GRIP_SIZE = 16
+local TITLE_BAR_HEIGHT = 24
+local TITLE_BAR_RIGHT = 32
 
---[[
-	The portrait frame Bags Buffs & Buttons' windows use, the gold gift in its portrait. A client
-	without it gets the plain frame and no portrait. The gift sits 4px left and 1px up of Gift.tga's
-	center on purpose: the template's ring is centered there, not on the portrait texture.
-]]
+-- Bags Buffs & Buttons' portrait frame. Gift.tga keeps the gift centered, for this ring and the mailbox tab alike.
 local FRAME_TEMPLATE = ns.PickTemplate("PortraitFrameTemplate", "BasicFrameTemplate", "BackdropTemplate")
-local INSET_TEMPLATE = ns.PickTemplate("InsetFrameTemplate3", "InsetFrameTemplate2", "InsetFrameTemplate")
 local PORTRAIT_ICON = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Includes\\Images\\Gift"
--- The portrait frame's border is 4 wide, as ButtonFrameTemplate places its own inset; the plain frame's is 6.
-local INSET_LEFT = FRAME_TEMPLATE == "PortraitFrameTemplate" and 4 or 6
+local SENT_MARK = "Interface\\RaidFrame\\ReadyCheck-Ready"
+local UNKNOWN_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
+
+-- One type size: the title's. Kinds differ by color only (Style Guide → WINDOWS).
+local FONT = "GameFontHighlight"
+local FONT_HEADING = "GameFontNormal"
 
 local rows = {}
--- The section bands, pooled like the rows.
 local headers = {}
 
--- Tooltip line colors, unpacked once: GetColorRGB mid-argument-list would keep only its first value.
+-- Unpacked once: ns.GetColorRGB mid-argument-list would keep only its first value.
 local BODY_R, BODY_G, BODY_B = ns.GetColorRGB("BODY")
+local TITLE_R, TITLE_G, TITLE_B = ns.GetColorRGB("TITLE")
+local THUMB_R, THUMB_G, THUMB_B = ns.GetColorRGB("SEPARATOR")
+
+local SENT_RANK = 6
 
 --------------------------------------------------------------------------------
 -- Frame construction
 --------------------------------------------------------------------------------
 
---[[
-	A dropdown: its current value, an arrow and a hover highlight. The top bar's and every row's
-	are built from this, so they cannot drift apart the way hand-rolled copies would. It carries no
-	caption: in the top bar the tick beside it names what it governs, as the toggle does in the
-	options panel.
-
-	The caller anchors it. The value text is anchored on both sides and ellipsized, or a long one
-	runs under the arrow.
-]]
+-- The one value field, top bar and rows alike. Text anchored on both sides, or a long value runs under the arrow.
 function UI.BuildDropdown(parent, width)
 	local button = CreateFrame("Button", nil, parent)
-	button:SetSize(width, DROPDOWN_HEIGHT)
+	button:SetSize(width, FIELD_HEIGHT)
 
-	button.text = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	button.text:SetPoint("LEFT", 4, 0)
-	button.text:SetPoint("RIGHT", -16, 0)
+	button.arrow = button:CreateFontString(nil, "OVERLAY", FONT)
+	button.arrow:SetPoint("RIGHT", -FIELD_PAD, 0)
+	button.arrow:SetText(Kit.SUBMENU_ARROW)
+
+	button.text = button:CreateFontString(nil, "OVERLAY", FONT)
+	button.text:SetPoint("LEFT", FIELD_PAD, 0)
+	button.text:SetPoint("RIGHT", button.arrow, "LEFT", -FIELD_PAD, 0)
 	button.text:SetJustifyH("LEFT")
 	button.text:SetWordWrap(false)
 
-	local arrow = button:CreateTexture(nil, "OVERLAY")
-	arrow:SetTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
-	arrow:SetSize(16, 16)
-	arrow:SetPoint("RIGHT", 0, 0)
-
 	local highlight = button:CreateTexture(nil, "HIGHLIGHT")
-	highlight:SetAllPoints()
-	highlight:SetColorTexture(1, 1, 1, 0.10)
+	highlight:SetPoint("TOPLEFT", -FIELD_GLOW, FIELD_GLOW)
+	highlight:SetPoint("BOTTOMRIGHT", FIELD_GLOW, -FIELD_GLOW)
+	highlight:SetColorTexture(TITLE_R, TITLE_G, TITLE_B, HOVER_ALPHA)
 
-	ns.SkinWidget("Button", button)
 	return button
+end
+
+-- Same placement as UI:Open (Features/UI-Mailbox.lua). The tab's file loads later, hence the guards.
+local function PlaceAtFirst(window)
+	window:ClearAllPoints()
+	local host = (UI.MailboxTabHost and UI:MailboxTabHost()) or MailFrame
+	if host then
+		window:SetPoint("TOPLEFT", host, "TOPRIGHT", (UI.MAILBOX_TAB_SIZE or 0) + 8, 0)
+	else
+		window:SetPoint("CENTER", UIParent, "CENTER", 220, 0)
+	end
 end
 
 function UI:BuildFrame()
@@ -117,29 +133,20 @@ function UI:BuildFrame()
 		return UI.frame
 	end
 
-	-- A stock template brings the chrome and, the point of using one, gets restyled by ElvUI.
+	-- A stock template, so ElvUI restyles it.
 	local window = CreateFrame("Frame", "PlayItForwardMailFrame", UIParent, FRAME_TEMPLATE)
-	-- The size the player last left it at, held inside the grip's limits for a saved size from another build.
+	-- Clamped: a saved size can predate the current limits.
 	local size = ns.db.profile.windowSize
 	local width = math.min(MAX_WIDTH, math.max(FRAME_WIDTH, size.width or FRAME_WIDTH))
 	local height = math.min(MAX_HEIGHT, math.max(MIN_HEIGHT, size.height or FRAME_HEIGHT))
 	window:SetSize(width, height)
 
-	-- A mailbox right of center would put a wide window off-screen, so it is clamped and draggable.
+	-- Clamped, or a mailbox right of center pushes it off-screen. Moved by the title bar only.
 	window:SetClampedToScreen(true)
 	window:SetMovable(true)
 	window:EnableMouse(true)
-	window:RegisterForDrag("LeftButton")
-	window:SetScript("OnDragStart", window.StartMoving)
-	window:SetScript("OnDragStop", function(frame)
-		frame:StopMovingOrSizing()
-		UI:SaveGeometry()
-	end)
 
-	--[[
-		Resized from the corner grip below. Everything but the rows is anchored by two corners and
-		follows on its own; the rows have widths, which UI:Relayout sets.
-	]]
+	-- Rows have fixed widths, so UI:Relayout resizes them; everything else follows its anchors.
 	window:SetResizable(true)
 	if window.SetResizeBounds then
 		window:SetResizeBounds(FRAME_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT)
@@ -148,16 +155,15 @@ function UI:BuildFrame()
 		UI:Relayout()
 	end)
 
-	-- AceDB materializes windowPos per profile, so .point is what says the window was ever dragged.
+	-- AceDB materializes windowPos per profile, so .point is what says the window was ever moved or resized.
 	local pos = ns.db.profile.windowPos
 	if pos.point then
 		window:SetPoint(pos.point, UIParent, pos.relativePoint or "CENTER", pos.x or 0, pos.y or 0)
 	elseif MailFrame then
-		window:SetPoint("TOPLEFT", MailFrame, "TOPRIGHT", 4, 0)
+		window:SetPoint("TOPLEFT", MailFrame, "TOPRIGHT", (UI.MAILBOX_TAB_SIZE or 0) + 8, 0)
 	else
 		window:SetPoint("CENTER", UIParent, "CENTER", 220, 0)
 	end
-	-- Only draw our own backdrop when the client has neither frame template.
 	if FRAME_TEMPLATE == "BackdropTemplate" and window.SetBackdrop then
 		window:SetBackdrop({
 			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -170,26 +176,13 @@ function UI:BuildFrame()
 	end
 	window:Hide()
 
-	--[[
-		In the template's own title slot, "Distribution Window // Play It Forward" in branded colors: the
-		title white, the separator gray, the add-on name blue. Only the backdrop fallback has no slot, and
-		gets a font string.
-	]]
-	local titleText = GetColor("TEXT")
-		.. L["WINDOW_TITLE"]
-		.. "|r "
-		.. GetColor("SEPARATOR")
-		.. "//"
-		.. "|r "
-		.. GetColor("INFO")
-		.. L["ADDON_TITLE"]
-		.. "|r"
+	local titleText = Kit.WindowTitle(L["WINDOW_TITLE"])
 	if window.SetTitle then
 		window:SetTitle(titleText)
 	elseif window.TitleText then
 		window.TitleText:SetText(titleText)
 	else
-		local title = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+		local title = window:CreateFontString(nil, "OVERLAY", FONT)
 		title:SetPoint("TOP", 0, -10)
 		title:SetText(titleText)
 	end
@@ -197,7 +190,6 @@ function UI:BuildFrame()
 		window:SetPortraitToAsset(PORTRAIT_ICON)
 	end
 
-	-- The templates supply CloseButton, so only build one when it did not.
 	local close = window.CloseButton
 	if not close then
 		close = CreateFrame("Button", nil, window, "UIPanelCloseButton")
@@ -207,57 +199,66 @@ function UI:BuildFrame()
 		UI:Close()
 	end)
 
-	-- The giftability controls along the top, Features/UI-Top-Bar.lua's.
+	local titleBar = CreateFrame("Frame", nil, window)
+	titleBar:SetPoint("TOPLEFT", 0, 0)
+	titleBar:SetPoint("TOPRIGHT", -TITLE_BAR_RIGHT, 0)
+	titleBar:SetHeight(TITLE_BAR_HEIGHT)
+	titleBar:EnableMouse(true)
+	titleBar:RegisterForDrag("LeftButton")
+	titleBar:SetScript("OnDragStart", function()
+		window:StartMoving()
+	end)
+	titleBar:SetScript("OnDragStop", function()
+		window:StopMovingOrSizing()
+		UI:SaveGeometry()
+	end)
+	window.titleBar = titleBar
+
 	UI:BuildTopBar(window)
 
-	-- The list hangs LIST_GAP under the kind ticks, so it moves with the top bar rather than a number of its own.
-	local inset = CreateFrame("Frame", nil, window, INSET_TEMPLATE)
-	inset:SetPoint("TOPLEFT", INSET_LEFT, -(UI.TOP_BAR_BOTTOM + LIST_GAP))
-	inset:SetPoint("BOTTOMRIGHT", -LIST_RIGHT, LIST_BOTTOM)
-
-	local scroll = CreateFrame("ScrollFrame", "PlayItForwardScroll", window, "UIPanelScrollFrameTemplate")
-	scroll:SetPoint("TOPLEFT", inset, "TOPLEFT", SCROLL_INSET, -SCROLL_INSET)
-	scroll:SetPoint("BOTTOMRIGHT", inset, "BOTTOMRIGHT", -SCROLLBAR_GUTTER, SCROLL_INSET)
-	ns.SkinScrollFrame(scroll, "PlayItForwardScroll")
+	-- The view reaches FIELD_GLOW into the gutter so a recipient field's glow isn't clipped.
+	local scroll = CreateFrame("ScrollFrame", "PlayItForwardScroll", window)
+	scroll:SetPoint("TOPLEFT", EDGE, -(UI.TOP_BAR_BOTTOM + LIST_GAP))
+	scroll:SetPoint("BOTTOMRIGHT", -(EDGE + SCROLL_GUTTER - FIELD_GLOW), LIST_BOTTOM)
+	scroll:EnableMouseWheel(true)
+	scroll:SetScript("OnMouseWheel", function(_, delta)
+		UI:ScrollList(-delta * SCROLL_ROWS * (ROW_HEIGHT + ROW_GAP))
+	end)
+	scroll:SetScript("OnSizeChanged", function()
+		UI:ScrollList(0)
+	end)
 	local content = CreateFrame("Frame", nil, scroll)
 	content:SetSize(1, 1)
 	scroll:SetScrollChild(content)
+	window.scroll = scroll
 	window.content = content
 	window.rowWidth = width - ROW_INSET
+	window.contentHeight = 0
+	window.scrollOffset = 0
 
-	--[[
-		An empty list says so, or a window with nothing left reads as broken or still working.
-		The hint points at the top bar, the only thing that can list more.
-	]]
-	local emptyText = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	emptyText:SetPoint("CENTER", inset, "CENTER", 0, 8)
+	local thumb = window:CreateTexture(nil, "ARTWORK")
+	thumb:SetWidth(THUMB_WIDTH)
+	thumb:SetColorTexture(THUMB_R, THUMB_G, THUMB_B, THUMB_ALPHA)
+	thumb:Hide()
+	window.scrollThumb = thumb
+
+	local emptyText = window:CreateFontString(nil, "OVERLAY", FONT)
+	emptyText:SetPoint("CENTER", scroll, "CENTER", 0, 8)
 	emptyText:SetText(L["WINDOW_EMPTY"])
 	emptyText:SetTextColor(ns.GetColorRGB("TEXT"))
 	emptyText:Hide()
 	window.emptyText = emptyText
 
-	local emptyHint = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	local emptyHint = window:CreateFontString(nil, "OVERLAY", FONT)
 	emptyHint:SetPoint("TOP", emptyText, "BOTTOM", 0, -4)
 	emptyHint:SetText(L["WINDOW_EMPTY_HINT"])
 	emptyHint:SetTextColor(ns.GetColorRGB("HELP"))
 	emptyHint:Hide()
 	window.emptyHint = emptyHint
 
-	--[[
-		The next step in words, so a press of Find Recipients that changes nothing still says whether
-		another will help. One line, cut short rather than wrapped down into the buttons.
-	]]
-	local status = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	status:SetPoint("BOTTOMLEFT", STATUS_SIDE, STATUS_BOTTOM)
-	status:SetPoint("BOTTOMRIGHT", -STATUS_SIDE, STATUS_BOTTOM)
-	status:SetJustifyH("CENTER")
-	status:SetWordWrap(false)
-	status:SetTextColor(ns.GetColorRGB("HELP"))
-	window.statusText = status
-
 	local find = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
-	find:SetSize(BUTTON_WIDTH, 22)
-	find:SetPoint("BOTTOMLEFT", BUTTON_LEFT, BUTTON_BOTTOM)
+	find:SetSize(BUTTON_WIDTH, BUTTON_HEIGHT)
+	find:SetPoint("BOTTOMRIGHT", -EDGE, EDGE + BUTTON_HEIGHT + BUTTON_STACK_GAP)
 	find:SetText(L["BUTTON_FIND_RECIPIENTS"])
 	find:SetScript("OnClick", function()
 		UI:FindRecipients()
@@ -265,24 +266,34 @@ function UI:BuildFrame()
 	ns.SkinWidget("Button", find)
 	window.findButton = find
 
-	-- Clear of the corner grip, which takes the bottom right corner.
 	local dist = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
-	dist:SetSize(BUTTON_WIDTH, 22)
-	dist:SetPoint("BOTTOMRIGHT", -BUTTON_RIGHT, BUTTON_BOTTOM)
+	dist:SetSize(BUTTON_WIDTH, BUTTON_HEIGHT)
+	dist:SetPoint("BOTTOMRIGHT", -EDGE, EDGE)
 	dist:SetText(L["BUTTON_DISTRIBUTE"])
 	dist:SetScript("OnClick", function()
+		if ns.Distributor:IsRunning() then
+			ns.Distributor:RequestStop()
+			UI:SyncDistributeButton()
+			return
+		end
 		UI:Distribute()
 	end)
 	ns.SkinWidget("Button", dist)
 	window.distributeButton = dist
 
-	--[[
-		The corner grip. A child button, so it takes the mouse before the frame-wide drag-to-move
-		handler sees it.
-	]]
+	-- Anchored to Distribute so it follows the buttons' width; wraps rather than clips.
+	local status = window:CreateFontString(nil, "OVERLAY", FONT)
+	status:SetPoint("TOPLEFT", window, "BOTTOMLEFT", EDGE, BUTTONS_TOP - STATUS_INSET)
+	status:SetPoint("BOTTOMRIGHT", dist, "BOTTOMLEFT", -BUTTON_GAP, 0)
+	status:SetJustifyH("LEFT")
+	status:SetJustifyV("TOP")
+	status:SetWordWrap(true)
+	status:SetTextColor(ns.GetColorRGB("MUTED"))
+	window.statusText = status
+
 	local grip = CreateFrame("Button", nil, window)
-	grip:SetSize(16, 16)
-	grip:SetPoint("BOTTOMRIGHT", -4, 4)
+	grip:SetSize(GRIP_SIZE, GRIP_SIZE)
+	grip:SetPoint("BOTTOMRIGHT", 0, 0)
 	grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
 	grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
 	grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
@@ -297,9 +308,8 @@ function UI:BuildFrame()
 	window.resizeGrip = grip
 
 	--[[
-		A loose ruler, because a font string with both anchors set reports the width it was given
-		rather than the width it wants. Both buttons take the one width: sized to their own current
-		labels they would sit mismatched and resize underfoot as the labels change.
+		A loose ruler: an anchored font string reports the width it was given. One width for both,
+		or they resize underfoot as labels change; capped at half the room so the status keeps the rest.
 	]]
 	local ruler = window:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 	ruler:Hide()
@@ -309,24 +319,19 @@ function UI:BuildFrame()
 		L["BUTTON_SEARCHING"],
 		L["BUTTON_DISTRIBUTE"],
 		L["BUTTON_NEEDS_MAILBOX"],
-		L["BUTTON_SENDING"],
+		L["BUTTON_STOP"],
 	}) do
 		ruler:SetText(text)
 		widest = math.max(widest, ruler:GetStringWidth() + BUTTON_PAD)
 	end
-	widest = math.min(math.floor((FRAME_WIDTH - BUTTON_LEFT - BUTTON_RIGHT - BUTTON_GAP) / 2), widest)
-	find:SetSize(widest, 22)
-	dist:SetSize(widest, 22)
+	widest = math.min(math.floor((FRAME_WIDTH - 2 * EDGE - BUTTON_GAP) / 2), widest)
+	find:SetSize(widest, BUTTON_HEIGHT)
+	dist:SetSize(widest, BUTTON_HEIGHT)
 
 	--[[
-		Escape closes it, the way it closes every other window the game opens -- the one thing
-		players reach for before the X and the only close this window did not answer.
-
-		THE CLOSING WORK LIVES ON OnHide, not on the X. UISpecialFrames only calls Hide, so
-		anything hung off the button alone would be skipped by Escape and the pairings, the query
-		plan and a half-finished mail run would all outlive the window. Registered after the
-		window:Hide() above, or building the frame would fire this before UI.frame exists.
-		OnHide also fires when UIParent hides (Alt+Z); IsShown stays true then, and that is no close.
+		Closing work lives on OnHide: Escape (UISpecialFrames) only calls Hide. Set after the
+		window:Hide() above, which would otherwise fire it before UI.frame exists. Still IsShown means
+		UIParent hid (Alt+Z), not a close. Sent clears on open too, for a send that landed after a close.
 	]]
 	tinsert(UISpecialFrames, "PlayItForwardMailFrame")
 	window:SetScript("OnHide", function()
@@ -334,6 +339,10 @@ function UI:BuildFrame()
 			return
 		end
 		UI:OnClosed()
+		ns.Distributor:ClearSent()
+	end)
+	window:SetScript("OnShow", function()
+		ns.Distributor:ClearSent()
 	end)
 
 	UI.frame = window
@@ -341,11 +350,7 @@ function UI:BuildFrame()
 	return window
 end
 
---[[
-	Where the window is and how big, both kept per profile. Read back from the frame after a drag
-	or a resize: sizing from the corner can move the frame's own anchor point, so the position is
-	saved again whenever the size is.
-]]
+-- Position saved with every size: sizing from the corner can move the frame's anchor point.
 function UI:SaveGeometry()
 	local window = self.frame
 	if not window then
@@ -356,7 +361,19 @@ function UI:SaveGeometry()
 	ns.db.profile.windowSize = { width = window:GetWidth(), height = window:GetHeight() }
 end
 
--- The rows, bands and list follow the window's width; the item column takes whatever it gains.
+-- No .point and no size, so the next build places and sizes it as the first did.
+function UI:ResetWindowPosition()
+	ns.db.profile.windowPos = {}
+	ns.db.profile.windowSize = {}
+	local window = self.frame
+	if not window then
+		return
+	end
+	window:SetSize(FRAME_WIDTH, FRAME_HEIGHT)
+	PlaceAtFirst(window)
+	self:Relayout()
+end
+
 function UI:Relayout()
 	local window = self.frame
 	if not (window and window.content) then
@@ -366,36 +383,76 @@ function UI:Relayout()
 	window.rowWidth = rowWidth
 	for _, row in ipairs(rows) do
 		row:SetWidth(rowWidth)
-		row.itemText:SetWidth(ItemWidth(rowWidth))
 	end
 	for _, header in ipairs(headers) do
 		header:SetWidth(rowWidth)
 	end
 	window.content:SetWidth(rowWidth)
+	self:ScrollList(0)
+end
+
+-- The offset is kept here, not read back from the scroll frame, so a list that shrank is pulled back into range.
+function UI:ScrollList(delta)
+	local window = self.frame
+	if not (window and window.scroll) then
+		return
+	end
+	local view = window.scroll:GetHeight() or 0
+	local content = window.contentHeight or 0
+	local range = math.max(0, content - view)
+	local offset = math.max(0, math.min(range, (window.scrollOffset or 0) + (delta or 0)))
+	window.scrollOffset = offset
+	window.scroll:SetVerticalScroll(offset)
+
+	local thumb = window.scrollThumb
+	if range <= 0 or view <= 0 then
+		thumb:Hide()
+		return
+	end
+	local height = math.max(ROW_HEIGHT, view * view / content)
+	local top = (view - height) * offset / range
+	thumb:ClearAllPoints()
+	thumb:SetPoint("TOPRIGHT", window.scroll, "TOPRIGHT", (SCROLL_GUTTER + THUMB_WIDTH) / 2 - FIELD_GLOW, -top)
+	thumb:SetHeight(height)
+	thumb:Show()
 end
 
 --------------------------------------------------------------------------------
 -- Row rendering
 --------------------------------------------------------------------------------
 
--- Section bands, styled like Connoisseur's: a subtle gold wash and gold caption.
+local function ItemIcon(link)
+	if not (link and ns.GetInfoInstant) then
+		return UNKNOWN_ICON
+	end
+	local ok, _, _, _, _, icon = pcall(ns.GetInfoInstant, link)
+	return (ok and icon) or UNKNOWN_ICON
+end
+
+local function CountSuffix(count)
+	if (count or 1) > 1 then
+		return (" " .. GetColor("MUTED") .. "x%d|r"):format(count)
+	end
+	return ""
+end
 
 local function GetHeader(i)
 	if headers[i] then
 		return headers[i]
 	end
 	local header = CreateFrame("Frame", nil, UI.frame.content)
-	header:SetSize(UI.frame.rowWidth or 460, ROW_HEIGHT)
+	header:SetSize(UI.frame.rowWidth or FRAME_WIDTH - ROW_INSET, ROW_HEIGHT)
 
-	local bg = header:CreateTexture(nil, "BACKGROUND")
-	bg:SetPoint("TOPLEFT", 0, -2)
-	bg:SetPoint("BOTTOMRIGHT", 0, 2)
-	local red, green, blue = ns.GetColorRGB("TITLE")
-	bg:SetColorTexture(red, green, blue, 0.10)
+	header.check = CreateFrame("CheckButton", nil, header, "UICheckButtonTemplate")
+	header.check:SetPoint("LEFT", 0, 0)
+	header.check:SetSize(TICK_SIZE, TICK_SIZE)
+	header.check:SetScript("OnClick", function(self)
+		UI:ToggleSection(header.rank, self:GetChecked() and true or false)
+	end)
+	ns.SkinWidget("CheckBox", header.check)
 
-	header.text = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	header.text:SetTextColor(ns.GetColorRGB("TITLE"))
-	header.text:SetPoint("LEFT", 8, 0)
+	header.text = header:CreateFontString(nil, "OVERLAY", FONT_HEADING)
+	header.text:SetTextColor(TITLE_R, TITLE_G, TITLE_B)
 
 	headers[i] = header
 	return header
@@ -407,7 +464,7 @@ local function GetRow(i)
 	end
 	local content = UI.frame.content
 	local row = CreateFrame("Frame", nil, content)
-	row:SetSize(UI.frame.rowWidth or 460, ROW_HEIGHT)
+	row:SetSize(UI.frame.rowWidth or FRAME_WIDTH - ROW_INSET, ROW_HEIGHT)
 
 	row.check = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
 	row.check:SetPoint("LEFT", 0, 0)
@@ -415,11 +472,7 @@ local function GetRow(i)
 	row.check:SetScript("OnClick", function(self)
 		UI:ToggleRow(row._item, self:GetChecked() and true or false)
 	end)
-	--[[
-		Says what the tick does, which a row cannot show: on a bare row it decides whether the
-		item is searched for at all. On a dimmed tick it says why nothing can go yet, which is
-		why the box keeps its mouse scripts while disabled.
-	]]
+	-- Keeps its tooltip while disabled: a dimmed tick says why nothing can go yet.
 	row.check:SetMotionScriptsWhileDisabled(true)
 	row.check:SetScript("OnEnter", function(self)
 		local item = row._item
@@ -445,27 +498,37 @@ local function GetRow(i)
 	end)
 	ns.SkinWidget("CheckBox", row.check)
 
-	row.itemText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	row.itemText:SetPoint("LEFT", row.check, "RIGHT", 2, 0)
-	row.itemText:SetWidth(ItemWidth(UI.frame.rowWidth or FRAME_WIDTH - ROW_INSET))
-	row.itemText:SetJustifyH("LEFT")
-	-- Rows sit a fixed ROW_HEIGHT apart: a wrapped name would draw over the row below, not push it down.
-	row.itemText:SetWordWrap(false)
+	row.sentMark = row:CreateTexture(nil, "OVERLAY")
+	row.sentMark:SetSize(TICK_SIZE, TICK_SIZE)
+	row.sentMark:SetPoint("LEFT", 0, 0)
+	row.sentMark:SetTexture(SENT_MARK)
+	row.sentMark:Hide()
 
-	-- The top bar's dropdown at its own DROPDOWN_HEIGHT: its text is ellipsized, as a wrapped name
-	-- draws over the row below.
+	row.icon = row:CreateTexture(nil, "ARTWORK")
+	row.icon:SetSize(ICON_SIZE, ICON_SIZE)
+	row.icon:SetPoint("LEFT", TICK_SIZE + ICON_GAP, 0)
+
 	local button = UI.BuildDropdown(row, RECIPIENT_WIDTH)
-	button:SetHeight(DROPDOWN_HEIGHT)
-	button:SetPoint("LEFT", row.itemText, "RIGHT", 4, 0)
-
+	button:SetPoint("RIGHT", 0, 0)
 	button:SetScript("OnClick", function(self)
 		UI:OpenPicker(self:GetParent())
 	end)
-	--[[
-		No hover tooltip: the list it opens leads with the candidate count and best fit, or why
-		nobody can be offered the row, beside the names it explains, so a tooltip would say it twice.
-	]]
+	-- No hover tooltip on purpose: the list it opens leads with the same reasoning.
 	row.recipButton = button
+
+	row.sentTo = row:CreateFontString(nil, "OVERLAY", FONT)
+	row.sentTo:SetPoint("LEFT", button, "LEFT", FIELD_PAD, 0)
+	row.sentTo:SetPoint("RIGHT", button, "RIGHT", -FIELD_PAD, 0)
+	row.sentTo:SetJustifyH("LEFT")
+	row.sentTo:SetWordWrap(false)
+	row.sentTo:Hide()
+
+	-- Rows sit a fixed pitch apart: a wrapped name would draw over the row below, not push it down.
+	row.itemText = row:CreateFontString(nil, "OVERLAY", FONT)
+	row.itemText:SetPoint("LEFT", row.icon, "RIGHT", NAME_GAP, 0)
+	row.itemText:SetPoint("RIGHT", button, "LEFT", -FIELD_GAP, 0)
+	row.itemText:SetJustifyH("LEFT")
+	row.itemText:SetWordWrap(false)
 
 	row:SetScript("OnEnter", function(self)
 		if not self._link then
@@ -484,20 +547,15 @@ local function GetRow(i)
 end
 
 --[[
-	Matched, then disenchant, then still-matchable, then unreadable, then kept: the list outruns
-	the window, so rows worth acting on must not fall below the fold. Unreadable outranks kept: it
-	wants a look.
-
-	DISENCHANT IS ITS OWN SECTION. Your enchanter is often an alt as well, and a gift to Gogomage
-	and dust for Gogomage would otherwise sit side by side under Matched, the same name on both.
-	Its rows carry the disenchant icon on their dropdowns too (UI:RecipientLabel).
+	Actionable rows first: the list outruns the window. Disenchant is its own section because the
+	enchanter is often also an alt, and the same name would sit twice under Matched.
 ]]
 local function DisplayRank(item)
 	if item.recipient then
 		return item.recipient.disenchant and 2 or 1
 	end
 	if item.state == ns.Matcher.GIFT then
-		return 3 -- scored, just nobody in range yet
+		return 3
 	end
 	if item.state == ns.Matcher.UNREADABLE then
 		return 4
@@ -518,7 +576,7 @@ local function DisplayOrder()
 		if (a.item.score or 0) ~= (b.item.score or 0) then
 			return (a.item.score or 0) > (b.item.score or 0)
 		end
-		return a.index < b.index -- stable: bag order within a group
+		return a.index < b.index -- table.sort is not stable
 	end)
 	return order
 end
@@ -528,14 +586,59 @@ local SECTION = {
 	[2] = ns.DisenchantName(),
 	[3] = L["SECTION_NO_RECIPIENT"],
 	[4] = L["SECTION_UNREADABLE"],
-	-- One key with the row label below: both surfaces read the same single word. See Locales/enUS.lua.
+	-- Shared with the row label on purpose (Locales/enUS.lua).
 	[5] = L["WINDOW_KEPT"],
+	[SENT_RANK] = L["SECTION_SENT"],
 }
 
+function UI:SectionItems(rank)
+	local out = {}
+	for _, entry in ipairs(DisplayOrder()) do
+		if DisplayRank(entry.item) == rank then
+			out[#out + 1] = entry.item
+		end
+	end
+	return out
+end
+
+function UI:SectionTick(rank)
+	local tickable, ticked = 0, 0
+	for _, item in ipairs(self:SectionItems(rank)) do
+		if self:CanTick(item) then
+			tickable = tickable + 1
+			if item.send then
+				ticked = ticked + 1
+			end
+		end
+	end
+	return tickable, tickable > 0 and ticked == tickable
+end
+
 --[[
-	Each band carries its row count, so a list running past the fold says how much waits below.
-	Counted first, since a band's header is placed before its rows.
+	UI:ToggleRow's rules, row by row. Rows already as asked are skipped, so a tick a row already had
+	does not pin the allocator's pairing.
 ]]
+function UI:ToggleSection(rank, checked)
+	checked = checked and true or false
+	local reassign = false
+	for _, item in ipairs(self:SectionItems(rank)) do
+		if self:CanTick(item) and (item.send and true or false) ~= checked then
+			item.send = checked
+			if not checked or item.recipient then
+				item.pinned = true
+			else
+				item.pinned = false
+				reassign = true
+			end
+		end
+	end
+	if reassign then
+		self:Assign()
+	else
+		self:Refresh()
+	end
+end
+
 local function RenderList()
 	local order = DisplayOrder()
 	local counts = {}
@@ -548,14 +651,94 @@ local function RenderList()
 	for _, entry in ipairs(order) do
 		local rank = DisplayRank(entry.item)
 		if rank ~= lastRank then
-			-- The Disenchant band wears the same icon as its rows' dropdowns.
 			local header = (rank == 2) and (UI.DISENCHANT_ICON .. " " .. SECTION[rank]) or SECTION[rank]
-			out[#out + 1] = { header = header, count = counts[rank] }
+			out[#out + 1] = { header = header, count = counts[rank], rank = rank }
 			lastRank = rank
 		end
 		out[#out + 1] = { item = entry.item }
 	end
+
+	local sent = ns.Distributor:Sent()
+	if #sent > 0 then
+		out[#out + 1] = { header = SECTION[SENT_RANK], count = #sent, rank = SENT_RANK }
+		for _, job in ipairs(sent) do
+			out[#out + 1] = { sent = job }
+		end
+	end
 	return out
+end
+
+local function ShowHeader(header, entry)
+	header.rank = entry.rank
+	header.text:ClearAllPoints()
+	if entry.rank == SENT_RANK then
+		header.check:Hide()
+		header.text:SetPoint("LEFT", 0, 0)
+	else
+		header.check:Show()
+		header.text:SetPoint("LEFT", TICK_SIZE + HEADING_GAP, 0)
+		local tickable, all = UI:SectionTick(entry.rank)
+		header.check:SetChecked(all)
+		if tickable > 0 then
+			header.check:Enable()
+			header.check:SetAlpha(1)
+		else
+			header.check:Disable()
+			header.check:SetAlpha(0.45)
+		end
+	end
+	header.text:SetText(("%s " .. GetColor("MUTED") .. "(%d)|r"):format(entry.header, entry.count))
+	header:Show()
+end
+
+local function ShowItemRow(row, item)
+	row._link = item.link
+	row._item = item
+	row.check:Show()
+	row.sentMark:Hide()
+	row.recipButton:Show()
+	row.sentTo:Hide()
+	row.icon:SetTexture(ItemIcon(item.link))
+	row.icon:SetDesaturated(false)
+	row.itemText:SetText(item.link .. CountSuffix(item.count))
+
+	if item.recipient then
+		row.recipButton.text:SetText(UI:RecipientLabel(item.recipient))
+	else
+		local label
+		if item.state == ns.Matcher.UNREADABLE then
+			label = L["ROW_UNREADABLE"]
+		elseif item.state == ns.Matcher.GIFT then
+			label = L["ROW_NO_RECIPIENT"]
+		else
+			label = L["WINDOW_KEPT"]
+		end
+		row.recipButton.text:SetText(GetColor("MUTED") .. label .. "|r")
+	end
+	-- The dimmed tick is display only: item.send is left alone, so a hand pick brings the live tick back.
+	if UI:CanTick(item) then
+		row.check:SetChecked(item.send and true or false)
+		row.check:Enable()
+		row.check:SetAlpha(1)
+	else
+		row.check:SetChecked(false)
+		row.check:Disable()
+		row.check:SetAlpha(0.45)
+	end
+end
+
+local function ShowSentRow(row, job)
+	row._link = job.link
+	row._item = nil
+	row.check:Hide()
+	row.sentMark:Show()
+	row.recipButton:Hide()
+	row.sentTo:Show()
+	row.icon:SetTexture(ItemIcon(job.link))
+	row.icon:SetDesaturated(true)
+	local name = (job.link and job.link:match("|h(%[.-%])|h")) or job.link or ""
+	row.itemText:SetText(GetColor("MUTED") .. name .. "|r" .. CountSuffix(job._count))
+	row.sentTo:SetText(("%s%s (%d)|r"):format(GetColor("MUTED"), job.recipient or "", job.level or 0))
 end
 
 function UI:Refresh()
@@ -569,63 +752,36 @@ function UI:Refresh()
 
 	local list = RenderList()
 	local rowIndex, headerIndex = 0, 0
+	local y = 0
 
 	for position, entry in ipairs(list) do
-		local y = -((position - 1) * ROW_HEIGHT)
-
 		if entry.header then
+			if position > 1 then
+				y = y + GROUP_GAP
+			end
 			headerIndex = headerIndex + 1
 			local header = GetHeader(headerIndex)
-			header:SetPoint("TOPLEFT", 0, y)
-			header.text:SetText(("%s " .. GetColor("MUTED") .. "(%d)|r"):format(entry.header, entry.count))
-			header:Show()
+			header:SetPoint("TOPLEFT", 0, -y)
+			ShowHeader(header, entry)
 		else
-			local item = entry.item
+			y = y + ROW_GAP
 			rowIndex = rowIndex + 1
 			local row = GetRow(rowIndex)
-			row:SetPoint("TOPLEFT", 0, y)
+			row:SetPoint("TOPLEFT", 0, -y)
 			row:Show()
-			row._link = item.link
-			row._item = item
-			-- Only above one: gear does not stack, so "x1" would say nothing on every gear row.
-			local itemLabel = item.link
-			if (item.count or 1) > 1 then
-				itemLabel = ("%s " .. GetColor("MUTED") .. "x%d|r"):format(item.link, item.count)
-			end
-			row.itemText:SetText(itemLabel)
-
-			if item.recipient then
-				row.recipButton.text:SetText(UI:RecipientLabel(item.recipient))
+			if entry.sent then
+				ShowSentRow(row, entry.sent)
 			else
-				-- Gold reads as "still working on it", muted as "nothing to do here".
-				local label
-				if item.state == ns.Matcher.UNREADABLE then
-					label = GetColor("TITLE") .. L["ROW_UNREADABLE"] .. "|r"
-				elseif item.state == ns.Matcher.GIFT then
-					label = GetColor("TITLE") .. L["ROW_NO_RECIPIENT"] .. "|r"
-				else
-					label = GetColor("MUTED") .. L["WINDOW_KEPT"] .. "|r"
-				end
-				row.recipButton.text:SetText(label)
-			end
-			--[[
-				The row's own tick, live wherever it decides something: on a bare row, whether to
-				search. A row Distribute can never mail draws it empty and dimmed, for display only:
-				item.send is left alone, so a hand pick brings the live tick straight back.
-			]]
-			if UI:CanTick(item) then
-				row.check:SetChecked(item.send and true or false)
-				row.check:Enable()
-				row.check:SetAlpha(1)
-			else
-				row.check:SetChecked(false)
-				row.check:Disable()
-				row.check:SetAlpha(0.45)
+				ShowItemRow(row, entry.item)
 			end
 		end
+		y = y + ROW_HEIGHT
 	end
 
-	window.content:SetSize(window.rowWidth or 460, math.max(1, #list * ROW_HEIGHT))
+	-- Room under the last row for its field's glow.
+	window.contentHeight = y + FIELD_GLOW
+	window.content:SetSize(window.rowWidth or FRAME_WIDTH - ROW_INSET, math.max(1, y))
+	self:ScrollList(0)
 	window.emptyText:SetShown(#list == 0)
 	window.emptyHint:SetShown(#list == 0)
 	self:SyncDistributeButton()
@@ -635,7 +791,7 @@ end
 -- Reading the match list
 --------------------------------------------------------------------------------
 
--- The names Diagnostics/Manifests.lua and Tests/ call. The state is Features/Match-List.lua's.
+-- Pass-throughs for Diagnostics/Manifests.lua and Tests/; the state is Features/Match-List.lua's.
 function UI:Items()
 	return MatchList:Items()
 end

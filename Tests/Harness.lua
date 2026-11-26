@@ -1,11 +1,7 @@
 --[[
-	Loads the add-on against Tests/Stub-WoW-API.lua and gives a test somewhere to
-	assert from.
-
-	Every case loads its own copy. items, pools and assignedTo are file-scope locals in
-	Features/Match-List.lua and nothing wipes them by design -- that is what makes
-	matches survive walking away from a mailbox -- so two cases sharing one load would
-	see each other's bags.
+	Loads the add-on against Tests/Stub-WoW-API.lua. Every case loads its own copy: items, pools
+	and assignedTo are file-scope locals in Features/Match-List.lua that nothing wipes, so cases
+	sharing a load would see each other's bags.
 ]]
 
 local Stub = require("Stub-WoW-API")
@@ -13,10 +9,8 @@ local Stub = require("Stub-WoW-API")
 local Harness = { Stub = Stub }
 
 --[[
-	The load order from the TOC, minus the libraries and the files that only build
-	options panels. Order is load-bearing: Flavor.lua sets the flavor the data files read
-	as they load, Data.lua seeds ns.Data, and the locale has to register before Data.lua
-	asks for it.
+	TOC load order, minus the libraries and most options panels. Order is load-bearing: Flavor.lua
+	sets the flavor the data files read, Data.lua seeds ns.Data, and the locale registers first.
 ]]
 local FILES = {
 	"Locales/enUS.lua",
@@ -25,6 +19,7 @@ local FILES = {
 	"FLAVOR_FOLDER",
 	"Data/Default-Settings.lua",
 	"Features/Utilities.lua",
+	"Features/Menu-Kit.lua",
 	"Features/Scan-Tooltip.lua",
 	"Features/Scan-Bags.lua",
 	"Features/Match-Derivations.lua",
@@ -47,7 +42,7 @@ local FILES = {
 	"Features/UI-Status.lua",
 	"Features/UI-Assignment.lua",
 	"Features/UI-Mailbox.lua",
-	"Features/UI-Reopen-Button.lua",
+	"Features/UI-Mailbox-Tab.lua",
 	"Features/Generosity.lua",
 	"Features/Generosity-Broadcast.lua",
 	"Features/Generosity-Tooltip.lua",
@@ -59,25 +54,19 @@ local FILES = {
 	"Diagnostics/Validate-Data.lua",
 	"Diagnostics/Localization-Reports.lua",
 	"Diagnostics/Report-Runner.lua",
-	-- Panel builders the stubbed libraries can run whole; the rest stay out, see below.
+	-- Panel builders the stubbed libraries can run whole.
+	"Options/Options-Kit.lua",
 	"Options/Options-Utilities.lua",
 	"Options/Options-Recipients.lua",
 	"Options/Options-Alts.lua",
 	"Options/Options-Guilds.lua",
-	--[[
-		Not only panels either: the /pif slash command and the combat gate in front of
-		the Settings panel live here, and Tests/Options-Open.lua drives both. The panel
-		builders themselves stay out; the stub answers their libraries with catch-alls.
-	]]
+	-- For /pif and the Settings combat gate, which Tests/Options-Open.lua drives.
 	"Options/Options.lua",
 }
 
 local ADDON = "Play-It-Forward"
 
---[[
-	Each TOC lists its own data folder where FLAVOR_FOLDER sits above, so the folder follows
-	Stub.flavor. Classic Era's TOC lists Discovery's folder after its own, as the client does.
-]]
+-- FLAVOR_FOLDER follows Stub.flavor; Classic Era's TOC lists Discovery's folder after its own.
 local FLAVOR_TABLES = {
 	"Match-Stat-Budget",
 	"Scan-Food",
@@ -118,14 +107,8 @@ local function copy(value)
 end
 
 --[[
-	The two modules not worth loading whole, injected before anything else so the files
-	that call them at load time find them there.
-
-	There are no longer any exclusions: every file the add-on runs at a mailbox is the
-	real one. The delivery race lives in Mail-Sender.lua, the query planning in
-	Recipients-Who.lua and the suffix parsing in Scan-Tooltip.lua, and answering any
-	of them with a stub would test the answer rather than the code. The client is stubbed
-	instead, down to the scanning tooltip.
+	The two modules not loaded whole, injected first so files calling them at load find them.
+	Every other file the add-on runs at a mailbox is the real one; only the client is stubbed.
 ]]
 local function injectModules(ns, events)
 	ns.On = function(event, fn)
@@ -138,28 +121,19 @@ local function injectModules(ns, events)
 	end
 	ns.PrintWarning = ns.PrintMessage
 
-	--[[
-		Undecorated on purpose: cases assert what a line says, never its color escapes, and the
-		real format lives in Features/Announcements.lua rather than being pinned a second time
-		here. The name and separator are present because callers render them as one string.
-	]]
+	-- Undecorated: cases assert what a line says, never its color escapes.
 	ns.BuildBrandedLine = function(_, message, nameKey)
 		return ((ns.L and ns.L[nameKey or "ADDON_TITLE"]) or "") .. " // " .. tostring(message)
 	end
 
 	--[[
-		Core.lua sets this at load and is not loaded here. "Dev" is what it answers for an
-		unpackaged copy. Left nil, the diagnostics header's string.format raises on Lua 5.1,
-		the version WoW embeds, where 5.4 would quietly print "nil".
+		Core.lua is not loaded; "Dev" is its answer for an unpackaged copy. Left nil, the
+		diagnostics header's string.format raises on Lua 5.1, where 5.4 would print "nil".
 	]]
 	ns.Version = "Dev"
 end
 
---[[
-	A freshly loaded add-on, its saved variables at shipped defaults, plus a handle for
-	firing the events the client would. setup, when given, runs between the stubs and the
-	add-on's files, for a case that needs a global the add-on reads at load.
-]]
+-- setup runs between the stubs and the add-on's files, for a global the add-on reads at load.
 function Harness.LoadAddon(root, setup)
 	Stub.Install()
 	if setup then
@@ -185,17 +159,9 @@ function Harness.LoadAddon(root, setup)
 	end
 
 	--[[
-		Saved variables arrive at ADDON_LOADED in the game, which is after every file has
-		loaded, so building them here rather than earlier is not a convenience. A file
-		reading ns.db at load time would be a bug and this ordering is what catches it.
-
-		Both scopes are seeded, the way AceDB seeds profile and global alike: the giving tally
-		lives in global.stats, so a case that never touched it would still expect it present.
-	]]
-	--[[
-		sv is the raw saved table AceDB hangs its own bookkeeping off, and profileKeys lives
-		there rather than on db: the own-alt check in Features/Recipients-Guild.lua reads it,
-		and db.profileKeys answers nil. Empty by default; a case that wants alts seeds it.
+		Built after every file, as ADDON_LOADED is in the game, so a file reading ns.db at load
+		fails here. profileKeys lives on the raw sv, not db: the own-alt check in
+		Features/Recipients-Guild.lua reads it there.
 	]]
 	ns.db = {
 		profile = copy(ns.DATABASE_DEFAULTS.profile),
@@ -212,6 +178,18 @@ function Harness.LoadAddon(root, setup)
 		return events[event] ~= nil
 	end
 
+	--[[
+		Open the mailbox, then click the gift tab: the window never opens by itself. A window
+		already up is left alone, since a second click would close it.
+	]]
+	ns.visitMailbox = function()
+		MailFrame:Show()
+		ns.fire("MAIL_SHOW")
+		if not (ns.UI.frame and ns.UI.frame:IsShown()) then
+			PlayItForwardMailboxTab:GetScript("OnClick")(PlayItForwardMailboxTab)
+		end
+	end
+
 	return ns
 end
 
@@ -222,10 +200,10 @@ end
 local cases = {}
 
 --[[
-	Every spec on, the way the add-on scored before hybrids were assumed to heal. For a case whose
-	point is a mechanism -- demotion, armor training, a band per group -- written with a Retribution
-	paladin or a Feral druid in it. Tests/Spec-Choices.lua pins the shipped defaults.
+	Every spec on, for a case whose point is a mechanism (demotion, armor training, a band per
+	group) written with a Retribution paladin or Feral druid. Tests/Spec-Choices.lua pins defaults.
 ]]
+
 function Harness.AllSpecs(ns)
 	for class, specs in pairs(ns.Data.SPECS) do
 		ns.db.profile.specs[class] = {}

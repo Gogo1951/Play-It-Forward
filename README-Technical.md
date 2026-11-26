@@ -38,6 +38,7 @@ Play-It-Forward/
 ├── Features/
 │   ├── Core.lua                      Identity, AceDB lifecycle, other-client prune, ns:ApplyProfile, welcome, the ns.On dispatcher
 │   ├── Utilities.lua                 Tooltip reads (ns.ReadTooltip), colors, names and realms (ns.PlayerName, ns.QualifyPlayerName), ns.AtMailbox, ns.DisenchantName
+│   ├── Menu-Kit.lua                  Common-Core's Menu-Kit, copied unchanged: the mailbox tab's menu
 │   ├── Announcements.lua             Player-only output: ns:BuildBrandedLine, ns:PrintMessage
 │   ├── Scan-Tooltip.lua              Tooltip lines to stats and the reputation requirement; pure parsers
 │   ├── Scan-Bags.lua                 Bag slot to item record, or nil plus a reject code
@@ -61,14 +62,15 @@ Play-It-Forward/
 │   ├── UI-Status.lua                 Distribute button state, status line, UI:CanTick
 │   ├── UI-Assignment.lua             A row's dropdown: header, candidates, manual picks, row ticks
 │   ├── UI-Mailbox.lua                Mailbox open and close, Find Recipients, Distribute, the roster pulls
-│   ├── UI-Reopen-Button.lua          The button beside MailFrame that brings the window back, and its hover menu
+│   ├── UI-Mailbox-Tab.lua            The gift tab on MailFrame's edge that opens and closes the window, and its hover menu
 │   ├── Generosity.lua                Account-wide giving tally in global.stats
 │   ├── Generosity-Broadcast.lua      Shares the tally with nearby players over YELL add-on messages
 │   └── Generosity-Tooltip.lua        A peer's totals at the foot of their unit tooltip
 ├── Includes/
 │   ├── Images/
 │   │   ├── Gift.tga                  The mail window's portrait
-│   │   ├── Menu-Plate.tga            The reopen menu's angled plate
+│   │   ├── Menu-Arrow.tga            Menu-Kit's sub-menu chevron, copied unchanged
+│   │   ├── Menu-Plate.tga            Menu-Kit's angled plate, copied unchanged
 │   │   └── Play-It-Forward.tga       Icon
 │   └── Libraries/                    Vendored Ace3 down to AceDBOptions-3.0, nothing else
 ├── Locales/
@@ -97,7 +99,7 @@ Play-It-Forward/
 - **No mini-map button**: `Features/Minimap-Button.lua`, LibDataBroker-1.1 and LibDBIcon-1.0 are deliberately absent.
 - **Diagnostics panel** lives in `Diagnostics/Options-Diagnostics.lua`; never `Features/Diagnostics.lua` or `Options/Options-Diagnostics.lua`.
 - **Nothing but `Flavor.lua`, `Data.lua` and `Default-Settings.lua` sits directly in `Data/`.** The old shared `Data/Match-*.lua`, `Recipients-Zones.lua`, `Scan-*.lua` files are replaced by per-flavor copies; game data and matching policy never return to a file every client loads.
-- **The UI split is load-bearing TOC order**: `UI-Picker`, `UI-Window`, `UI-Top-Bar`, `UI-Status`, `UI-Assignment`, `UI-Mailbox`, `UI-Reopen-Button`. Each captures at file scope what an earlier one created (`ns.UI`, `ns.Picker`, `UI.BuildDropdown`, `UI.TICK_SIZE`).
+- **The UI split is load-bearing TOC order**: `UI-Picker`, `UI-Window`, `UI-Top-Bar`, `UI-Status`, `UI-Assignment`, `UI-Mailbox`, `UI-Mailbox-Tab`. Each captures at file scope what an earlier one created (`ns.UI`, `ns.Picker`, `UI.BuildDropdown`, `UI.TICK_SIZE`).
 - **Each client loads one data folder.** Every flavor folder holds the same fourteen files, suffixed with the folder name, each declaring the same `ns.Data` tables:
 
 | File | Tables |
@@ -168,13 +170,12 @@ Play-It-Forward/
 
 ### Caching
 
-- **Cold item cache**: `C_Item.GetItemInfo` nil rejects the slot as `NOT_CACHED`, never treats it as empty. `GET_ITEM_INFO_RECEIVED` counts only for an item the last scan rejected that way (`Scanner:IsPending`) and resolved with `success ~= false`. Without it a cold cache reads as an empty bag and the window declines to open.
-- **Debounced rescan** (`Match-List.lua`): neither event scans. `ScanSoon` sets `bagsDirty` and arms `SCAN_DEBOUNCE` only when `WouldRescan()` holds: database exists, no distribution run busy, and the window is shown or a mailbox waits on it (`UI:WaitingToOpen`). The timer re-asks `WouldRescan()`.
+- **Cold item cache**: `C_Item.GetItemInfo` nil rejects the slot as `NOT_CACHED`, never treats it as empty. `GET_ITEM_INFO_RECEIVED` counts only for an item the last scan rejected that way (`Scanner:IsPending`) and resolved with `success ~= false`. Without it a cold cache reads as an empty bag and the window lists nothing.
+- **Debounced rescan** (`Match-List.lua`): neither event scans. `ScanSoon` sets `bagsDirty` and arms `SCAN_DEBOUNCE` only when `WouldRescan()` holds: database exists, no distribution run busy, and the window is shown. The timer re-asks `WouldRescan()`.
   - Window shown: `EnsureScan` plus `UI:Assign()`, against the pool already found, plan left alone (re-planning would throw away a Rescan for Better Match mid-run).
-  - Otherwise `UI:OpenIfWaiting`: a mailbox that opened on nothing arms `waitingToOpen` (that answer is often the cold cache's), and the first rescan that finds a gift opens the window there. Checked against `ns.AtMailbox()` too, since `MAIL_CLOSED` skips Escape on Era.
-  - Away from a mailbox `bagsDirty` stays set; the next `MailboxOpened` pays for one scan.
+  - Window shut: `bagsDirty` stays set; the next open pays for one scan (`EnsureScan` in the tab's click).
   - Excluded during a run: Distributor slots stay full until each send is confirmed, and the deliveries' own `BAG_UPDATE` brings the scan back.
-- **A mailbox visit is handled once**: `visitHandled` makes every report after the first free (`MAIL_SHOW`, `OnShow`, interaction manager, the Distributor's own `MailFrame:Show`). Skipped while `Distributor.busy`, cleared once the mailbox is gone.
+- **A mailbox opening only puts up the tab**: every report (`MAIL_SHOW`, `OnShow`, interaction manager, the Distributor's own `MailFrame:Show`) runs `MailboxOpened`, which scans nothing and opens nothing. A window left open from before is redrawn, except while `Distributor.busy`.
 - **Stats read twice, merged by max per stat, never summed** (`NormalizedStats`): `GetItemStats` resolves the base item and misses random suffixes; the tooltip renders the item as seen. Both report fixed stats, so a sum doubles them. `record.statRead` keeps each source's answer for Item Verdict.
 - **Tooltip read** (`ns.ReadTooltip`, `Utilities.lua`): `C_TooltipInfo.GetHyperlink` first, hidden `PlayItForwardScanTooltip` otherwise. A `C_TooltipInfo` read counts only with real text (without `SurfaceArgs` every `leftText` is nil).
 - **Tooltip parsing** (`Scan-Tooltip.lua`, `Tooltip:StatsFromLines`, pure so the API report and tests can feed literal lines). Each line: `CleanLine`, skip non-stat lines (Use:, Chance on hit:, set bonuses, built from `ITEM_SPELL_TRIGGER_ONUSE`, `ITEM_SPELL_TRIGGER_ONPROC`, `ITEM_SET_BONUS`, plus the `(N)` inactive set shape), then readers in order:
@@ -311,14 +312,14 @@ Play-It-Forward/
 ### The Mail Window
 
 - `PlayItForwardMailFrame` (`UI-Window.lua`): sizes and gaps on the Spacing Scale except Blizzard art (22-tall buttons, scrollbar gutter). Resizable; `UI:SaveGeometry` writes `profile.windowPos`/`windowSize`, whose `point`/`width` fields mean the player moved or sized it. Portrait `Gift.tga` via `PortraitFrameTemplate`, falling back through `ns.PickTemplate`.
-- Opens at a mailbox when `UI:HasSomethingToDo` (a ticked row with a recipient or in `gift`, or Kept gear while disenchanting has a disenchanter); never auto-closes; skipped while a run is busy.
+- Never opens by itself: only the mailbox tab and its menu open it. Never auto-closes. Unless dragged, it opens `UI.MAILBOX_TAB_SIZE + 8` right of `MailFrame`, clear of the tab.
 - **Top bar** (`UI-Top-Bar.lua`, `UI:BuildTopBar`): mirrors the options panels, writing the same profile keys. Each tick's tooltip is the panel's own description. A dropdown hides while its tick is off; kind ticks dim instead. `UI:SyncControls` is the one redraw entry point (ticks, panel setters, `ns:ApplyProfile`); a change runs `UI:Rescan()` and `NotifyChange` on General and What to Give Away. The list hangs from `UI.TOP_BAR_BOTTOM`.
 - **Sections**: Matched, Disenchant (labeled `ns.DisenchantName()`), Pending Match, Stats Couldn't Be Read, Kept; then score, then bag order.
 - **Status and Distribute** (`UI-Status.lua`): `UI:StatusLine` (frame-free for `Tests/Status-Line.lua`) picks the first that holds: sending, waiting on a search, ready, Kept gear with Disenchant off. Distribute reads Requires Open Mailbox away from a mailbox (`ns.AtMailbox`, never `ns.mailboxOpen`), Sending during a run, enabled only with a ticked row holding a recipient. Find and Distribute share one width, the widest label.
 - **Row dropdown** (`UI:PickerOptions`, `UI-Assignment.lua`, frame-free for `Tests/Manual-Assignment.lua`): four blocks — `UI:PickerHeader` (count, band and `UI:BestFitLine`, or why nobody), candidates under Your Alts / Your Guild / Strangers, Disenchant and Keep Item, then Rescan for Better Match when `UI:RescanCanHelp`. The recipient button has no tooltip; the header is where its reasoning lives. Notes beside names are information, never gates. Picking a name holding another unpinned row takes it; an alt's name never is.
 - **Picker** (`UI-Picker.lua`): one shared popup in `UISpecialFrames`, click-catcher at `DIALOG` strata, `info` entries for header lines. The pick runs **before** the list closes (issue #16). Width measured with a hidden ruler font string. Background texture added on every flavor (`TooltipBorderedFrameTemplate` draws no fill on Era).
 - **Escape** goes through `UISpecialFrames` (Hide only). Everything that stops on close hangs off `OnHide` via `UI:OnClosed`, idempotent. `OnHide` returns early while still shown (Alt+Z). The open picker pulls the window out of `UISpecialFrames` so Escape closes only the list.
-- **Reopen button** (`UI-Reopen-Button.lua`, `PlayItForwardReopenButton`): shows while `MailFrame` is shown, at a mailbox, window hidden. Parented to `UIParent`, only anchored beside `MailFrame`. Click: `MatchList:EnsureScan()` then `UI:Open()`. Hover opens a menu (Menus, Not Tooltips), `PlayItForwardReopenMenu`, on `Menu-Plate.tga`, rows from `UI:ReopenMenuEntries`; closes after the mouse leaves both, on Escape, or when the button hides. `UI:SyncReopenButton` runs from `Open`, `OnClosed`, `MailboxOpened`, `RecheckDistribute`.
+- **Mailbox tab** (`UI-Mailbox-Tab.lua`, `PlayItForwardMailboxTab`): a 40-point `CheckButton` with the 32-point `Gift.tga`, its top-left on `MailFrame`'s top-right, 48 down. Shows at a mailbox on the window `UI:MailboxTabHost` names, whatever the window is doing: `MailFrame` while it is shown, else TSM's mail window while `TSM_API.IsUIVisible("MAILING")` holds. TSM's window has no name and TSM's API hands out only its crafting window, so `FindTSMFrame` picks the shown, largest direct child of `UIParent` whose `GetSourceLocation()` names a TradeSkillMaster file, then hooks its `OnShow`/`OnHide` to re-sync. A client without `GetSourceLocation` gets no tab on TSM's window. `MailboxOpened` syncs now, next frame and 0.5 seconds on (`UI:SyncMailboxTabSoon`), since a mail add-on can show its window late. `UI:Open` re-anchors an undragged window to the host's right, past the tab. Parented to `UIParent`, only anchored beside `MailFrame`, and not skinned, so ElvUI's `StripTextures` can't take the icon. Click: `MatchList:EnsureScan()` then `UI:Open()`, or `UI:Close()` when the window is up. Lit (checked, border full gold) while the window is shown. Hover opens a Menu-Kit menu (`Kit.CreateMenu`, `publish = false`, `PlayItForwardMailboxTabMenu`), rows from `UI:MailboxTabMenuEntries`: header, spacer, Open Distribution Window, then `Kit.OptionsRow`. The header leaves the Short Name off its right, since it would repeat the add-on's name. `UI:SyncMailboxTab` runs from `Open`, `OnClosed`, `MailboxOpened`, `RecheckDistribute`.
 
 ### Giving Tally and Sharing
 
@@ -360,7 +361,7 @@ Play-It-Forward/
 
 - Framework copied from Magic Eraser, plus two additions kept by README-Notes: API rows print their second return, and a report row can take a typed `input`. `Validate-Data.lua` reads tables off `ns.Data`.
 - `Manifests.lua` holds this add-on's surface: `ns.DIAGNOSTIC_API_CHECKS`, the context reports (Mailbox, Bag Scan, Recipient Roster, Item Verdict, Class Groups, Outgoing Mail, Given Away Sharing), `ns.DIAGNOSTIC_DATA_SOURCES` (one per flavor-folder file, `Game-IDs` validating `SPELL_IDS` as spells), `ns.DIAGNOSTIC_NAME_LOOKUPS` (built from the add-on's own data, so new stats, classes, specs and areas get rows unedited), `EVENT_LOG_EXAMPLES`.
-- Reports call the live handlers' own tests (`MatchList:WouldRescan`, `UI:HasSomethingToDo`, `UI:WantsReopenButton`, `Distributor:IsMailError`, `ns:OptionsPanelRoute`) so a report cannot describe behavior the add-on does not have.
+- Reports call the live handlers' own tests (`MatchList:WouldRescan`, `UI:WantsMailboxTab`, `Distributor:IsMailError`, `ns:OptionsPanelRoute`) so a report cannot describe behavior the add-on does not have.
 - Three API rows feed literal color-wrapped suffix lines to `Tooltip:StatsFromLines` as regression guards; another counts how many `ERR_MAIL*` strings `IsMailError` recognizes.
 - **Event log filter** (`Diagnostics/Event-Log.lua`): `ns.DIAGNOSTIC_EVENT_EXCLUDE` is deliberately empty. Noisy events go through `ns.MESSAGE_ID_FILTERED_EVENTS` with a `correlated` predicate calling the handler's own test: `UI_ERROR_MESSAGE` (`IsMailError`), `CHAT_MSG_ADDON` (our prefix), `BAG_UPDATE` (`WouldRescan`), `GET_ITEM_INFO_RECEIVED` (`WouldRescanItem`). Filtered at capture, counted per event and id. Secret values (WoW Forever) are never compared or stringified: they log as `<secret>` and count under `SECRET_ID`; a predicate runs under `pcall` because the log runs ahead of the real handlers. `Tests/Event-Log-Noise.lua` pins it.
 

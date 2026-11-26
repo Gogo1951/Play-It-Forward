@@ -47,7 +47,7 @@ ns.Data.SCROLLS = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, TBC Anniversary 2.5.6.70577
+	2026-11-26, wago.tools, TBC Anniversary 2.5.6.70577
 
 Notes
 	- The six stat scroll lines: Strength, Agility, Stamina, Intellect, Spirit and Protection.
@@ -74,6 +74,7 @@ wago.tools
 	https://wago.tools/db2/Item?build=2.5.6.69795
 	https://wago.tools/db2/Item?build=2.5.6.70006
 	https://wago.tools/db2/ItemSparse?build=2.5.6.70577
+	https://wago.tools/db2/Item?build=2.5.6.70577
 
 QuestieDB
 	None.

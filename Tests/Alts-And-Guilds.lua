@@ -39,7 +39,7 @@ end
 
 local function atMailbox(ns, defs)
 	Stub.SetBackpack(defs)
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	ns.UI:FindRecipients()
 	ns.fire("WHO_LIST_UPDATE")
 	return ns.UI:Items()
@@ -149,6 +149,61 @@ test("a guild on another realm or faction is not read", function()
 	equal(recipient(atMailbox(ns, { strengthPlate() })), nil, "mail cannot reach either")
 end)
 
+-- Logged in on the named Classic Era realm, in the Americas, as Tests/Alts.lua does.
+local function loadOn(realm)
+	local ok, ns = pcall(Harness.LoadAddon, ADDON_ROOT, function()
+		GetRealmName = function()
+			return realm
+		end
+		GetNormalizedRealmName = GetRealmName
+	end)
+	assert(ok, ns)
+	ns.fire("PLAYER_LOGIN")
+	return ns
+end
+
+--[[
+	A guild on a connected realm is in reach by the rule alts go by: Mankrik and Pagle share a
+	cluster, Azuresong is in another. Its members are mailed as "Name-Realm", since from here a
+	bare name addresses somebody on this realm.
+]]
+test("a guild on a connected realm is read, its members addressed with their realm", function()
+	local ns = loadOn("Mankrik")
+	seedGuild(ns, { realm = "Pagle", key = "Pagle:Alliance:Far Guild" })
+	local usable = ns.Guild:Usable(ns.db.global.guilds["Pagle:Alliance:Far Guild"])
+	equal(usable, true, "Pagle is in Mankrik's cluster")
+	equal(recipient(atMailbox(ns, { strengthPlate() })), "Guildy-Pagle", "mailed as Name-Realm")
+	ns.UI:Distribute()
+	equal(Stub.sent[1] and Stub.sent[1].recipient, "Guildy-Pagle", "and sent to that address")
+end)
+
+test("a guild on a realm outside the cluster is not read", function()
+	local ns = loadOn("Mankrik")
+	seedGuild(ns, { realm = "Azuresong", key = "Azuresong:Alliance:Far Guild" })
+	local usable, why = ns.Guild:Usable(ns.db.global.guilds["Azuresong:Alliance:Far Guild"])
+	equal(usable, false, "Azuresong is in another cluster")
+	equal(why, "realm", "skipped for its realm")
+	equal(recipient(atMailbox(ns, { strengthPlate() })), nil, "nobody")
+end)
+
+test("a member already named with a realm keeps the roster's spelling", function()
+	local ns = loadOn("Mankrik")
+	seedGuild(ns, {
+		realm = "Pagle",
+		key = "Pagle:Alliance:Far Guild",
+		members = { { name = "Guildy-Westfall", level = 48, class = "WARRIOR", days = 1 } },
+	})
+	equal(recipient(atMailbox(ns, { strengthPlate() })), "Guildy-Westfall", "no second suffix")
+end)
+
+test("the faction rule holds for a guild on a connected realm", function()
+	local ns = loadOn("Mankrik")
+	seedGuild(ns, { realm = "Pagle", faction = "Horde", key = "Pagle:Horde:Far Guild" })
+	local usable, why = ns.Guild:Usable(ns.db.global.guilds["Pagle:Horde:Far Guild"])
+	equal(usable, false, "the other side")
+	equal(why, "faction", "skipped for its faction")
+end)
+
 test("your own characters in a saved guild are not offered as guildmates", function()
 	local ns = load()
 	seedGuild(ns)
@@ -223,15 +278,17 @@ test("an alt's switches write to its saved entry", function()
 	equal(entry.include, nil, "and an untick is the default there")
 	GetMaxPlayerLevel = nil
 
-	equal(alt.levelsBelow.get(), 0, "lowest starts at its own level")
-	equal(alt.levelsAbove.get(), "ANY", "highest starts at any level")
+	-- Each gear level is a caption-and-dropdown row; the dropdown is its second cell.
+	local below, above = alt.levelsBelow.args.cell2, alt.levelsAbove.args.cell2
+	equal(below.get(), 0, "lowest starts at its own level")
+	equal(above.get(), "ANY", "highest starts at any level")
 	check(alt.levelsSummary.name():find("from level 12 up", 1, true), "the summary reads in real levels")
-	alt.levelsBelow.set(nil, 3)
-	alt.levelsAbove.set(nil, 2)
+	below.set(nil, 3)
+	above.set(nil, 2)
 	equal(entry.levelsBelow, 3, "three below is stored")
 	equal(entry.levelsAbove, 2, "two above is stored")
 	check(alt.levelsSummary.name():find("levels 9 to 14", 1, true), "and the summary follows")
-	alt.levelsAbove.set(nil, "ANY")
+	above.set(nil, "ANY")
 	equal(entry.levelsAbove, nil, "any level is the default, so nothing is stored")
 
 	check(alt.spec1.get() and not alt.spec2.get() and not alt.spec3.get(), "the spec it plays starts ticked")

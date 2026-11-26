@@ -152,7 +152,7 @@ ns.Data.FOOD_AND_WATER = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, Classic Era 1.15.9.70576
+	2026-11-26, wago.tools, Classic Era 1.15.9.70576
 
 Notes
 	- Food and drink a player can give away: Food & Drink consumables that restore health, mana
@@ -236,6 +236,7 @@ wago.tools
 	https://wago.tools/db2/ItemEffect?build=1.15.9.70576
 	https://wago.tools/db2/SpellEffect?build=1.15.9.70576
 	https://wago.tools/db2/Item?build=2.5.6.70577
+	https://wago.tools/db2/Item?build=1.15.9.70576
 
 QuestieDB
 	https://raw.githubusercontent.com/Questie/QuestieDB/master/data/Classic/classicItemDB.lua

@@ -9,7 +9,7 @@ ns.Data.SPELL_IDS = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, WoW Forever 1.60.1.70888
+	2026-11-26, wago.tools, WoW Forever 1.60.1.71139
 
 Notes
 	- The game records Play It Forward shows by name, stored by ID so the client supplies the name in every locale.
@@ -23,6 +23,7 @@ Wowhead
 
 wago.tools
 	https://wago.tools/db2/SpellName?build=1.60.1.70450
+	https://wago.tools/db2/SpellName?build=1.60.1.71139
 
 QuestieDB
 	None.

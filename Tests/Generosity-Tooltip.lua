@@ -48,7 +48,12 @@ test("a hovered peer with cached totals gets a Generosity block", function()
 	equal(#rows, 6, "a blank line, the header, then four rows")
 	-- The block sits under whatever the client and other add-ons wrote above it, never against it.
 	equal(rows[1].line, " ", "a blank line opens the block")
-	check(rows[2].line ~= nil and rows[2].line:find("Badge of Generosity") ~= nil, "the header names the block")
+	check(rows[2].left ~= nil and rows[2].left:find("Badge of Generosity") ~= nil, "the header names the block")
+	check(rows[2].left:find("|cffFFD100", 1, true) ~= nil, "the title in gold")
+	check(
+		rows[2].right ~= nil and rows[2].right:find("|cff808080Play It Forward", 1, true) ~= nil,
+		"the Short Name muted"
+	)
 	check(rows[3].left ~= nil and rows[3].left:find("^ ") ~= nil, "rows are indented under the header")
 	check(rows[3].right:find("7") ~= nil, "gifts value on the first row")
 end)
@@ -193,7 +198,9 @@ test("the tooltip's lines, which the panel's preview draws too", function()
 	local ns = load()
 	ns.db.global.stats.gifts = 338
 	local header, lines = ns.Generosity:BlockLines(ns.Generosity:Get())
-	check(header:find("Badge of Generosity", 1, true), "the branded header")
+	check(header[1]:find("Badge of Generosity", 1, true), "the title on the left")
+	check(header[2]:find("Play It Forward", 1, true), "the Short Name on the right")
 	equal(#lines, 4, "four rows")
+	check(lines[1][1]:find("|cffFFFFFF", 1, true), "labels white")
 	check(lines[1][2]:find("338", 1, true), "gifts on the right")
 end)

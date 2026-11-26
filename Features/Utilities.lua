@@ -1,13 +1,12 @@
 local _, ns = ...
 
--- Stateless helpers used by more than one file. Anything used by exactly one file lives there.
+-- Helpers used by more than one file; a one-file helper lives in that file.
 
 --------------------------------------------------------------------------------
 -- Item and Container APIs
 --------------------------------------------------------------------------------
 
 ns.GetItemLink = C_Container.GetContainerItemLink
--- A table, or nil for an empty slot.
 ns.GetItemInfoC = C_Container.GetContainerItemInfo
 ns.GetInfoInstant = C_Item.GetItemInfoInstant
 
@@ -18,12 +17,7 @@ ns.GetItemStats = C_Item.GetItemStats or GetItemStats
 -- Tooltip Text
 --------------------------------------------------------------------------------
 
---[[
-	A hyperlink's tooltip as { left, right } plain-text pairs, color escapes stripped so each line
-	reads as its words, plus where it came from: "C_TooltipInfo", "scanning tooltip" or "none".
-	Both paths are live: Classic Era has no C_TooltipInfo.GetHyperlink, so the hidden tooltip is not
-	a legacy leftover. Shared by the stat reader (Features/Scan-Tooltip.lua) and Validate Data.
-]]
+-- Both paths are live: Classic Era has no C_TooltipInfo.GetHyperlink, so the hidden tooltip is no leftover.
 local SCAN_TOOLTIP_NAME = "PlayItForwardScanTooltip"
 local scanTooltip
 
@@ -34,7 +28,7 @@ local function PlainText(text)
 	return (text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|cn[^:]*:", ""):gsub("|r", ""))
 end
 
--- A read with every left line empty is no read: it falls through rather than "succeeding" empty.
+-- Every left line empty is no read: fall through rather than succeed empty.
 local function AnyText(lines)
 	for _, pair in ipairs(lines) do
 		if pair[1] ~= "" then
@@ -45,7 +39,7 @@ local function AnyText(lines)
 end
 
 local function ReadTooltipData(hyperlink)
-	-- A read can throw on an odd link; a throw is no data, and the scanning tooltip is tried.
+	-- Can throw on an odd link; then the scanning tooltip is tried.
 	local ok, data = pcall(C_TooltipInfo.GetHyperlink, hyperlink)
 	if not ok or not data then
 		return nil
@@ -102,10 +96,6 @@ function ns.ReadTooltip(hyperlink)
 	return {}, "none"
 end
 
---[[
-	An item's or spell's tooltip as plain lines, a right-hand column kept after " >> ", for the
-	Validate Data report. kind is "item" or "spell".
-]]
 function ns.GetTooltipLines(kind, id)
 	local lines = {}
 	for index, pair in ipairs((ns.ReadTooltip(kind .. ":" .. id))) do
@@ -120,8 +110,8 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	The first of the given template names this client has, falling back to the last. Stock Blizzard
-	templates only: skinning add-ons restyle those and cannot touch a hand-rolled SetBackdrop.
+	Falls back to the last name. Stock Blizzard templates only: skinning add-ons restyle those and
+	cannot touch a hand-rolled SetBackdrop.
 ]]
 local function TemplateExists(name)
 	if not (C_XMLUtil and C_XMLUtil.GetTemplateInfo) then
@@ -145,19 +135,12 @@ end
 -- ElvUI
 --------------------------------------------------------------------------------
 
---[[
-	With ElvUI loaded, its Skins module dresses the add-on's own buttons, ticks, dropdowns and
-	scrollbars as it dresses Blizzard's, so they match the rest of that UI, as Bags Buffs &
-	Buttons' windows do. The module is another add-on's API, so every call is guarded: a change to
-	it leaves a control in the default art rather than breaking the window. Without ElvUI this
-	does nothing.
-]]
+-- ElvUI's Skins module is another add-on's API, so every call is guarded: a change there leaves default art.
 local function ElvUISkins()
 	local elv = ElvUI and ElvUI[1]
 	return elv and elv.GetModule and elv:GetModule("Skins", true)
 end
 
--- kind names one of the Skins module's handlers: "Button", "CheckBox" or "ScrollBar".
 function ns.SkinWidget(kind, widget)
 	local skins = ElvUISkins()
 	local handler = skins and skins["Handle" .. kind]
@@ -166,7 +149,7 @@ function ns.SkinWidget(kind, widget)
 	end
 end
 
--- A UIPanelScrollFrameTemplate's bar, under whichever name this client gives it.
+-- The bar's key or global name differs by client.
 function ns.SkinScrollFrame(scroll, name)
 	ns.SkinWidget("ScrollBar", scroll.ScrollBar or (name and _G[name .. "ScrollBar"]))
 end
@@ -175,7 +158,7 @@ end
 -- Color Accessor
 --------------------------------------------------------------------------------
 
--- Derived once from ns.PALETTE. Read colors through ns.GetColor; never hardcode a |cff.
+-- Read colors through ns.GetColor; never hardcode a |cff.
 local COLOR_PREFIX = "|cff"
 
 local COLORS = {}
@@ -187,7 +170,6 @@ function ns.GetColor(key)
 	return COLORS[key] or COLORS.TEXT
 end
 
--- The same palette as r, g, b, for APIs that take numbers rather than an escape.
 local COLORS_RGB = {}
 for key, hex in pairs(ns.PALETTE) do
 	COLORS_RGB[key] = {
@@ -206,11 +188,7 @@ end
 -- Class Colors
 --------------------------------------------------------------------------------
 
---[[
-	Honors a ClassColors or oUF-style override. Returns the bare "ffRRGGBB" form the |c escape
-	takes, not a |cff prefix, which is why the fallback prepends "ff" itself. File-local: the
-	colored name below is what the rest of the add-on asks for.
-]]
+-- Returns the bare "ffRRGGBB" the |c escape takes, not a |cff prefix.
 local function ClassColor(token)
 	local c = (CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[token]) or (RAID_CLASS_COLORS and RAID_CLASS_COLORS[token])
 	if not c then
@@ -234,7 +212,7 @@ end
 -- Item Quality
 --------------------------------------------------------------------------------
 
--- The client's own ITEM_QUALITY_COLORS wins, so rarity matches every other item on screen.
+-- The client's ITEM_QUALITY_COLORS wins, so rarity matches every other item on screen.
 local QUALITY_KEY = { [2] = "UNCOMMON", [3] = "RARE", [4] = "EPIC" }
 
 local QUALITY_ESCAPE = {}
@@ -242,7 +220,6 @@ for quality, key in pairs(QUALITY_KEY) do
 	QUALITY_ESCAPE[quality] = COLOR_PREFIX .. ns.ITEM_QUALITY_COLORS[key]
 end
 
--- The game's own quality names, so every locale reads them as its item tooltips do.
 local QUALITY_NAME_GLOBAL = { [2] = "ITEM_QUALITY2_DESC", [3] = "ITEM_QUALITY3_DESC", [4] = "ITEM_QUALITY4_DESC" }
 
 function ns.QualityColor(quality)
@@ -250,10 +227,7 @@ function ns.QualityColor(quality)
 	return (client and client.hex) or QUALITY_ESCAPE[quality] or ns.GetColor("TEXT")
 end
 
---[[
-	The cap a quality sets: that quality and everything beneath it. Uncommon stands alone because
-	nothing is ever beneath it -- ns.Data.MIN_RARITY floors the gear scan at uncommon.
-]]
+-- A cap's label: "X and lower", except at ns.Data.MIN_RARITY, where nothing is lower.
 function ns.QualityName(quality)
 	local global = QUALITY_NAME_GLOBAL[quality]
 	local name = global and _G[global]
@@ -266,7 +240,6 @@ function ns.QualityName(quality)
 	return name
 end
 
--- The Disenchant spell's own name, from the client in every locale: the label wherever the add-on offers disenchanting.
 function ns.DisenchantName()
 	return C_Spell.GetSpellName(ns.Data.SPELL_IDS.DISENCHANT) or ""
 end
@@ -275,11 +248,6 @@ end
 -- Consumable Level Gap
 --------------------------------------------------------------------------------
 
---[[
-	The stops are data, in Data/Data.lua; the words are here, shared by the options panel and the
-	mail window. Zero is the "All Consumables" stop and lifts the level rule outright (see
-	Features/Scan-Bags.lua), so it reads as itself rather than as a gap of nothing.
-]]
 ns.CONSUMABLE_GAP_VALUES = {}
 for _, gap in ipairs(ns.CONSUMABLE_GAP_ORDER) do
 	ns.CONSUMABLE_GAP_VALUES[gap] = (gap == 0) and ns.L["OPTIONS_CONSUMABLE_GAP_ALL"]
@@ -287,8 +255,8 @@ for _, gap in ipairs(ns.CONSUMABLE_GAP_ORDER) do
 end
 
 --[[
-	A select whose value is not in its list renders blank, reading as a setting that failed to
-	load. Display only: the stored number keeps driving the scan until the player picks.
+	A select whose value is not in its list renders blank. Display only: the stored number keeps
+	driving the scan until the player picks.
 ]]
 function ns.NearestConsumableGap(value)
 	local stored = tonumber(value) or 0
@@ -306,7 +274,6 @@ end
 -- Spec Names
 --------------------------------------------------------------------------------
 
--- Class token -> the client's classID, built on first use.
 local classIDs
 
 local function ClassID(token)
@@ -329,7 +296,7 @@ local function ClassID(token)
 	return classIDs[token]
 end
 
--- The logged-in class's own tree name; Classic Era leads with the name, later clients with an id.
+-- Classic Era returns the name first, later clients an id first.
 local function OwnTreeName(class, index)
 	local _, playerClass = UnitClass("player")
 	if class ~= playerClass or not GetTalentTabInfo then
@@ -343,12 +310,8 @@ local function OwnTreeName(class, index)
 end
 
 --[[
-	A spec's name as the game writes it (GAME NAMES), by its index in the flavor folder's
-	Match-Specs file: every class's on a client with GetSpecializationInfoForClassID, the
-	logged-in class's own trees elsewhere. Where the client has none -- another class's trees on
-	Classic Era, TBC Anniversary and WoW Forever, and Season of Discovery's rune roles -- the
-	add-on's own SPEC_* string (README-Notes). A tree whose key another class shares, but whose
-	name differs from it in some locale, reads its class-qualified string instead.
+	Where the client cannot name a tree, the add-on's SPEC_* string (README-Notes). A key two classes
+	share whose name differs in some locale reads its class-qualified string instead.
 ]]
 local CLASS_QUALIFIED_SPECS = {
 	SPEC_PALADIN_Protection = true,
@@ -376,20 +339,12 @@ end
 -- Player Names
 --------------------------------------------------------------------------------
 
---[[
-	A realm as a name suffix writes it: no spaces or hyphens, so "Blade's Edge" is "Blade'sEdge"
-	and "Azjol-Nerub" is "AzjolNerub", as GetNormalizedRealmName gives them.
-]]
+-- As GetNormalizedRealmName writes it: "Azjol-Nerub" is "AzjolNerub".
 function ns.NormalizeRealm(realm)
 	return ((realm or ""):gsub("[%s%-]", ""))
 end
 
---[[
-	This character's realm in that form. PICKED BY AVAILABILITY, then retried on an unresolved
-	answer. The second read is not a legacy fallback: every target has GetNormalizedRealmName, and
-	it answers nil early in login before the realm resolves, which is the one case worth asking
-	twice for.
-]]
+-- GetNormalizedRealmName answers nil early in login; the second read is that retry, not a legacy fallback.
 function ns.PlayerRealm()
 	local realm
 	if GetNormalizedRealmName then
@@ -401,21 +356,12 @@ function ns.PlayerRealm()
 	return ns.NormalizeRealm(realm)
 end
 
---[[
-	Whether this client names characters "First Last", unique across the region: WoW Forever
-	does. There a character's address is both names and no realm, as /who and the mail frame write
-	it, and UnitName("player") answers the first name alone. Every other client answers false or
-	has no such function.
-]]
+-- WoW Forever: addresses are "First Last" with no realm, and UnitName("player") answers the first name alone.
 function ns.UsesSurnames()
 	return (RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled()) and true or false
 end
 
---[[
-	The logged-in character's name as mail addresses it: "First Last" where surnames are on, read
-	from UnitNameUnmodified exactly as AceDB builds its profile key there, and UnitName's bare
-	name everywhere else.
-]]
+-- UnitNameUnmodified, exactly as AceDB builds its profile key there.
 function ns.PlayerName()
 	if ns.UsesSurnames() and UnitNameUnmodified then
 		local name, surname = UnitNameUnmodified("player")
@@ -428,15 +374,8 @@ function ns.PlayerName()
 end
 
 --[[
-	One character's identity as "Name-Realm", for telling two sightings of the same player
-	apart from two players. /who answers with a bare name for somebody on your own realm where
-	the guild roster qualifies them, so the raw strings differ for one person and only this
-	form matches them up.
-
-	AN IDENTITY, NEVER AN ADDRESS. What reaches SendMail is the name the client handed us,
-	kept verbatim wherever it is stored; a string assembled here was never given by any API.
-	Never filter or branch on the suffix either: Classic realms are all connected, so every
-	name in reach is mailable.
+	An identity, never an address: SendMail gets the name the client handed us, kept verbatim. Never
+	filter or branch on the suffix either: every name in reach is mailable.
 ]]
 function ns.QualifyPlayerName(name)
 	if not name or name == "" then
@@ -452,12 +391,7 @@ end
 -- Item Links
 --------------------------------------------------------------------------------
 
---[[
-	The random-suffix id from an item link, or nil, which separates an item carrying no stats from
-	one whose stats were not read. Field 7 of the payload is the suffix id
-	(item:id:enchant:g1:g2:g3:g4:suffix); fields are frequently empty, so this counts separators
-	rather than matching digits.
-]]
+-- Field 7 (item:id:enchant:g1:g2:g3:g4:suffix). Fields are often empty, so count separators, not digits.
 function ns.ItemSuffixID(link)
 	local payload = link and link:match("|Hitem:([^|]+)")
 	if not payload then
@@ -478,12 +412,6 @@ end
 -- Number Formatting
 --------------------------------------------------------------------------------
 
---[[
-	A whole number with thousands separators: 1234567 -> "1,234,567". Stateless, used by
-	Generosity:BlockLines, which the tooltip and the Badge of Generosity panel share. The tally counters
-	are integers, so the fractional part is dropped rather than rounded; a stray negative keeps its
-	sign.
-]]
 function ns.CommaNumber(n)
 	local number = tostring(math.floor(tonumber(n) or 0))
 	local sign = ""
@@ -505,11 +433,7 @@ function ns:FormatCommaNumber(number)
 	return ns.CommaNumber(number)
 end
 
---[[
-	Copper as a gold/silver/copper string. GetCoinTextureString is the client's own formatter and
-	renders the coin icons; where it is absent -- the headless tests, an unexpectedly stripped
-	client -- fall back to a plain "Xg Ys Zc" so a money value always has something to show.
-]]
+-- The plain fallback is for the headless tests.
 function ns.MoneyString(copper)
 	copper = math.floor(tonumber(copper) or 0)
 	if GetCoinTextureString then
@@ -525,10 +449,7 @@ end
 -- Game State
 --------------------------------------------------------------------------------
 
---[[
-	The interaction manager knows for certain. Our own ns.mailboxOpen tracking goes stale, since
-	MAIL_CLOSED does not fire on every way out.
-]]
+-- The interaction manager first: ns.mailboxOpen goes stale, since MAIL_CLOSED does not fire on every way out.
 function ns.AtMailbox()
 	local manager = C_PlayerInteractionManager
 	local kind = Enum and Enum.PlayerInteractionType and Enum.PlayerInteractionType.MailInfo
@@ -541,14 +462,7 @@ function ns.AtMailbox()
 	return ns.mailboxOpen == true
 end
 
---[[
-	In a rest area: a city or an inn. The Given Away broadcast and its tooltip block are both gated
-	on this, so no addon traffic goes out and no tooltip clutter appears while a player is in a raid,
-	a dungeon or a fight out in the world -- resting is the cheap, reliable proxy for "in town".
-
-	Absent the API this answers false rather than true: staying out of the way is the whole point of
-	the gate, and every target has IsResting, so the fallback is unreachable in practice.
-]]
+-- The proxy for "in town". False without the API: staying out of the way is the point of the gate.
 function ns.AtRest()
 	if not IsResting then
 		return false

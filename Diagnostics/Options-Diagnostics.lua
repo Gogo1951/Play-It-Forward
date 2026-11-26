@@ -1,4 +1,5 @@
 local _, ns = ...
+local Kit = ns.OptionsKit
 
 local D = ns.DiagnosticsStrings
 local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
@@ -244,7 +245,7 @@ local function BuildRunTestsGroup(order)
 		name = D.TAB_RUN_TESTS,
 		order = order,
 		args = {
-			descIntro = ns.OptionsDesc(D.RUN_TESTS_INTRO, 1),
+			descIntro = Kit.Desc(D.RUN_TESTS_INTRO, 1),
 			boxEventLog = BuildEventLogBox(2),
 			boxTaint = BuildTaintBox(3),
 			boxGameTools = BuildGameToolsBox(4),
@@ -358,8 +359,8 @@ local function BuildSectionGroup(section, order)
 	end
 
 	local args = {
-		descIntro = ns.OptionsDesc(text.intro, 1),
-		spaceRunAll = ns.OptionsSpacer(2),
+		descIntro = Kit.Desc(text.intro, 1),
+		spaceRunAll = Kit.Spacer(2),
 		buttonRunAll = Button(
 			text.runAll,
 			string.format(D.RUN_ALL_DESCRIPTION, table.concat(titles, ", ")),
@@ -392,7 +393,7 @@ local function BuildSectionGroup(section, order)
 			end,
 			"full"
 		),
-		spaceRows = ns.OptionsSpacer(6),
+		spaceRows = Kit.Spacer(6),
 		headerOutput = SectionHeader(D.OUTPUT_TITLE, 50),
 		output = ReportOutput(function()
 			return ns.diagnostics.outputs[section.key]
@@ -416,8 +417,8 @@ end
 
 function ns.BuildDiagnosticsOptions()
 	local args = {
-		descWarning = ns.OptionsDesc(D.WARNING, 1),
-		spaceEnable = ns.OptionsSpacer(2),
+		descWarning = Kit.Desc(D.WARNING, 1),
+		spaceEnable = Kit.Spacer(2),
 		toggleEnable = {
 			type = "toggle",
 			name = D.ENABLE,

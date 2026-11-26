@@ -298,7 +298,7 @@ test("a bag of one level band is searched in a single press", function()
 		stats = { ITEM_MOD_INTELLECT_SHORT = 9 },
 	})
 	Stub.SetBackpack({ robe, robe, robe })
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 
 	Stub.whoResults = {
 		{ name = "Mage1", level = 18, class = "MAGE" },
@@ -335,7 +335,7 @@ test("the plan's class queries come from the bag's items", function()
 			stats = { ITEM_MOD_INTELLECT_SHORT = 9 },
 		}),
 	})
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	Stub.whoTotal = 999
 	ns.UI:FindRecipients()
 

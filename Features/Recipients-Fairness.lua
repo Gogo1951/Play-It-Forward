@@ -3,10 +3,7 @@ local _, ns = ...
 ns.Fairness = {}
 local Fairness = ns.Fairness
 
---[[
-	Spreads gifts out: a recipient is on cooldown until next seen at a higher level. Recipient name
-	-> { level }, this session only, so every login makes everybody eligible again.
-]]
+-- On cooldown until next seen at a higher level. Session only, so every login makes everybody eligible again.
 local given = {}
 
 function Fairness:IsFresh(name, currentLevel)
@@ -21,11 +18,7 @@ function Fairness:Record(name, level)
 	given[name] = { level = level }
 end
 
---[[
-	Names the server refused a mail to, this session only: a deleted character, a rename and a bad
-	server minute are indistinguishable here. Not the cooldown -- a cooled-down player has had a
-	gift, one of these never received anything.
-]]
+-- Session only: a deleted character, a rename and a bad server minute look the same from here.
 local unreachable = {}
 
 function Fairness:MarkUnreachable(name)
@@ -38,13 +31,10 @@ function Fairness:IsReachable(name)
 	return not unreachable[name or ""]
 end
 
---[[
-	First candidate both free this pass and off cooldown, falling back to the first merely free, so
-	an item is never stuck for want of a fresh face. Ordering belongs to RankCandidates.
-]]
+-- Fresh first, then merely free, so an item is never stuck for want of a fresh face. Ordering belongs to RankCandidates.
 function Fairness:PickFrom(ranked, isTaken)
 	for _, person in ipairs(ranked) do
-		-- Your own alt is never on cooldown: a second item for them is not a stranger's second parcel.
+		-- Delivery records alts like anyone; this is the only thing keeping them off the cooldown.
 		local fresh = person.alt or self:IsFresh(person.name, person.level)
 		if not isTaken(person) and self:IsReachable(person.name) and fresh then
 			return person

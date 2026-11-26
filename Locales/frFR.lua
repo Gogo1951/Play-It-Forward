@@ -9,7 +9,7 @@ end
 
 L["ADDON_TITLE"] = "Play It Forward"
 L["ADDON_SHORT_NAME"] = "Play It Forward"
--- The mail window's title, followed by " // " and ADDON_TITLE.
+-- The mail window's title, followed by " // " and ADDON_SHORT_NAME.
 L["WINDOW_TITLE"] = "Fenêtre de distribution"
 L["CHAT_LOADED"] =
 	"Version %s. Les paramètres (y compris l'option pour désactiver ce message) se trouvent dans Options > AddOns > Play It Forward. Vous aimez cet add-on ? Parlez-en à un ami, ajoutez-le à vos favoris sur CurseForge ou donnez-lui une Star sur GitHub. (="
@@ -44,11 +44,8 @@ L["BUTTON_SEARCHING"] = "Recherche..."
 L["BUTTON_DISTRIBUTE"] = "Distribuer"
 -- On the Distribute button away from a mailbox: an ordinary state, not an error.
 L["BUTTON_NEEDS_MAILBOX"] = "Boîte aux lettres requise"
---[[
-	On the Distribute button only while a run is going. It goes back to Distribute at every pause,
-	because the chat lines that report a pause name Distribute.
-]]
-L["BUTTON_SENDING"] = "Envoi..."
+-- Distribute's label while mail goes out. A press lets the letter in hand finish, then halts the run.
+L["BUTTON_STOP"] = "Arrêter"
 
 --[[
 	The search behind Find Recipients, filed here with that button rather than under Distributing:
@@ -60,9 +57,11 @@ L["WHO_WAIT"] = "Nouvelle recherche dans %d s. Réessayez quand le bouton affich
 L["WHO_BLOCKED"] =
 	"Appuyez de nouveau sur Chercher des destinataires. Blizzard n'autorise cette recherche que directement depuis un clic sur un bouton, et quelque chose a interrompu celle-ci."
 
--- The menu under the button beside Blizzard's mail frame, which brings the closed window back.
+-- The menu the gift tab on Blizzard's mail frame opens on hover.
 L["REOPEN_MENU_OPEN"] = "Ouvrir la fenêtre de distribution"
-L["REOPEN_MENU_OPTIONS"] = "Options"
+L["REOPEN_MENU_OPTIONS"] = "Options de %s"
+-- The row that puts the window back beside the mail frame at its first size.
+L["REOPEN_MENU_RESET_POSITION"] = "Réinitialiser la position de la fenêtre"
 
 -- In the list while it is empty.
 L["WINDOW_EMPTY"] = "Plus rien à donner."
@@ -86,6 +85,8 @@ L["SECTION_MATCHED"] = "Attribués"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
 L["SECTION_NO_RECIPIENT"] = "En attente d'attribution"
 L["SECTION_UNREADABLE"] = "Caractéristiques illisibles"
+-- The heading over the rows this window has mailed, at the foot of the list.
+L["SECTION_SENT"] = "Envoyés"
 
 --[[
 	"Kept", never "vendor / disenchant": the add-on does not tell the player what to do with what
@@ -112,12 +113,12 @@ L["PICKER_NONE_IN_RANGE"] = "Personne dans la tranche de niveaux. Appuyez sur Ch
 L["PICKER_NONE_KEPT"] =
 	"Personne dans la tranche de niveaux. Utilisez Chercher un meilleur destinataire ci-dessous pour cet objet."
 --[[
-	KEPT SHORT. A note shares one 16-pixel row with a cross-realm name, a level and a class, and
-	anything longer is cut off. Notes are information, never gates: every name can be picked.
+	The note on a name's right in the recipient list, gray, no brackets. KEPT SHORT: it shares
+	the row with a cross-realm name and a level. Notes are information, never gates.
 ]]
-L["PICKER_NOTE_HAS_ONE"] = "(en a un)"
-L["PICKER_NOTE_REFUSED"] = "(refusé)"
-L["PICKER_NOTE_RECENT"] = "(récent)"
+L["PICKER_TAG_HAS_ONE"] = "En a un"
+L["PICKER_TAG_REFUSED"] = "Refusé"
+L["PICKER_TAG_RECENT"] = "Récent"
 -- What each note means, on hovering the name it sits beside.
 L["PICKER_NOTE_HAS_ONE_DESCRIPTION"] =
 	"Déjà sur une autre ligne. Votre choix l'emporte, et une ligne que vous n'avez pas réglée vous-même trouve quelqu'un d'autre."
@@ -126,7 +127,7 @@ L["PICKER_NOTE_REFUSED_DESCRIPTION"] =
 L["PICKER_NOTE_RECENT_DESCRIPTION"] =
 	"A déjà reçu un cadeau de votre part dans cette session. Repasse en priorité dès qu'il gagne un niveau."
 --[[
-	Below the divider at the bottom of the list: a /who aimed at the classes the verdict says
+	Near the foot of the list, under its line: a /who aimed at the classes the verdict says
 	this item is for, their own bands first and the fallbacks a press behind them.
 ]]
 L["PICKER_FIND_FOR_ITEM"] = "Chercher un meilleur destinataire"
@@ -208,6 +209,10 @@ L["MAIL_REASON_ERROR"] = "erreur du client"
 L["MAIL_ABORTED"] = "Distribution arrêtée après des erreurs de courrier répétées."
 L["MAIL_DONE"] = "Terminé. %d sur %d envoyés."
 L["MAIL_DONE_WITH_SKIPS"] = "Terminé. %d sur %d envoyés, %d ignorés (déplacés dans vos sacs)."
+-- In chat and on the status line once Stop halts a run: sent so far, of the run's total.
+L["MAIL_STOPPED"] = "Arrêté. %d sur %d envoyés. Appuyez sur Distribuer pour envoyer le reste."
+-- In chat at the mailbox when a gift comes back unopened: the item link, then who sent it back.
+L["MAIL_RETURNED"] = "Récupérez %s dans votre boîte aux lettres pour l'offrir à nouveau. %s ne l'a jamais ouvert."
 
 --------------------------------------------------------------------------------
 -- Default Mail Contents
@@ -244,10 +249,20 @@ L["OPTIONS_WELCOME"] = "Activer le message de bienvenue"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "Affiche la version et le rappel des paramètres à la connexion."
 
 L["OPTIONS_FEATURES_HEADER"] = "Fonctionnalités"
+-- The root panel's Features switches: Enable and each feature's name.
+L["OPTIONS_ENABLE_GEAR"] = "Activer les cadeaux d'équipement"
+L["OPTIONS_ENABLE_CONSUMABLES"] = "Activer les cadeaux de consommables"
+L["OPTIONS_ENABLE_SHARE"] = "Activer le partage de l'insigne"
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Commandes"
 L["OPTIONS_COMMAND"] = "/pif"
 L["OPTIONS_COMMAND_DESCRIPTION"] = "Ouvre l'interface des options de cet add-on."
+
+-- Options-Kit's own strings, one key in every add-on.
+L["SAMPLE_EXAMPLE"] = "Exemple"
+-- TRANSLATORS: %d is an item ID.
+L["LOADING_ITEM"] = "Chargement ID : %d"
+L["OPTIONS_RESET"] = "Réinitialiser"
 
 --------------------------------------------------------------------------------
 -- Options: What to Give Away Panel
@@ -293,6 +308,10 @@ L["OPTIONS_KIND_SCROLLS_DESCRIPTION"] =
 L["OPTIONS_KIND_OILS_STONES"] = "Huiles et pierres"
 L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
 	"Proposer les huiles d'arme, pierres à aiguiser et pierres de lest devenues trop faibles pour vous. Les huiles de sorcier vont aux lanceurs de sorts, les huiles de mana à ceux qui utilisent du mana, et les pierres et autres huiles aux combattants au corps à corps."
+-- Keep in Bags, beside each consumable kind.
+L["OPTIONS_KEEP_IN_BAGS"] = "Garder dans les sacs"
+L["OPTIONS_KEEP_IN_BAGS_DESCRIPTION"] =
+	"Combien de chaque objet de ce type restent dans vos sacs. Seules les piles entières au-delà de cette quantité sont proposées, car une pile est envoyée entière."
 
 --[[
 	Kept gear mailed to one of your own characters instead of staying in your bags: one toggle with
@@ -306,6 +325,18 @@ L["OPTIONS_DISENCHANT_SEND_DESCRIPTION"] =
 	"L'équipement que personne ne peut utiliser est envoyé par courrier à l'un de vos personnages pour être désenchanté, au lieu de rester dans vos sacs. Chaque royaume et chaque faction garde son propre choix. Les consommables ne sont jamais envoyés."
 L["OPTIONS_DISENCHANTER_DESCRIPTION"] =
 	"Votre enchanteur. Liste vos personnages de ce royaume et de ses royaumes connectés, dans cette faction, dès que chacun s'est connecté avec Play It Forward."
+
+--[[
+	Never Give Away. ONE KEY FOR TWO SURFACES: the last action on every row's recipient list, and
+	the heading of the list it adds to on this page. The player looks for the list by the name
+	they picked, so the two must never drift apart.
+]]
+L["NEVER_GIVE_AWAY"] = "Ne jamais donner"
+-- TRANSLATORS: %s is the remove icon.
+L["OPTIONS_NEVER_GIVE_DESCRIPTION"] = "Choisi depuis la liste d'une ligne. Cliquez sur %s pour le proposer de nouveau."
+L["OPTIONS_NEVER_GIVE_REMOVE"] = "Proposer de nouveau cet objet."
+-- TRANSLATORS: the first %s is an item link, the second the What to Give Away page's name.
+L["CHAT_NEVER_GIVE"] = "%s ne sera plus proposé. Récupérez-le dans %s."
 
 --------------------------------------------------------------------------------
 -- Options: Recipients Panel
@@ -342,7 +373,6 @@ L["OPTIONS_IGNORE_SUMMONER_WARLOCKS_DESCRIPTION"] =
 L["OPTIONS_SPECS_HEADER"] = "Classes et spécialisations"
 L["OPTIONS_SPECS_INTRO"] =
 	"Personne ne peut voir la spécialisation d'un autre joueur, donc l'équipement est attribué selon ces hypothèses. Vos propres personnages utilisent les spécialisations définies dans Mes rerolls."
-L["OPTIONS_SPECS_RESET"] = "Rétablir par défaut"
 L["OPTIONS_SPECS_RESET_DESCRIPTION"] = "Remettre chaque spécialisation comme à l'installation de l'add-on."
 L["OPTIONS_SPECS_RESET_CONFIRM"] = "Remettre chaque spécialisation comme à l'installation de l'add-on ?"
 -- The damage roles only: Tank and Healer come from the game's TANK and HEALER labels.
@@ -399,6 +429,8 @@ L["OPTIONS_ALTS_INTRO"] =
 L["OPTIONS_SEND_TO_ALTS"] = "Envoyer aux rerolls"
 L["OPTIONS_SEND_TO_ALTS_DESCRIPTION"] =
 	"Envoyer d'abord à vos propres personnages, avant votre guilde et les inconnus, mais uniquement les objets pour lesquels leur classe est idéale. Un personnage compte dès qu'il s'est connecté avec Play It Forward sur ce royaume ou un royaume connecté, dans cette faction. Les envois à vos rerolls ne comptent pas dans les totaux de votre Insigne de générosité."
+-- In each character's pane while Send to Alts is off.
+L["OPTIONS_ALTS_OFF"] = "Activez Envoyer aux rerolls pour choisir quels personnages reçoivent du courrier."
 L["OPTIONS_ALTS_EMPTY"] =
 	"Aucun personnage pour l'instant. Chacun de vos personnages apparaît ici dès qu'il se connecte avec Play It Forward."
 L["OPTIONS_ALT_INCLUDE"] = "Inclure ce personnage"
@@ -451,7 +483,9 @@ L["OPTIONS_GUILD_ADD"] = "Ajouter une guilde"
 L["OPTIONS_GUILD_ADD_DESCRIPTION"] =
 	"Tapez le nom d'une guilde, puis appuyez sur Entrée. Séparez plusieurs guildes par des virgules. Les majuscules n'ont pas d'importance. Leurs membres sur ce royaume et dans cette faction sont recherchés en ligne quand vous appuyez sur Chercher des destinataires, et passent avant les inconnus."
 -- The remove icon beside a guild's name.
-L["OPTIONS_GUILD_REMOVE"] = "Retire cette guilde de la liste. Ajoutez-la de nouveau par son nom pour la récupérer."
+L["OPTIONS_GUILD_REMOVE"] = "Retirez cette guilde de la liste. Ajoutez-la de nouveau par son nom pour la récupérer."
+-- TRANSLATORS: %s is a guild's name in angle brackets.
+L["OPTIONS_GUILD_REMOVE_CONFIRM"] = "Retirer %s de la liste ? Ajoutez-la de nouveau par son nom pour la récupérer."
 -- In place of the roster status on a guild added by name: there is no roster, only /who.
 L["OPTIONS_GUILD_ADDED"] = "Ajoutée par son nom. Chercher des destinataires recherche ses membres en ligne."
 L["OPTIONS_GUILD_INCLUDE"] = "Inclure cette guilde"
@@ -463,7 +497,7 @@ L["OPTIONS_GUILD_MEMBER_INCLUDE"] = "Inclure"
 L["OPTIONS_GUILD_MEMBER_INCLUDE_DESCRIPTION"] =
 	"Envoyer de l'équipement à ce camarade de guilde. Décochez-le pour une banque de guilde ou un reroll métier, et on ne lui proposera jamais rien."
 -- TRANSLATORS: %d is a count of guild members, the first %s when the roster was saved ("today", "3 days ago"), the second a character's name.
-L["OPTIONS_GUILD_STATUS"] = "%d membres actifs, enregistrés %s par %s."
+L["OPTIONS_GUILD_STATUS"] = "%d membre(s) actif(s), liste enregistrée %s par %s."
 L["OPTIONS_GUILD_SAVED_TODAY"] = "aujourd'hui"
 L["OPTIONS_GUILD_SAVED_YESTERDAY"] = "hier"
 L["OPTIONS_GUILD_SAVED_DAYS"] = "il y a %d jours"
@@ -484,25 +518,28 @@ L["OPTIONS_MAIL_YOURS"] = "Votre message"
 L["OPTIONS_MAIL_PREVIEW"] = "Ce qu'ils reçoivent"
 L["OPTIONS_MAIL_COUNT_SUBJECT"] = "Objet %d/%d"
 L["OPTIONS_MAIL_COUNT_BODY"] = "Message %d/%d"
-L["OPTIONS_MAIL_RESET"] = "Rétablir par défaut"
 L["OPTIONS_MAIL_RESET_DESCRIPTION"] = "Revenir à l'objet et au message par défaut."
+-- The Reset row's caption and its confirm.
+L["OPTIONS_MAIL_RESET_CAPTION"] = "Message du courrier"
+L["OPTIONS_MAIL_RESET_CONFIRM"] = "Revenir à l'objet et au message par défaut ?"
 
 --------------------------------------------------------------------------------
 -- Options: Badge of Generosity Panel
 --------------------------------------------------------------------------------
 
-L["TAB_GENEROSITY"] = "Insigne de générosité"
+--[[
+	ONE KEY FOR THE PAGE AND THE BADGE: the page's name in the options list and the heading over the
+	totals on player tooltips. The tooltip draws the Short Name on the heading's right, so it never
+	carries the name itself.
+]]
+L["BADGE_OF_GENEROSITY"] = "Insigne de générosité"
 L["OPTIONS_GENEROSITY_DESCRIPTION"] =
 	"Vos totaux de dons, cumulés sur tous les personnages de votre compte. Ils s'affichent dans votre infobulle de joueur dans les villes et les auberges, où les autres utilisateurs de Play It Forward les voient en vous survolant, et vous voyez les leurs. Ils sont masqués en donjon, en raid et ailleurs dans le monde."
 
 --[[
-	Account-wide giving tally, read-only here. Item Levels counts equippable gear only.
-
-	The unit tooltip reuses the header and the four labels, so the two surfaces never disagree.
-	There ns:BuildBrandedLine puts the Short Name and the // in front of the header, so it never
-	carries either.
+	Account-wide giving tally, read-only here. Item Levels counts equippable gear only. The unit
+	tooltip reuses the four labels, so the two surfaces never disagree.
 ]]
-L["OPTIONS_GENEROSITY_HEADER"] = "Insigne de générosité"
 L["OPTIONS_GENEROSITY_GIFTS"] = "Cadeaux"
 L["OPTIONS_GENEROSITY_ITEMS"] = "Objets"
 L["OPTIONS_GENEROSITY_ITEM_LEVELS"] = "Niveaux d'objet"

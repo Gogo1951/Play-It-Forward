@@ -5,8 +5,7 @@ local L = ns.L
 ns.name = ADDON_NAME
 
 --[[
-	The TOC's Version field holds the packager's version token until a release build fills it in,
-	so a version still carrying an @ is an unpackaged dev copy. Never write the token out here:
+	An @ in Version is the packager's unreplaced token: a dev copy. Never write the token out here;
 	the packager replaces it in every file, comments included.
 ]]
 local function GetVersion()
@@ -23,11 +22,7 @@ ns.Version = GetVersion()
 -- Event dispatch
 --------------------------------------------------------------------------------
 
---[[
-	ns.On is the only way in: a feature file registering its own frame would bypass the Diagnostics
-	event log. ns.EVENT_NAMES accumulates as events register rather than being a static list,
-	because registration is flavor-conditional, so the export is exactly what this client took.
-]]
+-- The only way in: a feature file's own event frame would bypass the Diagnostics event log.
 local handlers = {}
 local registered = {}
 local frame = CreateFrame("Frame")
@@ -48,10 +43,7 @@ function ns.On(event, fn)
 end
 
 frame:SetScript("OnEvent", function(_, event, ...)
-	--[[
-		One boolean read before any allocation, so diagnostics off costs nothing. Logged before the
-		handlers run, so an entry survives a handler error.
-	]]
+	-- Logged before the handlers, so an entry survives a handler error.
 	if ns.diagnostics.logging then
 		ns:LogEvent(event, ...)
 	end
@@ -69,11 +61,9 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-    Characters from another game version, dropped without a word. AceDB keys
-    a character "Name - Realm" on realm clients and "First Last" on the
-    realm-free ones (WoW Forever), so a saved key shaped the other way from
-    the one being played came from a copied WTF folder: its char section,
-    its profile choice and, unless someone still uses it, its own profile go.
+	AceDB keys a character "Name - Realm" on realm clients and "First Last" on WoW Forever, so a key
+	shaped the other way came from a copied WTF folder: its char section, profile choice and, unless
+	still in use, its own profile go.
 ]]
 local REALM_KEY_SEPARATOR = " - "
 
@@ -135,11 +125,7 @@ local function PruneOtherClientCharacters()
 	end
 end
 
---[[
-	ADDON_LOADED is the first point the client has loaded our saved variables: file scope is too
-	early, and PLAYER_ENTERING_WORLD refires on every loading screen. New's third argument is the
-	shared "Default" profile -- omit it and every character silently gets its own.
-]]
+-- New's third argument is the shared "Default" profile: omit it and every character gets its own.
 local function OnAddonLoaded(name)
 	if name ~= ADDON_NAME then
 		return
@@ -147,23 +133,17 @@ local function OnAddonLoaded(name)
 	ns.db = LibStub("AceDB-3.0"):New("PlayItForwardDB", ns.DATABASE_DEFAULTS, true)
 	PruneOtherClientCharacters()
 
-	-- The weights were built from the spec defaults at load; the player's own choices exist now.
+	-- Built from spec defaults at load; the player's choices exist only now.
 	ns.Data.RebuildStatWeights()
 
-	--[[
-		A reset or a profile switch replaces ns.db.profile wholesale. Settings read live off it
-		catch up on their own; the built window does not, so it is re-read here -- the same two
-		calls the options panel makes when a giftability setting changes.
-	]]
+	-- The window's two calls mirror ns.RefreshMailWindow: change one, change both.
 	function ns:ApplyProfile()
 		ns.Data.RebuildStatWeights()
 		if ns.UI.frame then
 			ns.UI:SyncControls()
 		end
 		ns.UI:Rescan()
-		for _, registryName in pairs(ns.OPTIONS_REGISTRY) do
-			LibStub("AceConfigRegistry-3.0"):NotifyChange(registryName)
-		end
+		ns.RefreshSettings()
 	end
 
 	for _, msg in ipairs({ "OnProfileChanged", "OnProfileReset", "OnProfileCopied" }) do

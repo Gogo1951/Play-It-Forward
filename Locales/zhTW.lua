@@ -9,7 +9,7 @@ end
 
 L["ADDON_TITLE"] = "Play It Forward"
 L["ADDON_SHORT_NAME"] = "Play It Forward"
--- The mail window's title, followed by " // " and ADDON_TITLE.
+-- The mail window's title, followed by " // " and ADDON_SHORT_NAME.
 L["WINDOW_TITLE"] = "分發視窗"
 L["CHAT_LOADED"] =
 	"版本 %s。設定（包括關閉此訊息的選項）位於 選項 > 插件 > Play It Forward。喜歡這個插件嗎？告訴朋友，在 CurseForge 上收藏它，或在 GitHub 上給它一顆 Star。(="
@@ -44,11 +44,8 @@ L["BUTTON_SEARCHING"] = "搜尋中..."
 L["BUTTON_DISTRIBUTE"] = "分發"
 -- On the Distribute button away from a mailbox: an ordinary state, not an error.
 L["BUTTON_NEEDS_MAILBOX"] = "需要開啟信箱"
---[[
-	On the Distribute button only while a run is going. It goes back to Distribute at every pause,
-	because the chat lines that report a pause name Distribute.
-]]
-L["BUTTON_SENDING"] = "寄送中..."
+-- Distribute's label while mail goes out. A press lets the letter in hand finish, then halts the run.
+L["BUTTON_STOP"] = "停止"
 
 --[[
 	The search behind Find Recipients, filed here with that button rather than under Distributing:
@@ -60,9 +57,11 @@ L["WHO_WAIT"] = "%d 秒後再次搜尋。等按鈕顯示為尋找收件者時再
 L["WHO_BLOCKED"] =
 	"請再按一次尋找收件者。暴雪只允許直接透過點擊按鈕發起這種搜尋，而這次被打斷了。"
 
--- The menu under the button beside Blizzard's mail frame, which brings the closed window back.
+-- The menu the gift tab on Blizzard's mail frame opens on hover.
 L["REOPEN_MENU_OPEN"] = "開啟分發視窗"
-L["REOPEN_MENU_OPTIONS"] = "選項"
+L["REOPEN_MENU_OPTIONS"] = "%s 選項"
+-- The row that puts the window back beside the mail frame at its first size.
+L["REOPEN_MENU_RESET_POSITION"] = "重設視窗位置"
 
 -- In the list while it is empty.
 L["WINDOW_EMPTY"] = "沒有可贈送的物品了。"
@@ -86,6 +85,8 @@ L["SECTION_MATCHED"] = "已配對"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
 L["SECTION_NO_RECIPIENT"] = "等待配對"
 L["SECTION_UNREADABLE"] = "無法讀取屬性"
+-- The heading over the rows this window has mailed, at the foot of the list.
+L["SECTION_SENT"] = "已寄出"
 
 --[[
 	"Kept", never "vendor / disenchant": the add-on does not tell the player what to do with what
@@ -112,12 +113,12 @@ L["PICKER_NONE_IN_RANGE"] = "等級範圍內沒有人。請按尋找收件者。
 L["PICKER_NONE_KEPT"] =
 	"等級範圍內沒有人。按下方的重新尋找更合適的收件者，為這件物品尋找收件者。"
 --[[
-	KEPT SHORT. A note shares one 16-pixel row with a cross-realm name, a level and a class, and
-	anything longer is cut off. Notes are information, never gates: every name can be picked.
+	The note on a name's right in the recipient list, gray, no brackets. KEPT SHORT: it shares
+	the row with a cross-realm name and a level. Notes are information, never gates.
 ]]
-L["PICKER_NOTE_HAS_ONE"] = "(已有)"
-L["PICKER_NOTE_REFUSED"] = "(已拒絕)"
-L["PICKER_NOTE_RECENT"] = "(最近)"
+L["PICKER_TAG_HAS_ONE"] = "已有"
+L["PICKER_TAG_REFUSED"] = "已拒絕"
+L["PICKER_TAG_RECENT"] = "最近"
 -- What each note means, on hovering the name it sits beside.
 L["PICKER_NOTE_HAS_ONE_DESCRIPTION"] =
 	"已在另一列中。以你的選擇為準，不是你親自設定的那一列會另找他人。"
@@ -125,7 +126,7 @@ L["PICKER_NOTE_REFUSED_DESCRIPTION"] =
 	"本次登入期間寄給對方的郵件曾被退回。你仍可以再試一次。"
 L["PICKER_NOTE_RECENT_DESCRIPTION"] = "本次登入期間已經收過你的禮物。對方升級後會再次優先。"
 --[[
-	Below the divider at the bottom of the list: a /who aimed at the classes the verdict says
+	Near the foot of the list, under its line: a /who aimed at the classes the verdict says
 	this item is for, their own bands first and the fallbacks a press behind them.
 ]]
 L["PICKER_FIND_FOR_ITEM"] = "重新尋找更合適的收件者"
@@ -203,6 +204,10 @@ L["MAIL_REASON_ERROR"] = "用戶端錯誤"
 L["MAIL_ABORTED"] = "郵件多次出錯，已停止分發。"
 L["MAIL_DONE"] = "完成。已寄出 %d/%d。"
 L["MAIL_DONE_WITH_SKIPS"] = "完成。已寄出 %d/%d，略過 %d (在背包中被移動)。"
+-- In chat and on the status line once Stop halts a run: sent so far, of the run's total.
+L["MAIL_STOPPED"] = "已停止。已寄出 %d/%d。按下分發以寄出其餘物品。"
+-- In chat at the mailbox when a gift comes back unopened: the item link, then who sent it back.
+L["MAIL_RETURNED"] = "從收件匣取回 %s 即可再次贈送。%s 從未打開過它。"
 
 --------------------------------------------------------------------------------
 -- Default Mail Contents
@@ -239,10 +244,20 @@ L["OPTIONS_WELCOME"] = "啟用歡迎訊息"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "登入時顯示版本和設定提醒。"
 
 L["OPTIONS_FEATURES_HEADER"] = "功能"
+-- The root panel's Features switches: Enable and each feature's name.
+L["OPTIONS_ENABLE_GEAR"] = "啟用裝備贈送"
+L["OPTIONS_ENABLE_CONSUMABLES"] = "啟用消耗品贈送"
+L["OPTIONS_ENABLE_SHARE"] = "啟用徽章分享"
 
 L["OPTIONS_COMMANDS_HEADER"] = "/指令"
 L["OPTIONS_COMMAND"] = "/pif"
 L["OPTIONS_COMMAND_DESCRIPTION"] = "開啟此插件的設定介面。"
+
+-- Options-Kit's own strings, one key in every add-on.
+L["SAMPLE_EXAMPLE"] = "範例"
+-- TRANSLATORS: %d is an item ID.
+L["LOADING_ITEM"] = "正在載入 ID：%d"
+L["OPTIONS_RESET"] = "重設"
 
 --------------------------------------------------------------------------------
 -- Options: What to Give Away Panel
@@ -287,6 +302,10 @@ L["OPTIONS_KIND_SCROLLS_DESCRIPTION"] =
 L["OPTIONS_KIND_OILS_STONES"] = "油和磨石"
 L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
 	"提供你已用不到的武器油、磨刀石和平衡石。巫師之油給施法者，法力之油給使用法力的職業，磨刀石、平衡石和其他武器油給近戰職業。"
+-- Keep in Bags, beside each consumable kind.
+L["OPTIONS_KEEP_IN_BAGS"] = "背包保留"
+L["OPTIONS_KEEP_IN_BAGS_DESCRIPTION"] =
+	"此類每種物品在背包中保留的數量。整組物品會被整組寄出，所以只會提供超出此數量的整組。"
 
 --[[
 	Kept gear mailed to one of your own characters instead of staying in your bags: one toggle with
@@ -300,6 +319,18 @@ L["OPTIONS_DISENCHANT_SEND_DESCRIPTION"] =
 	"無人能用的裝備會透過郵件寄給你的某個角色進行分解，而不是留在你的背包裡。每個伺服器和陣營各自保存自己的選擇。消耗品永遠不會被寄出。"
 L["OPTIONS_DISENCHANTER_DESCRIPTION"] =
 	"你的附魔師。列出你在此伺服器及其連結伺服器上、同一陣營的角色，每個角色需先使用 Play It Forward 登入過。"
+
+--[[
+	Never Give Away. ONE KEY FOR TWO SURFACES: the last action on every row's recipient list, and
+	the heading of the list it adds to on this page. The player looks for the list by the name
+	they picked, so the two must never drift apart.
+]]
+L["NEVER_GIVE_AWAY"] = "永不贈送"
+-- TRANSLATORS: %s is the remove icon.
+L["OPTIONS_NEVER_GIVE_DESCRIPTION"] = "從某一列的清單中選擇。點擊%s即可再次提供。"
+L["OPTIONS_NEVER_GIVE_REMOVE"] = "再次提供此物品。"
+-- TRANSLATORS: the first %s is an item link, the second the What to Give Away page's name.
+L["CHAT_NEVER_GIVE"] = "%s不會再被提供。可在%s中恢復。"
 
 --------------------------------------------------------------------------------
 -- Options: Recipients Panel
@@ -336,7 +367,6 @@ L["OPTIONS_IGNORE_SUMMONER_WARLOCKS_DESCRIPTION"] =
 L["OPTIONS_SPECS_HEADER"] = "職業和專精"
 L["OPTIONS_SPECS_INTRO"] =
 	"沒有人能看到其他玩家的專精，所以裝備會依以下假設寄出。你自己的角色使用我的分身中設定的專精。"
-L["OPTIONS_SPECS_RESET"] = "恢復預設"
 L["OPTIONS_SPECS_RESET_DESCRIPTION"] = "將所有專精恢復為插件的預設設定。"
 L["OPTIONS_SPECS_RESET_CONFIRM"] = "將所有專精恢復為插件的預設設定？"
 -- The damage roles only: Tank and Healer come from the game's TANK and HEALER labels.
@@ -393,6 +423,8 @@ L["OPTIONS_ALTS_INTRO"] =
 L["OPTIONS_SEND_TO_ALTS"] = "寄給分身"
 L["OPTIONS_SEND_TO_ALTS_DESCRIPTION"] =
 	"優先寄給你自己的角色，排在你的公會和陌生人之前，但只寄其職業最適合的物品。角色需要在此伺服器或其連結伺服器上、以同一陣營使用 Play It Forward 登入過才會計入。寄給分身的郵件不計入你的慷慨徽章統計。"
+-- In each character's pane while Send to Alts is off.
+L["OPTIONS_ALTS_OFF"] = "開啟寄給分身，即可選擇哪些角色收到郵件。"
 L["OPTIONS_ALTS_EMPTY"] = "還沒有角色。你的每個角色使用 Play It Forward 登入後就會出現在這裡。"
 L["OPTIONS_ALT_INCLUDE"] = "包含此角色"
 L["OPTIONS_ALT_INCLUDE_DESCRIPTION"] =
@@ -445,6 +477,8 @@ L["OPTIONS_GUILD_ADD_DESCRIPTION"] =
 	"輸入公會名稱，然後按 Enter 鍵。多個公會用逗號分隔。不分大小寫。按下尋找收件者時，會尋找這些公會在此伺服器和陣營的線上成員，他們排在陌生人之前。"
 -- The remove icon beside a guild's name.
 L["OPTIONS_GUILD_REMOVE"] = "將此公會從清單中移除。依名稱重新新增即可恢復。"
+-- TRANSLATORS: %s is a guild's name in angle brackets.
+L["OPTIONS_GUILD_REMOVE_CONFIRM"] = "將%s從清單中移除？依名稱重新新增即可恢復。"
 -- In place of the roster status on a guild added by name: there is no roster, only /who.
 L["OPTIONS_GUILD_ADDED"] = "依名稱新增。尋找收件者會尋找其線上成員。"
 L["OPTIONS_GUILD_INCLUDE"] = "包含此公會"
@@ -476,25 +510,28 @@ L["OPTIONS_MAIL_YOURS"] = "你的留言"
 L["OPTIONS_MAIL_PREVIEW"] = "對方收到的內容"
 L["OPTIONS_MAIL_COUNT_SUBJECT"] = "主旨 %d/%d"
 L["OPTIONS_MAIL_COUNT_BODY"] = "內文 %d/%d"
-L["OPTIONS_MAIL_RESET"] = "恢復預設"
 L["OPTIONS_MAIL_RESET_DESCRIPTION"] = "恢復為預設的主旨與內文。"
+-- The Reset row's caption and its confirm.
+L["OPTIONS_MAIL_RESET_CAPTION"] = "郵件留言"
+L["OPTIONS_MAIL_RESET_CONFIRM"] = "恢復為預設的主旨與內文？"
 
 --------------------------------------------------------------------------------
 -- Options: Badge of Generosity Panel
 --------------------------------------------------------------------------------
 
-L["TAB_GENEROSITY"] = "慷慨徽章"
+--[[
+	ONE KEY FOR THE PAGE AND THE BADGE: the page's name in the options list and the heading over the
+	totals on player tooltips. The tooltip draws the Short Name on the heading's right, so it never
+	carries the name itself.
+]]
+L["BADGE_OF_GENEROSITY"] = "慷慨徽章"
 L["OPTIONS_GENEROSITY_DESCRIPTION"] =
 	"你帳號中所有角色的贈送統計。在城市和旅店中，它們會顯示在你的玩家滑鼠提示上，其他 Play It Forward 使用者將滑鼠移到你身上時就能看到，你也能看到他們的。在地城、團隊副本和野外則會隱藏。"
 
 --[[
-	Account-wide giving tally, read-only here. Item Levels counts equippable gear only.
-
-	The unit tooltip reuses the header and the four labels, so the two surfaces never disagree.
-	There ns:BuildBrandedLine puts the Short Name and the // in front of the header, so it never
-	carries either.
+	Account-wide giving tally, read-only here. Item Levels counts equippable gear only. The unit
+	tooltip reuses the four labels, so the two surfaces never disagree.
 ]]
-L["OPTIONS_GENEROSITY_HEADER"] = "慷慨徽章"
 L["OPTIONS_GENEROSITY_GIFTS"] = "禮物"
 L["OPTIONS_GENEROSITY_ITEMS"] = "物品"
 L["OPTIONS_GENEROSITY_ITEM_LEVELS"] = "物品等級"

@@ -223,13 +223,11 @@ end
 	nothing is searching for.
 
 	With no frame built there is nothing to re-read into, so the scan is only marked stale for
-	the next mailbox -- or, standing at one that opened on nothing, read now and the window
-	opened if the new setting turned something up.
+	the next time the window opens.
 ]]
 function UI:Rescan()
 	if not self.frame then
 		MatchList:MarkStale()
-		self:OpenIfWaiting()
 		return
 	end
 	local bands = MatchList:RescanBags()
@@ -348,20 +346,26 @@ function UI:AfterDelivery()
 end
 
 --------------------------------------------------------------------------------
--- Auto-open at the mailbox
+-- Opening and closing
 --------------------------------------------------------------------------------
 
 --[[
-	Set when a mailbox opens on nothing to give, cleared when the window opens or the mailbox
-	closes. The window opens at most once a visit by this route: a player who closed it at the
-	mailbox has answered, and a bag change must not put it back.
-]]
-local waitingToOpen = false
+	Only the player opens the window, from the tab on the mailbox's edge or its menu. A mailbox
+	opening never does (Features/UI-Mailbox-Tab.lua).
 
--- It does not scan: every caller had to read the bags to decide whether to call this at all.
+	It does not scan: every caller reads the bags first.
+]]
 function UI:Open()
-	waitingToOpen = false
 	self:BuildFrame()
+	--[[
+		Just past the tab, on whichever mailbox window it sits on: Blizzard's, or TSM's in its
+		place. Not once the player has dragged the window: it opens where they left it.
+	]]
+	local host = self:MailboxTabHost()
+	if host and not ns.db.profile.windowPos.point then
+		self.frame:ClearAllPoints()
+		self.frame:SetPoint("TOPLEFT", host, "TOPRIGHT", self.MAILBOX_TAB_SIZE + 8, 0)
+	end
 	self.frame:Show()
 
 	--[[
@@ -375,13 +379,14 @@ function UI:Open()
 	PullGuild()
 	PullAlts()
 	self:Refresh()
-	self:SyncReopenButton()
+	self:SyncMailboxTab()
 end
 
 --[[
-	Closing is manual: the X, or Escape. Nothing else hides this window.
+	Closing is manual: the X, Escape, or a second click on the mailbox tab. Nothing else hides this
+	window.
 
-	Both routes land in UI:OnClosed rather than here, because Escape reaches the frame through
+	Every route lands in UI:OnClosed rather than here, because Escape reaches the frame through
 	UISpecialFrames and never touches this function -- see the registration in
 	Features/UI-Window.lua. This is left as the name every caller already knows.
 ]]
@@ -397,8 +402,8 @@ end
 
 --[[
 	Everything that has to stop when the window goes away, wherever the close came from. Every line
-	is idempotent, which is what lets both routes call it: Escape arrives through OnHide, the X
-	through UI:Close, and a press of the X runs both.
+	is idempotent, which is what lets both paths call it: Escape arrives through OnHide, the X and
+	the mailbox tab through UI:Close, and either of those runs both.
 ]]
 function UI:OnClosed()
 	if not self.frame then
@@ -415,7 +420,7 @@ function UI:OnClosed()
 	matching = false
 	searched = false
 	self:SyncFindButton()
-	self:SyncReopenButton()
+	self:SyncMailboxTab()
 end
 
 --[[
@@ -424,72 +429,23 @@ end
 	the client raises can swap MailFrame out from under it (the Who panel would, which is why
 	Features/Recipients-Who.lua deafens it for the life of a query).
 
-	So it opens on the mailbox and never auto-closes. Match-List holds items, roster and pairings
-	at file scope, so matches survive walking away. On the module so the Mailbox diagnostics report
-	asks the same question the mailbox does. Unticked rows do not count: a mailbox holding only
-	rows the player is keeping opens nothing. Kept gear counts while Disenchant Unmatched Gear has
-	an enchanter to send it to.
-]]
-function UI:HasSomethingToDo()
-	local enchanter = ns.db.profile.disenchantUnmatched and ns.Alts:Disenchanter()
-	for _, item in ipairs(MatchList:Items()) do
-		local disenchant = enchanter and MatchList:Disenchantable(item)
-		if item.send and (item.recipient or item.state == ns.Matcher.GIFT or disenchant) then
-			return true
-		end
-	end
-	return false
-end
+	So it never auto-closes. Match-List holds items, roster and pairings at file scope, so matches
+	survive walking away.
 
---[[
-	ONCE A VISIT. MAIL_SHOW, MailFrame's OnShow and the interaction manager all report one
-	mailbox, and the sender's own MailFrame:Show mid-run reports it again; a mail add-on handing
-	the frame back is one more. Handled once, a player who closed the window at this mailbox is
-	not handed it back, and the roster is asked for once. Cleared when the mailbox is gone.
-]]
-local visitHandled = false
-
---[[
-	Nothing to hand out means nothing happens, and nothing is said: no spare gear is the ordinary
-	state of a mailbox visit.
+	A mailbox opening only puts the tab up. A window left open from before is redrawn, so its
+	Distribute button and status line read the mailbox now in reach. Not mid-run: the sender's own
+	MailFrame:Show reports the mailbox again, and the run owns the window until it ends.
 ]]
 local function MailboxOpened()
 	ns.mailboxOpen = true
-	if visitHandled or ns.Distributor.busy then
-		UI:SyncReopenButton()
-		return
+	if UI.frame and UI.frame:IsShown() and not ns.Distributor.busy then
+		UI:Refresh()
 	end
-	visitHandled = true
-	MatchList:EnsureScan()
-	if UI:HasSomethingToDo() then
-		UI:Open()
-	elseif not (UI.frame and UI.frame:IsShown()) then
-		waitingToOpen = true
-	end
-	UI:SyncReopenButton()
+	UI:SyncMailboxTabSoon()
 end
 
 --[[
-	Asked of the interaction manager as well as the flag: MAIL_CLOSED skips Escape on Era, so the
-	flag alone could outlive the mailbox and open the window on a loot out in the world.
-]]
-function UI:WaitingToOpen()
-	return waitingToOpen and ns.AtMailbox()
-end
-
--- A late answer for a mailbox that opened on nothing: an item resolving, or a setting changing.
-function UI:OpenIfWaiting()
-	if not self:WaitingToOpen() then
-		return
-	end
-	MatchList:EnsureScan()
-	if self:HasSomethingToDo() then
-		UI:Open()
-	end
-end
-
---[[
-	The window outlives the mailbox, so the button follows the mailbox, not the window.
+	The window outlives the mailbox, so the tab follows the mailbox, not the window.
 
 	Deferred a frame rather than read inline: the mailbox closing and the interaction manager
 	reporting it ended are not guaranteed to land in that order, and UI:SyncDistributeButton asks the
@@ -508,25 +464,19 @@ local function RecheckDistribute()
 			ns.Distributor:Stop()
 			ns:PrintMessage(L["MAIL_MAILBOX_CLOSED"])
 		end
-		--[[
-			Gone from the mailbox, whether or not MAIL_CLOSED said so: a send still awaiting its
-			result is not one the next visit waits on, and the next open is a new visit.
-		]]
+		-- Gone from the mailbox, whether or not MAIL_CLOSED said so: a send still awaiting its result is not one the next visit waits on.
 		if not ns.AtMailbox() then
 			ns.Distributor._awaiting = nil
-			visitHandled = false
 		end
 		if UI.frame and UI.frame:IsShown() then
 			UI:SyncDistributeButton()
 		end
-		UI:SyncReopenButton()
+		UI:SyncMailboxTab()
 	end)
 end
 
 local function MailboxClosed()
 	ns.mailboxOpen = false
-	waitingToOpen = false
-	visitHandled = false
 	RecheckDistribute()
 end
 
@@ -562,6 +512,36 @@ local function OnMailClosed()
 	MailboxClosed()
 end
 ns.On("MAIL_CLOSED", OnMailClosed)
+
+--[[
+	A gift nobody opened comes back to the inbox after 30 days with no word of why. One chat line
+	names what came back and from whom, once a session per gift; once the item is taken out of
+	the inbox it is in the bags and offered again like any other. Reads the inbox headers only:
+	opening a mail's body would mark it read, and nothing is ever taken out of the inbox.
+]]
+local returnedSaid = {}
+
+local function IsGiftSubject(subject)
+	return subject == ns.Distributor:BuildSubject() or subject == L["MAIL_SUBJECT"]
+end
+
+local function OnMailInboxUpdate()
+	if not ns.AtMailbox() then
+		return
+	end
+	for index = 1, (GetInboxNumItems()) do
+		local _, _, sender, subject, _, _, _, hasItem, _, wasReturned = GetInboxHeaderInfo(index)
+		if wasReturned and hasItem and sender and subject and IsGiftSubject(subject) then
+			local link = GetInboxItemLink(index, 1)
+			local key = sender .. "\0" .. tostring(link)
+			if link and not returnedSaid[key] then
+				returnedSaid[key] = true
+				ns:PrintMessage(L["MAIL_RETURNED"]:format(link, Ambiguate(sender, "short")))
+			end
+		end
+	end
+end
+ns.On("MAIL_INBOX_UPDATE", OnMailInboxUpdate)
 
 if ns.EXPANSION >= 2 or ns.FLAVOR == "Camelot" then
 	-- TBC and later, and Forever's Retail client: the interaction manager reports the mailbox as well.

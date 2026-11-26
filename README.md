@@ -2,13 +2,13 @@
 
 Mail outgrown BoE gear, food, potions, scrolls, oils, and stones to your alts, guildmates, and leveling players, and gear nobody can use to your enchanter to disenchant. Every gift goes to the class it suits best. Pay it forward, one green at a time.
 
-**TL;DR:** Those greens you'll never wear could make a lowbie's whole week. Open a mailbox, press two buttons, and every spare lands with someone who can actually use it.
+**TL;DR:** Those greens you'll never wear could make a lowbie's whole week. Open a mailbox, click the gift tab, press two buttons, and every spare lands with someone who can actually use it.
 
 ### Distribution Window
 
 <img width="600" src="https://github.com/user-attachments/assets/4b66357f-fce7-40b0-b84b-99111a4e0dd5" />
 
-* **Ready at the Mailbox** // Open any mailbox and everything you've outgrown is already listed, so two clicks send it all on its way.
+* **Ready at the Mailbox** // Click the gift tab on any mailbox and everything you've outgrown is already listed, so two clicks send it all on its way.
 * **You Have the Final Say** // Pick someone else for any item, or untick it and it stays in your bags.
 * **Safety First** // Only tradeable bind-on-equip gear up to the rarity you pick, plus spare consumables. Never soulbound or quest items.
 
@@ -19,6 +19,7 @@ Mail outgrown BoE gear, food, potions, scrolls, oils, and stones to your alts, g
 * **Your Alts and Guild First** // Your own characters and guildmates get first pick, then strangers questing in zones made for their level.
 * **Right Gear, Right Class** // Every piece goes to a class and spec that will actually wear it. No more cloth for your warrior.
 * **Nothing Goes to Waste** // Gear nobody can use heads to your enchanter alt for disenchanting instead of rotting in your bags.
+* **Your Rules** // Pick which alts and guilds get first dibs, and switch on disenchanting whenever you're ready.
 
 ### Badge of Generosity
 
@@ -31,7 +32,7 @@ Mail outgrown BoE gear, food, potions, scrolls, oils, and stones to your alts, g
 
 1. Install the add-on, ideally using [CurseForge](https://www.curseforge.com/wow/addons/play-it-forward) or [Wago](https://addons.wago.io/addons/play-it-forward).
 2. Type `/pif` to open the Options Interface. The defaults are ready to go, so a peek is all it needs.
-3. Visit a mailbox. If you're carrying something worth passing on, the window opens by itself.
+3. Visit a mailbox and click the gift tab on its right edge to open the window.
 4. Press **Find Recipients**, untick anything you'd rather keep, then press **Distribute**.
 5. _"It's dangerous to go alone! Take this."_
 
@@ -46,10 +47,6 @@ A parcel titled **Play It Forward!** with a friendly note, so a gift from a stra
 > No strings attached. Use it if you can, or sell it. Don't want it? Hit Return and it'll find a new home.
 
 Rather say it your way? Write your own on the **Mail Message Text** panel.
-
-### Good to Know
-
-* **Closed the Window?** // The button beside Blizzard's mail frame brings it back.
 
 ## Testing & Localization Status
 
@@ -78,8 +75,8 @@ Rather say it your way? Write your own on the **Mail Message Text** panel.
 
 ### 🟢 Pairs With
 
-* Gogo1951's [Come & Get It](https://www.curseforge.com/wow/addons/come-get-it)
 * Gogo1951's [GogoLoot](https://www.curseforge.com/wow/addons/gogoloot)
 * Gogo1951's [Good to Go](https://www.curseforge.com/wow/addons/good-to-go)
 * Gogo1951's [Magic Eraser](https://www.curseforge.com/wow/addons/magic-eraser)
 * Gogo1951's [Thanks for the Buff](https://www.curseforge.com/wow/addons/thanks-for-the-buff-revisited)
+* Gogo1951's [Tracking Eye](https://www.curseforge.com/wow/addons/tracking-eye-revisited)

@@ -29,7 +29,7 @@ ns.Data.POTIONS = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, WoW Forever 1.60.1.70888
+	2026-11-26, wago.tools, WoW Forever 1.60.1.71139
 
 Notes
 	- Healing, mana and rejuvenation potions a player can give away: Potion consumables that can
@@ -91,6 +91,8 @@ wago.tools
 	https://wago.tools/db2/ItemSparse?build=1.60.1.70450
 	https://wago.tools/db2/Item?build=1.60.1.70888
 	https://wago.tools/db2/ItemSparse?build=1.60.1.70888
+	https://wago.tools/db2/Item?build=1.60.1.71139
+	https://wago.tools/db2/ItemSparse?build=1.60.1.71139
 
 QuestieDB
 	None.

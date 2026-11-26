@@ -9,7 +9,7 @@ ns.Data.SPELL_IDS = {
 How We Got the Data
 
 Last Validated
-	Never.
+	2026-11-26, wago.tools, Mists of Pandaria Classic 5.5.4.71089
 
 Notes
 	- The game records Play It Forward shows by name, stored by ID so the client supplies the name in every locale.
@@ -23,6 +23,7 @@ Wowhead
 
 wago.tools
 	https://wago.tools/db2/SpellName?build=5.5.4.70631
+	https://wago.tools/db2/SpellName?build=5.5.4.71089
 
 QuestieDB
 	None.

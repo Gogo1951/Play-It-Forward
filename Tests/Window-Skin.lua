@@ -53,22 +53,24 @@ test("under ElvUI every kind of control is skinned", function()
 	local calls = fakeElvUI()
 	local ns = load()
 	Stub.SetBackpack({ cloak() })
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	ElvUI = nil
 
 	check(ns.UI.frame ~= nil, "the window opened")
-	-- Find Recipients, Distribute, two top-bar dropdowns and one row's recipient dropdown.
-	check(calls.Button >= 5, ("buttons and dropdowns skinned, %d calls"):format(calls.Button))
-	-- Gear, Consumables, five kinds and one row's tick.
-	check(calls.CheckBox >= 8, ("ticks skinned, %d calls"):format(calls.CheckBox))
-	check(calls.ScrollBar >= 1, "the list's scrollbar skinned")
+	--[[
+		Find Recipients and Distribute. The value fields are bare text and an arrow with no box, and
+		the list's scrollbar is the menus' own thin thumb, so neither is handed to the skin.
+	]]
+	check(calls.Button >= 2, ("buttons skinned, %d calls"):format(calls.Button))
+	-- Gear, Consumables, five kinds, a heading's tick and one row's tick.
+	check(calls.CheckBox >= 9, ("ticks skinned, %d calls"):format(calls.CheckBox))
 end)
 
 test("a Skins module that throws leaves the window working", function()
 	fakeElvUI(true)
 	local ns = load()
 	Stub.SetBackpack({ cloak() })
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	ElvUI = nil
 
 	check(ns.UI.frame ~= nil and ns.UI.frame:IsShown(), "the window still opens")
@@ -79,7 +81,7 @@ test("without ElvUI nothing is skinned and nothing breaks", function()
 	ElvUI = nil
 	local ns = load()
 	Stub.SetBackpack({ cloak() })
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	check(ns.UI.frame ~= nil and ns.UI.frame:IsShown(), "the window opens")
 end)
 
@@ -90,7 +92,7 @@ end)
 test("resizing saves the size and position per profile", function()
 	local ns = load()
 	Stub.SetBackpack({ cloak() })
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	ns.UI:Relayout()
 	ns.UI:SaveGeometry()
 
@@ -103,6 +105,6 @@ test("a saved size outside the grip's limits is held inside them", function()
 	local ns = load()
 	ns.db.profile.windowSize = { width = 5000, height = 10 }
 	Stub.SetBackpack({ cloak() })
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	check(ns.UI.frame ~= nil, "the window still opens")
 end)

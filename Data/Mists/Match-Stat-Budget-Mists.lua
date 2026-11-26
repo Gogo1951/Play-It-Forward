@@ -9,7 +9,7 @@ ns.Data.STAT_BUDGET = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, Mists of Pandaria Classic 5.5.4.70631
+	2026-11-26, wago.tools, Mists of Pandaria Classic 5.5.4.71089
 
 Notes
 	- What one point of each stat costs on an item, in primary-stat points, so a weight

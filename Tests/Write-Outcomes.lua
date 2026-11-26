@@ -1,9 +1,9 @@
 --[[
-	Rewrites Tests/Outcomes/ from the matcher as it stands, accepting every row that moved.
-	Review the diff before committing it: that diff is the change in who gets what.
+	Rewrites Tests/Outcomes/, accepting every row that moved; the diff is the change in who gets what.
 
-		cd Play-It-Forward && lua Tests/Write-Outcomes.lua
+		cd Play-It-Forward && lua5.1 Tests/Write-Outcomes.lua
 ]]
+
 
 local here = arg[0]:match("^(.*)/[^/]*$") or "."
 package.path = here .. "/?.lua;" .. package.path

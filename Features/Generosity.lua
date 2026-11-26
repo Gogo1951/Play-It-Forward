@@ -1,22 +1,11 @@
 local _, ns = ...
 
---[[
-	The account-wide giving tally: what this account has given away through Play It Forward, kept
-	in ns.db.global.stats so a lifetime total survives Reset Profile and spans every character.
-	RecordSend is the only writer, called from Features/Mail-Sender.lua once per successful send.
-	No networking here; Features/Generosity-Broadcast.lua broadcasts what Get returns.
-]]
+-- In global, so the lifetime tally survives Reset Profile and spans characters. RecordSend is the only writer.
 
 ns.Generosity = {}
 local Generosity = ns.Generosity
 
---[[
-	One successful mailing. quantity is the stack size, captured at send time in the mailer because
-	the bag slot is already stale by MAIL_SUCCESS -- a stack of 20 waters must count as 20, not 1.
-	Item level counts for equippable gear only; a consumable adds nothing to it. Value is the vendor
-	sell price times the stack. C_Item.GetItemInfo is warm here (the item was just scanned and
-	mailed), but every read off it is guarded for nil rather than assumed.
-]]
+-- quantity comes from the mailer: the slot is stale by MAIL_SUCCESS. Item info is warm here but still nil-guarded.
 function Generosity:RecordSend(link, quantity)
 	if not ns.db then
 		return
@@ -37,7 +26,6 @@ function Generosity:RecordSend(link, quantity)
 	stats.value = stats.value + (select(11, C_Item.GetItemInfo(link)) or 0) * count
 end
 
--- The four counters, for Generosity:BlockLines (the Badge of Generosity panel and the unit tooltip) and the broadcast.
 function Generosity:Get()
 	local stats = ns.db and ns.db.global.stats
 	if not stats then

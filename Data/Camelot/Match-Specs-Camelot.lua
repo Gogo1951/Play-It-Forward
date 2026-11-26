@@ -196,7 +196,7 @@ ns.Data.SPECS = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, WoW Forever 1.60.1.70888
+	2026-11-26, wago.tools, WoW Forever 1.60.1.71139
 
 Notes
 	- Stat priorities from Icy Veins' PvE stat priority page for each spec, read as a levelling

@@ -3,7 +3,6 @@ local L = ns.L
 
 local GetColor = ns.GetColor
 
--- The recipient dropdown on each row and the choices the player makes in it. Extends ns.UI.
 local UI = ns.UI
 local MatchList = ns.MatchList
 local Picker = ns.Picker
@@ -13,20 +12,8 @@ local Picker = ns.Picker
 --------------------------------------------------------------------------------
 
 --[[
-	Split from opening the picker so Tests/Manual-Assignment.lua can read the options without a
-	frame. Nobody is hidden and nobody is gated: the notes beside a name ("has one", "refused",
-	"recent") are information for the player's judgment, and every candidate can be picked.
-
-	FOUR BLOCKS, divided by a hairline:
-	  1. Why the row reads as it does (UI:PickerHeader): how many candidates and the classes it
-	     best fits, or the reason nobody can be offered it. The button itself has no hover tooltip;
-	     opening the list is how the player gets to the reasoning, right beside the names.
-	  2. The names, grouped under Your Alts, Your Guild and Strangers and indented beneath each
-	     heading, an empty group left out. Your alts read alphabetically: they are your own
-	     characters, found by name. The other two keep ranked order, best match first.
-	  3. What to do instead of giving it away: Disenchant, on any gear row, and Keep Item.
-	  4. Rescan for Better Match, a targeted search for this one item. Left out where it cannot
-	     help (UI:RescanCanHelp), since the press would spend a /who on names nobody could pick.
+	Nobody is hidden or gated: the notes beside names are information, and every candidate can be
+	picked. Your Alts read alphabetically, being found by name; the other groups keep ranked order.
 ]]
 local SECTIONS = {
 	{ rank = 1, key = "PICKER_SECTION_ALTS", alphabetical = true },
@@ -34,7 +21,7 @@ local SECTIONS = {
 	{ rank = 3, key = "PICKER_SECTION_STRANGERS" },
 }
 
--- The disenchant icon, inline at the font's height: on a row's dropdown and on the picker's own Disenchant entry.
+-- Features/UI-Window.lua reads it at draw time; this file loads after it.
 UI.DISENCHANT_ICON = "|TInterface\\Icons\\INV_Enchant_Disenchant:0|t"
 
 local function ByName(a, b)
@@ -44,11 +31,7 @@ local function ByName(a, b)
 	return (a.level or 0) < (b.level or 0)
 end
 
---[[
-	The Disenchant entry. Any gear row, not only a Kept one: whether a green is worth more as
-	dust than as somebody's upgrade is the player's call. Consumables never disenchant, so they
-	get none. With no enchanter picked it still shows, disabled, saying where one is picked.
-]]
+-- Any gear row, not only Kept: dust or upgrade is the player's call. Disabled, not hidden, with no enchanter.
 local function DisenchantOption(item)
 	if item.kind ~= "gear" then
 		return nil
@@ -56,15 +39,19 @@ local function DisenchantOption(item)
 	local enchanter = ns.Alts:DisenchantRecipient()
 	if not enchanter then
 		return {
+			kind = "choice",
 			text = UI.DISENCHANT_ICON .. " " .. ns.DisenchantName(),
 			tooltip = L["PICKER_DISENCHANT_NONE_DESCRIPTION"],
 			disabled = true,
+			selected = false,
 		}
 	end
 	return {
+		kind = "choice",
 		text = UI.DISENCHANT_ICON .. " " .. ns.DisenchantName(),
 		tooltip = L["PICKER_DISENCHANT_DESCRIPTION"]:format(ns.ColorName(enchanter.name, enchanter.class)),
 		pick = enchanter,
+		selected = (item.recipient and item.recipient.disenchant) and true or false,
 	}
 end
 
@@ -182,16 +169,14 @@ end
 function UI:PickerOptions(item)
 	local options = {}
 
-	local body = GetColor("BODY")
 	for _, line in ipairs(self:PickerHeader(item)) do
-		table.insert(options, { text = body .. line .. "|r", info = true, disabled = true })
+		table.insert(options, { kind = "description", text = line, info = true, disabled = true })
 	end
-	table.insert(options, { separator = true, disabled = true })
 
 	local candidates = self:Candidates(item)
 	local empty = (#candidates == 0) and EmptyLine(item)
 	if empty then
-		table.insert(options, { text = GetColor("TITLE") .. empty .. "|r", info = true, disabled = true })
+		table.insert(options, { kind = "note", text = empty, info = true, disabled = true })
 	end
 
 	local bySection = {}
@@ -213,8 +198,10 @@ function UI:PickerOptions(item)
 				table.sort(sorted, ByName)
 				people = sorted
 			end
+			-- The kit puts the spacer above each heading that sets a group apart.
 			table.insert(options, {
-				text = GetColor("TITLE") .. L[section.key] .. "|r",
+				kind = "section",
+				text = L[section.key],
 				header = true,
 				disabled = true,
 			})
@@ -224,57 +211,77 @@ function UI:PickerOptions(item)
 		end
 	end
 
-	-- Skipped when nothing came between it and the header's own.
-	if not options[#options].separator then
-		table.insert(options, { separator = true, disabled = true })
-	end
+	-- The list's only line, under a spacer, above what to do instead of giving it to a name.
+	table.insert(options, { kind = "spacer", disabled = true })
+	table.insert(options, { kind = "separator", separator = true, disabled = true })
 	local disenchant = DisenchantOption(item)
 	if disenchant then
 		table.insert(options, disenchant)
 	end
 	-- Keep Item clears the name and unticks the row, the same as unticking its checkbox.
 	table.insert(options, {
+		kind = "choice",
 		text = L["PICKER_KEEP_OPTION"],
 		clear = true,
+		selected = (item.pinned and not item.recipient) and true or false,
 	})
 
 	if self:RescanCanHelp(item) then
-		table.insert(options, { separator = true, disabled = true })
 		table.insert(options, {
-			text = GetColor("INFO") .. L["PICKER_FIND_FOR_ITEM"] .. "|r",
+			kind = "action",
+			text = L["PICKER_FIND_FOR_ITEM"],
 			findForItem = true,
 		})
 	end
 
+	-- Never Give Away puts the item on the never-give list (ns.Bags:NeverGive), which says so in chat.
+	table.insert(options, {
+		kind = "action",
+		text = L["NEVER_GIVE_AWAY"],
+		neverGive = true,
+	})
+
 	return options
 end
 
--- One name in the picker: class-colored, its level, and the note that applies to it, if any.
+-- The short note on a name's right, gray, and what hovering it says.
+local NOTES = {
+	refused = { tag = "PICKER_TAG_REFUSED", description = "PICKER_NOTE_REFUSED_DESCRIPTION" },
+	held = { tag = "PICKER_TAG_HAS_ONE", description = "PICKER_NOTE_HAS_ONE_DESCRIPTION" },
+	recent = { tag = "PICKER_TAG_RECENT", description = "PICKER_NOTE_RECENT_DESCRIPTION" },
+}
+
+-- One name in the picker: class-colored, its level, and on its right the note that applies to it, if any.
 function UI:AddCandidateOption(options, item, person)
 	local held = not person.alt and MatchList:AssignedTo()[person.name] and MatchList:AssignedTo()[person.name] ~= item
 	local refused = not ns.Fairness:IsReachable(person.name)
 
-	-- The note stays short to fit the row; hovering the name says what it means.
-	local noteKey
+	local note
 	if refused then
-		noteKey = "PICKER_NOTE_REFUSED"
+		note = NOTES.refused
 	elseif held then
-		noteKey = "PICKER_NOTE_HAS_ONE"
+		note = NOTES.held
 	elseif not person.alt and not ns.Fairness:IsFresh(person.name, person.level) then
-		noteKey = "PICKER_NOTE_RECENT"
+		note = NOTES.recent
 	end
-	local note = noteKey and (" " .. GetColor("MUTED") .. L[noteKey] .. "|r") or ""
 
-	-- No class word: the name is already class-colored, and the color says it.
+	local current = item.recipient
+	local selected = (current and not current.disenchant and current.name == person.name) and true or false
+
+	--[[
+		No class word: the name is already class-colored, and the color says it. Every name is a
+		choice, so each keeps the check's room on the left and the names line up, noted or not. The
+		note sits on the right, gray, except on the picked name; its tooltip still says what it means.
+	]]
 	table.insert(options, {
-		text = ("%s " .. GetColor("MUTED") .. "(%d)|r%s"):format(
-			ns.ColorName(person.name, person.class),
-			person.level,
-			note
-		),
-		tooltip = noteKey and L[noteKey .. "_DESCRIPTION"],
+		kind = "choice",
+		text = ("%s " .. GetColor("MUTED") .. "(%d)|r"):format(ns.ColorName(person.name, person.class), person.level),
+		right = (note and not selected) and L[note.tag] or nil,
+		rightColor = "MUTED",
+		tooltip = note and L[note.description],
 		pick = person,
 		indent = true,
+		selected = selected,
 	})
 end
 
@@ -305,6 +312,13 @@ end
 function UI:PickerSelect(item, option)
 	if option.findForItem then
 		self:FindRecipientsForItem(item)
+		return
+	end
+	if option.neverGive then
+		-- The never-give list's helper, guarded so the entry is harmless on a build without it.
+		if ns.Bags and ns.Bags.NeverGive then
+			ns.Bags:NeverGive(item.itemID)
+		end
 		return
 	end
 	self:SetRecipient(item, option.pick)
