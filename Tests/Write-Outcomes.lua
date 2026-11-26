@@ -4,7 +4,6 @@
 		cd Play-It-Forward && lua5.1 Tests/Write-Outcomes.lua
 ]]
 
-
 local here = arg[0]:match("^(.*)/[^/]*$") or "."
 package.path = here .. "/?.lua;" .. package.path
 
