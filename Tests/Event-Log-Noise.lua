@@ -1,17 +1,9 @@
 --[[
-	Keeping the event log readable when a registered event is a firehose.
-
-	UI_ERROR_MESSAGE is registered because a mail refusal sometimes arrives as a red
-	error rather than as MAIL_FAILED, and CHAT_MSG_ADDON because that is how a nearby
-	player's Generosity totals reach us. Both carry vastly more traffic than that: every
-	combat error the client prints, and every other add-on's chatter in a city.
-
-	Logged raw they evict the mailbox and /who entries the log exists to carry, out of a
-	buffer that holds 500. Excluded outright, the log can never show a refusal arriving
-	or a peer answering, which is exactly what a "why doesn't sharing work" report needs.
-
-	So the filter keeps what the add-on acts on and counts the rest, classifying with the
-	live handlers' own tests. These cases pin the three outcomes.
+	Keeping the event log readable when a registered event is a firehose. UI_ERROR_MESSAGE and
+	CHAT_MSG_ADDON carry every combat error and every add-on's chatter; logged raw they evict the
+	mailbox and /who entries from a 500-entry buffer, and excluded they hide the refusals and peers
+	a report needs. So the filter keeps what the add-on acts on and counts the rest, classifying
+	with the live handlers' own tests.
 ]]
 
 local Harness = require("Harness")

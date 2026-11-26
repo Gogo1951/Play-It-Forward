@@ -1,15 +1,9 @@
 --[[
-	What a stranger actually receives.
+	What a stranger receives: the stock copy from Locales/enUS.lua until the player replaces either
+	half on Mail Message Text, then their words with a one-line footer naming the add-on.
 
-	The stock copy lives in Locales/enUS.lua, and the player may replace either half on the
-	Mail Message Text panel. So what is worth checking is that the mailer sends the stock text
-	unchanged until they do, and sends their words once they have, with the one-line
-	footer under them so the add-on is still named.
-
-	LENGTH IS ENFORCED. 500 characters, confirmed against a live mailbox: past it the
-	mail arrives cut short, and what goes missing is the end -- the sign-off first. This
-	failing is the only thing standing between an edit to the copy and a stranger
-	receiving three and a half paragraphs.
+	Length is enforced: 500 characters, confirmed against a live mailbox. Past it the mail arrives
+	cut short from the end, sign-off first.
 ]]
 
 local Harness = require("Harness")
@@ -40,10 +34,7 @@ test("an untouched profile sends the stock body", function()
 	equal(ns.db.profile.appendLeftoverNote, nil, "and no disenchant note")
 end)
 
---[[
-	A value left by the earlier editor must not come back. The panel saves under new
-	keys, so what a player wrote years ago and forgot does not reach a stranger now.
-]]
+-- The panel saves under new keys, so values from the earlier editor never reach a stranger.
 test("a subject and body left in an old profile are ignored", function()
 	local ns = load()
 	ns.db.profile.subject = "Something Else"
@@ -67,11 +58,8 @@ test("the body fits what a mailbox will carry", function()
 	check(#body <= BODY_MAX, ("%d chars, cap %d -- the sign-off is what gets cut"):format(#body, BODY_MAX))
 end)
 
---[[
-	Headroom, not just a pass. Sitting four characters under the cap means the next
-	wording change breaks it, and the person making that change is reading the copy
-	rather than counting it.
-]]
+-- Headroom, not just a pass: four characters under the cap and the next wording change breaks it.
+
 test("the body has room for an edit", function()
 	local ns = load()
 	local body = ns.Distributor:BuildBody()

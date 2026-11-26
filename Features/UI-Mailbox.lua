@@ -6,25 +6,12 @@ local UI = ns.UI
 local MatchList = ns.MatchList
 local Picker = ns.Picker
 
---[[
-	The mailbox lifecycle: finding recipients, handing the list to the mailer, and the open/close
-	behavior around a mailbox. Features/UI-Window.lua owns the frame itself and
-	Features/UI-Assignment.lua everything the player edits by hand; all three extend the one
-	ns.UI table, so this file loads after them.
-]]
-
 --------------------------------------------------------------------------------
 -- Recipient Finding
 --------------------------------------------------------------------------------
 
---[[
-	Free candidates next to a /who -- no button press, and none of the /who throttle -- so this runs
-	on its own rather than being spent from the search plan. The client throttles GuildRoster
-	itself: a request it drops is answered by the next GUILD_ROSTER_UPDATE instead. The answer lands on GUILD_ROSTER_UPDATE some
-	frames later, which is why it re-assigns rather than returning anything.
-]]
+-- No press and no /who throttle. The live roster lands frames later, so the callback re-assigns.
 local function PullGuild()
-	-- Your other characters' guilds, as saved: no server round trip, so they join at once.
 	if MatchList:AddResults(ns.Guild:ReadSaved()) > 0 then
 		UI:Assign()
 	end
@@ -41,10 +28,6 @@ local function PullGuild()
 	end)
 end
 
---[[
-	Your own characters, read from what each recorded at its last login: no server round trip, so
-	this assigns at once rather than waiting on an answer the way the roster does.
-]]
 local function PullAlts()
 	if MatchList:AddResults(ns.Alts:Read()) > 0 then
 		UI:Assign()
@@ -52,13 +35,12 @@ local function PullAlts()
 end
 
 --[[
-	Whether Find Recipients has been pressed since the window opened. Until it has, nothing is
-	matched: the roster found earlier in the session is kept, but a list opened on yesterday's
-	pairings reads as a search that already happened. Cleared when the window closes.
+	Nothing is matched until Find Recipients is pressed after opening: a list opened on old
+	pairings reads as a search that already happened.
 ]]
 local matching = false
 
--- SendWho only fires from a real button press, so this is a stepper: one press, one query.
+-- SendWho fires only from a real press: one press, one query.
 function UI:FindRecipients()
 	Picker:Close()
 
@@ -68,21 +50,13 @@ function UI:FindRecipients()
 	end
 	matching = true
 
-	--[[
-		Only on a fresh plan, not on every press that steps one: the roster costs no press but does
-		cost a walk of every member with a last-online call apiece, and cannot change much in five
-		seconds.
-	]]
+	-- Fresh plans only: the roster walk costs a last-online call per member.
 	PullGuild()
 	PullAlts()
 
 	--[[
-		Pools are deliberately not wiped: one query returns at most ~49 people, so pressing again
-		adds to the roster. Nothing empties it inside a session; it dies with the session.
-
-		The query goes out before anything is matched, so every press is a fresh search: matching
-		first would prune the plan to whatever the saved names left uncovered, often nothing. Its
-		answer matches against the whole roster, saved names included.
+		Pools are never wiped in a session; each press adds. The query goes out before matching,
+		which would prune the plan to whatever the saved names left uncovered.
 	]]
 	local bands = MatchList:RescanBags()
 	if #bands == 0 then
@@ -94,10 +68,7 @@ function UI:FindRecipients()
 	self:Step()
 end
 
---[[
-	Whether a query has gone out since the window opened, for the status line: before one, it says
-	which button comes first. Cleared with the plan when the window closes.
-]]
+-- For the status line: before any query, it says which button comes first.
 local searched = false
 
 function UI:HasSearched()
@@ -106,10 +77,7 @@ end
 
 function UI:Step()
 	local sent = ns.Who:Step(function(results)
-		--[[
-			nil results: a query that never answered, back on the plan. Matched anyway, from the
-			names already found, so a lost answer does not leave the press showing nothing.
-		]]
+		-- nil: the query timed out and is back on the plan. Matched anyway from the names already found.
 		if results then
 			MatchList:AddResults(results)
 		end
@@ -121,17 +89,12 @@ function UI:Step()
 		searched = true
 		self:LockFindButton()
 	else
-		-- Nothing went out, so no answer will match: match from the names already found.
 		self:Assign()
 	end
 	self:SyncFindButton()
 end
 
---[[
-	Held for the full throttle rather than until the answer arrives: a reply often lands in under
-	a second, and re-enabling then offers a press the server refuses for another four. Reads
-	Who.THROTTLE rather than a five written here, so the lock cannot undercut the rule it reflects.
-]]
+-- Held for the full Who.THROTTLE, not until the answer: a quick reply would offer a press the server refuses.
 local searchTimer
 
 function UI:LockFindButton()
@@ -154,26 +117,14 @@ function UI:LockFindButton()
 end
 
 --[[
-	The first press of a targeted search for this item alone, from the bottom of its dropdown --
-	for when the names on offer are not good enough. It asks who this item is actually for and
-	goes looking for exactly them: the zones that fit the item's band first, then one class per
-	press anywhere in the world, best fit first. Matcher:TargetedBands makes "of the Bear" plate
-	a c-"Warrior" query before a c-"Paladin" one.
-
-	It RETASKS the plan: whatever the previous plan still held is dropped for this item's
-	attempts. Find Recipients steps the rest; every answer drops the attempts that could only turn
-	up somebody who ties or loses to the row's holder, and the search ends when none is left
-	(MatchList:Assign). The next fresh press rebuilds the full
-	plan for every item. Runs off the picker click, which is the hardware event SendWho demands.
+	Retasks the plan to this item's attempts; Find Recipients steps the rest. Runs off the picker
+	click, the hardware event SendWho demands.
 ]]
 function UI:FindRecipientsForItem(item)
 	if not self:RescanCanHelp(item) then
 		return
 	end
-	--[[
-		Asked before retasking, never after: a press that cannot send now would drop the plan
-		standing and cancel the query in flight, then sit silent until the next Find Recipients.
-	]]
+	-- Before retasking: a press that cannot send would drop the plan and cancel the query in flight.
 	local inFlight = ns.Who:InFlight()
 	local wait = ns.Who:ThrottleLeft()
 	if inFlight or wait > 0 then
@@ -187,14 +138,11 @@ function UI:FindRecipientsForItem(item)
 end
 
 --[[
-	Puts the button's one name back once the Searching lock is up. ONE NAME, whatever the plan
-	holds: chat lines such as WHO_BLOCKED tell the player to press Find Recipients, so a second
-	label for a mid-plan press would leave them looking for a button that is not on screen.
-
-	Silent while the lock is up, or the callback would put a live-looking label on a dead button.
+	One label whatever the plan holds: chat lines such as WHO_BLOCKED name Find Recipients. Silent
+	while locked, or a callback would put a live-looking label on a dead button.
 ]]
 function UI:SyncFindButton()
-	-- Before the lock check: the line says how many searches are left even while the button waits.
+	-- Before the lock check, so the status updates while the button waits.
 	self:SyncStatus()
 	if searchTimer then
 		return
@@ -202,10 +150,7 @@ function UI:SyncFindButton()
 	self.frame.findButton:SetText(L["BUTTON_FIND_RECIPIENTS"])
 end
 
---[[
-	The allocation is Features/Match-List.lua's; putting it on screen is what belongs here. Before
-	Find Recipients this window only redraws: a hand pick or a rescan must not match the rest.
-]]
+-- Before Find Recipients this only redraws: a hand pick or a rescan must not match the rest.
 function UI:Assign()
 	if matching then
 		MatchList:Assign()
@@ -215,15 +160,8 @@ function UI:Assign()
 end
 
 --[[
-	A rescan must re-plan: the level bands the plan was built from are exactly what a giftability
-	setting changes. Pools are untouched, so nobody already found is lost.
-
-	Plan before assigning. Assign clears the plan once no gift is left unmatched, so this order
-	lets it drop a plan that turned out unnecessary; the other would leave a plan standing that
-	nothing is searching for.
-
-	With no frame built there is nothing to re-read into, so the scan is only marked stale for
-	the next time the window opens.
+	Re-plans, since a giftability setting changes the bands. Plan before assigning: Assign clears a
+	plan no gift still needs, and the other order would leave one standing.
 ]]
 function UI:Rescan()
 	if not self.frame then
@@ -244,11 +182,7 @@ function UI:Distribute()
 	local jobs = {}
 	local body = ns.Distributor:BuildBody()
 
-	--[[
-		One mail per person per run, enforced rather than merely intended: MatchList:Assign already holds to
-		it, but two greens in one stranger's mailbox reads as spam and cannot be taken back. Your own
-		alts are exempt, and so is a row the player set by hand: their choice always stands.
-	]]
+	-- Enforced again though Assign holds to it: two parcels to one stranger read as spam and cannot be undone.
 	local claimed = {}
 	for _, item in ipairs(MatchList:Items()) do
 		if item.send and item.recipient then
@@ -268,14 +202,8 @@ function UI:Distribute()
 					recipient = who,
 					level = item.recipient.level,
 					class = item.recipient.class,
-					-- Your own alt: no Generosity credit for mailing yourself.
 					alt = item.recipient.alt,
-					--[[
-						No copy to your own alts. A letter with text stays in the mailbox after
-						its item is taken, so every item sent with a note leaves one more letter
-						to delete by hand. With no body the letter clears itself once emptied, and
-						the subject is left to the item name the client writes on attach.
-					]]
+					-- No text to alts: a letter with text stays in the mailbox after its item is taken.
 					subject = (not item.recipient.alt) and ns.Distributor:BuildSubject() or nil,
 					body = (not item.recipient.alt) and body or nil,
 				})
@@ -283,10 +211,7 @@ function UI:Distribute()
 		end
 	end
 
-	--[[
-		Off the list on confirmation, never from a re-read of the bags: MAIL_SUCCESS lands before
-		the client empties the slot, so a scan then finds the item still there and re-pairs it.
-	]]
+	-- Off the list on confirmation, never a bag re-read: MAIL_SUCCESS lands before the slot empties.
 	ns.Distributor.onProgress = function(_, _, job, ok)
 		if ok then
 			UI:Delivered(job)
@@ -303,10 +228,7 @@ function UI:Distribute()
 	ns.Distributor:Start(jobs)
 end
 
---[[
-	By the uid it was mailed under: two copies of one green share a name and a link, so matching
-	on anything less removes whichever the loop reached first.
-]]
+-- By uid: two copies of one green share a name and a link.
 function UI:Delivered(job)
 	local item, index = MatchList:FindByKey(job.uid or "")
 	if item then
@@ -319,25 +241,20 @@ function UI:Delivered(job)
 end
 
 --[[
-	ONLY WHEN THE NAME ITSELF IS THE PROBLEM. A plain MAIL_FAILED can be a full mailbox or a bad
-	moment on the server, and the pairing may have been set by hand: discarding that choice because
-	one send bounced is a second failure. The item stays on the list either way.
+	Only when the name itself is the problem: a plain MAIL_FAILED can be a full mailbox, and the
+	pairing may be a hand pick.
 ]]
 function UI:ReleaseRecipient(job)
 	local item = MatchList:FindByKey(job.uid or "")
 	if item and item.recipient and not ns.Fairness:IsReachable(item.recipient.name) then
-		-- Still ticked and back to auto-assignment: the player never unticked it.
+		-- Still ticked: the player never unticked it.
 		MatchList:AssignedTo()[item.recipient.name] = nil
 		item.recipient, item.send, item.pinned = nil, true, false
 	end
 	self:Refresh()
 end
 
---[[
-	Deliberately does not re-read the bags: the client is still emptying the slots, so a scan here
-	could only put delivered items back. BAG_UPDATE marks the scan stale and the next mailbox picks
-	them up. Re-assigning is worth it: every recipient just went on cooldown.
-]]
+-- No bag re-read: the slots are still emptying, so a scan would put delivered items back.
 function UI:AfterDelivery()
 	if not self.frame then
 		return
@@ -349,18 +266,10 @@ end
 -- Opening and closing
 --------------------------------------------------------------------------------
 
---[[
-	Only the player opens the window, from the tab on the mailbox's edge or its menu. A mailbox
-	opening never does (Features/UI-Mailbox-Tab.lua).
-
-	It does not scan: every caller reads the bags first.
-]]
+-- Does not scan: every caller reads the bags first.
 function UI:Open()
 	self:BuildFrame()
-	--[[
-		Just past the tab, on whichever mailbox window it sits on: Blizzard's, or TSM's in its
-		place. Not once the player has dragged the window: it opens where they left it.
-	]]
+	-- Same placement as PlaceAtFirst (Features/UI-Window.lua); skipped once the player has moved it.
 	local host = self:MailboxTabHost()
 	if host and not ns.db.profile.windowPos.point then
 		self.frame:ClearAllPoints()
@@ -368,54 +277,32 @@ function UI:Open()
 	end
 	self.frame:Show()
 
-	--[[
-		Not matched on open: closing let the automatic names go (UI:OnClosed), and they come back
-		only on Find Recipients, matched from everyone found this session plus whoever that press
-		finds. The status line asks for the press. Hand picks are pinned and show as they were.
-
-		The guild and your alts are still read in, since they cost no press: the dropdown offers
-		them for a hand pick, and UI:Assign leaves them unpaired until the press.
-	]]
+	-- Read in for hand picks; UI:Assign leaves them unpaired until Find Recipients.
 	PullGuild()
 	PullAlts()
 	self:Refresh()
 	self:SyncMailboxTab()
 end
 
---[[
-	Closing is manual: the X, Escape, or a second click on the mailbox tab. Nothing else hides this
-	window.
-
-	Every route lands in UI:OnClosed rather than here, because Escape reaches the frame through
-	UISpecialFrames and never touches this function -- see the registration in
-	Features/UI-Window.lua. This is left as the name every caller already knows.
-]]
+-- Escape never reaches here: it hides the frame, and OnHide runs UI:OnClosed.
 function UI:Close()
 	Picker:Close()
 	if not self.frame then
 		return
 	end
 	self.frame:Hide()
-	-- Called here as well as from OnHide, for the window that was closed without ever being shown.
+	-- Also for a window closed without ever being shown, where OnHide never fires.
 	self:OnClosed()
 end
 
---[[
-	Everything that has to stop when the window goes away, wherever the close came from. Every line
-	is idempotent, which is what lets both paths call it: Escape arrives through OnHide, the X and
-	the mailbox tab through UI:Close, and either of those runs both.
-]]
+-- Idempotent: UI:Close runs it and so does OnHide.
 function UI:OnClosed()
 	if not self.frame then
 		return
 	end
 	Picker:Close()
 	ns.Distributor:Stop()
-	ns.Who:Clear() -- a half-finished query plan is stale
-	--[[
-		The automatic names go too, and nothing is matched again until the next Find Recipients;
-		the roster behind them is kept for the session, and so is every hand pick.
-	]]
+	ns.Who:Clear()
 	MatchList:ReleaseAutomatic()
 	matching = false
 	searched = false
@@ -424,17 +311,8 @@ function UI:OnClosed()
 end
 
 --[[
-	NEVER HOOK MailFrame's OnHide TO CLOSE THIS WINDOW. TSM and other mail replacements hide
-	MailFrame and show their own, killing this window the instant it opens -- and any UIPanel
-	the client raises can swap MailFrame out from under it (the Who panel would, which is why
-	Features/Recipients-Who.lua deafens it for the life of a query).
-
-	So it never auto-closes. Match-List holds items, roster and pairings at file scope, so matches
-	survive walking away.
-
-	A mailbox opening only puts the tab up. A window left open from before is redrawn, so its
-	Distribute button and status line read the mailbox now in reach. Not mid-run: the sender's own
-	MailFrame:Show reports the mailbox again, and the run owns the window until it ends.
+	Never close the window from MailFrame hiding: TSM and the Who panel hide it at a mailbox. Not
+	redrawn mid-run: the sender's own MailFrame:Show reports the mailbox again.
 ]]
 local function MailboxOpened()
 	ns.mailboxOpen = true
@@ -445,26 +323,20 @@ local function MailboxOpened()
 end
 
 --[[
-	The window outlives the mailbox, so the tab follows the mailbox, not the window.
-
-	Deferred a frame rather than read inline: the mailbox closing and the interaction manager
-	reporting it ended are not guaranteed to land in that order, and UI:SyncDistributeButton asks the
-	manager. Reading it too early answers for the mailbox that is still closing and leaves the
-	button live -- the exact state this exists to clear.
+	Deferred a frame: the close and the interaction manager's report can land in either order, and
+	read too early ns.AtMailbox() still answers for the closing mailbox.
 ]]
 local function RecheckDistribute()
 	C_Timer.After(0, function()
 		--[[
-			A run cannot survive the mailbox closing: nothing else clears Distributor.busy before
-			its full RESULT_TIMEOUT, so Distribute answers "still sending" until then. Asked of the
-			interaction manager, never of MailFrame, which hides spuriously under TSM and while the
-			Who panel is up -- killing a live run on one of those is worse than the hang.
+			Stopped here, or Distributor.busy holds for a full RESULT_TIMEOUT. Never gated on MailFrame,
+			which hides spuriously under TSM and the Who panel.
 		]]
 		if not ns.AtMailbox() and (ns.Distributor.busy or ns.Distributor.queue[1]) then
 			ns.Distributor:Stop()
 			ns:PrintMessage(L["MAIL_MAILBOX_CLOSED"])
 		end
-		-- Gone from the mailbox, whether or not MAIL_CLOSED said so: a send still awaiting its result is not one the next visit waits on.
+		-- The next visit never waits on a send still awaiting its result.
 		if not ns.AtMailbox() then
 			ns.Distributor._awaiting = nil
 		end
@@ -480,24 +352,15 @@ local function MailboxClosed()
 	RecheckDistribute()
 end
 
---[[
-	Track the mailbox, not its frame: MailFrame:IsShown reports wrongly under TSM and while the
-	Who panel is up, and this flag is what Distributor gates on.
-]]
 local function OnPlayerLogin()
 	if MailFrame then
 		MailFrame:HookScript("OnShow", MailboxOpened)
 		--[[
-			A prompt to re-check, NOT a claim the mailbox closed, and deliberately not
-			MailboxClosed: this frame hides spuriously, and flipping ns.mailboxOpen on that would
-			lie to the Distributor.
-
-			Here because MAIL_CLOSED does not fire on every way out -- Escape and another add-on
-			closing the frame both skip it, and on Era the interaction-manager events are not
-			registered. A spurious hide costs one re-check that changes nothing.
+			A re-check, not MailboxClosed: this frame hides spuriously. Needed because MAIL_CLOSED
+			skips some ways out, and Era has no interaction-manager events.
 		]]
 		MailFrame:HookScript("OnHide", RecheckDistribute)
-		-- Read by the Mailbox diagnostics report: no MailFrame at login means no hooks all session.
+		-- For the Mailbox diagnostics report: no MailFrame at login means no hooks all session.
 		UI.mailFrameHooked = true
 	end
 end
@@ -513,12 +376,7 @@ local function OnMailClosed()
 end
 ns.On("MAIL_CLOSED", OnMailClosed)
 
---[[
-	A gift nobody opened comes back to the inbox after 30 days with no word of why. One chat line
-	names what came back and from whom, once a session per gift; once the item is taken out of
-	the inbox it is in the bags and offered again like any other. Reads the inbox headers only:
-	opening a mail's body would mark it read, and nothing is ever taken out of the inbox.
-]]
+-- Returned gifts, said once a session each. Headers only: reading a body would mark the mail read.
 local returnedSaid = {}
 
 local function IsGiftSubject(subject)
@@ -544,7 +402,7 @@ end
 ns.On("MAIL_INBOX_UPDATE", OnMailInboxUpdate)
 
 if ns.EXPANSION >= 2 or ns.FLAVOR == "Camelot" then
-	-- TBC and later, and Forever's Retail client: the interaction manager reports the mailbox as well.
+	-- TBC and later, and Forever's Retail client.
 	local MAILBOX_INTERACTION = Enum.PlayerInteractionType.MailInfo
 	local function OnPlayerInteractionManagerFrameShow(t)
 		if t == MAILBOX_INTERACTION then

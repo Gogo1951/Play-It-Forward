@@ -1,11 +1,7 @@
 --[[
-	Mists of Pandaria Classic: the flavor whose classes, specs and stats differ most from the
-	Classic trees every other flavor scores on.
-
-	What is pinned is what Mists changed: monks exist, a druid has four specs and is scored on the
-	same three-tree scale as everybody else, a hunter holds no melee weapon and wants no Intellect,
-	relics are gone, the ratings Mists gear is made of are read, and the TOC loads exactly the
-	folder these cases load.
+	Mists of Pandaria Classic, the flavor differing most: monks exist, a druid's four specs score on
+	the three-tree scale, a hunter holds no melee weapon and wants no Intellect, relics are gone,
+	Mists ratings are read, and the TOC loads exactly the folder these cases load.
 ]]
 
 local Harness = require("Harness")

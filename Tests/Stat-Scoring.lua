@@ -1,15 +1,7 @@
 --[[
-	Who wants which stat, and what that does to where an item goes.
-
-	Spirit used to score nothing for anybody. That was a deliberate choice and it had a
-	consequence the author wanted changed: "of the Whale", Stamina and Spirit, scored
-	zero for every class in the game and went to the vendor pile, when a leveling
-	priest would have worn it.
-
-	Weighting it moves more than the score. Matcher:Coverage measures a class against
-	every stat some class ranks, so making Spirit rank at all changes the denominator on
-	every item carrying it -- that is the half of this change worth pinning, because it
-	decides who competes rather than merely who scores.
+	Who wants which stat. Spirit is weighted so "of the Whale" reaches a leveling priest. That moves
+	more than the score: Matcher:Coverage measures a class against every stat some class ranks, so
+	Spirit ranking at all changes who competes on every item carrying it.
 ]]
 
 local Harness = require("Harness")
@@ -20,16 +12,7 @@ local function load()
 	return Harness.LoadAddon(ADDON_ROOT)
 end
 
---[[
-	A cloth chest carrying whatever stats a case is about, built through
-	Scanner:Describe rather than by hand.
-
-	Describe is the add-on's own path from a link to a scored record, so the fixture
-	normalizes stats exactly the way a real bag scan does. The first version of this
-	helper copied three ITEM_MOD_* keys across itself and silently dropped every other
-	one, which turned an Agility-and-Stamina roll into a pure Stamina item and made a
-	case about melee gear quietly test nothing of the sort.
-]]
+-- Built through Scanner:Describe, so stats normalize exactly as a real bag scan does.
 local function cloth(ns, stats, name)
 	local def = Stub.Item({
 		name = name or "Test Robe",
@@ -57,13 +40,9 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	What Features/Match-Derivations.lua's THE SCALE block promises is pinned here, and this is the
-	pin it names: the gap between a secondary 2 and a competes 3 is one point and it is
-	categorical, because ns.Data.CLASS_SHARE puts the admission line at 2.1 against a
-	primary 6. Move the constant and one of these fails rather than every item quietly
-	rerouting.
-
-	Read off ns.Data rather than restated, so tuning a number is what breaks the case.
+	Pins Features/Match-Derivations.lua's THE SCALE: a secondary 2 and a competes 3 sit either side
+	of ns.Data.CLASS_SHARE's 2.1 admission line against a primary 6. Read off ns.Data, so moving a
+	constant fails here rather than quietly rerouting every item.
 ]]
 test("the point scale straddles the contention line", function()
 	local ns = load()
@@ -75,15 +54,13 @@ test("the point scale straddles the contention line", function()
 end)
 
 --[[
-	The same boundary as behavior, on a real pair rather than on the numbers alone: a
-	rogue builds on Agility at 6 and a warrior takes it at 2, so the rogue competes and
-	the warrior stays a fallback. The weights are asserted too, or a later edit to either
-	would leave the case passing while proving something else.
+	The same boundary on a real pair: the rogue builds on Agility, the warrior takes it as a
+	secondary. The weights are asserted too, so an edit to either cannot leave this passing.
 ]]
 test("a secondary weight is admitted but never in contention against a primary", function()
 	local ns = load()
 	equal(ns.Data.STAT_WEIGHTS.ROGUE.AGILITY, 6, "the rogue's primary")
-	-- Fury alone gears for it now that Arms ships off.
+	-- Fury alone gears for it; Arms ships off.
 	equal(ns.Data.STAT_WEIGHTS.WARRIOR.AGILITY, 1, "the warrior's secondary")
 
 	local verdict = ns.Matcher:Verdict(cloth(ns, { ITEM_MOD_AGILITY_SHORT = 8 }))
@@ -128,10 +105,6 @@ test("only warlocks rank stamina", function()
 	end
 end)
 
---[[
-	The reason for weighting it. A plain Stamina green scored zero for every class in
-	the game and went to the vendor; a leveling warlock wears it.
-]]
 test("a plain stamina item reaches a warlock instead of the vendor", function()
 	local ns = load()
 	local item = cloth(ns, { ITEM_MOD_STAMINA_SHORT = 6 }, "Stamina Robe")
@@ -142,17 +115,9 @@ test("a plain stamina item reaches a warlock instead of the vendor", function()
 end)
 
 --[[
-	THE REASON THE WEIGHT IS 2 AND NOT 3, pinned so it cannot drift back.
-
-	This file's own scale puts 3 at "competes: ABOVE the line, enters the top bucket"
-	and 2 at "secondary: admitted and offered, never outranks a primary". Stamina sits
-	on most items in the game, so a warlock crossing that line competes for nearly all
-	of them -- measured at 3, he entered contention for Agility and Strength rolls he
-	can do nothing with, and took them off rogues and warriors on level proximity.
-
-	At 2 his claim on a two-stat melee roll lands below classShare's boundary and he
-	stays out of it. The item the weight was actually for, a plain Stamina green, is
-	his either way: he is the only class with any claim on it at all.
+	Why the warlock's Stamina weight is 2, not 3: Stamina is on most items, so at 3 he competes for
+	Agility and Strength rolls he cannot use and takes them on level proximity. At 2 he stays below
+	classShare's line, and a plain Stamina green is still his alone.
 ]]
 test("a warlock does not compete for melee gear that happens to carry stamina", function()
 	local ns = load()
@@ -170,18 +135,11 @@ test("a warlock does not compete for melee gear that happens to carry stamina", 
 	check(contains(bear, "DRUID"), "a feral druid, the nearest strength wearer to cloth, competes for it")
 end)
 
---[[
-	The Intellect-and-Spirit case is no longer decided here. Coverage demoted the mage
-	off an "of the Owl" roll, because a priest ranks both halves and he ranks one -- and
-	The Match-Rules files overrule that with "Intellect and Spirit is for priests,
-	mages and druids". Tests/Item-Rules.lua owns it; what is left below is the same
-	mechanism on a combination no rule names.
-]]
+-- Tests/Item-Rules.lua owns Intellect and Spirit; below is coverage on combinations no rule names.
 
 --[[
-	Coverage leaves Stamina out: it is on most items in the game and everybody's, so counting it
-	put a mage at half of the commonest caster suffix and out of contention for it. The warlock,
-	who weighs the Stamina too, is still the best fit; every Intellect cloth wearer competes.
+	Coverage leaves Stamina out: it is on most items, and counting it would put a mage at half of
+	the commonest caster suffix. The warlock, who weighs Stamina too, is still the best fit.
 ]]
 test("of the Eagle is every intellect class's, best for a warlock", function()
 	local ns = load()
@@ -204,10 +162,6 @@ end)
 -- Where the items go
 --------------------------------------------------------------------------------
 
---[[
-	The case that prompted the change. The talent trees used to name this item as
-	the pure example of something every class scores zero on.
-]]
 test("of the Whale reaches a priest instead of the vendor", function()
 	local ns = load()
 	local whale = cloth(ns, { ITEM_MOD_STAMINA_SHORT = 4, ITEM_MOD_SPIRIT_SHORT = 4 }, "Robe of the Whale")
@@ -219,21 +173,8 @@ test("of the Whale reaches a priest instead of the vendor", function()
 	check(not contains(verdict.admitted, "MAGE"), "a mage cannot: he scores nothing on it")
 end)
 
---[[
-	The side effect, pinned deliberately rather than discovered later.
+-- Weighting Spirit must not touch an item carrying none; coverage is where that could go wrong.
 
-	Coverage measures a class against every stat some class ranks. Once spirit ranks,
-	a mage uses half of an Intellect-and-Spirit roll where a priest uses all of it, and
-	COVERAGE_MAJORITY is strictly greater than half -- so the mage drops out of
-	contention on the commonest caster suffix in the game.
-
-	He stays admitted, which is the part that matters: he still receives it when no
-	priest is in range, so the item is never stuck for want of the one class.
-]]
---[[
-	A pure Intellect item must not have moved. Nothing about weighting spirit should
-	touch an item that carries none, and coverage is exactly where that could go wrong.
-]]
 test("an item with no spirit on it is unchanged", function()
 	local ns = load()
 	local plain = cloth(ns, { ITEM_MOD_INTELLECT_SHORT = 9 }, "Plain Robe")

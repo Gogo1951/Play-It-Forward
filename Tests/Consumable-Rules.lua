@@ -1,15 +1,9 @@
 --[[
-	Who a potion goes to.
+	Who a potion goes to. The rules are shaped like the gear ones in Tests/Item-Rules.lua: they set
+	who is in contention and leave everybody else admitted behind.
 
-	Consumables were never prioritised at all: every class the potion could be used by
-	was in contention, so a healing potion was as likely to reach a mage as a warrior.
-	The two rules here are the same shape as the gear ones in Tests/Item-Rules.lua --
-	they set who is in contention and leave everybody else admitted behind them.
-
-	POTIONS, NOT FOOD, and that distinction is the whole care in this file.
-	Each flavor folder's Scan-Food file holds 42 things that restore mana, and all of them are
-	water. A rule reading only "restores mana" would put mages behind priests for water,
-	when a mage drinks more of it than anybody in the game.
+	Potions, not food: the Scan-Food files' mana restorers are all water, and a rule reading only
+	"restores mana" would put mages behind priests for it.
 ]]
 
 local Harness = require("Harness")
@@ -99,9 +93,8 @@ end)
 
 --------------------------------------------------------------------------------
 
---[[
-	The reason the rules name a form. Water restores mana and is not a potion.
-]]
+-- Why the rules name a form: water restores mana and is not a potion.
+
 test("water is not a mana potion", function()
 	local ns = load()
 	local verdict = ns.Matcher:Verdict(consumable("MANA", "FOOD"))

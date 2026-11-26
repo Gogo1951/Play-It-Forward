@@ -1,14 +1,7 @@
 --[[
-	The band an item searches in.
-
-	Fixed rather than configurable. It was two sliders, and they interact in a way a
-	slider does not show: set Widest Level Gap to 1 with Closest at 1 and the band
-	collapses to a single level, which is what silently starved a shield of paladins on
-	1.15.8 while every other line of its report said the matching was right.
-
-	Two below the requirement to one below it. A level 19 sword reaches a 17 or an 18,
-	prefers the 18, and never reaches a 19 -- somebody who can already equip it is not
-	who this add-on is for.
+	The band an item searches in: fixed, two below the requirement to one below it, never a level
+	that can already equip it. Fixed rather than configurable, since two sliders could silently
+	collapse it to a single level.
 ]]
 
 local Harness = require("Harness")
@@ -53,10 +46,6 @@ test("the gaps are constants, not settings", function()
 	equal(ns.db.profile.levelOffsetHigh, nil, "nor this one")
 end)
 
---[[
-	The point of the band, stated as the three cases the author named: a 17 may get a
-	level 19 sword, an 18 is the one it should go to, and a 19 never sees it.
-]]
 test("a 19 sword reaches a 17, prefers an 18, and never reaches a 19", function()
 	local ns = load()
 	local item = sword(ns, 19)
@@ -83,11 +72,7 @@ test("a 19 sword reaches a 17, prefers an 18, and never reaches a 19", function(
 	end
 end)
 
---[[
-	Matcher:LevelBand clamps at level 1, so a very low requirement can still produce a
-	single-level band. That is arithmetic rather than a misconfiguration now, and the
-	report says so without pointing at a setting that no longer exists.
-]]
+-- Matcher:LevelBand clamps at level 1, so a very low requirement can still give a single-level band.
 test("a very low requirement clamps rather than going below level 1", function()
 	local ns = load()
 	local lo, hi = ns.Matcher:LevelBand(sword(ns, 2))
@@ -105,10 +90,6 @@ test("the report shows the band and the gaps behind it", function()
 	check(report:find("gaps of 2 and 1"), "and the two numbers behind it")
 end)
 
---[[
-	The matching itself was never at fault in the shield case, and it is worth keeping
-	pinned: a paladin is admitted for an Intellect shield and it scores as a gift.
-]]
 test("a paladin is a real recipient for an intellect shield", function()
 	local ns = load()
 	local def = Stub.Item({

@@ -1,13 +1,7 @@
 --[[
-	Which hand a weapon is for, and who that makes it for.
-
-	A rogue can only ever use one-handers. A druid can only ever use two-handers and a
-	short list of one-hand maces and daggers. So a good one-hand mace landing on a druid
-	is a waste twice over: the rogue who wanted it got nothing, and the druid would have
-	been just as happy with the staff nobody else can use.
-
-	Soft, like every other rule here. Everyone the weights allowed stays behind the named
-	classes, so a one-hander still reaches a druid when no warrior or rogue is in range.
+	Which hand a weapon is for. A rogue only uses one-handers; a druid two-handers and a short list
+	of one-hand maces and daggers, so a one-hand mace on a druid is wasted twice. Soft like every
+	rule: a one-hander still reaches a druid when no warrior or rogue is in range.
 ]]
 
 local Harness = require("Harness")
@@ -19,9 +13,8 @@ local function load()
 end
 
 --[[
-	Statless on purpose for the handedness cases. A weapon nobody has a stat claim on
-	falls to "offer it to everyone", which is the widest field a rule can be asked to
-	narrow -- and it is the plain white and low-green weapons this add-on mails most.
+	Statless on purpose: an unclaimed weapon falls to everyone, the widest field a rule narrows,
+	and the plain weapons this add-on mails most.
 ]]
 local function weapon(ns, subclassID, equipLoc, stats)
 	local def = Stub.Item({
@@ -66,13 +59,8 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	One-handers split two ways rather than one. Swords, maces, axes and fists are shared
-	by the warrior and the rogue, the two classes that fight one-handed; daggers are the
-	rogue's alone. Both rules name him, and what differs is who stands beside him.
-
-	The dagger rule is what keeps the shared pool from costing him anything: every class
-	in the game can be handed a dagger and he is the only one who builds around them, so
-	he still has a kind of his own to fall back on.
+	Swords, maces, axes and fists are shared by warrior and rogue; daggers are the rogue's alone.
+	Every class can hold a dagger but only he builds around them, so he keeps a kind of his own.
 ]]
 test("a one-hand sword is a warrior's and a rogue's", function()
 	local ns = load()
@@ -82,10 +70,7 @@ test("a one-hand sword is a warrior's and a rogue's", function()
 	check(contains(verdict.admitted, "PALADIN"), "a paladin is behind them, not excluded")
 end)
 
---[[
-	The case the author named first. A druid is group 1 for one-hand maces, so the
-	weights put him level with a warrior and ahead of a rogue.
-]]
+-- A druid is group 1 for one-hand maces, so the weights alone put him level with a warrior.
 test("a one-hand mace stops going to druids first", function()
 	local ns = load()
 	local verdict = ns.Matcher:Verdict(weapon(ns, MACE_1H, ONE_HAND, {}))
@@ -95,10 +80,8 @@ test("a one-hand mace stops going to druids first", function()
 end)
 
 --[[
-	A rogue cannot train axes in Era or TBC, so the matrix never admits him and the rule
-	naming him costs nothing. This is the general guarantee under both weapon rules: a
-	preference can only name classes scoring already admitted, so an entry that cannot
-	apply falls out on its own rather than needing a second list to exclude it.
+	A rogue cannot train axes in Era or TBC, so naming him costs nothing: a preference only names
+	classes scoring already admitted, so an entry that cannot apply falls out on its own.
 ]]
 test("a one-hand axe is the warrior's alone", function()
 	local ns = load()
@@ -117,11 +100,7 @@ test("a dagger is a rogue's", function()
 	check(contains(verdict.admitted, "MAGE"), "and so can a mage, who holds them as stat sticks")
 end)
 
---[[
-	Fist weapons sit in the shared one-hand pool because they are 1H melee like the rest
-	of it -- a combat rogue wants one about as much as a warrior does, which is now what
-	the rule says rather than something only the fallback order expressed.
-]]
+-- Fist weapons are 1H melee like the rest of the shared pool: a combat rogue wants one as much as a warrior.
 test("a fist weapon goes with the one-hand group", function()
 	local ns = load()
 	local verdict = ns.Matcher:Verdict(weapon(ns, FIST, ONE_HAND, {}))
@@ -131,9 +110,8 @@ test("a fist weapon goes with the one-hand group", function()
 end)
 
 --[[
-	A hunter is not eligible for two-hand maces, so this case reaches only the druid and
-	the paladin however the rule is written. It is the counterpart to the two-hand sword
-	below: between them they pin that each named class is kept to what it can carry.
+	A hunter cannot use two-hand maces; with the two-hand sword below, this pins each named class
+	to what it can carry.
 ]]
 test("a two-hand mace is for druids and paladins", function()
 	local ns = load()
@@ -157,11 +135,7 @@ test("a two-hand sword is a hunter's too", function()
 	check(not contains(verdict.admitted, "DRUID"), "and a druid cannot hold a two-hand sword")
 end)
 
---[[
-	A polearm is two-handed and is a hunter's before it is a two-hander. Under the
-	two-hand rule it went to a paladin with the hunter behind him, which is backwards:
-	an Agility polearm is one of the few melee weapons a hunter genuinely wants.
-]]
+-- An Agility polearm is one of the few melee weapons a hunter wants, so it is his before the two-hand rule's.
 test("a polearm is a hunter's", function()
 	local ns = load()
 	local verdict = ns.Matcher:Verdict(weapon(ns, POLEARM, TWO_HAND, {}))
@@ -212,9 +186,8 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	A staff is two-handed and is not a two-hander in the sense that matters. It is the
-	caster weapon: putting it under the two-hand rule would hand every one to a druid
-	ahead of the mages, priests and warlocks who have nothing else.
+	A staff is the caster weapon: under the two-hand rule every one would go to a druid ahead of
+	the mages, priests and warlocks.
 ]]
 test("a staff is not caught by the two-hand rule", function()
 	local ns = load()
@@ -235,13 +208,8 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	A ranged weapon carrying nothing anybody ranks. The matrix admits a warrior, a hunter
-	and a rogue equally and the baseline gives all three the same score, so before this
-	rule the tie fell to whoever came first in the class list -- the warrior, every time.
-
-	A hunter's whole damage comes out of that slot in all three of his specs; a warrior or
-	a rogue carries a gun to pull with. When there is nothing on the item to separate them,
-	that is the tiebreak.
+	With nothing on the item to rank, warrior, hunter and rogue tie and class-list order would
+	pick the warrior. A hunter's damage comes from that slot, so he takes the tie.
 ]]
 test("a statless gun is the hunter's", function()
 	local ns = load()
@@ -260,10 +228,8 @@ test("a statless bow and crossbow are the same case", function()
 end)
 
 --[[
-	The limit of the rule, and it is the whole reason it is written on "unclaimed" rather
-	than on "ranged": a bow is good for everyone and stats decide it. Agility is a rogue's
-	stat as much as a hunter's, so both compete -- the hunter has no special claim once
-	there is something on the item to read.
+	Why the rule is on "unclaimed", not "ranged": once a bow carries stats they decide it, and
+	Agility is a rogue's stat as much as a hunter's.
 ]]
 test("an agility bow is still shared with the rogue", function()
 	local ns = load()
@@ -307,9 +273,8 @@ test("the unclaimed rule never carries a veto", function()
 end)
 
 --[[
-	A caster one-hander cannot reach the rule at all, because a warrior and a rogue have
-	no claim on Intellect and so are never admitted. Worth pinning: it is why the rule
-	needs no "unless it has caster stats" clause.
+	A caster one-hander never reaches the rule, since warrior and rogue are never admitted on
+	Intellect: why the rule needs no "unless it has caster stats" clause.
 ]]
 test("an intellect one-hander is left to the casters", function()
 	local ns = load()
@@ -321,11 +286,8 @@ test("an intellect one-hander is left to the casters", function()
 end)
 
 --[[
-	Features/Match-Derivations.lua warns about this above ns.Data.UsesWeaponMatrix:
-	WeaponKey falls through to the weapon subclass table for anything it does not
-	recognize, and armor subclass 1 is cloth while weapon subclass 1 is a two-hand axe.
-	A rule reading the key without checking the item is a weapon would call every cloth
-	chest a two-hander.
+	WeaponKey falls through to the weapon subclass table, and armor subclass 1 (cloth) is weapon
+	subclass 1 (two-hand axe): a rule must check the item is a weapon.
 ]]
 test("a cloth chest is not mistaken for a two-hand axe", function()
 	local ns = load()
@@ -347,13 +309,8 @@ test("a cloth chest is not mistaken for a two-hand axe", function()
 end)
 
 --[[
-	Stat rules are written above the weapon rules and the first match wins.
-
-	An Intellect-and-Spirit two-hand mace matches both: the caster rule names priests,
-	mages and druids, the two-hand rule names druids and paladins. Only a druid can hold
-	one of the three the caster rule names, so the caster rule winning leaves the druid
-	alone -- and the paladin the two-hand rule would have added is the tell. (The Spirit
-	veto now removes him outright as well.)
+	Stat rules come before weapon rules and the first match wins. An Intellect-and-Spirit two-hand
+	mace matches both; the caster rule leaves the druid alone, so a paladin would be the tell.
 ]]
 test("a stat rule still beats a weapon rule", function()
 	local ns = load()
@@ -412,10 +369,10 @@ test("Classic's faction table leaves shamans off the Alliance side", function()
 end)
 
 --[[
-	Relics are armor with no material, so the armor path once offered them to whoever their stats
-	suited: a Stamina idol went to a warlock. Each routes through the weapon matrix to the one class
-	that can equip it, and a statless one still finds that class on the baseline.
+	Relics are armor with no material; each routes through the weapon matrix to the one class that
+	can equip it, a statless one too.
 ]]
+
 local function relic(ns, subclassID, stats)
 	local def = Stub.Item({
 		name = "Test Relic",

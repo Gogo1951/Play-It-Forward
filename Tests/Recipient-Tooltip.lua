@@ -76,7 +76,8 @@ test("no verdict or no contenders adds nothing", function()
 	equal(ns.UI:BestFitLine({ verdict = { contenders = {} } }), nil, "nobody in the running")
 end)
 
--- The reported case: cloth anyone can wear must not read as suiting every class.
+-- Cloth anyone can wear must not read as suiting every class.
+
 test("a real Intellect cloak names its casters, not everyone", function()
 	local ns = load()
 	Stub.SetBackpack({

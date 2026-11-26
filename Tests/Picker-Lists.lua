@@ -1,11 +1,6 @@
 --[[
-	The dropdown lists on the shared menu plate: each row's recipient list and the top bar's
-	Level Rule, Gear and Disenchant lists, all through ns.Picker.
-
-	Spacers group the rows and one line sits above Disenchant, Keep Item, Rescan for Better
-	Match and Never Give Away. The row's current choice carries the check. A note sits on a
-	name's right in gray, without brackets, and keeps its tooltip. Never Give Away hands the
-	item to the never-give list and closes the list.
+	The dropdown lists on the shared menu plate, all through ns.Picker: each row's recipient list
+	and the top bar's Level Rule, Gear and Disenchant lists.
 ]]
 
 local Harness = require("Harness")

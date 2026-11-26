@@ -1,16 +1,11 @@
 --[[
-	The rules that sit on top of the point tables.
+	The rules on top of the point tables. Weights cannot say "this combination of stats is that
+	class's item": Intellect with Spirit is caster gear, Agility with Intellect a hunter's, Stamina
+	alone a warlock's.
 
-	Weights say how much a class wants a stat. They cannot say "this combination of
-	stats is that class's item", and a few combinations are exactly that: Intellect with
-	Spirit is caster gear, Agility with Intellect is a hunter's, Stamina on its own is a
-	warlock's. Scoring reaches those answers most of the time and reached the wrong one
-	often enough to be worth stating outright -- an "of the Owl" staff went to a hunter.
+	Three strengths, and which one a rule takes is the whole of its design:
 
-	THREE STRENGTHS, and which one a rule takes is the whole of its design.
-
-	  prefer  names who the item is for; everybody else drops behind them. An owl staff
-	          still reaches a hunter when no priest, mage or druid is in range.
+	  prefer  names who the item is for; everybody else drops behind them as fallbacks.
 	  demote  names who must not lead, and leaves them as fallbacks. Intellect against
 	          warriors and rogues: a Strength-and-Intellect chest is not theirs, but a
 	          sub-40 mail one has nobody else in heavy armor and a vendor helps less.
@@ -79,9 +74,6 @@ end
 
 --------------------------------------------------------------------------------
 
---[[
-	The item that prompted all of this.
-]]
 test("an owl staff is for priests, mages and druids", function()
 	local ns = load()
 	local verdict = ns.Matcher:Verdict(staff(ns, { ITEM_MOD_INTELLECT_SHORT = 3, ITEM_MOD_SPIRIT_SHORT = 3 }))
@@ -133,9 +125,8 @@ test("a priest outranks a hunter for the same staff", function()
 	item.bandLo, item.bandHi = ns.Matcher:LevelBand(item)
 
 	--[[
-		Both inside the band a level 20 item searches, 18 to 19, and the hunter is the
-		one closer to equipping it. The rule has to beat level proximity or it only wins
-		the cases the weights were already winning.
+		Both inside a level 20 item's band and the hunter closer to equipping it: the rule must beat
+		level proximity, or it only wins what the weights already win.
 	]]
 	local pools = {
 		HUNTER = { { name = "Hunty", level = 19, class = "HUNTER", shuffle = 0.1 } },
@@ -202,10 +193,7 @@ test("spirit never reaches a shaman or a paladin", function()
 	check(not contains(verdict.eligible, "PALADIN"), "no paladin")
 end)
 
---[[
-	Darkmist Pants of Healing went to a mage: the spell damage riding on a healing roll gave
-	him a claim, and with no priest in range the soft cloth-healing rule had nobody to name.
-]]
+-- The spell damage riding on a healing roll gives a mage a claim, so a soft rule is not enough.
 test("healing gear never reaches a mage or a warlock", function()
 	local ns = load()
 	local verdict = ns.Matcher:Verdict(cloth(ns, {
@@ -219,7 +207,6 @@ test("healing gear never reaches a mage or a warlock", function()
 	check(contains(verdict.admitted, "DRUID"), "a druid is still a fallback")
 end)
 
--- Imposing Gloves of the Eagle went to a level 39 hunter on the Intellect alone.
 test("intellect without agility never reaches a hunter", function()
 	local ns = load()
 	local leather = Stub.Item({
@@ -301,14 +288,8 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	Neither class has an Intellect weight, so a pure caster item already excluded them
-	by scoring: no claim, no admission. What did not exclude them was a hybrid roll --
-	"of the Gorilla" is Strength and Intellect, the warrior claims the Strength half, and
-	in he goes. The weapon rules made it worse by promoting him into contention there.
-
-	Vetoed rather than demoted, matching the Spirit rule above: a warrior gets nothing
-	whatsoever out of Intellect, so being the last resort for it is not a fallback, it is
-	the same wrong answer arriving later.
+	Neither class weights Intellect, but a hybrid roll like "of the Gorilla" admits the warrior on
+	its Strength half, and the weapon rules would promote him into contention.
 ]]
 test("a warrior and a rogue never lead on anything carrying intellect", function()
 	local ns = Harness.AllSpecs(load())
@@ -340,11 +321,7 @@ test("the melee half keeps them as fallbacks, not leaders", function()
 	check(contains(falcon.contenders, "HUNTER"), "and it is a hunter's roll anyway")
 end)
 
---[[
-	A weapon rule can only name classes that were admitted, so the veto reaches through
-	it. This is the case the sanity check found: a Strength-and-Intellect one-hander had
-	the warrior contending because the weapon rule promoted him.
-]]
+-- A Strength-and-Intellect one-hander: the weapon rule must not promote the demoted warrior.
 test("a weapon rule cannot promote a demoted class", function()
 	local ns = load()
 	local def = Stub.Item({
@@ -364,10 +341,7 @@ test("a weapon rule cannot promote a demoted class", function()
 	check(contains(verdict.admitted, "WARRIOR"), "he is still there, just not leading")
 end)
 
---[[
-	The case that named this: the dagger rule leads with the rogue, and an Intellect
-	dagger is a caster's. Demotion runs after the weapon rules for exactly this.
-]]
+-- The dagger rule leads with the rogue, so demotion runs after the weapon rules.
 test("an intellect dagger goes to the casters, not the rogue", function()
 	local ns = load()
 	local def = Stub.Item({
@@ -412,9 +386,8 @@ test("agility and intellect mail past 40 is a hunter's", function()
 end)
 
 --[[
-	The reason this is a demotion and not a veto. Mail below 40 is worn by warriors and
-	paladins alone, and on Era the Horde has no paladin -- so a veto left an Intellect
-	mail chest with nobody at all and sent it to a vendor.
+	Why a demotion, not a veto: mail below 40 is worn by warriors and paladins alone, and Era's
+	Horde has no paladin, so a veto would leave an Intellect mail chest with nobody.
 ]]
 test("intellect gear with nobody else left still reaches a warrior", function()
 	local ns = load()
@@ -466,14 +439,9 @@ test("a statless weapon is still theirs", function()
 end)
 
 --[[
-	Demotion falls back through the scoring, not past it.
-
-	A Strength-and-Intellect one-hand mace: coverage says the paladin and the druid are
-	the only classes using all of it -- each has a Strength tree and an Intellect one --
-	and everybody else uses half. The one-hand weapon rule then replaces the contenders
-	with the warrior, and removing him has to land back on coverage's answer -- reaching
-	for the admitted list instead handed the lead to a priest as well, a class coverage
-	had just demoted, promoted by the step meant to demote somebody else.
+	Demotion falls back through the scoring, not past it. On a Strength-and-Intellect one-hand
+	mace coverage leads with paladin and druid; the weapon rule swaps in the warrior, and demoting
+	him must land back on coverage's answer, not the admitted list (which includes a priest).
 ]]
 test("demoting a class does not promote the ones scoring already ruled out", function()
 	local ns = Harness.AllSpecs(load())
@@ -496,11 +464,10 @@ test("demoting a class does not promote the ones scoring already ruled out", fun
 end)
 
 --[[
-	Same shape on a dagger, where no paladin can hold one. The dagger rule names the rogue
-	and the Intellect rule demotes him, so the fallback is the scoring's own answer: the
-	druid, the one class left using both halves. The hunter is vetoed and the mage uses
-	half; reaching for the admitted list put either of them in the lead.
+	Same shape on a dagger: the dagger rule names the rogue, the Intellect rule demotes him, and
+	the fallback is the scoring's answer, the druid, the one class left using both halves.
 ]]
+
 test("the fallback keeps the class-share line", function()
 	local ns = Harness.AllSpecs(load())
 	local def = Stub.Item({

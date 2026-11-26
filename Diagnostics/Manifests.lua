@@ -7,10 +7,8 @@ local GetClientHeader = ns.GetDiagnosticClientHeader
 --------------------------------------------------------------------------------
 
 --[[
-	Existence and shape checks only: read-only, no side effects, no protected calls. One row per
-	API reached through a compatibility guard, plus the load-bearing calls the scan, search and
-	mail loops depend on. Where the add-on picks between two, both halves are rows, and a FAIL on
-	one half is the report saying which branch that client took.
+	Existence and shape checks only: read-only, no protected calls. Where the add-on picks between
+	two, both halves are rows, and a FAIL on one half says which branch this client took.
 ]]
 ns.DIAGNOSTIC_API_CHECKS = {
 	-- { label, testFunction }
@@ -89,11 +87,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(GetItemStats) == "function"
 		end,
 	},
-	--[[
-		Both halves of ns.ReadTooltip in Features/Utilities.lua, which the stat reader and Validate
-		Data share. Classic Era has no C_TooltipInfo.GetHyperlink, so a FAIL there is the report
-		saying which path that client takes; the hidden tooltip is the other path, not a leftover.
-	]]
+	-- Both halves of ns.ReadTooltip: Classic Era lacks C_TooltipInfo.GetHyperlink, so a FAIL there is a route.
 	{
 		"C_TooltipInfo.GetHyperlink",
 		function()
@@ -115,10 +109,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 				and type(GameTooltip.NumLines) == "function"
 		end,
 	},
-	--[[
-		The stat-name globals the locale-safe "+9 Intellect" path reads, probed one at a time:
-		a missing one falls back to the English name and that stat silently never parses.
-	]]
+	-- One missing falls back to the English name, and that stat silently never parses.
 	{
 		"ITEM_MOD_STRENGTH_SHORT",
 		function()
@@ -149,11 +140,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(ITEM_MOD_SPIRIT_SHORT) == "string"
 		end,
 	},
-	--[[
-		The client's own "Use:", "Chance on hit:" and "Set:" wording, which Features/Scan-Tooltip.lua
-		skips so an on-use or set-bonus effect is never scored as a stat. One missing lets that
-		effect's numbers count as the item's stats.
-	]]
+	-- One missing lets an on-use or set-bonus effect's numbers count as the item's stats.
 	{
 		"Non-stat tooltip line prefixes",
 		function()
@@ -166,21 +153,14 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return #missing == 0, #missing > 0 and ("missing: " .. table.concat(missing, ", ")) or nil
 		end,
 	},
-	--[[
-		The "Requires Argent Dawn - Friendly" format the reputation gate in Features/Scan-Tooltip.lua
-		is built from. Without it no reputation requirement is seen, and those items are offered to
-		strangers who cannot use them.
-	]]
+	-- Without it no reputation requirement is seen, and those items go to strangers who cannot use them.
 	{
 		"ITEM_REQ_REPUTATION",
 		function()
 			return type(ITEM_REQ_REPUTATION) == "string" and ITEM_REQ_REPUTATION:find("%%%d*%$?s") ~= nil
 		end,
 	},
-	--[[
-		English-only by decision for the initial release, so this row fails on any other locale on
-		purpose: a known limitation, rather than items quietly scoring low for no visible reason.
-	]]
+	-- English-only by decision, so this row fails on purpose on any other locale.
 	{
 		"Equip-effect parsing available (English clients only)",
 		function()
@@ -188,12 +168,9 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-		Both of Blizzard's line formats, fed literal strings so these rows need no item, no cache
-		and no tooltip and cannot flake. The second is the regression guard: a random-suffix roll
-		arrives color-wrapped rather than bare, and when that form stops parsing every rolled green
-		reads as statless and lands in the vendor pile while fixed-stat items carry on working. The
-		escapes are built from parts because this label is printed into a font string unescaped,
-		where a literal color code would be swallowed as formatting.
+		Literal lines, so these rows need no item or cache and cannot flake. The color-wrapped one guards
+		random suffixes: when it stops parsing, every rolled green reads as statless. Its escape is built
+		from parts because the label prints unescaped, where a literal color code would be swallowed.
 	]]
 	{
 		"Tooltip stat parsing, plain line",
@@ -210,10 +187,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return stats.INTELLECT == 15
 		end,
 	},
-	--[[
-		The third line format, and the one with no GetItemStats key behind it: a per-school damage
-		roll exists only as tooltip text, so nothing covers it when this stops parsing.
-	]]
+	-- Per-school damage exists only as tooltip text, with no GetItemStats key behind it.
 	{
 		"Tooltip stat parsing, equip-effect line",
 		function()
@@ -227,12 +201,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return stats.NATURE == 7
 		end,
 	},
-	--[[
-		End to end on a real item: the rows above prove the parser understands the formats, this
-		proves the client still hands back lines at all. Reports which path the read took, observed
-		rather than inferred from whether the API exists, and separates the two ways this fails --
-		a naked character, and a client that stopped handing back lines.
-	]]
+	-- End to end: the client still hands back lines for a real item, and which path read them.
 	{
 		"Tooltip readable for a real item (needs something equipped)",
 		function()
@@ -246,10 +215,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return false, "nothing equipped to read"
 		end,
 	},
-	--[[
-		Load-bearing for routing, not display: the eligible class list is built from the client
-		flavor and this answer, so a nil faction silently widens every item's candidate list.
-	]]
+	-- A nil faction silently widens every item's candidate list.
 	{
 		"UnitFactionGroup returns this player's faction",
 		function()
@@ -258,10 +224,8 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-		Load-bearing for identity. ns.QualifyPlayerName is what tells two sightings of one player
-		apart from two players -- /who answers bare where the guild roster qualifies the same
-		character -- and pooling one person twice means two parcels in one mailbox. Reports which
-		read answered, since the second is a retry on an unresolved realm rather than a fallback.
+		ns.QualifyPlayerName tells two sightings of one player from two players (/who answers bare, the
+		roster qualified); pooling one twice means two parcels. The second read is a retry, not a fallback.
 	]]
 	{
 		"Realm name for the identity key",
@@ -277,11 +241,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return false, "neither GetNormalizedRealmName nor GetRealmName answered"
 		end,
 	},
-	--[[
-		The other half of the identity key, and the name your own characters are told apart from
-		strangers by: ns.PlayerName reads "First Last" where the client names characters that way
-		(WoW Forever) and the bare name everywhere else. Reports which route answered.
-	]]
+	-- ns.PlayerName reads "First Last" on WoW Forever and the bare name elsewhere; the row says which route answered.
 	{
 		"This character's name as mail addresses it",
 		function()
@@ -332,11 +292,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_FriendList) == "table" and type(C_FriendList.GetNumWhoResults) == "function"
 		end,
 	},
-	--[[
-		The race-to-faction table Features/Recipients-Who.lua drops other-faction results by. Without
-		either reader it drops nobody, so on Forever, which answers /who with both factions, every
-		send to the other side is refused.
-	]]
+	-- With neither, nobody is dropped: on Forever, whose /who answers both factions, every cross-faction send is refused.
 	{
 		"C_CreatureInfo.GetRaceInfo",
 		function()
@@ -349,10 +305,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_CreatureInfo) == "table" and type(C_CreatureInfo.GetFactionInfo) == "function"
 		end,
 	},
-	--[[
-		The class names /who filters on and results are read back by. A missing table drops every
-		result the client sends without a class token as an unreadable class.
-	]]
+	-- A missing table drops every result sent without a class token as unreadable.
 	{
 		"LOCALIZED_CLASS_NAMES_MALE",
 		function()
@@ -365,11 +318,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(LOCALIZED_CLASS_NAMES_FEMALE) == "table"
 		end,
 	},
-	--[[
-		Where ns.SpecName finds the spec names the Recipients and My Alts panels show. Every source it
-		lacks falls back to the add-on's own SPEC_* string (README-Notes), so a FAIL is a route, not a
-		fault: the row says which names the game supplied.
-	]]
+	-- A FAIL is a route, not a fault: ns.SpecName falls back to the add-on's SPEC_* strings (README-Notes).
 	{
 		"Spec names from the client",
 		function()
@@ -389,11 +338,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return false, "no client source: every spec uses the add-on's names"
 		end,
 	},
-	--[[
-		How Features/Recipients-Alts.lua reads the spec this character records for the My Alts panel:
-		the chosen specialization from Mists on, the talent tree holding the most points before it.
-		Mists keeps GetNumTalentTabs only as a stub that throws, which this row would show as a FAIL.
-	]]
+	-- Mists keeps GetNumTalentTabs only as a stub that throws, which shows here as a FAIL.
 	{
 		"This character's spec, recorded for My Alts",
 		function()
@@ -417,10 +362,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return true, string.format("via the talent tree with the most points, of %d", count)
 		end,
 	},
-	--[[
-		How Features/Recipients-Who.lua finds the frames to quiet: every listener the client names, or
-		the named FriendsFrame and WhoFrame where it cannot, which misses whatever else opens the panel.
-	]]
+	-- Without the listener list only FriendsFrame and WhoFrame are quieted, missing whatever else opens the panel.
 	{
 		"Frames that hear a /who answer",
 		function()
@@ -430,10 +372,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return false, "falling back to the named FriendsFrame and WhoFrame"
 		end,
 	},
-	--[[
-		The Blizzard frames Features/Recipients-Who.lua quiets for the life of a query, so the Who
-		panel never opens over the mailbox and closes it.
-	]]
+	-- Quieted for each query, so the Who panel never opens over the mailbox and closes it.
 	{
 		"Who panel frames quieted during a query",
 		function()
@@ -447,11 +386,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(FriendsFrame) == "table" and type(FriendsFrame.IsEventRegistered) == "function", detail
 		end,
 	},
-	--[[
-		GetGuildRosterLastOnline is the one to watch: the activity window in
-		Features/Recipients-Guild.lua is built entirely on it, and without it every offline member
-		reads as too stale to mail, leaving the guild to contribute only whoever is logged in.
-	]]
+	-- Without GetGuildRosterLastOnline every offline member reads as too stale to mail.
 	{
 		"GetGuildRosterInfo",
 		function()
@@ -490,20 +425,14 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(GetGuildInfo) == "function"
 		end,
 	},
-	--[[
-		Picks the connected-realm clusters from the flavor folder's Recipients-Realms file on the
-		clients that ship one per region. Without it no alt on a connected realm is offered.
-	]]
+	-- Without it no alt on a connected realm is offered.
 	{
 		"GetCurrentRegion",
 		function()
 			return type(GetCurrentRegion) == "function"
 		end,
 	},
-	--[[
-		The level cap Features/Recipients-Alts.lua unticks an alt at by default. With neither, every
-		alt starts ticked, including the ones at the cap.
-	]]
+	-- With neither, every alt starts ticked, including those at the level cap.
 	{
 		"Level cap for My Alts",
 		function()
@@ -544,11 +473,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(GetSendMailItem) == "function"
 		end,
 	},
-	--[[
-		The Blizzard mail frames the Distribute path touches, each guarded in
-		Features/Mail-Sender.lua. A mail add-on that replaces them shows here: with SendMailFrame
-		missing, every run ends as "the mail panel is closed" before an item is touched.
-	]]
+	-- A mail add-on replacing these shows here: without SendMailFrame every run ends as "the mail panel is closed".
 	{
 		"MailFrame",
 		function()
@@ -573,11 +498,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(SendMailSubjectEditBox) == "table"
 		end,
 	},
-	--[[
-		How the mailbox tab finds TradeSkillMaster's mail window, which has no name: TSM's API says
-		whether it is up, and the client names the file a frame was made in. A client without
-		GetSourceLocation leaves the tab off TSM's window; without TSM the first row is a pass.
-	]]
+	-- TSM's mail window has no name and is found by the file that made it; no GetSourceLocation, no tab on it.
 	{
 		"TSM_API.IsUIVisible (only with TradeSkillMaster)",
 		function()
@@ -606,11 +527,8 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-		The body box Features/Mail-Sender.lua picks by availability: SendMailBodyEditBox is the retail
-		name, and on Classic Era the body lives behind MailEditBox:GetEditBox(). With neither resolving,
-		the To and Subject boxes still fill and SendMail posts a letter with an empty body and reports
-		success, so a stranger receives a bare item with no note and nothing surfaces an error. One
-		of the two answers on every target, and the row says which.
+		SendMailBodyEditBox on retail, MailEditBox:GetEditBox() on Classic Era. With neither, SendMail
+		posts an empty body and reports success, so nothing surfaces the error.
 	]]
 	{
 		"Mail body edit box",
@@ -643,12 +561,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(GetInboxItemLink) == "function"
 		end,
 	},
-	--[[
-		The refusals Features/Mail-Sender.lua stops a send on, collected from the client's own
-		ERR_MAIL strings. With none recognized, every refused mail sits out the full result timeout
-		and is blamed on a confirm nobody was shown. Asked through the live check, so the count is
-		the one the mailer and the event log filter use.
-	]]
+	-- With none recognized every refusal waits out the full result timeout. Asked through the mailer's own check.
 	{
 		"Mail refusals recognized from the client's ERR_MAIL strings",
 		function()
@@ -666,10 +579,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return recognized > 0, string.format("%d of %d recognized", recognized, total)
 		end,
 	},
-	--[[
-		The Given Away broadcast in Features/Generosity-Broadcast.lua. Every target ships
-		C_ChatInfo, so a FAIL means sharing cannot register or send at all.
-	]]
+	-- Every target ships C_ChatInfo, so a FAIL means sharing cannot register or send at all.
 	{
 		"C_ChatInfo.SendAddonMessage",
 		function()
@@ -682,21 +592,14 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_ChatInfo) == "table" and type(C_ChatInfo.RegisterAddonMessagePrefix) == "function"
 		end,
 	},
-	--[[
-		Load-bearing for sharing, not display: ns.AtRest gates every send and the tooltip block on it,
-		and answers false when the API is missing, so a FAIL here means sharing is off everywhere.
-	]]
+	-- ns.AtRest gates every send and the tooltip block, and answers false without it: a FAIL turns sharing off.
 	{
 		"IsResting",
 		function()
 			return type(IsResting) == "function"
 		end,
 	},
-	--[[
-		The client's own money formatter, which renders the coin icons in the Generosity block.
-		ns.MoneyString falls back to a plain "Xg Ys Zc" without it, so this failing is cosmetic --
-		but a fallback nothing reports is a fallback nobody knows they took.
-	]]
+	-- Cosmetic: ns.MoneyString falls back to a plain "Xg Ys Zc" without it.
 	{
 		"Money formatting for the Generosity totals",
 		function()
@@ -712,13 +615,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_XMLUtil) == "table" and type(C_XMLUtil.GetTemplateInfo) == "function"
 		end,
 	},
-	--[[
-		Where /pif actually lands. The failing case is silent by design -- the panel opens, just as
-		a standalone window rather than the add-on's page in the Options interface.
-
-		Reports the route rather than the APIs behind it: which of AddToBlizOptions' identifiers a
-		client honors is not something the presence of Settings.OpenToCategory answers.
-	]]
+	-- The route, not the APIs: a failing client still opens the panel, as a standalone window.
 	{
 		"Options panel opens inside the Blizzard interface",
 		function()
@@ -782,10 +679,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	-- The Generosity tooltip block: the unit post-call, the older script hook, and the secret check before both.
-	--[[
-		The tell Features/Generosity-Tooltip.lua picks the post-call by: the Classic clients ship
-		TooltipDataProcessor but still run GameTooltip on the legacy scripts. A FAIL is a route.
-	]]
+	-- Classic clients ship TooltipDataProcessor but still run the legacy scripts, so a FAIL is a route.
 	{
 		"GameTooltip:GetPrimaryTooltipData",
 		function()
@@ -816,11 +710,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_Secrets) == "table" and type(C_Secrets.ShouldUnitIdentityBeSecret) == "function"
 		end,
 	},
-	--[[
-		The check Features/Generosity-Broadcast.lua runs before reading another add-on's message,
-		and the event log before writing an argument as text. A FAIL is a route: a client without it
-		hands over no secret values.
-	]]
+	-- A FAIL is a route: a client without it hands over no secret values.
 	{
 		"issecretvalue",
 		function()
@@ -852,11 +742,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(Settings) == "table" and type(Settings.OpenToCategory) == "function"
 		end,
 	},
-	--[[
-		Decides what the category ID /pif opens by means: AceConfigDialog keeps a generated ID where
-		this exists and swaps in the display name where it does not. A FAIL is a route, not a fault;
-		Classic Era lacks it.
-	]]
+	-- AceConfigDialog keeps a generated category ID where this exists, the display name where not; Era lacks it.
 	{
 		"C_SettingsUtil.OpenSettingsPanel",
 		function()
@@ -864,21 +750,14 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(settingsUtil) == "table" and type(settingsUtil.OpenSettingsPanel) == "function"
 		end,
 	},
-	--[[
-		The quality the Maximum Rarity default is set from. Data/Default-Settings.lua falls back to 2
-		without it, which is the same number, so a FAIL here changes nothing a player sees.
-	]]
+	-- Default-Settings falls back to 2 without it, the same number, so a FAIL changes nothing visible.
 	{
 		"Enum.ItemQuality.Uncommon",
 		function()
 			return type(Enum) == "table" and type(Enum.ItemQuality) == "table" and Enum.ItemQuality.Uncommon ~= nil
 		end,
 	},
-	--[[
-		The colors names and qualities are drawn in, each picked by availability in
-		Features/Utilities.lua: a class-color add-on's table first, then the client's, then the
-		add-on's own palette in Data/Data.lua. A FAIL is cosmetic, and the row says which answered.
-	]]
+	-- Cosmetic: a class-color add-on's table, then the client's, then the palette; the row says which answered.
 	{
 		"Class colors for player names",
 		function()
@@ -914,10 +793,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return false, "no BackdropTemplate; drawn only if the frame has its own SetBackdrop"
 		end,
 	},
-	--[[
-		Cosmetic, and only with ElvUI: its Skins module dresses the window's buttons, ticks and
-		scrollbars to match (Features/Utilities.lua). Without the module they keep the default art.
-	]]
+	-- Cosmetic, ElvUI only: its Skins module dresses the window to match.
 	{
 		"ElvUI Skins module (only with ElvUI)",
 		function()
@@ -943,10 +819,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(InCombatLockdown) == "function"
 		end,
 	},
-	--[[
-		Load-bearing for every wait the add-on makes: the /who timeout, the mail result timeout,
-		the bag-scan debounce, the Find Recipients lock and this panel's report runner.
-	]]
+	-- Every wait: the /who and mail timeouts, the scan debounce, the Find lock and the report runner.
 	{
 		"C_Timer.After",
 		function()
@@ -986,10 +859,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 -- The add-on's own example reports, appended to the shared Event Log intro.
 ns.DiagnosticsStrings.EVENT_LOG_EXAMPLES = "Best for 'the window never opened' or 'nothing was sent' reports."
 
---[[
-	Item links are display escapes: pasted raw they render as a colored swatch, hiding the link
-	data the report exists to show. Doubling the pipes shows them verbatim.
-]]
+-- Pasted raw, a link renders as a swatch and hides its data; doubled pipes show it verbatim.
 local function EscapePipes(text)
 	return (tostring(text or "?"):gsub("|", "||"))
 end
@@ -1039,10 +909,7 @@ local function AppendVerdict(lines, item, indent)
 		tostring(item.quality or "?")
 	)
 
-	--[[
-		All three lines matter separately: the merge takes the max per stat, so GetItemStats
-		covering fixed-stat items while the tooltip returns nothing looks like both working.
-	]]
+	-- All three lines: the max-per-stat merge makes GetItemStats alone look like both sources working.
 	local read = item.statRead or {}
 	lines[#lines + 1] = indent .. "stats: " .. FormatStats(item.stats)
 	lines[#lines + 1] = indent .. "  GetItemStats: " .. FormatStats(read.api)
@@ -1071,10 +938,7 @@ local function AppendVerdict(lines, item, indent)
 			suffix,
 			parsed and "stats read" or "NO STATS READ, this item is a parse failure and stays unmatched"
 		)
-		--[[
-			What the client actually rendered, failure case only: an uncovered line and no stat
-			line at all both print as an empty list, and only the raw lines tell them apart.
-		]]
+		-- Failure case only: an uncovered line and no stat line both print empty; only the raw lines differ.
 		if not parsed and read.lines then
 			lines[#lines + 1] = indent .. "  tooltip as rendered, since nothing parsed:"
 			for _, text in ipairs(read.lines) do
@@ -1088,16 +952,10 @@ local function AppendVerdict(lines, item, indent)
 	if #eligible == 0 then
 		lines[#lines + 1] = indent .. "eligible: none, no class can use this"
 	else
-		--[[
-			"use" is the share of the item's scoreable stats this class ranks. Two classes can
-			print an identical claim, and only this column says which one takes the item.
-		]]
+		-- "use" is coverage: two classes can print the same claim, and only this says which takes the item.
 		local parts = {}
 		for _, class in ipairs(eligible) do
-			--[[
-				Floored rather than handed to %d as a fraction: a remainder truncates silently on
-				this client's Lua and errors on a stricter one.
-			]]
+			-- Floored: %d truncates a fraction silently here and errors on a stricter Lua.
 			parts[#parts + 1] = string.format(
 				"%s claim %.2f fit %.2f use %d%% g%d",
 				class,
@@ -1125,10 +983,7 @@ local function AppendVerdict(lines, item, indent)
 		VERDICT_TEXT[verdict.state] or verdict.state
 	)
 
-	--[[
-		"best fit" is one class picked on score and group; the recipient is picked on level
-		proximity across everyone in contention, and the two disagree constantly.
-	]]
+	-- "best fit" is picked on score and group, the recipient on level proximity; the two often disagree.
 	local contenders = verdict.contenders or {}
 	if #verdict.admitted > 1 then
 		if #contenders == 1 then
@@ -1143,10 +998,7 @@ local function AppendVerdict(lines, item, indent)
 		end
 	end
 
-	--[[
-		Admitted but not in contention, with the reason per class: "uses 50%" lost on breadth, a
-		claim figure means it wanted the item less.
-	]]
+	-- Admitted but not in contention: "uses 50%" lost on breadth, a claim figure on how much it wanted the item.
 	local inContention = {}
 	for _, class in ipairs(contenders) do
 		inContention[class] = true
@@ -1168,10 +1020,7 @@ local function AppendVerdict(lines, item, indent)
 			.. " -- offered when nobody above is in range"
 	end
 
-	--[[
-		Printed with the two constants that produced it: without them "level band: 18 to 18"
-		reads as a fact about the item when it is a fact about the gaps.
-	]]
+	-- With its two constants: "level band: 18 to 18" is a fact about the gaps, not the item.
 	local low, high = ns.Data.LEVEL_GAP_WIDEST, ns.Data.LEVEL_GAP_CLOSEST
 	lines[#lines + 1] = string.format(
 		"%slevel band: %d to %d, preferring %d (requires %d, minus gaps of %d and %d)",
@@ -1183,11 +1032,7 @@ local function AppendVerdict(lines, item, indent)
 		low,
 		high
 	)
-	--[[
-		The classes searching somewhere else, and why. A hunter trains mail at 40, so a level 36
-		mail belt looks for him at 38 and 39 while the paladin beside him is looked for at 34 and
-		35 -- two searches under one band line, and invisible without this.
-	]]
+	-- Classes searching another band (a hunter trains mail at 40): two searches under one band line.
 	local shifted = {}
 	for _, class in ipairs(verdict.admitted) do
 		local lo, hi = ns.Matcher:LevelBand(item, class)
@@ -1227,19 +1072,11 @@ local function JobRecipient(job)
 	return job and tostring(job.recipient) or "none"
 end
 
---[[
-	Answers "the window never opened" and "Distribute did nothing": whether the add-on believes
-	the mailbox is open, whether it believes there is anything to give, and where a mail run
-	stands. Reads only. Nothing here scans, refreshes or touches the Distributor, so running it
-	cannot change the answer it reports.
-]]
+-- Reads only: nothing here scans, refreshes or touches the Distributor, so running it cannot change its answer.
 function ns:BuildMailboxReport()
 	local lines = { GetClientHeader(), "" }
 
-	--[[
-		ns.AtMailbox asks the interaction manager where the client has one and falls back to the
-		flag the mailbox events keep; printing both, and which one answered, shows a stale flag.
-	]]
+	-- Both of ns.AtMailbox's sources and which answered, so a stale flag shows.
 	local manager = C_PlayerInteractionManager
 	local managerAnswers = type(manager) == "table"
 		and type(manager.IsInteractingWithNpcOfType) == "function"
@@ -1291,10 +1128,7 @@ function ns:BuildMailboxReport()
 	)
 	lines[#lines + 1] = "items holding a recipient = " .. holding
 	lines[#lines + 1] = "items ticked to send = " .. ticked
-	--[[
-		Kept gear is mailed only while Disenchant Unmatched Gear has a character to mail it to, so
-		whether a list of nothing but Kept rows sends anything turns on these two reads.
-	]]
+	-- Kept gear is mailed only while Disenchant Unmatched Gear has someone to mail it to.
 	local enchanter = ns.db and ns.db.profile.disenchantUnmatched and ns.Alts:Disenchanter()
 	local disenchantable = 0
 	for _, item in ipairs(items) do
@@ -1309,10 +1143,7 @@ function ns:BuildMailboxReport()
 		disenchantable
 	)
 	lines[#lines + 1] = "list is stale, rescans when the window opens = " .. tostring(ns.MatchList:IsStale() == true)
-	--[[
-		False while a mail run is busy, or the window is shut: a loot or a late item load then waits
-		for the window to open.
-	]]
+	-- False while a run is busy or the window is shut: a bag change then waits for the window to open.
 	lines[#lines + 1] = "bag changes rescan now = " .. tostring(ns.MatchList:WouldRescan())
 	lines[#lines + 1] = ""
 
@@ -1326,11 +1157,7 @@ function ns:BuildMailboxReport()
 	lines[#lines + 1] = "settling a refusal for = " .. JobRecipient(mailer._settling)
 	lines[#lines + 1] =
 		string.format("money = %d copper, postage per mail = %d copper", GetMoney() or 0, mailer.MAIL_COST)
-	--[[
-		Answers "a gift came back and nothing said so": the returned-gift line in
-		Features/UI-Mailbox.lua knows a gift by its subject, the current one or the stock one, so a
-		subject changed since it was sent goes unnamed. Headers only, so nothing is marked read.
-	]]
+	-- A gift is known by its subject, so one changed since sending goes unnamed. Headers only: nothing is marked read.
 	if ns.AtMailbox() and GetInboxNumItems and GetInboxHeaderInfo then
 		local subjects = { [ns.Distributor:BuildSubject()] = true, [ns.L["MAIL_SUBJECT"]] = true }
 		local count, returned, gifts = (GetInboxNumItems()) or 0, 0, 0
@@ -1354,11 +1181,7 @@ function ns:BuildMailboxReport()
 	end
 	lines[#lines + 1] = ""
 
-	--[[
-		The settings Bag Scan's rejection codes are decided against, so a pasted Bag Scan reads
-		with them beside it: GEAR_DISABLED, KIND_DISABLED, ABOVE_MAX_RARITY and LEVEL_GAP mean
-		nothing alone.
-	]]
+	-- The settings Bag Scan's rejection codes are decided against, which mean nothing alone.
 	local profile = ns.db and ns.db.profile or {}
 	local kindsOn = {}
 	for _, kind in ipairs(ns.CONSUMABLE_KIND_ORDER) do
@@ -1396,10 +1219,7 @@ end
 -- Bag Scan Export
 --------------------------------------------------------------------------------
 
---[[
-	The data row a scanned id comes from, searched across the item tables Validate Data checks, so
-	a rejected potion can show the use level it was held to. Nil for an id no table lists.
-]]
+-- The data row a scanned id comes from, so a rejected potion shows the use level it was held to.
 local function ListedRow(itemID)
 	for _, entry in ipairs(ns.DIAGNOSTIC_DATA_SOURCES) do
 		for _, source in ipairs(entry.sources) do
@@ -1423,11 +1243,7 @@ local function FormatRow(row)
 	return "{ " .. table.concat(parts, ", ") .. " }"
 end
 
---[[
-	Who a consumable can reach, from the same verdict the window acts on. Its fourth data field
-	(what it restores, the stat it buffs, or who an oil or stone enhances for) picks the classes,
-	so a wizard oil kept for nobody is a class list this client or faction left empty.
-]]
+-- The fourth data field picks the classes, so an oil kept for nobody is a class list this client or faction left empty.
 local function AppendConsumable(lines, item, indent)
 	local def = item.def or {}
 	local verdict = ns.Matcher:VerdictFor(item)
@@ -1449,10 +1265,7 @@ local function AppendConsumable(lines, item, indent)
 	lines[#lines + 1] = string.format("%srecipient levels %s to %s", indent, tostring(lo), tostring(hi))
 end
 
---[[
-	The rejected rows are the point: "why is this green not in the list" is answered here and
-	nowhere else. Re-runs the same Scanner:Classify the window uses, so the two cannot disagree.
-]]
+-- Re-runs the window's own Scanner:Classify: the rejected rows answer "why is this green not listed".
 function ns:BuildBagScanReport()
 	local lines = { GetClientHeader(), "" }
 	local rows = ns.Scanner:ScanAll()
@@ -1462,10 +1275,7 @@ function ns:BuildBagScanReport()
 		return table.concat(lines, "\n")
 	end
 
-	--[[
-		Accepted is not giftable: passing the hard filter only means the slot holds a tradeable
-		green. Whether anyone wants it is the verdict, counted separately below.
-	]]
+	-- Accepted only means a tradeable slot passed the hard filter; whether anyone wants it is the verdict, below.
 	local accepted, byState, byReason = 0, {}, {}
 	for _, row in ipairs(rows) do
 		local name, _, quality, _, reqLevel, _, _, _, equipLoc, _, _, classID, subclassID, bindType =
@@ -1542,19 +1352,13 @@ end
 -- Recipient Roster Export
 --------------------------------------------------------------------------------
 
---[[
-	Everyone the /who stepper has found, with fairness state and what the parser discarded: a thin
-	roster is usually unresolvable class tokens, not an empty realm.
-]]
+-- A thin roster is usually unresolvable class tokens, not an empty realm.
 function ns:BuildRosterReport()
 	local lines = { GetClientHeader(), "" }
 	local pools = (ns.UI and ns.UI.Pools and ns.UI:Pools()) or {}
 	local items = (ns.UI and ns.UI.Items and ns.UI:Items()) or {}
 
-	--[[
-		Labeled by slot, not name alone: two copies of one green share a name, so "Ivycloth
-		Robe, Ivycloth Robe" cannot say whether that is two items or a repeated line.
-	]]
+	-- Labeled by slot: two copies of one green share a name.
 	local candidateFor = {}
 	for _, item in ipairs(items) do
 		if item.eligible then
@@ -1608,11 +1412,7 @@ function ns:BuildRosterReport()
 		ns.Who:Planned(),
 		tostring(ns.Who:Peek() or "none")
 	)
-	--[[
-		Only once something has been pruned, for the same reason the cap row above is conditional.
-		Without it the two numbers do not reconcile: places-left drops without a press whenever an
-		assignment finishes off a band, which otherwise reads as queries going missing.
-	]]
+	-- Only once something was pruned: places-left also drops when an assignment finishes a band, which reads as lost queries.
 	if stats.pruned > 0 then
 		searchLine = searchLine
 			.. string.format(" %d dropped once nothing in their band was still searching.", stats.pruned)
@@ -1623,11 +1423,7 @@ function ns:BuildRosterReport()
 	end
 	lines[#lines + 1] = searchLine
 
-	--[[
-		Why a press of Find Recipients did nothing visible. A query still out, the throttle, a
-		press the client refused and a query that never answered all look like "nobody found".
-		Printed every time: here a zero is the answer, not noise.
-	]]
+	-- Printed every time: a query out, the throttle, a refused press and a lost answer all look like "nobody found".
 	local label, canceled, age = ns.Who:InFlight()
 	if label then
 		lines[#lines + 1] = string.format(
@@ -1669,11 +1465,7 @@ function ns:BuildRosterReport()
 		end
 	end
 
-	--[[
-		"The guild added nobody" and "the guild has nobody active" look identical from the match
-		list, and only one of them is a bug worth chasing. Not being in a guild, and a request the
-		server never answered, are printed first for the same reason.
-	]]
+	-- "Added nobody" and "nobody active" look the same from the match list, and only one is a bug.
 	local guild = ns.Guild:Stats()
 	lines[#lines + 1] = string.format(
 		"Guild: in a guild %s, roster request waiting %s.",
@@ -1730,10 +1522,9 @@ function ns:BuildRosterReport()
 	)
 
 	--[[
-		The connected realms an alt can be mailed on, from the data file, beside the client's own
-		list. ns.Data.LINKED_REALMS is copied from a population site and Blizzard reshuffles
-		clusters, so the two disagreeing is how a stale table shows. GetAutoCompleteRealms answers a
-		table on some clients and a list of returns on others, and nothing at all on a lone realm.
+		LINKED_REALMS is copied from a population site and Blizzard reshuffles clusters, so a mismatch
+		with the client's list shows a stale table. GetAutoCompleteRealms answers a table, a list of
+		returns, or nothing on a lone realm.
 	]]
 	local client = "not on client"
 	if GetAutoCompleteRealms then
@@ -1750,11 +1541,7 @@ function ns:BuildRosterReport()
 		client
 	)
 
-	--[[
-		Saved guilds, the third source: what each one is and whether this character can read it. A
-		guild added by name on My Guilds has no roster until one of your characters joins it, and
-		is searched by a g-"Name" /who query instead, so it says so rather than reading as empty.
-	]]
+	-- A guild added by name has no roster and is searched by g-"Name", so it says so rather than reading as empty.
 	local saved = ns.db and ns.db.global.guilds or {}
 	local savedCount = 0
 	for key, entry in pairs(saved) do
@@ -1787,10 +1574,7 @@ function ns:BuildRosterReport()
 		tostring(profile.guildOfflineLimit)
 	)
 
-	--[[
-		Reported once for both sources because it is enforced once for both, and only when it has
-		actually turned somebody away, on the same reasoning as the cap row above.
-	]]
+	-- Once for both sources, as it is enforced once, and only after it has turned somebody away.
 	local tooLow = ns.MatchList:TooLowCount()
 	if tooLow > 0 then
 		lines[#lines + 1] = string.format(
@@ -1810,10 +1594,7 @@ function ns:BuildRosterReport()
 		for _, person in ipairs(pools[class]) do
 			local fresh = ns.Fairness:IsFresh(person.name, person.level)
 			local wanted = candidateFor[person.name]
-			--[[
-				Unreachable outranks fresh: the server refused a mail to this name, so
-				Fairness:PickFrom never picks them however fresh they are.
-			]]
+			-- Unreachable outranks fresh: Fairness:PickFrom never picks a name the server refused.
 			local standing = (not ns.Fairness:IsReachable(person.name)) and "unreachable"
 				or (fresh and "fresh" or "on cooldown")
 			lines[#lines + 1] = string.format(
@@ -1843,11 +1624,7 @@ function ns:BuildItemVerdictReport(link)
 		return table.concat(lines, "\n")
 	end
 
-	--[[
-		A bare item id is a common paste, and the APIs behind Describe want a link form:
-		handed the digits, GetItemStats and SetHyperlink return nothing and the report reads
-		as a broken scanner rather than a malformed input.
-	]]
+	-- A bare id is a common paste; GetItemStats and SetHyperlink want a link and return nothing for digits.
 	local id = link:match("^%s*(%d+)%s*$")
 	if id then
 		link = "item:" .. id
@@ -1875,10 +1652,7 @@ end
 -- Class Groups
 --------------------------------------------------------------------------------
 
---[[
-	Both reports print only classes that can exist for this player, the same list the matcher
-	routes on: the full ten would make a phantom class look like a real routing decision.
-]]
+-- Only classes that can exist for this player, the list the matcher routes on.
 local function AvailableClasses()
 	local set = {}
 	for _, class in ipairs(ns.Matcher:Classes()) do
@@ -1921,11 +1695,7 @@ local function AppendClassLine(lines)
 		table.concat(classes, ", ")
 	)
 
-	--[[
-		The specs each class counts, the player's Recipients panel choices over the flavor folder's
-		defaults: a class with every spec off is offered no gear at all, which reads from outside
-		as that class never being sent anything.
-	]]
+	-- A class with every spec off is offered no gear, which looks like that class never being sent anything.
 	lines[#lines + 1] = "Specs counted:"
 	for _, class in ipairs(classes) do
 		local on, off = {}, {}
@@ -2057,21 +1827,13 @@ end
 -- Given Away Sharing
 --------------------------------------------------------------------------------
 
---[[
-	Answers "why don't I see anyone": are we sharing, did the prefix register, what are our own
-	totals, which tooltip hook drew the block, where the send throttles stand, what the last send
-	answered, and who nearby have we heard from and how long ago. Inline literals like every other
-	builder; the panel labels live in ns.DiagnosticsStrings.
-]]
+-- Answers "why don't I see anyone"; the panel labels live in ns.DiagnosticsStrings.
 function ns:BuildGenerosityReport()
 	local lines = { GetClientHeader(), "" }
 
 	local sharing = (ns.db and ns.db.profile.shareStats) and true or false
 	lines[#lines + 1] = "shareStats = " .. tostring(sharing)
-	--[[
-		Usually the answer. Sharing is town-only, so a player asking why nobody shows up is most often
-		standing somewhere they are not resting; printed second, right under the setting itself.
-	]]
+	-- Usually the answer: sharing is town-only, so it prints right under the setting.
 	lines[#lines + 1] = "resting (in a city or inn, required to send) = " .. tostring(ns.AtRest())
 	lines[#lines + 1] = string.format(
 		"prefix %q registered = %s",
@@ -2082,25 +1844,16 @@ function ns:BuildGenerosityReport()
 	local gifts, items, itemLevels, value = ns.Generosity:Get()
 	lines[#lines + 1] =
 		string.format("my totals: gifts=%d items=%d itemLevels=%d value=%d", gifts, items, itemLevels, value)
-	--[[
-		The key a broadcast of ours is recognized by when it comes back, the same one the handler
-		builds. Your own name in the list below means the two did not match.
-	]]
+	-- The key our echo is recognized by; your own name in the list below means the two did not match.
 	lines[#lines + 1] = "my identity key = " .. tostring(ns.QualifyPlayerName(ns.PlayerName()))
 	lines[#lines + 1] = ""
 
-	--[[
-		Which unit-tooltip hook this client took, and whether the secret-identity check it runs
-		first exists here. Either missing means no block on anybody's tooltip.
-	]]
+	-- Either missing means no block on anybody's tooltip.
 	lines[#lines + 1] = "tooltip hook = " .. tostring(ns.Generosity.tooltipHook or "none installed")
 	lines[#lines + 1] = "C_Secrets.ShouldUnitIdentityBeSecret present = "
 		.. tostring(type(C_Secrets) == "table" and type(C_Secrets.ShouldUnitIdentityBeSecret) == "function")
 
-	--[[
-		The throttles, as they stand. A broadcast refused by the interval and one never sent look the
-		same from outside, and a ping is answered by a broadcast, so the interval covers both.
-	]]
+	-- A refused broadcast and an unsent one look alike; a ping is answered by a broadcast, so the interval covers both.
 	local now = GetTime()
 	local function Since(stamp)
 		return (stamp or 0) > 0 and string.format("%ds ago", math.floor(now - stamp)) or "never"
@@ -2112,10 +1865,7 @@ function ns:BuildGenerosityReport()
 		math.max(0, math.ceil(ns.Generosity.BROADCAST_MIN_INTERVAL - (now - lastBroadcast)))
 	)
 	lines[#lines + 1] = "last hover ping sent = " .. Since(ns.Generosity:LastHoverPing())
-	--[[
-		What the client said to the last send, broadcast or ping. A refused channel comes back here
-		rather than as an error, and the send is otherwise fire-and-forget.
-	]]
+	-- A refused channel comes back here, not as an error.
 	local result = ns.Generosity.lastSendResult
 	lines[#lines + 1] = "last send answered = "
 		.. (
@@ -2157,13 +1907,9 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	Every game name Play It Forward shows or matches against what the client shows, for the
-	Localization tab's Game Names report, each read through the same call its feature makes, so a
-	NIL here is a name that feature cannot show or match on this client. The rows are built here
-	from the add-on's own data, so a stat, class, spec or area added there gets its row without an edit
-	here. Classes are every one either faction can roll on this client, since the faction gate is
-	not known at load. The one spell named by ID, Disenchant, is read straight from the client's
-	spell data, and the add-on names no items by ID, so no row waits on a load.
+	Each name is read through the call its feature makes, so a NIL is a name that feature cannot show.
+	Rows come from the add-on's own data, so new stats, classes, specs and areas need no edit here;
+	classes are every one either faction can roll, since the faction is unknown at load.
 ]]
 local function UiLabel(constant)
 	return {
@@ -2224,10 +1970,7 @@ for _, constant in ipairs(SortedKeys(ns.Data.STAT_MAP)) do
 end
 
 for _, token in ipairs(ClientClasses()) do
-	--[[
-		The name a /who class filter goes out with. The planner falls back to the token itself,
-		which /who cannot match, so a fallback counts as NIL here.
-	]]
+	-- The planner falls back to the token, which /who cannot match, so a fallback counts as NIL.
 	ns.DIAGNOSTIC_NAME_LOOKUPS[#ns.DIAGNOSTIC_NAME_LOOKUPS + 1] = {
 		constant = "LOCALIZED_CLASS_NAMES_MALE",
 		kind = "class",
@@ -2249,12 +1992,9 @@ for _, token in ipairs(ClientClasses()) do
 end
 
 --[[
-	The spec names the Recipients and My Alts panels show, through ns.SpecName as they read them.
-	Where the client cannot name a spec the accessor answers with the add-on's own SPEC_* string
-	(README-Notes), so a row reads what the player sees; the API Endpoints row "Spec names from the
-	client" says which source this client gave. The id is the class token and our key, so a row
-	naming a different spec is an index the flavor folder's Match-Specs file holds out of the
-	game's order. Discovery's rune roles have no name in the game and get no row.
+	Read through ns.SpecName, so a row shows what the player sees (SPEC_* where the client has no
+	name). A row naming a different spec is a Match-Specs index out of the game's order. Discovery's
+	rune roles have no game name and no row.
 ]]
 for _, token in ipairs(ClientClasses()) do
 	for index, spec in ipairs(ns.Data.SPECS and ns.Data.SPECS[token] or {}) do
@@ -2294,20 +2034,10 @@ AreaRows("ns.Data.INSTANCE_AREAS", ns.Data.INSTANCE_AREAS, 1)
 --------------------------------------------------------------------------------
 
 --[[
-	One entry per flavor-folder file, and one report row per entry on the Data tab. The label is
-	the table-name part of the file name, so ns.DataSourceFileName names the file this client's
-	folder built. Food, potions, scrolls and oils and stones are positional rows, { itemId,
-	quality, useLevel, restores, buffs or enhances }, so the id is the first field.
-	Recipients-Zones rows are { areaId, min level, max level, faction } and its instances
-	{ areaId }, each checked by the name C_Map.GetAreaInfo gives it, since that name is what the
-	/who zone filter sends and what a /who answer is read against; its column map is counted.
-
-	Match-Rules, Match-Specs, Match-Stat-Budget, Match-Weapons, Match-Armor, Match-Classes,
-	Scan-Stats and Recipients-Realms are keyed by tokens, stat globals, subclass numbers and realm
-	names no client API looks up by ID, so they are "other" rows: each table's row count, and
-	TABLE MISSING when this client's folder never built it.
-
-	Game-IDs is { [constant] = spellId }, so each value is the id, checked as a spell.
+	One entry per flavor-folder file. The label is the table-name part of the file name, which
+	ns.DataSourceFileName turns back into this client's file. Item tables are positional rows, id
+	first; zones and instances are checked by C_Map.GetAreaInfo's name, the one /who sends.
+	Token-keyed tables are "other" rows: a count, or TABLE MISSING.
 ]]
 local function FirstField(_, row)
 	return type(row) == "table" and row[1] or nil

@@ -1,10 +1,8 @@
 --[[
-	The unit-tooltip block. The hook is real -- Features/Generosity-Tooltip.lua installs it on the
-	stub GameTooltip at load -- so these drive the handler the client would, with recorders standing
-	in for AddLine/AddDoubleLine and GetUnit pointed at a chosen unit. The three cases the handler
-	tells apart: a cached peer (block), an unknown player (no block, one ping), and yourself (live
-	tally, always present). GetTime is the stub clock, so the hover-ping throttle is quiet on a first
-	call and closed on an immediate second.
+	The unit-tooltip block, through the real hook on the stub GameTooltip with recorders for
+	AddLine/AddDoubleLine. Three cases: a cached peer (block), an unknown player (no block, one
+	ping), yourself (live tally). GetTime is the stub clock, so the hover-ping throttle is quiet on
+	a first call and closed on an immediate second.
 ]]
 
 local Harness = require("Harness")
@@ -156,9 +154,9 @@ end)
 
 --[[
 	The Classic clients (TBC Anniversary among them) expose TooltipDataProcessor, but GameTooltip
-	there still fires only OnTooltipSetUnit, so a post-call would never run and even your own
-	tooltip stayed bare. Without the data pipeline on the frame the script is hooked instead.
+	there fires only OnTooltipSetUnit, so without the data pipeline on the frame the script is hooked.
 ]]
+
 test("a processor without tooltip-data frames still hooks OnTooltipSetUnit", function()
 	Stub.useTooltipProcessor = true
 	Stub.legacyTooltipFrames = true

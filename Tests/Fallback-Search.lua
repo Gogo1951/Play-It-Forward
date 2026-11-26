@@ -1,18 +1,9 @@
 --[[
-	A fallback pairing is a placeholder, never the end of the search.
-
-	The reported case: two main-hand swords, contenders WARRIOR and ROGUE by the one-hand
-	rule, paired -- and TICKED -- with two level-18 paladins because no warrior or rogue
-	was in the pool yet, while the plan cleared itself as though the search had finished.
-	One press of Distribute and both swords mail to a class the verdict says they are not
-	for.
-
-	Two rules pin that shut. A gift held by a class outside the verdict's contenders
-	still counts as searching: its band stays on the plan, narrowed to the contenders,
-	and every later answer re-assigns, which is what flips the row the moment a warrior
-	turns up. It arrives ticked like any match -- a named row with its box off read as a
-	failed match (2026-10-09) -- but unpinned, so the upgrade can still take it. Only
-	the player's own hand pins it, and a pinned row ends the search for that item.
+	A fallback pairing is a placeholder, never the end of the search. A gift held by a class
+	outside the verdict's contenders still counts as searching: its band stays on the plan,
+	narrowed to the contenders, and every later answer re-assigns. It arrives ticked (a named row
+	with its box off reads as a failed match) but unpinned; only the player's hand pins it, and a
+	pinned row ends the search for that item.
 ]]
 
 local Harness = require("Harness")
@@ -24,9 +15,8 @@ local function load()
 end
 
 --[[
-	Statless on purpose, like the reported item: nobody has a stat claim, so everyone is
-	admitted and the one-hand rule alone names the warrior and the rogue. Requires 19,
-	so the recipient band is 17-18.
+	Statless on purpose: everyone is admitted and the one-hand rule alone names the warrior and the
+	rogue. Requires 19, so the recipient band is 17-18.
 ]]
 local function mainHandSword(ns)
 	Stub.SetBackpack({
@@ -166,12 +156,8 @@ end)
 
 --------------------------------------------------------------------------------
 
---[[
-	The reported diagnostic read "stats: (none) via none" for an item whose tooltip
-	plainly showed +3 Strength -- because a bare id was pasted, and GetItemStats and
-	SetHyperlink want a link form. The report normalizes the paste rather than printing
-	an answer that looks like a broken scanner.
-]]
+-- A pasted bare id is normalized to a link, which GetItemStats and SetHyperlink need.
+
 test("the verdict report reads a pasted item id", function()
 	local ns = load()
 	local def = Stub.Item({

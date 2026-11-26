@@ -78,11 +78,10 @@ test("the stored gap is what the scanner actually uses", function()
 end)
 
 --[[
-	Zero is "All Consumables", not a gap of nothing. The two differ on exactly the items a player
-	has NOT outgrown: at a gap of zero the old test still demanded the player be at or above the
-	item's own level, so a low-level character could never pass on a stack of high-level potions
-	they had no use for. Picking the option off the dropdown has to lift the level rule outright.
+	Zero is "All Consumables", not a gap of nothing: it lifts the level rule outright, so a
+	low-level character can pass on high-level potions they cannot use.
 ]]
+
 test("All Consumables offers a consumable the player is under the level for", function()
 	local ns = load()
 	local Stub = Harness.Stub

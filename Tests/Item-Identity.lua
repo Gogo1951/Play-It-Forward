@@ -1,17 +1,7 @@
 --[[
-	Telling two copies of one item apart.
-
-	Two "Ivycloth Robe" in different bag slots are two items, and a name is not enough
-	to say which is which. The window's rows, the diagnostics listings and the mail jobs
-	all need to name a specific one, and a report that prints the name twice cannot say
-	whether they went to two people or to one.
-
-	The reported symptom was duplicates being sent to the same person. It could not be
-	reproduced -- assignment is keyed on the recipient and holds across over-subscribed
-	bags, multi-round searching, rescans and part-completed runs. So what is pinned here
-	is the invariant itself, enforced where it would do damage rather than merely
-	intended: Distributor never receives two jobs for one recipient, whatever the list
-	says.
+	Telling two copies of one item apart: the window's rows, the diagnostics listings and the mail
+	jobs each name a specific copy. The invariant is enforced where it would do damage:
+	Distributor never receives two jobs for one recipient, whatever the list says.
 ]]
 
 local Harness = require("Harness")
@@ -106,11 +96,7 @@ test("copies are handed to different people", function()
 	end
 end)
 
---[[
-	The guard, tested by forcing the state it defends against. Nothing in the add-on
-	produces this pairing on its own -- that is what could not be reproduced -- so it is
-	written in by hand here. What matters is that mail cannot go out on it.
-]]
+-- Nothing in the add-on produces this pairing on its own, so it is forced by hand.
 test("two items pointing at one person only produce one mail job", function()
 	local ns = load()
 	copies(ns, 2)
@@ -148,10 +134,6 @@ test("a legitimate second recipient is not mistaken for a duplicate", function()
 	check(Stub.sent[1].recipient ~= Stub.sent[2].recipient, "to two different people")
 end)
 
---[[
-	The listing half of the ask. A roster report naming "Ivycloth Robe" twice cannot say
-	whether one person is a candidate for both copies or the report is repeating itself.
-]]
 test("the roster report distinguishes copies of one item", function()
 	local ns = load()
 	copies(ns, 2)

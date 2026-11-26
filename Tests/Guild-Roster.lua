@@ -1,14 +1,7 @@
 --[[
-	Who the guild roster hands over, and who it holds back.
-
-	The bug: your own characters were mailed your own gear. The own-alt check builds its keys
-	as "Character-Realm" from UnitName and AceDB's profileKeys, but the roster names somebody
-	on your own realm with a bare "Gogowarrior" -- the suffix appears only for a character from
-	another realm in the cluster. A bare name matched no key, so the check passed your own alts
-	straight through to the pool, and paying it forward to yourself is not paying it forward.
-
-	A bare name means "on my realm", which is the client's own convention, so both sides are
-	compared through ns.QualifyPlayerName rather than as raw strings.
+	The roster names somebody on your own realm bare ("Gogowarrior") while the own-alt check keys
+	"Character-Realm", so both sides are compared through ns.QualifyPlayerName, or your own alts
+	pass into the pool.
 ]]
 
 local Harness = require("Harness")

@@ -1,11 +1,8 @@
 --[[
-	Class weights summed from talent trees, and the budget that makes every stat count.
-
-	Each Classic folder's Match-Specs file writes each tree as the player leveling it: a stat it builds
-	around is worth 2, one that helps it 1, and three trees sum to a class weight of 0 to
-	6. The cases below pin the sums worth pinning, then the reason the budget exists --
-	a Classic "+1% hit" reads as 1 beside "+10 Strength", and before the conversion hit
-	could weigh anything at all and still never decide an item.
+	Class weights summed from talent trees, and the stat budget. Each Classic Match-Specs file
+	scores a tree as the player leveling it: 2 for a stat it builds around, 1 for one that helps,
+	so three trees sum to 0-6. The budget exists because a Classic "+1% hit" reads as 1 beside
+	"+10 Strength".
 ]]
 
 local Harness = require("Harness")
@@ -78,9 +75,8 @@ test("no class sums past six on any stat", function()
 end)
 
 --[[
-	Attack Power used to sit at 6 beside the Agility it is worth half of. Useful to every
-	melee tree, it is 3 for all three physical classes, so a plain Attack Power ring is
-	still all of theirs and level proximity picks.
+	Attack Power, worth half the Agility beside it, is 3 for all three physical classes, so a plain
+	Attack Power ring is all of theirs and level proximity picks.
 ]]
 test("attack power is useful to every melee tree, never main", function()
 	local ns = load()
@@ -153,10 +149,10 @@ test("classic percentages are converted, tbc ratings are not", function()
 end)
 
 --[[
-	THE REASON FOR THE BUDGET. Read raw, the 1 of "+1% hit" was a sixteenth of this item
-	and the warlock took it as a bare Stamina roll. Converted, the hit is more than half of
-	it, so the melee classes it was written for use most of it and he uses less than half.
+	Why the budget: read raw, "+1% hit" is a sixteenth of this item and the warlock takes it as a
+	Stamina roll. Converted, the hit is over half of it, so the melee classes use most of it.
 ]]
+
 test("a stamina and hit roll is not a warlock's stamina item", function()
 	local ns = load()
 	local verdict = ns.Matcher:Verdict(gear(ns, {
