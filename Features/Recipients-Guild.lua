@@ -3,26 +3,11 @@ local _, ns = ...
 ns.Guild = {}
 local Guild = ns.Guild
 
---[[
-	The guild roster as a second source of recipients, alongside the /who search in
-	Features/Recipients-Who.lua. Results enter the same pools through MatchList:AddResults in the
-	same shape, so nothing downstream knows where a candidate came from -- except the one flag that
-	ranks guildmates ahead of strangers in Matcher:RankCandidates.
-
-	It is cheap where /who is expensive: SendWho is hardware-event gated and throttled to one query
-	per five seconds, so the search is a stepper riding button presses, while the roster answers
-	for the whole guild at once.
-]]
-
 --------------------------------------------------------------------------------
 -- Eligibility
 --------------------------------------------------------------------------------
 
---[[
-	How long a member may have been offline and still be mailed: the My Guilds panel's Ignore
-	Offline Guild Members, a key of this table in ns.GUILD_OFFLINE_ORDER. Someone away longer is
-	not going to read the mail before it expires. NEVER has no limit and offers everyone.
-]]
+-- Keys of ns.GUILD_OFFLINE_ORDER. NEVER is nil: no limit, everyone offered.
 local OFFLINE_DAYS = { WEEK = 7, TWO_WEEKS = 14, NEVER = nil }
 Guild.OFFLINE_DAYS = OFFLINE_DAYS
 
@@ -32,11 +17,7 @@ local function OfflineLimit()
 	return OFFLINE_DAYS[ns.db and ns.db.profile.guildOfflineLimit or "WEEK"]
 end
 
---[[
-	Whether a member offline this many days is mailed. No reading at all counts as too long while
-	there is a limit: the roster arrives in pieces, and guessing "recent" on missing data mails
-	gear to somebody who quit.
-]]
+-- No reading counts as too long while there is a limit: the roster arrives in pieces.
 local function WithinLimit(days)
 	local limit = OfflineLimit()
 	if not limit then
@@ -46,26 +27,17 @@ local function WithinLimit(days)
 end
 
 --[[
-	A guild warlock parked in this band is a summoning alt: Ritual of Summoning unlocks at 20, and
-	they sit there rather than level on, so gear sent there is gear nobody wears. A range rather
-	than the unlock level alone, because they drift a level or two before stopping.
-
-	THIS RULE IS THE GUILD ROSTER'S ALONE: the same character found by /who is out in the world
-	and playing, and nothing can tell a parked alt from a real one except which list named them.
-
-	No level floor here, deliberately. The low levels are turned away for every source at once by
-	ns.Data.MIN_RECIPIENT_LEVEL in Features/Match-Roster.lua, and a second copy of that rule here
-	would drift from it.
+	A guild warlock parked just past Ritual of Summoning (20) is a summoning alt. Roster-only: the
+	same character found by /who is out in the world playing. No level floor here:
+	ns.Data.MIN_RECIPIENT_LEVEL in MatchList:AddResults is the only one, and a copy would drift.
 ]]
 local SUMMON_ALT_MIN_LEVEL = 20
 local SUMMON_ALT_MAX_LEVEL = 23
 local SUMMON_ALT_CLASS = "WARLOCK"
 
 --[[
-	Days since the member was last online: 0 for online now, nil when the roster has no answer yet.
-	GetGuildRosterLastOnline returns nothing at all for a member who is online right now, so that
-	case is answered before it is asked. Offline it returns years, months, days and hours as
-	components of one duration rather than totals, so they are summed here.
+	GetGuildRosterLastOnline returns nothing for a member online now, and offline returns the
+	components of one duration rather than totals.
 ]]
 local function DaysOffline(index, online)
 	if online then
@@ -83,39 +55,24 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	NAMES GO INTO THE POOL EXACTLY AS THE ROSTER GAVE THEM, suffix and all. A name is an address:
-	SendMail takes the full "Character-Realm" form, so rewriting it here -- stripping the player's
-	own realm off, say -- means mailing to an address the client never gave us.
-
-	Telling one person from another is a separate question, answered once in MatchList:AddResults
-	against ns.QualifyPlayerName. No dedupe belongs here: a second one keyed differently is how a
-	guildmate /who also found ends up pooled twice.
+	Names go into the pool exactly as the roster gave them: a name is a SendMail address. People are
+	told apart only in MatchList:AddResults, through ns.QualifyPlayerName; a second dedupe here,
+	keyed differently, pools a guildmate /who also found twice.
 ]]
 --[[
-	The player's own characters, keyed by qualified identity. They are guildmates like any other,
-	but they belong in Your Alts, which Features/Recipients-Alts.lua fills from what each character
-	recorded: kept out of this list, so one alt is never offered as a guildmate too.
-
-	KEYED THROUGH ns.QualifyPlayerName, BOTH SIDES, and the lookup below qualifies the roster row
-	the same way. Each source spells a name its own way -- UnitName bare, profileKeys as
-	"Character - Realm", the roster as the client hands it -- so only the qualified form compares
-	them, and a raw-string match misses your own alts and mails them your gear.
-
-	AceDB keeps profileKeys on ns.db.sv, never on ns.db. It holds a key per character that has ever
-	loaded the add-on, written as "Character - Realm", spaces and all. These are COMPARISON KEYS and
-	nothing else. An alt that has never run the add-on is not in there and is not caught, which is
-	the honest limit of this.
+	Keyed through ns.QualifyPlayerName, both sides: UnitName, profileKeys and the roster each spell
+	names their own way. profileKeys lives on ns.db.sv, never ns.db; an alt that has never loaded
+	the add-on is not caught.
 ]]
 local function OwnCharacters()
 	local out = {}
 
-	-- The player's name comes bare ("First Last" on WoW Forever); the helper appends our realm, as it does for a roster row.
+	-- Bare ("First Last" on WoW Forever); the helper appends our realm, as it does for a roster row.
 	local current = ns.QualifyPlayerName(ns.PlayerName())
 	if current then
 		out[current] = true
 	end
 
-	-- Every character that recorded itself (Features/Recipients-Alts.lua) is yours too.
 	for key in pairs(ns.db and ns.db.global.characters or {}) do
 		out[key] = true
 	end
@@ -129,10 +86,7 @@ local function OwnCharacters()
 		if character and realm then
 			out[character .. "-" .. ns.NormalizeRealm(realm)] = true
 		else
-			--[[
-				WoW Forever keys a character "First Last", no realm: qualified like a roster row so
-				the two meet. Any other unexpected shape is matched whole as well, rather than dropped.
-			]]
+			-- WoW Forever keys "First Last", no realm: qualified like a roster row. Any other shape is matched whole too.
 			out[key] = true
 			local qualified = ns.QualifyPlayerName(key)
 			if qualified then
@@ -147,11 +101,7 @@ end
 -- Reading
 --------------------------------------------------------------------------------
 
---[[
-	The last read's totals for the roster report: Guild:Read zeroes them each time. Every
-	rejection is counted: "the guild added nobody" and "the guild has nobody active" look
-	identical from the match list, and only one is a bug. stale is offline past the limit.
-]]
+-- Every rejection counted: "the guild added nobody" and "nobody active" look the same from the match list.
 local counts =
 	{ rows = 0, online = 0, stale = 0, summonAlts = 0, ownAlts = 0, ignored = 0, unreadable = 0, eligible = 0 }
 
@@ -164,25 +114,18 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	Every guild any of your characters is in, saved account-wide in ns.db.global.guilds each time
-	that character reads its roster -- at login, and at every Find Recipients -- so a character in
-	no guild, or in a small one, still reaches the leveling players in your others. Mail never
-	crosses realms or factions, so a saved guild is only read on its own realm and side.
-
-	A SAVED ROSTER IS A PHOTOGRAPH, so a member's time offline is what it recorded plus the days
-	since, and an old roster thins out on its own as its members age past the Ignore Offline Guild
-	Members limit. The player's tick on the guild and the members they ignored live on the same
-	entry, and a rescan keeps both.
+	A saved roster is a photograph: a member's time offline is what it recorded plus the days since,
+	so an old roster thins out on its own. The player's tick and ignores live on the same entry, and
+	a rescan keeps both.
 ]]
 
 local Realm = ns.PlayerRealm
 
--- The saved guild's key: a guild name is unique only on its own realm and side.
+-- A guild name is unique only on its own realm and side.
 function Guild:Key(name, realm, faction)
 	return ("%s:%s:%s"):format(realm or "", faction or "", name or "")
 end
 
--- The key of the guild this character is in now, or nil.
 function Guild:CurrentKey()
 	local name = IsInGuild and IsInGuild() and GetGuildInfo and GetGuildInfo("player")
 	if not name or name == "" then
@@ -192,9 +135,8 @@ function Guild:CurrentKey()
 end
 
 --[[
-	Saves the roster this character can see right now, keeping the player's tick and ignores on the
-	guild. Returns the entry it wrote and how many members are online, or nil when it wrote none.
-	Rows without a name or a class token are left out: there is no way to tell what they can wear.
+	Rows without a name or class token are left out: no way to tell what they can wear. The token is
+	GetGuildRosterInfo's eleventh return, the only one of its two class fields not localized.
 ]]
 function Guild:Save()
 	local key = ns.db and self:CurrentKey()
@@ -219,10 +161,7 @@ function Guild:Save()
 		end
 	end
 	local entry = ns.db.global.guilds[key]
-	--[[
-		A guild added by name in other capitals is this one: taken over under the roster's own
-		spelling, ticks and ignores and all, so it is never listed twice.
-	]]
+	-- A guild added by name in other capitals is this one: taken over, ticks and ignores and all, so it is never listed twice.
 	if not entry then
 		local found, oldKey = self:Find(GetGuildInfo("player"))
 		if found then
@@ -241,16 +180,12 @@ function Guild:Save()
 	return entry, online
 end
 
--- Whether the player has this guild ticked on the My Guilds panel. Unset is ticked.
+-- Unset is ticked.
 function Guild:Included(entry)
 	return entry ~= nil and entry.include ~= false
 end
 
---[[
-	Members the player ignored on the My Guilds panel -- a guild bank, an alt of somebody else's --
-	kept as entry.ignored[qualified name] = true. Keyed by the qualified identity, the one spelling
-	every roster read agrees on, so the ignore survives the rescan that replaces entry.members.
-]]
+-- Keyed by qualified name, the one spelling every roster read agrees on, so an ignore survives the rescan.
 function Guild:Ignored(entry, name)
 	local key = ns.QualifyPlayerName(name) or name
 	return entry ~= nil and entry.ignored ~= nil and entry.ignored[key] == true
@@ -269,7 +204,6 @@ function Guild:SetIgnored(entry, name, ignored)
 	end
 end
 
--- A saved member's days offline as of today: what the roster recorded, plus the days since it was saved.
 local function SavedDaysOffline(entry, member)
 	if member.days == nil then
 		return nil
@@ -278,11 +212,20 @@ local function SavedDaysOffline(entry, member)
 end
 
 --[[
-	Why a saved member is not mailed, as its counts key, or nil when they are. In this order: one of
-	yours is one of yours at any level or recency, then the player's ignores, then the rules.
+	A bare name in a guild saved on a connected realm is that realm's character, so it takes the
+	guild's realm, as Alts:Address does; bare, it would address somebody on this realm.
 ]]
+local function Address(entry, member)
+	local name = member.name
+	if not name or name:find("-", 1, true) or not entry.realm or entry.realm == Realm() then
+		return name
+	end
+	return name .. "-" .. entry.realm
+end
+
+-- Why a member is not mailed, as its counts key. In order: one of yours at any level or recency, ignores, the rules.
 local function Classify(entry, member, mine)
-	if mine[ns.QualifyPlayerName(member.name)] then
+	if mine[ns.QualifyPlayerName(Address(entry, member))] then
 		return "ownAlts"
 	end
 	if Guild:Ignored(entry, member.name) then
@@ -301,10 +244,7 @@ local function Classify(entry, member, mine)
 	return nil
 end
 
---[[
-	Members within the offline limit as of today. The player's ignores do not count against it, so
-	the panel can still list somebody it ignored.
-]]
+-- Ignores do not count against activity, so the panel can still list somebody it ignored.
 local function Active(entry, member, mine)
 	local why = Classify(entry, member, mine)
 	return why == nil or why == "ignored"
@@ -314,13 +254,10 @@ local function Eligible(entry, member, mine)
 	return Classify(entry, member, mine) == nil
 end
 
---[[
-	A member in the shape /who results arrive in. The name is verbatim: it is the address. The
-	guild's name rides along so MatchList:RecheckGuildmates can ask again after My Guilds changes.
-]]
+-- guildName rides along so MatchList:RecheckGuildmates can ask again after My Guilds changes.
 local function AsCandidate(member, entry)
 	return {
-		name = member.name,
+		name = Address(entry, member),
 		level = member.level,
 		class = member.class,
 		area = member.area,
@@ -330,7 +267,6 @@ local function AsCandidate(member, entry)
 	}
 end
 
--- Members who would be mailed: active, and not ignored.
 function Guild:ActiveCount(entry)
 	local mine, count = OwnCharacters(), 0
 	for _, member in ipairs(entry.members or {}) do
@@ -341,11 +277,7 @@ function Guild:ActiveCount(entry)
 	return count
 end
 
---[[
-	The members the My Guilds panel lists: everybody active, ignored or not, alphabetically.
-	Inactive members are left off -- they are not mailed whatever the tick says -- unless they are
-	ignored, so an ignore can always be taken back.
-]]
+-- Inactive members are left off unless ignored, so an ignore can always be taken back.
 function Guild:ListedMembers(entry)
 	local mine, out = OwnCharacters(), {}
 	for _, member in ipairs(entry.members or {}) do
@@ -359,17 +291,12 @@ function Guild:ListedMembers(entry)
 	return out
 end
 
---[[
-	Whether a saved guild can be read from this character, and why not when it cannot: "realm" or
-	"faction" for one mail cannot reach, "off" for one the player unticked, "removed" for one
-	taken off My Guilds. An old roster is not
-	skipped whole: its members age out one by one. The guild this character is in is read live instead.
-]]
+-- An old roster is never skipped whole: its members age out one by one.
 function Guild:Usable(entry)
 	if entry.removed then
 		return false, "removed"
 	end
-	if entry.realm ~= Realm() then
+	if not ns.Alts:Connected(entry.realm) then
 		return false, "realm"
 	end
 	if entry.faction ~= UnitFactionGroup("player") then
@@ -381,10 +308,7 @@ function Guild:Usable(entry)
 	return true
 end
 
---[[
-	Every usable saved guild's active members, in the shape /who results arrive in, leaving out
-	the guild this character is in: Guild:Request reads that one live.
-]]
+-- Leaves out the guild this character is in: Guild:Read reads that one live.
 function Guild:ReadSaved()
 	local out = {}
 	if not ns.db then
@@ -403,12 +327,7 @@ function Guild:ReadSaved()
 	return out
 end
 
---[[
-	The whole roster, filtered, in the shape /who results arrive in. Saved for your other characters
-	as it is read, then filtered from what was saved, so each member is read off the roster once.
-	The class TOKEN is GetGuildRosterInfo's eleventh return, and the only one of its two class
-	fields not localized.
-]]
+-- Saved for your other characters as it is read, then filtered from what was saved.
 function Guild:Read()
 	local out = {}
 	for key in pairs(counts) do
@@ -449,17 +368,9 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	The My Guilds panel's Add Guild box, TFTB's way: type a guild's name and its members count as
-	guildmates. A roster can only be read by a member, so a guild added by name has none. Its
-	members are found by /who instead -- each Find Recipients plan opens with a g-"Name" query for
-	it (Who:Plan), and any /who answer naming one of your guilds ranks that player with your
-	guildmates (Guild:WhoLookup). Stored beside the saved rosters in ns.db.global.guilds, keyed the
-	same way, with added = true and no members.
-
-	REMOVING HIDES, IT DOES NOT FORGET, for a guild one of your characters is in: that character
-	saves it again at its next login, so deleting the entry would bring it back on its own. It is
-	flagged removed instead, and typing its name into Add Guild brings it back. A guild added by
-	name and never saved is deleted outright.
+	Only a member can read a roster, so a guild added by name has none: Who:Plan asks g-"Name" for
+	it and Guild:WhoLookup ranks the answers as guildmates. Removing a guild one of your characters
+	is in only flags it removed, since that character would save it again at its next login.
 ]]
 
 -- One spelling for comparing guild names: trimmed, inner spaces collapsed, lower case.
@@ -486,10 +397,6 @@ function Guild:Find(name)
 	return nil
 end
 
---[[
-	Adds every guild named in text: commas, semicolons or new lines split several. A guild already
-	listed is ticked again and brought back if it was removed. Returns how many it changed.
-]]
 function Guild:Add(text)
 	if not ns.db then
 		return 0
@@ -532,15 +439,11 @@ function Guild:Remove(key)
 	end
 end
 
--- Whether this guild's members are known only through /who: added by name, no roster saved.
 function Guild:ByNameOnly(entry)
 	return entry ~= nil and entry.added == true and not entry.scanned
 end
 
---[[
-	The guilds Who:Plan opens each Find Recipients with a g-"Name" query for: added by name, usable
-	from here, and with no roster to read instead. Alphabetical, so the plan is the same each time.
-]]
+-- Alphabetical, so the plan is the same each time.
 function Guild:SearchNames()
 	local out = {}
 	if not ns.db then
@@ -556,12 +459,9 @@ function Guild:SearchNames()
 end
 
 --[[
-	For reading a /who answer: a function taking the guild name a result carries and the player's
-	name, answering whether they rank with your guildmates and whether you ignored them. Every
-	usable guild on My Guilds counts as guildmates, saved or added, along with the one this
-	character is in. A member unticked by hand stays ignored in any saved guild, usable or not, so
-	unticking or removing the whole guild never hands them back as a stranger. Built once per
-	answer, so fifty results cost one pass over the saved guilds.
+	Answers guildmate, ignored for a /who result. An ignore holds in any saved guild, usable or not,
+	so unticking or removing a guild never hands its ignored members back as strangers. Built once
+	per answer, so fifty results cost one pass over the saved guilds.
 ]]
 function Guild:WhoLookup()
 	local byName = {}
@@ -589,11 +489,8 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	Asks the server for a fresh roster and hands the result to one callback, mirroring Who:Step so
-	UI-Mailbox wires both sources the same way. The callback is what gates the read:
-	GUILD_ROSTER_UPDATE fires on its own constantly -- every login, logout, note edit and rank
-	change -- and rereading the whole roster with a GetGuildRosterLastOnline call per row each time
-	is work nobody asked for.
+	The callback gates the read: GUILD_ROSTER_UPDATE fires constantly (logins, note edits, rank
+	changes), and each read costs a GetGuildRosterLastOnline per row.
 ]]
 local pendingCallback = nil
 
@@ -606,16 +503,12 @@ function Guild:Request(callback)
 	return true
 end
 
--- Whether a roster request is still waiting for its answer. Read by the diagnostics roster report.
+-- For the diagnostics roster report.
 function Guild:Pending()
 	return pendingCallback ~= nil
 end
 
---[[
-	Every character saves its guild at login, so the account's guild list stays fresh on its own.
-	The roster is asked for a few seconds in, once the client has the guild at all, and the first
-	answer with members in it is saved.
-]]
+-- Every character saves its guild at login: asked a few seconds in, saved from the first answer with members.
 local saveAtLogin = false
 
 local function OnPlayerLogin()

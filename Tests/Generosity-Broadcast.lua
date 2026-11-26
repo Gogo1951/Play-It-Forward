@@ -59,6 +59,24 @@ test("another add-on's prefix is ignored", function()
 	check(ns.Generosity:Peer("Robin-Grobbulus") == nil, "not cached")
 end)
 
+--[[
+	WoW Forever can hand over a secret payload, which throws when compared. The handler checks
+	issecretvalue first and skips the message whole.
+]]
+test("a secret payload is skipped without an error", function()
+	local ns = load()
+	local secret = {}
+	rawset(_G, "issecretvalue", function(value)
+		return value == secret
+	end)
+
+	local ok = pcall(ns.fire, "CHAT_MSG_ADDON", ns.ADDON_MESSAGE_PREFIX, secret, "YELL", "Robin-Grobbulus")
+	rawset(_G, "issecretvalue", nil)
+
+	check(ok, "no error")
+	check(ns.Generosity:Peer("Robin-Grobbulus") == nil, "nothing cached")
+end)
+
 test("an unknown payload version is ignored", function()
 	local ns = load()
 

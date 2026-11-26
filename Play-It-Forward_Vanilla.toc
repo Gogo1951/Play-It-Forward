@@ -86,6 +86,7 @@ Data/Default-Settings.lua
 # Play It Forward
 Features/Core.lua
 Features/Utilities.lua
+Features/Menu-Kit.lua
 Features/Announcements.lua
 Features/Scan-Tooltip.lua
 Features/Scan-Bags.lua
@@ -109,7 +110,7 @@ Features/UI-Top-Bar.lua
 Features/UI-Status.lua
 Features/UI-Assignment.lua
 Features/UI-Mailbox.lua
-Features/UI-Reopen-Button.lua
+Features/UI-Mailbox-Tab.lua
 Features/Generosity.lua
 Features/Generosity-Broadcast.lua
 Features/Generosity-Tooltip.lua
@@ -125,6 +126,7 @@ Diagnostics/Localization-Reports.lua
 Diagnostics/Report-Runner.lua
 
 # Options
+Options/Options-Kit.lua
 Options/Options-Utilities.lua
 Options/Options-General.lua
 Options/Options-Give-Away.lua

@@ -258,12 +258,19 @@ end)
 --------------------------------------------------------------------------------
 
 test("classic weapon training holds on era and tbc", function()
-	for _, flavor in ipairs({ "Vanilla", "TBC", "Camelot" }) do
+	for _, flavor in ipairs({ "Vanilla", "TBC" }) do
 		local ns = load(flavor)
 		equal(ns.Data.WeaponPriorityFor("1H_AXE", "ROGUE"), nil, flavor .. ": no rogue axes")
 		equal(ns.Data.WeaponPriorityFor("POLEARM", "DRUID"), nil, flavor .. ": no druid polearms")
 		check(ns.Data.WeaponPriorityFor("BOW", "WARRIOR") ~= nil, flavor .. ": a warrior carries a bow")
 	end
+end)
+
+test("forever gives rogues axes and druids polearms", function()
+	local ns = load("Camelot")
+	equal(ns.Data.WeaponPriorityFor("1H_AXE", "ROGUE"), 3, "one rogue tree")
+	equal(ns.Data.WeaponPriorityFor("POLEARM", "DRUID"), 3, "one druid tree")
+	check(ns.Data.WeaponPriorityFor("BOW", "WARRIOR") ~= nil, "a warrior carries a bow")
 end)
 
 test("wrath gives rogues axes and druids polearms", function()

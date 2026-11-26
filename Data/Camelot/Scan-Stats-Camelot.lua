@@ -55,7 +55,7 @@ ns.Data.STAT_MAP = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, WoW Forever 1.60.1.70888
+	2026-11-26, wago.tools, WoW Forever 1.60.1.71139
 
 Notes
 	- GetItemStats keys this client can answer with, mapped to the add-on's stat tokens.

@@ -7,30 +7,13 @@ local Who = ns.Who
 -- Shared State
 --------------------------------------------------------------------------------
 
---[[
-	Shared with Features/Recipients-Who.lua through the module table: this file plans the attempts
-	and that one sends them. Both tables are only ever changed in place, never replaced.
-
-	Attempts still to make, one per press. A level range and its zones share one query, with at
-	most one class filter on it -- see the single-filter rule under Query Planning below:
-
-	  16-19 z-"Westfall" z-"Loch Modan" z-"Duskwood"
-	  16-19 c-"Warrior"
-]]
+-- Shared with Features/Recipients-Who.lua by reference: both tables are changed in place, never replaced.
 Who.plan = {}
 
 --[[
-	Session totals for the roster report; Who:Clear leaves them alone so the report still has them
-	after a plan finishes. connectedRealm counts results carrying a "-Realm" suffix, and they are
-	KEPT: every Classic Era and TBC realm is connected, so anyone in a /who result can be mailed.
-	capped counts queries that came back at the full cap -- a thin realm against a thin sample;
-	exhausted counts attempts dropped because an answer under the cap already covered them.
-	otherFaction counts results dropped because mail cannot reach them. timedOut counts queries
-	that never answered and went back on the plan; blocked counts SendWho calls the client refused
-	because the press did not reach it as a click. panelOpened counts the Who panel showing while a
-	query was out when it was closed before -- nonzero means some route still reaches it.
-	guildmates counts results in one of your guilds on My Guilds, ranked as guildmates;
-	ignoredGuild counts results dropped because you unticked that member there.
+	Session totals for the roster report; Who:Clear leaves them so the report still has them after
+	a plan ends. connectedRealm results are kept, not dropped: a connected realm's player can be
+	mailed. panelOpened nonzero means some route still opens the Who panel mid-query.
 ]]
 Who.counts = {
 	seen = 0,
@@ -50,10 +33,7 @@ Who.counts = {
 local plan, counts = Who.plan, Who.counts
 local planned = 0
 
---[[
-	Rebuilds the plan in place from what map returns for each attempt: the attempt, a narrowed
-	replacement, or nil to drop it. Returns how many were dropped.
-]]
+-- map returns the attempt, a narrowed replacement, or nil to drop it.
 local function FilterPlan(map)
 	local kept, dropped = {}, 0
 	for _, attempt in ipairs(plan) do
@@ -72,10 +52,8 @@ local function FilterPlan(map)
 end
 
 --[[
-	Whether the plan standing is a targeted one, Rescan for Better Match's. MatchList:Assign
-	reads it: the "every gift has a contender" rule that ends a full search must not end a targeted
-	one, which is pressed exactly when the contender holding the item is not good enough. Reset by
-	every Who:Plan and by Who:Clear.
+	Read by MatchList:Assign: the "every gift has a contender" stop must not end a targeted search,
+	which is pressed exactly because the contender holding the item is not good enough.
 ]]
 Who.targeted = false
 
@@ -83,7 +61,7 @@ Who.targeted = false
 -- Class Names
 --------------------------------------------------------------------------------
 
--- The localized name a /who class filter goes out with. Built once at load: the locale cannot change without a restart.
+-- Built once at load: the locale cannot change without a restart.
 local classNameByToken = LOCALIZED_CLASS_NAMES_MALE or {}
 
 local function ClassName(token)
@@ -96,13 +74,9 @@ Who.ClassName = ClassName
 local femaleNameByToken = LOCALIZED_CLASS_NAMES_FEMALE or {}
 
 --[[
-	The female form, only where this locale gives the class one of its own ("Schurkin" beside
-	"Schurke", "Voleuse" beside "Voleur"); nil where the two read the same, as in English, or
-	differ only in case, as Mists' esMX death knight does. ChrClasses on every shipped flavor has
-	them in deDE, esES, esMX, frFR, ptBR and ruRU (checked 2026-10-29).
-	If /who matches the name a character displays, a filter in the male form never finds a woman
-	of that class, so a single-class query is asked again in this form (Step below). Unverified
-	in game.
+	Only where this locale gives the class a form of its own (deDE "Schurkin"); nil where the two
+	match or differ only in case (Mists esMX death knight). Assumes /who matches the name a
+	character displays, so a male filter misses women. Unverified in game.
 ]]
 local function FemaleName(token)
 	local female = femaleNameByToken[token]
@@ -117,45 +91,21 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	C_FriendList.SendWho is hardware-event gated on 1.15: a call outside the stack of a real
-	click raises ADDON_ACTION_BLOCKED and does nothing -- no error, no WHO_LIST_UPDATE, just
-	silence. Queries cannot be chained on a timer; every one rides a button press, so each
-	press has to be spent well.
-
-	ONE CLASS FILTER PER QUERY, NEVER A LIST. The client honors a single c-"..." and quietly
-	drops the rest of an OR'd set -- observed live on 1.15.9 (2026-07-23): a query carrying
-	c-"Paladin" c-"Rogue" c-"Warrior" answered with paladins alone, the first filter
-	alphabetically, and the pool filled with a class the item was not for. So a zoned query
-	carries a class filter only when exactly one class is wanted, and the widened stage asks
-	one class per query. Multiple z-"..." filters are kept as a best effort: if the client
-	honors only the first, the query still answers correctly from its first zone, and the
-	per-class widening behind it is what the search actually relies on.
-
-	THE ZONES GO FIRST. Somebody out in a zone made for their level is leveling, and that is who
-	a gift is for; a bare level query fills its 50 mostly with people standing in a capital. So
-	the leveling zones are asked before anywhere, and the bare and per-class queries follow as
-	the fallback for a band the zones could not fill. One level-21 mage can receive the cloak as
-	well as forty can, so the search stops once somebody in contention holds each item, out in
-	the world (Who:Placement) -- a fallback pairing keeps its band on the plan, narrowed to the
-	classes the verdict named, and so does a holder found in a city or a dungeon.
+	SendWho works only inside a real click, so every press has to be spent well.
+	One c-"..." per query, never a list: the client honors the first and silently drops the rest
+	(seen live on 1.15.9). Zones go first: somebody in a zone made for their level is leveling,
+	while a bare level query fills its 50 mostly with people standing in a capital.
 ]]
 
 -- /who is chat text: past the limit it is not answered at all, so the zone list is chunked.
 local FILTER_MAX = 240
 Who.FILTER_MAX = FILTER_MAX
 
---[[
-	'c-"Warrior" c-"Paladin"', or "" when it would exclude nobody and only cost length. female
-	asks a single class in its female form, where the locale has one.
-]]
+-- "" when the filter would exclude nobody and only cost length.
 local function ClassFilter(classes, female)
 	if not classes or #classes == 0 then
 		return "", {}
 	end
-	--[[
-		A filter naming every class admits everybody, so it is pure length against a budget.
-		Compared against Matcher:Classes, which is what the roster can actually contain.
-	]]
 	if #classes >= #ns.Matcher:Classes() then
 		return "", {}
 	end
@@ -173,7 +123,6 @@ local function ClassFilter(classes, female)
 	return table.concat(parts, " "), names
 end
 
--- Class names for the diagnostics roster report. Six of them is not information, so it stops at three.
 local function ClassLabel(names)
 	if #names == 0 then
 		return nil
@@ -184,10 +133,7 @@ local function ClassLabel(names)
 	return ("%s +%d"):format(table.concat({ names[1], names[2], names[3] }, ", "), #names - 3)
 end
 
---[[
-	The readable form of a query, for the roster report. ns.DiagnosticsStrings is read at call
-	time rather than aliased at file scope, because Diagnostics/Diagnostics-Core.lua loads after this one.
-]]
+-- ns.DiagnosticsStrings is read at call time, not aliased: Diagnostics/Diagnostics-Core.lua loads after this file.
 local function NewAttempt(lo, hi, zones, classes, female, guild)
 	local DiagnosticsStrings = ns.DiagnosticsStrings
 	local classPart, classNames = ClassFilter(classes, female)
@@ -218,10 +164,7 @@ local function NewAttempt(lo, hi, zones, classes, female, guild)
 		end
 	end
 
-	--[[
-		The ingredients travel with the built strings. Who:Prune narrows the class half after an
-		assignment and rebuilds from these, rather than parsing a finished query back apart.
-	]]
+	-- The ingredients travel with the strings so Who:Prune rebuilds a narrowed attempt instead of parsing the query.
 	return {
 		query = query,
 		label = label,
@@ -234,12 +177,7 @@ local function NewAttempt(lo, hi, zones, classes, female, guild)
 	}
 end
 
---[[
-	One planned step: a single-class attempt, then its female twin where the locale has one, kept
-	together so the second form is asked straight after the first. Both carry the same class
-	token, so Who:Prune and Who:PruneTargeted treat the pair as one class: a holder found under
-	either form ends both.
-]]
+-- A single-class attempt and its female twin, asked back to back; the same token makes pruning treat them as one class.
 local function Step(lo, hi, zones, single)
 	local step = { NewAttempt(lo, hi, zones, single) }
 	if single and FemaleName(single[1]) then
@@ -257,11 +195,7 @@ local function SinglePart(single)
 	return (#female > #male) and female or male
 end
 
---[[
-	One attempt from each band before coming back for seconds. Interleaved, not concatenated: a
-	bag holding a level 15 cloak and a level 45 sword has two bands with nothing in common, and
-	draining one band's zones first means five presses before the other item is looked at once.
-]]
+-- Interleaved, not concatenated: draining one band's zones first leaves a distant item unlooked-at for presses.
 local function Interleave(lists)
 	local out, depth = {}, 0
 	for _, list in ipairs(lists) do
@@ -277,17 +211,13 @@ local function Interleave(lists)
 	return out
 end
 
--- Packs a band's zones into as few queries as the length budget allows, best zones first.
 local function ZoneChunks(lo, hi, classPart)
 	local fixed = #("%d-%d"):format(lo, hi) + (classPart ~= "" and (#classPart + 1) or 0)
 	local out, current, used = {}, {}, 0
 
 	for _, zone in ipairs(ns.Data.ZonesFor(lo, hi)) do
 		local piece = #('z-"%s"'):format(zone.name) + 1
-		--[[
-			Never emit an empty chunk: a zone name long enough to blow the budget on its own
-			still gets its own query rather than being dropped silently.
-		]]
+		-- A zone name too long for the budget alone still gets its own query, never an empty chunk.
 		if #current > 0 and fixed + used + piece > FILTER_MAX then
 			out[#out + 1] = current
 			current, used = {}, 0
@@ -302,17 +232,12 @@ local function ZoneChunks(lo, hi, classPart)
 end
 
 --[[
-	Bands this close are asked in one query. An item's band is two levels wide, so a bag of gear
-	for 52, 53 and 56 is three bands and three presses where one `/who 52-57` answers for all of
-	them -- observed live (2026-10-09): five presses to fill five rows a single query would have
-	mostly covered. Wider than this and the 50-result cap thins each band's share of the answer.
+	Bands this close share one query: an item's band is two levels wide, so 52, 53 and 56 would
+	cost three presses where one /who 52-57 answers. Wider, and the 50-result cap thins each band.
 ]]
 local SPAN_MAX = 6
 
---[[
-	Folds neighbouring bands into one span, classes unioned. A band asking for no class in
-	particular asks for everybody, so a span holding one asks for everybody too.
-]]
+-- A band asking for no class in particular makes its whole span ask everybody (MergeBands' last argument).
 local function WithinSpan(last, group)
 	return math.max(last.hi, group.hi) - last.lo + 1 <= SPAN_MAX
 end
@@ -327,27 +252,9 @@ local function Coalesce(groups)
 end
 
 --[[
-	The attempt queue, built from the level bands that have an item waiting, each carrying the
-	classes those items can go to. Neighbouring bands share a span (SPAN_MAX above). Per span:
-
-	  1  the zones covering it, packed into as few queries as fit, best zone first -- the people
-	     out there leveling. Unfiltered by class unless exactly one is wanted, per the
-	     single-filter rule at the top of this file. A zoned answer never ends anything
-	     (Who:Exhausted), so every zone gets its press before the fallback.
-	  2  bare levels, no filters -- the fallback, and the query most likely to fill all 50: it
-	     reaches the capitals and dungeons too, whose people rank last but can still open a
-	     parcel. An answer under the cap is everybody online at those levels, which ends the
-	     span outright.
-	  3  one query per wanted class, no zones, for a class the capped answer crowded out
-
-	Ahead of all three, one g-"Name" query per guild added by name on My Guilds, spanning every
-	band (Guild:SearchNames).
-
-	TARGETED skips the coalescing and the bare stage, and asks each class in its zones before
-	asking for it anywhere: Rescan for Better Match exists to ask for the classes it names,
-	and a bare query is what the main button already sent. See TargetedPlan below. The count returned is not a countdown: the
-	search stops at the first match in contention, or for a targeted search once nothing left on
-	the plan could outrank whoever holds the row.
+	Per span: zones, unfiltered unless one class is wanted; bare levels; one query per class.
+	A zoned answer never ends anything, so every zone gets its press before the fallback. The count
+	returned is not a countdown: the search stops at the first match in contention.
 ]]
 local TargetedPlan
 
@@ -367,7 +274,7 @@ function Who:Plan(groups, targeted)
 		local hi = math.max(lo, group.hi or lo)
 		local classes = group.classes or {}
 		local single = (#classes == 1) and classes or nil
-		-- Only its length is wanted here, for the chunk budget; each attempt builds its own.
+		-- Only its length is wanted here, for the chunk budget.
 		local singlePart = SinglePart(single)
 
 		local perBand = {}
@@ -376,7 +283,7 @@ function Who:Plan(groups, targeted)
 		end
 		zoned[#zoned + 1] = perBand
 
-		-- A list naming every class narrows nothing; the bare stage below already asks that.
+		-- A list naming every class narrows nothing; the bare stage already asks that.
 		if #classes > 0 and #classes < #ns.Matcher:Classes() then
 			local perClass = {}
 			for _, token in ipairs(classes) do
@@ -384,15 +291,11 @@ function Who:Plan(groups, targeted)
 			end
 			widened[#widened + 1] = perClass
 		end
-		-- No classes: the last widening step gives up the class half, so it must not be narrowed.
+		-- Classless on purpose: Who:Prune never narrows a classless attempt.
 		bare[#bare + 1] = { Step(lo, hi, nil, nil) }
 	end
 
-	--[[
-		Guilds added by name on My Guilds go first: their members rank with your guildmates, ahead
-		of anyone the zones turn up. One query per guild across every band at once, since a guild
-		rarely fills the 50 a level range would, and each band asked apart would cost a press each.
-	]]
+	-- One query per guild across every band: a guild rarely fills 50, and asking per band costs a press each.
 	local names = ns.Guild:SearchNames()
 	if #names > 0 and #groups > 0 then
 		local lo, hi = math.huge, 0
@@ -419,19 +322,9 @@ function Who:Plan(groups, targeted)
 end
 
 --[[
-	Matcher:TargetedBands hands over one class per group, best fit first. Two stages, each in that
-	order and never interleaved, because the order IS the ranking:
-
-	  1  the zones, under the class filter -- that class out leveling, which is who the gift is
-	     for (Who:Placement)
-	  2  one class-filtered query per group, no zones -- everybody of that class at those levels,
-	     wherever they stand, as the fallback for a class the zones turned up nobody for
-
-	A group naming several classes (a consumable's, which every class wants equally) asks its
-	zones unfiltered, then each of them by class.
-
-	After every answer MatchList:Assign drops the attempts whose class could not outrank the row's
-	holder (Who:PruneTargeted), so a search ends as soon as no press left could change the row.
+	Rescan for Better Match: no coalescing, no bare stage, no guild queries. Zones under the class
+	filter, then each class anywhere, never interleaved: Matcher:TargetedBands' order is the
+	ranking. A group naming several classes (a consumable's) asks its zones unfiltered.
 ]]
 function TargetedPlan(groups)
 	local filtered, zoned = {}, {}
@@ -465,13 +358,9 @@ function TargetedPlan(groups)
 end
 
 --[[
-	Called with a query that came back under the cap, which means the server sent everybody it
-	had: every planned attempt asking a subset of the same question can only repeat that answer,
-	so it is dropped rather than spending a press and the throttle on it.
-
-	A subset is the same levels or fewer, and the same class filter or a narrower one. A zoned
-	answer never exhausts anything -- the client may honor only its first zone, so "under the
-	cap" there says nothing about the rest.
+	An answer under the cap is everybody the server had, so a planned subset (same levels or fewer,
+	same classes or narrower) can only repeat it. A zoned answer exhausts nothing: the client may
+	honor only its first zone.
 ]]
 function Who:Exhausted(attempt)
 	-- A guild's answer under the cap is everybody in that guild, which says nothing about anyone else.
@@ -512,37 +401,27 @@ function Who:Exhausted(attempt)
 	return dropped
 end
 
--- How many attempts the plan started with. Read by the diagnostics roster report.
+-- How many attempts the plan started with, for the diagnostics roster report.
 function Who:Planned()
 	return planned
 end
 
 --[[
-	Narrows a plan already under way to the bands that still have somebody to find, called after
-	every assignment -- Who:Clear applied one band at a time.
-
-	ONLY EVER REMOVES. Re-planning through Who:Plan would rebuild the queue from its best-first
-	attempt and re-send what has already been asked, so a search re-planning on each press would
-	never get past its first zone. An attempt whose band holds no unmatched gift is dropped:
-	interleaving means a satisfied band keeps taking its turn, and every turn costs a click and
-	the full throttle. A survivor's class half is intersected with what the remaining bands want
-	-- never unioned, since widening would send a query nothing planned for.
+	ONLY EVER REMOVES: re-planning restarts at the best-first attempt, so a search re-planned on
+	each press never gets past its first zone. A survivor's classes are intersected with what the
+	remaining bands want, never unioned, which would send a query nothing planned for.
 ]]
 function Who:Prune(groups)
 	if #plan == 0 then
 		return 0
 	end
 
-	-- What an attempt becomes after narrowing, or nil when nothing is left for it to ask.
 	local function Survivor(attempt)
 		local wanted, overlaps = {}, false
 		for _, group in ipairs(groups or {}) do
 			local groupLow = group.lo or 1
 			local groupHigh = group.hi or groupLow
-			--[[
-				Every overlapping band contributes, unioned: one merged band split back in two by
-				an assignment leaves a single attempt still answering for both halves.
-			]]
+			-- Unioned across overlapping bands: a merged band split by an assignment leaves one attempt answering for both.
 			if attempt.lo <= groupHigh and groupLow <= attempt.hi then
 				overlaps = true
 				for _, class in ipairs(group.classes or {}) do
@@ -565,10 +444,7 @@ function Who:Prune(groups)
 				narrowed[#narrowed + 1] = class
 			end
 		end
-		--[[
-			An empty intersection is not "ask everybody": an empty class list would send the
-			attempt unfiltered, a wider query than the one being pruned.
-		]]
+		-- An empty intersection drops it: an empty class list would send it unfiltered, wider than before.
 		if #narrowed == 0 then
 			return nil
 		end
@@ -581,18 +457,11 @@ function Who:Prune(groups)
 
 	local dropped = FilterPlan(Survivor)
 
-	--[[
-		Counted for the roster report, which otherwise shows places-left falling without a press
-		and no way to tell pruning from a query that quietly went missing.
-	]]
+	-- Counted so the roster report can tell pruning from a query that quietly went missing.
 	counts.pruned = counts.pruned + dropped
 	return dropped
 end
 
---[[
-	Drops every planned attempt keep turns down, for a targeted search narrowed against its row's
-	holder. Only ever removes, as Who:Prune does, and counted with it.
-]]
 function Who:PruneTargeted(keep)
 	local dropped = FilterPlan(function(attempt)
 		return keep(attempt) and attempt or nil

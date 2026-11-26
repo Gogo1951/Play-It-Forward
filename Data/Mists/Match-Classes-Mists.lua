@@ -52,7 +52,7 @@ ns.Data.CONSUMABLE_CLASSES = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, Mists of Pandaria Classic 5.5.4.70631
+	2026-11-26, wago.tools, Mists of Pandaria Classic 5.5.4.71089
 
 Notes
 	- FACTION_CLASSES: the classes each faction can roll on this client. /who and the mailbox
@@ -81,6 +81,9 @@ wago.tools
 	https://wago.tools/db2/CharBaseInfo?build=5.5.4.70631
 	https://wago.tools/db2/ChrRaces?build=5.5.4.70631
 	https://wago.tools/db2/ChrClasses?build=5.5.4.70631
+	https://wago.tools/db2/CharBaseInfo?build=5.5.4.71089
+	https://wago.tools/db2/ChrRaces?build=5.5.4.71089
+	https://wago.tools/db2/ChrClasses?build=5.5.4.71089
 
 QuestieDB
 	None.

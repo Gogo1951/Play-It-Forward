@@ -1,16 +1,8 @@
 --[[
-	Where /who looks, and when it stops looking.
-
-	The old search asked `/who 21-22` with no zone, got the server's 50-result cap back,
-	split the band and asked twice more. A six-press plan grew to fifteen while the
-	player watched, and it kept counting down after every item already had a recipient:
-	"Not done: press again for levels 21-22 (0 item(s) unmatched)".
-
-	The plan never grows: a capped answer is chased only by the class and zone queries
-	already on it. It shrinks instead -- an answer under the cap is everybody online at
-	those levels, so nothing narrower inside them is asked again. And the plan is
-	abandoned the moment no gift is left unmatched, because one level 21 mage can receive
-	the cloak as well as forty of them can.
+	Where /who looks, and when it stops. The plan never grows: a capped answer is chased only by
+	the class and zone queries already on it. An answer under the cap is everybody online at
+	those levels, so nothing narrower inside them is asked again, and the plan is abandoned once
+	no gift is left unmatched.
 ]]
 
 local Harness = require("Harness")
@@ -46,10 +38,7 @@ test("only the player's own faction's zones are offered", function()
 	local ns = load()
 	local found = names(ns.Data.ZonesFor(2, 5))
 
-	--[[
-		/who is same-faction, so a Horde starting zone can never answer an Alliance
-		query. Offering one is a press that could not have worked.
-	]]
+	-- /who is same-faction, so a Horde starting zone could never answer.
 	check(contains(found, "Elwynn Forest"), "Alliance starting zone offered")
 	check(not contains(found, "Durotar"), "Horde starting zone not offered")
 	check(not contains(found, "Tirisfal Glades"), "nor the other one")
@@ -93,10 +82,7 @@ test("an area the client has no name for is skipped", function()
 	check(contains(found, "Loch Modan"), "the named zones beside it still come back")
 end)
 
---[[
-	WoW Forever's client reports itself as Retail, so a flavor guessed from the client read it as
-	Wrath: Northrend zones and death knights. The TOC names it Camelot, Classic Era data.
-]]
+-- WoW Forever's client reports itself as Retail; the TOC's Camelot flavor must win, or it reads as Wrath.
 test("WoW Forever searches and matches as Classic Era", function()
 	Stub.flavor = "Camelot"
 	local ok, ns = pcall(load)
@@ -110,10 +96,7 @@ test("WoW Forever searches and matches as Classic Era", function()
 	check(contains(ns.Matcher:Classes(), "SHAMAN"), "but Forever's dwarf shamans are Alliance")
 end)
 
---[[
-	Ordering is what decides how many presses this takes, since each press is one zone.
-	A band sitting in the middle of a zone's range should beat one clinging to its edge.
-]]
+-- Each press is one zone, so a band mid-range in a zone beats one at its edge.
 test("the best zone for a band comes first", function()
 	local ns = load()
 	local found = names(ns.Data.ZonesFor(21, 22))
@@ -124,10 +107,7 @@ test("the best zone for a band comes first", function()
 		"a zone centered near 21 leads, got " .. tostring(found[1])
 	)
 
-	--[[
-		Hillsbrad covers 21-22 too, but only just: its range is 20-31, so a level 21 is
-		somebody who arrived this morning. It belongs in the list and behind the others.
-	]]
+	-- Hillsbrad (20-31) covers 21-22 only at its edge, so it comes behind the others.
 	local hillsbrad
 	for index, name in ipairs(found) do
 		if name == "Hillsbrad Foothills" then
@@ -155,11 +135,8 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	Which zones lead is the zone table's job and is checked above. This is about the
-	shape of the plan: the leveling zones first, because that is where the people who
-	will use a gift are; bare levels behind them as the fallback. Zones arrive lumped into
-	one query, so their label names a count rather than a place -- see
-	Tests/Query-Building.lua.
+	The plan's shape: leveling zones first, where the people who will use a gift are; bare levels
+	behind. Zones arrive lumped into one query (see Tests/Query-Building.lua).
 ]]
 test("the first query asks the zones, and bare levels come after", function()
 	local ns = load()
@@ -179,10 +156,7 @@ test("the first query asks the zones, and bare levels come after", function()
 	equal(last, ns.DiagnosticsStrings.WHO_LABEL_ANYWHERE:format("21-22"), "bare levels are still asked, last")
 end)
 
---[[
-	The live report: gear for 52, 53 and 56 took five presses, where `/who 52-56` would
-	have answered for most of it at once. Bands that close share one query.
-]]
+-- Bands as close as 52, 53 and 56 share one query rather than a press each.
 test("neighbouring bands share one query", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 50, hi = 51 }, { lo = 52, hi = 53 }, { lo = 54, hi = 55 } })
@@ -249,9 +223,8 @@ test("the server's total marks an answer as capped even under fifty", function()
 end)
 
 --[[
-	Rescan for Better Match exists to ask for the class it names; leading with the
-	bare query would only repeat what the main button already sent. The class out in its
-	leveling zones goes first, and the class anywhere is the fallback behind it.
+	Rescan for Better Match asks for its class in its leveling zones, then anywhere; leading with
+	the bare query would repeat what the main button sent.
 ]]
 test("a targeted plan asks the class in its zones before anywhere", function()
 	local ns = load()
@@ -272,20 +245,12 @@ test("bands take turns rather than one running to exhaustion", function()
 	ns.fire("WHO_LIST_UPDATE")
 	local second = ns.Who:Peek()
 
-	--[[
-		A bag holding a level 24 cloak and a level 48 sword has two bands with nothing in
-		common. Running one to exhaustion first means five presses before the other item
-		is looked at once.
-	]]
+	-- Two bands with nothing in common alternate, rather than one running to exhaustion first.
 	check(first ~= second, "the second press looks somewhere else")
 	check(not (first:find("21%-22") and second:find("21%-22")), "and at the other band: " .. first .. " / " .. second)
 end)
 
---[[
-	The growth the author watched happen. A capped answer used to be split into two
-	narrower bands pushed to the front of the plan, and on a connected cluster nearly
-	every bare query capped.
-]]
+-- On a connected cluster nearly every bare query caps, so splitting capped bands would balloon the plan.
 test("a capped answer does not grow the plan", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 21, hi = 22 } })
@@ -318,16 +283,12 @@ local function bagWithOneCloak(ns)
 			stats = { ITEM_MOD_INTELLECT_SHORT = 9 },
 		}),
 	})
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 end
 
 --[[
-	The button is dead for the length of the /who throttle after a press.
-
-	Not decoration: Who:Step refuses a query inside that window and the only sign was a
-	line of status text, so the button looked live and did nothing. Held for the full
-	throttle rather than until the answer lands, because an answer often comes back in
-	well under a second and the server would still refuse the next press.
+	The button stays dead for the full /who throttle, not until the answer lands: Who:Step refuses
+	a query inside that window, and an answer often arrives in under a second.
 ]]
 test("pressing Find Recipients locks the button while the throttle runs", function()
 	local ns = load()
@@ -347,11 +308,7 @@ test("the lock outlasts the answer", function()
 	Stub.whoResults = { { name = "Agathe", level = 18, class = "MAGE" } }
 	ns.fire("WHO_LIST_UPDATE")
 
-	--[[
-		Everything downstream of an answer calls _syncFindButton -- the query callback and
-		_assign both do -- and either would put a live-looking label back on a button the
-		server will still refuse.
-	]]
+	-- The query callback and _assign both call _syncFindButton; neither may relight the button early.
 	equal(ns.UI.frame.findButton:IsEnabled(), false, "still dead after the results arrive")
 	equal(ns.UI.frame.findButton.shownText, ns.L["BUTTON_SEARCHING"], "still saying so")
 end)
@@ -367,10 +324,7 @@ test("the button comes back when the throttle is up", function()
 	equal(ns.UI.frame.findButton.shownText, ns.L["BUTTON_FIND_RECIPIENTS"], "and offering another look")
 end)
 
---[[
-	One number, in Recipients-Who.lua. A lock shorter than the throttle hands back a
-	press the server refuses; longer, and it sits idle for no reason.
-]]
+-- A lock shorter than the throttle hands back a press the server refuses; longer sits idle.
 test("the lock lasts exactly as long as the throttle", function()
 	local ns = load()
 	bagWithOneCloak(ns)
@@ -400,25 +354,14 @@ test("finding a recipient ends the search", function()
 	equal(ns.UI:Items()[1].recipient.name, "Agathe", "the item found somebody")
 	equal(ns.Who:Remaining(), 0, "and the search stopped rather than counting down")
 
-	--[[
-		The button is still locked here: it holds for the whole /who throttle rather than
-		until the answer lands. Its final label is what the timer restores.
-	]]
+	-- Still locked: the timer, not the answer, restores the final label.
 	Stub.FireTimers()
 	equal(ns.UI.frame.findButton.shownText, ns.L["BUTTON_FIND_RECIPIENTS"], "the button keeps its one name")
 end)
 
 --[[
-	Abandoning a query must not abandon its cleanup.
-
-	Who:Clear used to drop the pending job outright, so when the answer landed the
-	handler returned early and EndQuery never ran: SetWhoToUi stayed true and the Who
-	panel this add-on had caused to open was left standing. The player closed our window
-	and Blizzard's opened by itself a second later.
-
-	The panel is the observable here because it is the symptom. The stub raises it by
-	hand the way the client does when results arrive, and EndQuery is the only thing in
-	the add-on that puts it away again.
+	An abandoned query must still run EndQuery when its answer lands, or SetWhoToUi stays true
+	and Blizzard's Who panel is left standing after our window closes.
 ]]
 test("a query abandoned mid-flight still cleans up after itself", function()
 	local ns = load()
@@ -442,13 +385,9 @@ test("a query abandoned mid-flight still cleans up after itself", function()
 end)
 
 --[[
-	THE WHO PANEL MUST NEVER LEARN A QUERY ANSWERED. The stock UI opens it on
-	WHO_LIST_UPDATE, and the panel is a UIPanel: opening it over an open mailbox makes
-	the panel manager close MailFrame, whose OnHide ends the mailbox interaction --
-	pressing Find Recipients at a mailbox closed the mailbox. Hiding the panel after
-	reading results (above) is the safety net, not the fix: by then the mailbox is gone.
-	So the frame's WHO_LIST_UPDATE registration is lifted for the life of one query and
-	put back on the way out, the old WhoLib approach.
+	The Who panel must never hear a query answered: the stock UI opens it on WHO_LIST_UPDATE, and
+	as a UIPanel it closes MailFrame, ending the mailbox interaction. Hiding it afterward is too
+	late, so the frame's registration is lifted for the life of one query and put back after.
 ]]
 test("the Who panel never hears a query answered", function()
 	local ns = load()
@@ -476,9 +415,8 @@ test("an unanswered query still gives the panel its ears back", function()
 end)
 
 --[[
-	Forever's Retail-based UI opened the panel over the mailbox with FriendsFrame and WhoFrame both
-	deaf, so the listeners are asked of the client, not named. Every one is quieted but the add-on's
-	own dispatcher, which is how the answer gets read at all.
+	Forever's Retail-based UI opened the panel with FriendsFrame and WhoFrame both deaf, so the
+	listeners are asked of the client, not named. All are quieted but the add-on's own dispatcher.
 ]]
 test("a listener with no name is quieted too, and the add-on's own frame never is", function()
 	local ns = load()
@@ -543,10 +481,7 @@ test("a fresh plan sends again once the abandoned query has landed", function()
 	equal(#Stub.whoQueries, 2, "and its query actually went out")
 end)
 
---[[
-	The same thing by the route a player takes: the X on the window, which calls
-	Who:Clear. Nothing may be assigned into a window they have closed.
-]]
+-- The X calls Who:Clear: nothing may be assigned into a closed window.
 test("closing the window mid-search leaves no Who panel and no assignment", function()
 	local ns = load()
 	bagWithOneCloak(ns)
@@ -562,11 +497,7 @@ test("closing the window mid-search leaves no Who panel and no assignment", func
 	equal(ns.UI:Items()[1].recipient, nil, "and the closed window took no recipient")
 end)
 
---[[
-	Escape closes the window, the way it closes every other window the game opens. It
-	reaches the frame through UISpecialFrames, which only calls Hide and never touches
-	UI:Close -- so this is what the client does, name lookup and all.
-]]
+-- Escape reaches the frame through UISpecialFrames, which only calls Hide, never UI:Close.
 local function pressEscape()
 	for _, name in ipairs(UISpecialFrames) do
 		local frame = _G[name]
@@ -587,11 +518,7 @@ test("the window is registered for Escape", function()
 	check(not ns.UI.frame:IsShown(), "and it closes")
 end)
 
---[[
-	The whole reason the closing work hangs off OnHide rather than off the X: Escape
-	skips UI:Close entirely, and a plan left standing behind a closed window would
-	assign recipients into a window nobody is looking at.
-]]
+-- Escape skips UI:Close, so the closing work hangs off OnHide; a plan left standing would assign unseen.
 test("Escape stops the search the same way the X does", function()
 	local ns = load()
 	bagWithOneCloak(ns)
@@ -639,10 +566,7 @@ test("an empty answer from the zones leaves the fallback standing", function()
 	equal(ns.Who.plan[#ns.Who.plan].zones, nil, "the bare query among it")
 end)
 
---[[
-	Nobody at all online at those levels, and the server said so. Every narrower query
-	would answer the same silence, so the next press starts fresh instead.
-]]
+-- Nobody online at those levels: every narrower query would answer the same, so the next press starts fresh.
 test("an empty bare answer under the cap ends the search", function()
 	local ns = load()
 	bagWithOneCloak(ns)
@@ -673,9 +597,8 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	Observed on Forever 1.60.1: /who answers with both factions, the add-on paired a Horde
-	sender with an Alliance stranger, and the send came back "Target is unfriendly."
-	Mail does not cross factions, so the other side never reaches a pool.
+	Observed on Forever 1.60.1: /who answers with both factions, and mail to the other side comes
+	back "Target is unfriendly.", so it never reaches a pool.
 ]]
 local function answer(ns, results)
 	local found
@@ -708,10 +631,8 @@ test("a /who result from the other faction is dropped", function()
 	equal(ns.Who:ResultStats().otherFaction, 1, "and counted for the roster report")
 end)
 
---[[
-	A wrong drop loses a recipient for good; a wrong keep costs one refused send, which the
-	mailer now moves past. So anything the race table cannot place stays.
-]]
+-- A wrong drop loses a recipient for good; a wrong keep costs one refused send. So an unplaceable race stays.
+
 test("a race that cannot be placed is kept", function()
 	local ns = load()
 	local found = namesOf(answer(ns, {

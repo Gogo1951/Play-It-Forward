@@ -46,11 +46,11 @@ ns.Data.WEAPON_SPECS = {
 	["2H_SWORD"] = { 1, 1, 1, 0, 0, 0, 0, 0, 0, 3 },
 	["1H_MACE"] = { 2, 2, 0, 1, 3, 3, 0, 0, 3, 1 },
 	["2H_MACE"] = { 1, 1, 0, 0, 0, 1, 0, 0, 2, 3 },
-	["1H_AXE"] = { 2, 2, 1, 0, 0, 3, 0, 0, 0, 1 },
+	["1H_AXE"] = { 2, 2, 1, 1, 0, 3, 0, 0, 0, 1 },
 	["2H_AXE"] = { 1, 1, 1, 0, 0, 1, 0, 0, 0, 3 },
 	["DAGGER"] = { 1, 0, 1, 3, 3, 2, 3, 3, 3, 0 },
 	["FIST"] = { 2, 0, 1, 2, 0, 2, 0, 0, 2, 0 },
-	["POLEARM"] = { 1, 1, 1, 0, 0, 0, 0, 0, 0, 3 },
+	["POLEARM"] = { 1, 1, 1, 0, 0, 0, 0, 0, 1, 3 },
 	["STAFF"] = { 1, 0, 1, 0, 3, 2, 3, 3, 3, 0 },
 	["BOW"] = { 3, 0, 3, 3, 0, 0, 0, 0, 0, 0 },
 	["GUN"] = { 3, 0, 3, 3, 0, 0, 0, 0, 0, 0 },
@@ -68,7 +68,7 @@ ns.Data.WEAPON_SPECS = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, WoW Forever 1.60.1.70888
+	2026-11-26, wago.tools, WoW Forever 1.60.1.71139
 
 Notes
 	- WEAPON_SUBCLASS turns the weapon subclass the client reports for an item into the add-on's
@@ -97,7 +97,17 @@ Notes
 	  StyLua normalizes the rows but not a padded legend, so the two would drift.
 	- SHIELD (armor subclass 6) and HELD (held off-hand items) are rows here because they
 	  compete for a hand rather than a material (ns.Data.UsesWeaponMatrix).
-	- Druids never train polearms on this client, so their POLEARM column is 0.
+	- Rogues train One-Handed Axes on this client: the trainer spell's class mask in
+	  SkillLineAbility includes Rogue, and SkillRaceClassInfo gives rogues the skill. Only Combat
+	  builds around an axe (its Hack and Slash talent gives axes the bonus swords get), so the
+	  rogue's 1H_AXE count is 1, as in Data/Wrath/.
+	- Druids train Polearms on this client: SkillLineAbility and SkillRaceClassInfo both list
+	  the druid, and the maintainer ruled it so (2026-11-18). Classic Era's tables carry the same
+	  druid row, so the tables alone don't settle it. Only Feral builds around a polearm, so the
+	  druid's POLEARM count is 1, as in Data/Wrath/, behind the hunter's claim on polearms in
+	  Match-Rules.
+	- Hunters train Thrown but count 0: a thrown weapon doesn't fire Auto Shot, so no hunter
+	  spec builds around one (Match-Rules says the same).
 	- Hand-set by the author as matching policy, not pulled from game data. Validate Data counts
 	  the rows only, since no client API looks up a weapon key.
 
@@ -109,6 +119,11 @@ Wowhead
 
 wago.tools
 	https://wago.tools/db2/ItemSubClass?build=1.60.1.70291
+	https://wago.tools/db2/SkillLineAbility?build=1.60.1.71139
+	https://wago.tools/db2/SkillRaceClassInfo?build=1.60.1.71139
+	https://wago.tools/db2/Talent?build=1.60.1.71139
+	https://wago.tools/db2/TalentTab?build=1.60.1.71139
+	https://wago.tools/db2/Spell?build=1.60.1.71139
 
 QuestieDB
 	None.

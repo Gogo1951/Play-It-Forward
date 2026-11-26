@@ -4,22 +4,14 @@ local L = ns.L
 ns.Distributor = {}
 local Distributor = ns.Distributor
 
---[[
-	Serialized, event-driven mailer. SendMail cannot be looped: one send goes out, then the run
-	waits for MAIL_SUCCESS or MAIL_FAILED before advancing. Mailing a non-friend arms Blizzard's
-	"might be someone you don't know" confirm, which is never auto-clicked.
-]]
+-- One SendMail at a time, advanced by its result event. Blizzard's non-friend confirm is never auto-clicked.
 
 -- Display only: SendMail takes the bare name, and an escape sequence would address it to nobody.
 local function RecipientOf(job)
 	return ns.ColorName(job.recipient, job.class)
 end
 
---[[
-	The body box, under whichever name this client keeps it. SendMailBodyEditBox is the retail
-	name; on Classic Era that global is nil and the body lives behind MailEditBox:GetEditBox(), so the
-	To and Subject boxes fill while the body stays empty. Picked by availability, never by flavor.
-]]
+-- Classic Era has no SendMailBodyEditBox; its body is MailEditBox:GetEditBox(). Picked by availability, never flavor.
 local function MailBodyBox()
 	if MailEditBox and MailEditBox.GetEditBox then
 		local ok, box = pcall(MailEditBox.GetEditBox, MailEditBox)
@@ -44,11 +36,7 @@ local function FillMailPanel(job)
 	Fill(MailBodyBox(), job.body)
 end
 
---[[
-	The subject a letter goes out under. Ours when the job carries one; otherwise the item name
-	the client wrote into the box on attach, which is what a hand-sent parcel would carry. The
-	server wants a subject, so the bare item name from the link is the last resort.
-]]
+-- Ours, else the item name the attach wrote, else the link's name: the server wants a subject.
 local function SubjectOf(job)
 	if job.subject then
 		return job.subject
@@ -63,18 +51,15 @@ local function SubjectOf(job)
 	return (job.link and job.link:match("%[(.-)%]")) or ""
 end
 
-local MAIL_COST = 30 -- copper per mail
+-- Copper per one-item letter. CHECK IN GAME: wrong, it pauses a run the player could afford, or starts one they can't.
+local MAIL_COST = 30
 local RESULT_TIMEOUT = 30 -- seconds to wait on a confirm/result before pausing
 -- A refusal can arrive as both UI_ERROR_MESSAGE and MAIL_FAILED; the second must not land on the next send.
 local FAILURE_SETTLE = 1
 local SUBJECT_MAX = 31 -- what the mail window's own edit boxes accept
 local BODY_MAX = 500
 
---[[
-	Exposed so the Outgoing Mail preview and the Mailbox report in Diagnostics/Manifests.lua report
-	the same numbers Features/Mail-Copy.lua enforces; a second copy there would disagree silently the
-	day either changes.
-]]
+-- Exposed so Mail-Copy and the Diagnostics reports read these, never a second copy that drifts.
 Distributor.SUBJECT_MAX = SUBJECT_MAX
 Distributor.BODY_MAX = BODY_MAX
 Distributor.MAIL_COST = MAIL_COST
@@ -88,15 +73,46 @@ Distributor.onProgress = nil -- optional UI callback(done, total, job, ok)
 Distributor.onDone = nil -- optional UI callback(done, total, skipped)
 Distributor.onStateChange = nil -- optional UI callback(), whenever IsRunning flips
 
---[[
-	Run-level, unlike busy, which covers one send in flight and drops during the failure settle.
-	True from Start until the run finishes, stops, or pauses with jobs still queued: the moments
-	the chat lines tell the player to press Distribute again.
-]]
+-- Run-level, unlike busy (one send in flight, false while a failure settles): true until the run finishes, stops or pauses.
 Distributor.running = false
+
+-- Stop lets the letter in hand finish; stopped keeps that run's count for the status line until the next run.
+Distributor._stopRequested = false
+Distributor.stopped = nil
+
+-- The run's "Sent … to …" lines, held so the total prints first (Style Guide → MESSAGES).
+Distributor._held = {}
+
+-- Delivered letters for the window's Sent section; the window clears it on show and hide.
+Distributor.sent = {}
 
 function Distributor:IsRunning()
 	return self.running
+end
+
+function Distributor:StopRequested()
+	return self._stopRequested
+end
+
+function Distributor:Stopped()
+	return self.stopped
+end
+
+function Distributor:Sent()
+	return self.sent
+end
+
+function Distributor:ClearSent()
+	wipe(self.sent)
+end
+
+-- Called once the line that heads them has printed.
+function Distributor:FlushHeld()
+	local held = self._held
+	self._held = {}
+	for _, line in ipairs(held) do
+		ns:PrintMessage(line)
+	end
 end
 
 function Distributor:SetRunning(value)
@@ -119,23 +135,12 @@ local function OnMailFailed()
 end
 ns.On("MAIL_FAILED", OnMailFailed)
 
---[[
-	Refusals a send can earn that do not carry the ERR_MAIL prefix. ERR_PLAYER_WRONG_FACTION
-	("Target is unfriendly.") observed on Forever 1.60.1 (2026-10-06), mailing a /who result of
-	the other faction: missed, it sat out the full timeout and blamed a confirm nobody was shown.
-	Named, not quoted, so it matches in every locale; a name this client lacks adds nothing.
-]]
+-- Refusals without the ERR_MAIL prefix; a missed one sits out the full timeout. Named, not quoted, for every locale.
 local OTHER_MAIL_ERRORS = { "ERR_PLAYER_WRONG_FACTION" }
 
 --[[
-	Every mail refusal the client knows about, collected from its own ERR_MAIL* strings rather than
-	listed, since a hardcoded English sentence would never fire on another locale. Strings carrying
-	a format specifier are skipped -- they arrive with the placeholder filled in, so an exact
-	comparison never matches. A skipped error is a missed catch, never a wrong one.
-
-	ON THE DISTRIBUTOR RATHER THAN FILE-LOCAL, because the diagnostics event-log filter classifies
-	UI_ERROR_MESSAGE with it: the filter has to ask the same question the live handler asks, or the
-	log suppresses a firing this file acted on and says nothing about it.
+	From the client's own strings, so every locale matches; format-specifier strings arrive filled
+	in and are skipped. On Distributor because the event-log filter must ask the handler's question.
 ]]
 local mailErrors
 function Distributor:IsMailError(message)
@@ -161,25 +166,10 @@ function Distributor:IsMailError(message)
 	return mailErrors[message] or false
 end
 
---[[
-	A refusal the server reports as a UI error rather than MAIL_FAILED: SendMail can be rejected
-	without either result event, leaving the run to sit out its full timeout over an item that
-	never left the bag. Guarded on a send being in flight and on the message being one of the
-	client's own mail errors, since UI_ERROR_MESSAGE carries everything from standing too far away.
-
-	Inside the settle window after a failure, the same refusal's UI error only marks that send's
-	recipient: the failure was already counted and printed when MAIL_FAILED resolved it.
-
-	A wrong-faction refusal skips that one recipient without counting toward the two-error abort:
-	it says nothing about the run, and a /who the faction filter could not place produces them
-	back to back.
-
-	A refused alt is forgotten as well as marked: a deleted or renamed character stays recorded
-	for good otherwise, and is offered first every session after. One that still exists records
-	itself again at its next login.
-]]
+-- Never counts toward the abort: it says nothing about the run, and an unplaced /who yields them back to back.
 local RECIPIENT_ONLY_ERRORS = { ERR_PLAYER_WRONG_FACTION = true }
 
+-- A refused alt is forgotten too, or a deleted one is offered first every session; a live one re-records at login.
 local function MarkRefused(job)
 	ns.Fairness:MarkUnreachable(job.recipient)
 	if job.alt then
@@ -187,6 +177,10 @@ local function MarkRefused(job)
 	end
 end
 
+--[[
+	SendMail can be refused with neither result event. Inside the settle window the UI error only
+	marks the recipient: MAIL_FAILED already counted that failure.
+]]
 local function OnUiErrorMessage(_, message)
 	local inFlight = Distributor.busy and Distributor._current
 	local settling = not Distributor.busy and Distributor._settling
@@ -197,10 +191,7 @@ local function OnUiErrorMessage(_, message)
 	if not errorName then
 		return
 	end
-	--[[
-		A name the server will not take now will not start working later in the same session. Only
-		once the job reached SendMail: a refusal during the attach is about the item.
-	]]
+	-- Only once the job reached SendMail: a refusal during the attach is about the item.
 	if inFlight then
 		if inFlight._sent then
 			MarkRefused(inFlight)
@@ -212,6 +203,7 @@ local function OnUiErrorMessage(_, message)
 		return
 	end
 	MarkRefused(settling)
+	Distributor:DropRepeats(settling)
 	if Distributor.onProgress then
 		Distributor.onProgress(Distributor._done or 0, Distributor._total or 0, settling, false)
 	end
@@ -221,9 +213,8 @@ ns.On("UI_ERROR_MESSAGE", OnUiErrorMessage)
 -- job = { bag, slot, uid, link, recipient, level, class, alt, subject, body }
 function Distributor:Start(jobs)
 	--[[
-		A send still awaiting its result holds the next run back, or that result would be credited
-		to the new run's first job. For one more RESULT_TIMEOUT only: a send the player never
-		confirmed produces no result at all, and must not lock Distribute until the mailbox closes.
+		A held send's late result would credit the new run's first job. One more RESULT_TIMEOUT
+		only: an unconfirmed send never answers, and must not lock Distribute.
 	]]
 	if self.busy or (self._awaiting and GetTime() - (self._awaitingSince or 0) < RESULT_TIMEOUT) then
 		ns:PrintMessage(L["MAIL_STILL_SENDING"])
@@ -232,6 +223,9 @@ function Distributor:Start(jobs)
 	self._awaiting = nil
 	self._run = self._run + 1
 	self._settling = nil
+	self._stopRequested = false
+	self.stopped = nil
+	self._held = {}
 	self.queue = jobs or {}
 	self.errors = 0
 	self._total = #self.queue
@@ -247,13 +241,38 @@ function Distributor:Start(jobs)
 end
 
 function Distributor:Stop()
-	--[[
-		A send already in flight still lands, so its result event is still coming. Holding the job
-		is what lets Result put its recipient on cooldown after the run is over.
-	]]
+	-- A send in flight still lands; holding it lets Result credit it after the stop.
 	if self.busy then
 		self._awaiting, self._awaitingSince = self._current, GetTime()
 	end
+	self.busy = false
+	self._run = self._run + 1
+	self._settling = nil
+	self._stopRequested = false
+	self.stopped = nil
+	wipe(self.queue)
+	if self._timer then
+		self._timer:Cancel()
+		self._timer = nil
+	end
+	self:FlushHeld()
+	self:SetRunning(false)
+end
+
+-- With a letter in hand or a refusal settling, the run halts once that resolves; otherwise at once.
+function Distributor:RequestStop()
+	if not self.running then
+		return
+	end
+	self._stopRequested = true
+	if not self.busy and not self._settling then
+		self:Halt()
+	end
+end
+
+-- Prints like a finished run: the Stopped count, then the held lines.
+function Distributor:Halt()
+	self._stopRequested = false
 	self.busy = false
 	self._run = self._run + 1
 	self._settling = nil
@@ -262,7 +281,15 @@ function Distributor:Stop()
 		self._timer:Cancel()
 		self._timer = nil
 	end
+	local done, total, skipped = self._done or 0, self._total or 0, self._skipped or 0
+	self.stopped = { done = done, total = total }
+	ns:PrintMessage(L["MAIL_STOPPED"]:format(done, total))
+	self:FlushHeld()
 	self:SetRunning(false)
+	if self.onDone then
+		self.onDone(done, total, skipped)
+	end
+	ns.Generosity:Broadcast()
 end
 
 function Distributor:Next()
@@ -289,12 +316,12 @@ function Distributor:Next()
 	-- Gate on the mailbox, not MailFrame:IsShown(): TSM and the Who panel swap MailFrame out.
 	if not ns.AtMailbox() then
 		ns:PrintMessage(L["MAIL_NOT_AT_MAILBOX"])
-		self:SetRunning(false)
+		self:Pause()
 		return
 	end
 	if GetMoney() < MAIL_COST then
 		ns:PrintMessage(L["MAIL_NO_POSTAGE"])
-		self:SetRunning(false)
+		self:Pause()
 		return
 	end
 
@@ -310,10 +337,8 @@ function Distributor:Next()
 	end -- 2 = Send Mail
 
 	--[[
-		CHECK BEFORE TOUCHING THE ITEM, and never move this below the call. UseContainerItem
-		only attaches while Blizzard's own Send Mail panel is visible; with it closed the
-		identical call uses the item instead -- a green raises "you must be level X", and a
-		consumable is simply drunk. Verifying after the call can only report the damage.
+		CHECK BEFORE TOUCHING THE ITEM: with the Send Mail panel closed, UseContainerItem uses the
+		item instead of attaching it (a consumable is drunk). Checking after can only report the damage.
 	]]
 	if not (SendMailFrame and SendMailFrame:IsShown()) then
 		self.busy = false
@@ -325,35 +350,19 @@ function Distributor:Next()
 	if ClearSendMail then
 		pcall(ClearSendMail)
 	end
-	--[[
-		Emptied so the attach writes this item's name: the client only fills an empty subject box,
-		and the last letter's subject would otherwise carry over to a letter for your own alt.
-	]]
+	-- Emptied so the attach writes this item's name; a stale subject would carry onto an alt's letter.
 	if SendMailSubjectEditBox and SendMailSubjectEditBox.SetText then
 		pcall(SendMailSubjectEditBox.SetText, SendMailSubjectEditBox, "")
 	end
 
-	--[[
-		Stack size captured here, through the same shim Features/Scan-Bags.lua reads: by MAIL_SUCCESS
-		the slot is stale, so a stack of 20 waters would tally as one item. It travels with the job
-		to Generosity:RecordSend.
-	]]
+	-- Stack size now: by MAIL_SUCCESS the slot is stale, and a stack of 20 would tally as one.
 	local slotInfo = ns.GetItemInfoC(job.bag, job.slot)
 	job._count = (slotInfo and slotInfo.stackCount) or 1
 
-	--[[
-		GUARDED LIKE EVERY OTHER CLIENT CALL IN THIS FUNCTION. Between busy going true and the
-		result timer being armed below, a throw unwinds with busy still set and no timer to clear
-		it -- a state no event recovers from, so the run is stuck until a reload. A failed attach
-		and a thrown attach are the same outcome to the player, so they share one exit.
-	]]
+	-- Guarded: a throw before the timer is armed leaves busy set with nothing to clear it until a reload.
 	local attached = pcall(C_Container.UseContainerItem, job.bag, job.slot) -- attaches to first open mail slot
 
-	--[[
-		A refusal can arrive as a UI error inside that call, and OnUiErrorMessage has already
-		failed the job and armed the settle step that moves the run on. Carrying on here would
-		finish the run a second time.
-	]]
+	-- An in-call UI error may already have failed the job and armed the settle; carrying on would finish twice.
 	if not self.busy or self._current ~= job then
 		return
 	end
@@ -365,20 +374,10 @@ function Distributor:Next()
 		return self:Finish()
 	end
 
-	--[[
-		AFTER THE ATTACH, NEVER BEFORE. Attaching writes the item's name into an empty subject box,
-		overwriting a subject set earlier. Cosmetic only -- each box is guarded on its own, because
-		a cosmetic touch must never be the thing that breaks a send.
-	]]
+	-- After the attach, which writes into the subject box. Cosmetic, so each box is guarded on its own.
 	FillMailPanel(job)
 
-	--[[
-		From here a refusal is about the recipient, not the item: OnUiErrorMessage marks a name
-		unreachable only for a job that got this far. The same in-call refusal as the attach's is
-		checked for straight after. SendMail is guarded for the reason the attach above is, and a
-		throw releases the attachment on the way out: the item is on the panel by this point, and
-		abandoning the run with it still there leaves the player to work out why a slot looks empty.
-	]]
+	-- From here a refusal is about the recipient. A throw clears the panel so the item isn't left attached.
 	job._sent = true
 	local sent = pcall(SendMail, job.recipient, SubjectOf(job), job.body or "")
 	if not self.busy or self._current ~= job then
@@ -403,18 +402,20 @@ function Distributor:Next()
 		self._awaiting, self._awaitingSince = self._current, GetTime()
 		self.busy = false
 		ns:PrintMessage(L["MAIL_AWAITING_CONFIRM"]:format(RecipientOf(job)))
-		self:SetRunning(false)
+		self:Pause()
 	end)
 end
 
+-- After the line saying why: the held lines follow it, and a pending Stop has nothing left to stop.
+function Distributor:Pause()
+	self._stopRequested = false
+	self:FlushHeld()
+	self:SetRunning(false)
+end
+
 --[[
-	Everything else queued for a recipient the server just refused, once the job reached SendMail:
-	they will refuse the rest, and those repeats would count toward the two-error abort, so one bad
-	name -- an alt deleted since it was recorded, holding every item that suits its class -- would
-	end the run. Only a refusal: an attach error is about the item and a bare MAIL_FAILED says
-	nothing about who, so neither releases anything else. Released like a failure, so the rows stay
-	listed. Not counted as skips, which Finish reports as items that moved in the bags; they are
-	simply among those not sent.
+	A refused name refuses the rest, and the repeats would trip the two-error abort. Released like
+	failures so the rows stay; not skips, which Finish reports as items that moved in the bags.
 ]]
 function Distributor:DropRepeats(job)
 	for index = #self.queue, 1, -1 do
@@ -428,10 +429,7 @@ function Distributor:DropRepeats(job)
 	end
 end
 
---[[
-	A delivered send: its recipient goes on cooldown and the account tally is credited, never for
-	your own alt, since mailing yourself is not giving anything away.
-]]
+-- Never tallied for your own alt: mailing yourself gives nothing away.
 local function Credit(job)
 	ns.Fairness:Record(job.recipient, job.level or 0)
 	if not job.alt then
@@ -446,6 +444,7 @@ function Distributor:Result(ok, reason, recipientOnly, refused)
 		self._awaiting = nil
 		if pending and ok then
 			Credit(pending)
+			table.insert(self.sent, pending)
 			-- It delivered, so drop it before a resume retries an already-empty slot.
 			if self.queue[1] == pending then
 				table.remove(self.queue, 1)
@@ -465,13 +464,11 @@ function Distributor:Result(ok, reason, recipientOnly, refused)
 
 	local job = self._current
 	if ok then
-		--[[
-			Trust MAIL_SUCCESS; do not re-read the slot to "verify". MAIL_SUCCESS fires before the
-			bag update, so the slot still holds the old link and every delivery reads as a skip.
-		]]
+		-- Trust MAIL_SUCCESS: it fires before the bag update, so a re-read still sees the old link.
 		Credit(job)
 		self._done = (self._done or 0) + 1
-		ns:PrintMessage(L["MAIL_SENT"]:format(job.link, RecipientOf(job), self._done, self._total))
+		table.insert(self._held, L["MAIL_SENT"]:format(job.link, RecipientOf(job), self._done, self._total))
+		table.insert(self.sent, job)
 		table.remove(self.queue, 1)
 		self.errors = 0
 	else
@@ -491,13 +488,17 @@ function Distributor:Result(ok, reason, recipientOnly, refused)
 			ns:PrintMessage(L["MAIL_ABORTED"])
 			return self:Finish()
 		end
-		table.remove(self.queue, 1) -- skip the problem item
+		table.remove(self.queue, 1)
 	end
 
 	if self.onProgress then
 		self.onProgress(self._done, self._total, job, ok)
 	end
 	if ok then
+		-- The letter in hand is done: a Stop pressed during it halts here, unless that was the last.
+		if self._stopRequested and self.queue[1] then
+			return self:Halt()
+		end
 		return self:Next()
 	end
 
@@ -509,6 +510,9 @@ function Distributor:Result(ok, reason, recipientOnly, refused)
 			return
 		end
 		self._settling = nil
+		if self._stopRequested and self.queue[1] then
+			return self:Halt()
+		end
 		if not self.busy then
 			self:Next()
 		end
@@ -516,7 +520,10 @@ function Distributor:Result(ok, reason, recipientOnly, refused)
 end
 
 function Distributor:Finish()
+	-- A run that ends early is over: anything left must not read as cut off by the mailbox closing.
+	wipe(self.queue)
 	self.busy = false
+	self._stopRequested = false
 	self:SetRunning(false)
 	local done, total, skipped = self._done or 0, self._total or 0, self._skipped or 0
 	-- Skips are items that moved in the bags, not failures, so they are counted apart.
@@ -525,12 +532,11 @@ function Distributor:Finish()
 	else
 		ns:PrintMessage(L["MAIL_DONE"]:format(done, total))
 	end
+	-- The total first, then what went where (Style Guide → MESSAGES).
+	self:FlushHeld()
 	if self.onDone then
 		self.onDone(done, total, skipped)
 	end
-	--[[
-		Push the fresh totals to nearby players right after giving. The broadcast self-throttles, so a
-		run finishing soon after a login broadcast simply no-ops.
-	]]
+	-- Self-throttled, so one soon after the login broadcast no-ops.
 	ns.Generosity:Broadcast()
 end

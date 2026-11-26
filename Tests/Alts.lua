@@ -1,11 +1,8 @@
 --[[
-	Your own characters as recipients (maintainer ruling, 2026-10-29).
-
-	Matching goes Alts > Guild > Strangers, but only among the classes an item suits best: an alt
-	never takes what fits a stranger better. Under the default level rule an alt holds any gear it
-	has yet to grow into, so a level 12 warrior takes level 50 strength plate. An alt can take
-	several items in one run, is never on the gift cooldown, and mail to it adds nothing to the
-	Generosity totals. The picker groups names under Your Alts, Your Guild and Strangers.
+	Your own characters as recipients (maintainer ruling, 2026-10-29). Alts > Guild > Strangers,
+	but only among the classes an item suits best. Under the default level rule an alt holds gear
+	it has yet to grow into. An alt can take several items a run, is never on the gift cooldown,
+	and adds nothing to the Generosity totals.
 ]]
 
 local Harness = require("Harness")
@@ -43,7 +40,7 @@ local WARRIOR_ALT = { name = "Brickhouse", class = "WARRIOR", level = 12 }
 -- Opens the mailbox and presses Find Recipients: nothing is matched before the press.
 local function atMailbox(ns, defs)
 	Stub.SetBackpack(defs)
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	ns.UI:FindRecipients()
 	ns.fire("WHO_LIST_UPDATE")
 	return ns.UI:Items()
@@ -326,10 +323,9 @@ test("a level 1 alt is offered and mailed past the recipient floor", function()
 end)
 
 --[[
-	No copy to your own alts. A letter with text stays in the mailbox once its item is taken, so a
-	run to an alt left a stack of identical notes behind. The alt's letter goes out under the item
-	name the client writes on attach, with no body, even straight after a stranger's letter has
-	left our subject in the box.
+	No copy to your own alts: a letter with text stays in the mailbox once its item is taken. The
+	alt's letter carries the client's attach-time subject and no body, even right after a
+	stranger's letter left ours in the box.
 ]]
 test("a letter to your own alt carries no subject or note of ours", function()
 	local ns = load()
@@ -587,9 +583,10 @@ test("mail to your own alt adds nothing to the Generosity totals", function()
 end)
 
 --[[
-	Every character is remembered for good, so one deleted or renamed since was offered first for
-	everything its class suits, every session. The server's refusal is the only word that it is gone.
+	Every character is remembered for good, so a deleted or renamed one would be offered first
+	forever; the server's refusal is the only word that it is gone.
 ]]
+
 test("an alt the server refuses mail for is forgotten", function()
 	local ns = load()
 	seedAlt(ns, WARRIOR_ALT)

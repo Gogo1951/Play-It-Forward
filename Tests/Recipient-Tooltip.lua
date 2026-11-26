@@ -89,7 +89,7 @@ test("a real Intellect cloak names its casters, not everyone", function()
 			stats = { ITEM_MOD_INTELLECT_SHORT = 5 },
 		}),
 	})
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	local item = ns.UI:Items()[1]
 	local line = item and ns.UI:BestFitLine(item)
 	check(line ~= nil, "a Best fit line")

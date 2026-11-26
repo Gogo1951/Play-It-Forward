@@ -9,7 +9,7 @@ ns.Data.SPELL_IDS = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, TBC Anniversary 2.5.6.70577
+	2026-11-26, wago.tools, TBC Anniversary 2.5.6.70577
 
 Notes
 	- The game records Play It Forward shows by name, stored by ID so the client supplies the name in every locale.

@@ -4,22 +4,15 @@ ns.Matcher = {}
 local Matcher = ns.Matcher
 
 --[[
-	Filtered by AllClasses to what can exist for this player. A phantom class is not a harmless
-	extra: Verdict breaks ties on the lowest priority group, so a death knight (group 1 for
-	two-handers, warrior 3) takes the headline verdict on an unusable item.
+	Order only; FACTION_CLASSES decides who exists. A phantom class is not harmless: a death knight
+	(group 1 on two-handers) would take the headline verdict on an item nobody here can use.
 ]]
 local EVERY_CLASS =
 	{ "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID", "DEATHKNIGHT", "MONK" }
 
 --[[
-	/who and the mailbox are both same-faction, so a class the player's own side cannot roll is
-	unreachable however well the item suits it. Which classes each faction can roll on this
-	client is the flavor folder's ns.Data.FACTION_CLASSES; EVERY_CLASS only sets the order.
-
 	Memoized only once the faction is known: a cached nil would drop a real class for the session.
-	Unresolved returns every class either faction can roll and retries -- over-including is
-	recoverable. A faction the table has no row for, such as a Pandaren yet to choose, gets the
-	same.
+	Unresolved, or a faction with no row, gets every rollable class: over-including is recoverable.
 ]]
 local memo
 local function AllClasses()
@@ -62,11 +55,7 @@ function Matcher:EligibleClasses(item)
 		if classes == nil or classes == "ALL" then
 			return AllClasses()
 		end
-		--[[
-			CONSUMABLE_CLASSES is the flavor folder's roster of who each consumable kind is for --
-			mana, scroll stats, oil and stone targets -- so returning it whole names the phantom
-			classes described at the top of this file.
-		]]
+		-- Returned whole, CONSUMABLE_CLASSES would name the phantom classes noted at EVERY_CLASS.
 		local available = {}
 		for _, class in ipairs(AllClasses()) do
 			available[class] = true
@@ -80,15 +69,10 @@ function Matcher:EligibleClasses(item)
 		return out
 	end
 
-	-- gear
 	local out = {}
 	local subclassID, equipLoc = item.subclassID, item.equipLoc
 
-	--[[
-		Weapons, shields, held off-hands and relics: eligibility is "the priority lookup returned a
-		group". This must stay above the universal check below: held items are armor subclass 0, so
-		that branch would otherwise claim them.
-	]]
+	-- Must stay above the universal check: held off-hands are armor subclass 0.
 	if ns.Data.UsesWeaponMatrix(item) then
 		local key = ns.Data.WeaponKey(item)
 		for _, class in ipairs(AllClasses()) do
@@ -121,13 +105,9 @@ function Matcher:EligibleClasses(item)
 	return out
 end
 
---[[
-	Group 1 is the item's natural home: the class that natively wears that armor, or whose every
-	spec builds around that weapon. Rings, necks, trinkets and cloaks have no group -- everyone is
-	1 and the stat weights alone decide, which is how an agility ring finds a rogue.
-]]
+-- Group 1 is the item's natural home; universal slots are 1 for everyone, so stats alone decide.
 function Matcher:Priority(item, classToken)
-	-- Held is armor subclass 0, so this must stay above the universal branch below.
+	-- Must stay above the universal branch: held off-hands are armor subclass 0.
 	if ns.Data.UsesWeaponMatrix(item) then
 		return ns.Data.WeaponPriorityFor(ns.Data.WeaponKey(item), classToken) or 9
 	end
@@ -152,11 +132,7 @@ end
 -- Soft Score
 --------------------------------------------------------------------------------
 
---[[
-	Claim: only the stats the point tables rank for this class, with no weapon baseline. It decides
-	whether a class has any claim at all, separately from how it ranks. Consumables aren't
-	stat-scored; every eligible class wants them equally.
-]]
+-- Claim: weighted stats only, no weapon baseline. Decides admission, never ranking.
 function Matcher:SpecScore(item, classToken)
 	if item.kind == "consumable" then
 		return 1
@@ -176,10 +152,8 @@ function Matcher:SpecScore(item, classToken)
 end
 
 --[[
-	Fit: the claim plus an item-level baseline so statless weapons still place; shields, held
-	off-hands and relics take it too, being matrix-ranked everywhere else. Constant per item, so it
-	shifts every admitted class equally and only decides whether the item clears the threshold. The
-	C_Item.GetItemInfo fallback is for a record built by hand rather than by the scanner.
+	Fit: claim plus an item-level baseline so statless weapons still place. The baseline is the same
+	for every class, so it moves the threshold test, not the order. GetItemInfo is for hand-built records.
 ]]
 function Matcher:Score(item, classToken)
 	local score = self:SpecScore(item, classToken)
@@ -198,24 +172,10 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	How much of an item a class actually uses, 0 to 1. Score sums, so breadth loses to one big
-	weight: on "of the Gorilla" a paladin scores 16 + 8 and a warrior 24 + 0, a tie the warrior
-	wins with half the item dead on him. Coverage separates using an item from using part of one.
-
-	THE DENOMINATOR IS SCOREABLE STATS, NOT THE ITEM'S STAT LINE. Only stats some class
-	competes on can say who competes: counting defense or a resistance would put a rogue at
-	50% on his own gear and demote him off it. Each stat counts at its budget, not its raw
-	number, or "+1% crit" would be a rounding error beside "+10 Agility".
-
-	WHICH MEANS WEIGHTING A STAT IS NEVER ONLY A SCORING CHANGE. It enlarges this
-	denominator on every item carrying that stat, and the majority test is strictly greater
-	than half, so on a two-stat roll a class ranking one half sits at exactly 0.5 and drops
-	out of contention. Stamina sits on most items in the game; that blast radius is the
-	trap. A demoted class stays admitted and still receives the item when nobody better is
-	in range.
-
-	An item with nothing scoreable returns 1, not 0: those are placed by the weapon
-	baseline and the statless fallback, and a 0 would quietly bin every one of them.
+	Share of the item's scoreable stats, at budget, the class weights at all: sums let one big weight
+	beat breadth (a warrior's 24 + 0 ties a paladin's 16 + 8 on "of the Gorilla"). Unscoreable stats
+	stay out, or defense would demote a rogue off his own gear. Nothing scoreable is 1, not 0, or
+	every statless weapon is binned.
 ]]
 function Matcher:Coverage(item, classToken)
 	local weights = ns.Data.STAT_WEIGHTS[classToken]
@@ -245,27 +205,12 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	What happens to an item, decided in one place; every other answer derives from this. An item
-	is only a gift when at least one class was admitted, because admitted classes are exactly who
-	RankCandidates draws from. "Admitted" is about classes, never about who /who has found:
-	judging on the live roster would vendor every item before the first query.
-
-	  gift        a class was admitted and the best of them clears the threshold
-	  leftover    read fine, nobody wants it, or it scores under the threshold
-	  unreadable  its stats could not be read, so neither verdict is trustworthy
-
-	Unreadable is separate because merging it into leftover tells the player to disenchant an item
-	nobody evaluated, and that is not reversible. Held out of auto-assignment for the same reason.
+	Admitted is about classes, never who /who has found, or every item reads leftover before the
+	first query. Unreadable stays apart from leftover: disenchanting an unevaluated item is irreversible.
 ]]
 Matcher.GIFT, Matcher.LEFTOVER, Matcher.UNREADABLE = "gift", "leftover", "unreadable"
 
---[[
-	A rule that names classes replaces the contenders rather than adding to them: "an owl staff is
-	for priests, mages and druids" overrules a shaman the point tables liked. Narrowed to classes
-	already admitted, so a rule naming nobody reachable strands nothing, and admission is
-	untouched -- an owl staff still reaches a hunter when nobody else is there, which is what
-	makes it soft.
-]]
+-- Replaces the contenders, narrowed to admitted; admission is untouched, which is what keeps a rule soft.
 local function ApplyPreference(verdict, item, context)
 	local preferred = ns.Data.PreferredClasses(item, context)
 	if not preferred then
@@ -286,14 +231,8 @@ local function ApplyPreference(verdict, item, context)
 end
 
 --[[
-	Drop the classes a rule says must not lead, keeping them admitted as fallbacks. Runs after the
-	preference so a rule cannot promote a demoted class back: an Intellect dagger matches the
-	dagger rule and names the rogue, who is exactly who should not lead on Intellect.
-
-	IT FALLS BACK THROUGH THE SCORING, NOT PAST IT. Reaching straight for the admitted list would
-	promote the classes coverage just demoted. The last resort exists for heavy armor carrying
-	Intellect too far below its training level for PROFICIENCY_REACH to reach the hunter or the
-	shaman it was written for, which leaves nobody behind a warrior.
+	After the preference, so a rule cannot promote a demoted class back (an Intellect dagger names the
+	rogue). Falls back through the scoring, never straight to admitted, which would undo coverage.
 ]]
 local function ApplyDemotion(verdict, item, scored, context)
 	local demoted = ns.Data.DemotedClasses(item, context)
@@ -321,11 +260,8 @@ local function ApplyDemotion(verdict, item, scored, context)
 end
 
 --[[
-	Whether an item carries a stat some class ranks. The everyone-fallback below is for a weapon
-	that carries nothing to judge it by; one carrying stats nobody eligible wants -- an Agility
-	staff with every Agility class's staff spec off, a Spirit shield -- has been judged, and goes
-	to nobody rather than to whoever stands nearest. Stamina is everybody's and judges nothing, so a
-	Stamina idol still finds its druid.
+	A weapon carrying stats nobody eligible weights has been judged, and goes to nobody rather than
+	the everyone-fallback. Stamina judges nothing, so a Stamina idol still finds its druid.
 ]]
 local PRIMARY_STATS = { "STRENGTH", "AGILITY", "INTELLECT" }
 
@@ -342,12 +278,7 @@ end
 function Matcher:Verdict(item)
 	local eligible = self:EligibleClasses(item)
 
-	--[[
-		Removed before scoring. See the flavor folder's Match-Rules file: Healing against everyone
-		without a healing tree, and Spirit against the classes that get nothing from it. Each must
-		outrank the half of the item the class genuinely wants, or "of the Owl" buys a warlock back
-		in through the Intellect and a healing roll buys a mage back in through the spell damage.
-	]]
+	-- Vetoes go before scoring, or "of the Owl" buys a warlock back in through the Intellect.
 	-- A class with every spec turned off goes too: the player said nobody of that class is leveling.
 	if item.kind ~= "consumable" then
 		local vetoed = ns.Data.VetoedClasses(item) or {}
@@ -382,10 +313,7 @@ function Matcher:Verdict(item)
 	if item.kind == "consumable" then
 		verdict.admitted, verdict.contenders = eligible, eligible
 		verdict.state = Matcher.GIFT
-		--[[
-			This path returns before the scoring below, so the preference is applied here too. No
-			context: an unclaimed rule is about a stat claim, and a consumable is never stat-scored.
-		]]
+		-- No context: an unclaimed rule is about a stat claim, and a consumable is never scored.
 		local scored = verdict.contenders
 		ApplyPreference(verdict, item, nil)
 		ApplyDemotion(verdict, item, scored, nil)
@@ -393,20 +321,12 @@ function Matcher:Verdict(item)
 		return verdict
 	end
 
-	--[[
-		Nothing read off a suffixed item means the parse failed, not that the item is bare.
-		Decided before scoring, because a score on an unread item looks like a judgement and is
-		not one.
-	]]
+	-- Nothing read off a suffixed item is a failed parse, not a bare item: no score may judge it.
 	if ns.ItemSuffixID(item.link) and next(item.stats or {}) == nil then
 		verdict.state = Matcher.UNREADABLE
 		return verdict
 	end
 
-	--[[
-		Two scores per class: claim is what the point tables rank for them, fit adds the weapon
-		baseline. Claim decides who is admitted, fit how they rank.
-	]]
 	local anyClaim = false
 	for _, class in ipairs(eligible) do
 		verdict.fits[class] = self:Score(item, class)
@@ -420,11 +340,8 @@ function Matcher:Verdict(item)
 	end
 
 	--[[
-		With no claim anywhere, only matrix-ranked items fall back to "offer it to everyone": a
-		statless weapon's level baseline is a genuine universal claim, and the matrix already
-		narrows shields, held off-hands and relics to the classes that carry the type. Statless armor must
-		not take the fallback -- with nothing to separate them, whoever is closest in level takes
-		it. The unread case is gone by here, so this is armor that genuinely carries nothing.
+		Only matrix items take the everyone-fallback: the matrix already narrows them. Statless armor
+		must not, or whoever is closest in level takes it with nothing to separate them.
 	]]
 	local offerToEveryone = (not anyClaim) and ns.Data.UsesWeaponMatrix(item) and not CarriesRankedStat(item)
 
@@ -434,14 +351,7 @@ function Matcher:Verdict(item)
 		end
 	end
 
-	--[[
-		Who is in the running, which is not verdict.best: best is the single highest (fit, tier)
-		class, while every class in the top bucket can receive the item. Resolved here so the
-		report and the ordering cannot drift. Two tests: the share asks whether a class wants it
-		enough to compete (magnitude), coverage whether it uses the item or only part of one
-		(breadth), which scoring cannot see. Failing either leaves a class admitted, and still a
-		fallback.
-	]]
+	-- Contention needs the share (magnitude) and coverage (breadth); failing either leaves a fallback.
 	local shareOf = verdict.bestClaim * ns.Data.CLASS_SHARE
 	local wanted = {}
 	for _, class in ipairs(verdict.admitted) do
@@ -455,25 +365,14 @@ function Matcher:Verdict(item)
 		end
 	end
 
-	--[[
-		Coverage abstains when it demotes everyone. It is a relative test, so a field where nobody
-		clears it carries no information: an Agility and Spell Power roll, where the rogue ranks
-		one half and the mage the other, is still worth sending to one of them.
-	]]
+	-- Coverage abstains when it demotes everyone: an Agility and Spell Power roll still goes to someone.
 	if #verdict.contenders == 0 then
 		verdict.contenders = wanted
 	end
 
 	--[[
-		THE PRIMARY STAT NAMES THE CLASS. An item carrying Strength, Agility or Intellect leads with
-		the classes that build on one of those it carries. Secondaries are everybody's -- in Mists
-		every spec gears for crit, haste and mastery, and two of them outweigh the Agility beside
-		them -- so without this a mage "uses most of" an Agility cloak. A rogue's Strength is a
-		secondary too, which is what keeps "of the Soldier" with the warrior. The rest stay admitted
-		as fallbacks. When nobody builds on any of them, whoever gears for one leads instead: an
-		Agility mail belt too low for a hunter is a warrior's. When nobody uses any of them at all --
-		an Agility staff in Mists, with every Agility class that holds staves turned off -- nobody
-		leads and the item is not a gift: the secondaries never name a class on their own.
+		The primary stat names the class: secondaries are everybody's (in Mists two of them outweigh
+		the Agility beside them on a mage), so they never name a class on their own.
 	]]
 	local primaries = {}
 	for _, stat in ipairs(PRIMARY_STATS) do
@@ -505,12 +404,7 @@ function Matcher:Verdict(item)
 		verdict.contenders = builds
 	end
 
-	--[[
-		Body armor leads with the classes it is the natural home of. A holy paladin wants Intellect
-		as much as a mage does, and without this a paladin a level closer takes the mage's robe.
-		Only among those already in contention, so a Strength leather chest still finds its warrior;
-		the rest stay admitted as fallbacks. Cloaks, rings and weapons have no material to judge.
-	]]
+	-- Body armor leads with its natural home, or a holy paladin a level closer takes the mage's robe.
 	if item.classID == 4 and not ns.Data.UsesWeaponMatrix(item) and not ns.Data.UNIVERSAL_EQUIP_LOC[item.equipLoc] then
 		local bestTier = math.huge
 		for _, class in ipairs(verdict.contenders) do
@@ -525,21 +419,13 @@ function Matcher:Verdict(item)
 		verdict.contenders = home
 	end
 
-	--[[
-		The scoring's own answer, kept so ApplyDemotion can fall back through it. The context is
-		what lets a rule ask "and nobody had a claim on it": a statless gun admits a warrior, a
-		hunter and a rogue on the baseline alone, and only that fact says the hunter should lead.
-	]]
+	-- unclaimed: a statless gun admits warrior, hunter and rogue alike; only that says the hunter leads.
 	local scored = verdict.contenders
 	local context = { unclaimed = offerToEveryone }
 	ApplyPreference(verdict, item, context)
 	ApplyDemotion(verdict, item, scored, context)
 
-	--[[
-		Best of the contenders, never of the admitted: the headline must come from the same set
-		the recipient does. Equal scores -- all three cloth classes on Intellect -- break to
-		whichever group is closer to the item's armor type.
-	]]
+	-- Best of the contenders, never the admitted: the headline comes from the set the recipient does.
 	local bestScore, bestTier = -math.huge, 99
 	for _, class in ipairs(verdict.contenders) do
 		local score, tier = verdict.fits[class] or 0, self:Priority(item, class)
@@ -548,10 +434,7 @@ function Matcher:Verdict(item)
 		end
 	end
 
-	--[[
-		Both gates, and the order matters. No admitted class means no recipient can ever
-		exist, whatever the score says; the threshold, ns.Data.LEFTOVER_THRESHOLD, sits on top.
-	]]
+	-- No admitted class means no recipient can ever exist, whatever the score says.
 	if #verdict.admitted > 0 then
 		verdict.score = (bestScore > -math.huge) and bestScore or 0
 		if verdict.score >= ns.Data.LEFTOVER_THRESHOLD then
@@ -561,12 +444,7 @@ function Matcher:Verdict(item)
 	return verdict
 end
 
---[[
-	The verdict this item would get if one class played exactly these specs -- one of your alts,
-	judged by the specs ticked for it on the My Alts panel rather than by the class's
-	defaults. Every other class is judged as usual. Cached on the item per class and set of specs:
-	two alts of one class playing one spec share an answer.
-]]
+-- One class judged by exactly these specs (an alt's My Alts ticks); cached per class and spec set.
 function Matcher:VerdictForSpecs(item, class, keys)
 	local sorted = {}
 	for key in pairs(keys) do

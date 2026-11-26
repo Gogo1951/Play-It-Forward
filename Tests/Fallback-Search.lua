@@ -42,7 +42,7 @@ local function mainHandSword(ns)
 			stats = {},
 		}),
 	})
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 end
 
 --[[
@@ -246,4 +246,14 @@ test("a stranger never outranks an alt holding gear its class defaults leave out
 	local ns = load()
 	local item = altHeldChest()
 	equal(ns.Matcher:CouldOutrank(item, item.recipient, "WARRIOR"), false, "a warrior search cannot take it")
+end)
+
+test("a /who answer that includes you never makes you a recipient", function()
+	local ns = load()
+	mainHandSword(ns)
+
+	search(ns, { { name = "Tester", level = 18, class = "WARRIOR" }, PALADIN })
+
+	local recipient = ns.UI:Items()[1].recipient
+	equal(recipient and recipient.name, "Palario", "the paladin, not the player's own warrior")
 end)

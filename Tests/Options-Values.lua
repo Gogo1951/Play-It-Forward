@@ -126,8 +126,21 @@ test("the window gap dropdown offers every stop, All Consumables included", func
 	end
 	for _, gap in ipairs(ns.CONSUMABLE_GAP_ORDER) do
 		check(byGap[gap] ~= nil, gap .. " is on the list")
-		check(byGap[gap]:find(ns.CONSUMABLE_GAP_VALUES[gap], 1, true) ~= nil, gap .. " uses the panel's words")
+		equal(byGap[gap], ns.CONSUMABLE_GAP_VALUES[gap], gap .. " uses the panel's words, uncolored")
 	end
+end)
+
+test("the window gap dropdown marks the current stop, and only that one", function()
+	local ns = load()
+	local current = ns.NearestConsumableGap(ns.db.profile.consumableLevelGap)
+	local picked = 0
+	for _, option in ipairs(ns.UI:GapPickerOptions()) do
+		if option.selected then
+			picked = picked + 1
+			equal(option.gap, current, "the pick is the saved stop")
+		end
+	end
+	equal(picked, 1, "one stop is picked")
 end)
 
 test("the window rarity dropdown uses the panel's quality names", function()

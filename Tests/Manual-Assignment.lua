@@ -3,7 +3,7 @@
 
 	Every candidate in range is offered and every one can be picked -- somebody already
 	holding another row, somebody the server refused earlier, somebody on cooldown. The
-	notes beside a name ("has one", "refused", "recent") are information, never gates.
+	notes on a name's right ("Has One", "Refused", "Recent") are information, never gates.
 	Picking a name that holds another row takes it from that row, which returns to
 	auto-assignment and its search reopens; the change is visible on screen the moment
 	it happens, and nothing announces it in chat.
@@ -12,9 +12,9 @@
 	a stranger reads as spam -- so the automatic passes never double up. The player
 	overriding that by hand is the player's business.
 
-	The list ends with a divider and "Rescan for Better Match": one press of a
-	targeted search over just that item's band, for when the names on offer are not
-	good enough.
+	Under the list's one line, "Rescan for Better Match" is one press of a targeted
+	search over just that item's band, for when the names on offer are not good enough,
+	and "Never Give Away" closes the list.
 ]]
 
 local Harness = require("Harness")
@@ -45,7 +45,7 @@ local function twoMatched(ns)
 		stats = { ITEM_MOD_INTELLECT_SHORT = 9 },
 	})
 	Stub.SetBackpack({ robe, robe })
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	Stub.whoResults = ROSTER
 	ns.UI:FindRecipients()
 	ns.fire("WHO_LIST_UPDATE")
@@ -89,7 +89,7 @@ test("a name picked by hand on two rows stays on both", function()
 
 	ns.fire("BAG_UPDATE", 0)
 	Stub.FireTimers()
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	local items = ns.UI:Items()
 	equal(items[1].recipient and items[1].recipient.name, held.name, "the first survives a rescan")
 	equal(items[2].recipient and items[2].recipient.name, held.name, "and so does the second")
@@ -119,10 +119,9 @@ test("somebody who already has one is offered with a note, not a gate", function
 	local option = optionFor(ns, second, first.recipient.name)
 	check(option ~= nil, "they are listed")
 	check(option and not option.disabled, "and can be picked")
-	check(
-		option and option.text:find(ns.L["PICKER_NOTE_HAS_ONE"], 1, true) ~= nil,
-		"with the note saying why to think twice"
-	)
+	check(option and option.right == ns.L["PICKER_TAG_HAS_ONE"], "with the note on its right saying why to think twice")
+	equal(option and option.rightColor, "MUTED", "in gray")
+	check(option and not option.text:find(ns.L["PICKER_TAG_HAS_ONE"], 1, true), "and not in the name")
 	equal(
 		option and option.tooltip,
 		ns.L["PICKER_NOTE_HAS_ONE_DESCRIPTION"],
@@ -142,7 +141,7 @@ test("somebody free is offered and can be picked", function()
 	local free
 	for _, person in ipairs({ "Mage1", "Mage2", "Priest1" }) do
 		local option = optionFor(ns, second, person)
-		local held = option and option.text:find(ns.L["PICKER_NOTE_HAS_ONE"], 1, true)
+		local held = option and option.right == ns.L["PICKER_TAG_HAS_ONE"]
 		if option and not held and person ~= (second.recipient and second.recipient.name) then
 			free = option
 		end
@@ -192,7 +191,7 @@ test("a recipient the server refused can still be picked by hand", function()
 	local option = optionFor(ns, second, target.name)
 	check(option ~= nil, "still shown")
 	check(option and not option.disabled, "and selectable")
-	check(option and option.text:find(ns.L["PICKER_NOTE_REFUSED"], 1, true) ~= nil, "with the refusal noted")
+	equal(option and option.right, ns.L["PICKER_TAG_REFUSED"], "with the refusal noted on its right")
 	equal(option and option.tooltip, ns.L["PICKER_NOTE_REFUSED_DESCRIPTION"], "and explained on hover")
 
 	ns.UI:SetRecipient(second, target)
@@ -200,8 +199,8 @@ test("a recipient the server refused can still be picked by hand", function()
 end)
 
 --[[
-	The dropdown is one 18-pixel row per entry, holding a cross-realm name, a level, a
-	class and a note, inside a list that will not grow past PICKER_MAX_WIDTH. Nothing in
+	The dropdown is one row per entry, holding a cross-realm name, a level and a note on
+	its right, inside a list that will not grow past the menu plate's width. Nothing in
 	a headless run draws it, so the guard is on the text: a note long enough to push an
 	entry past the width is a note that gets cut off on screen. "(already has one, clear
 	that row first)" was one, and it took the ends off every noted row in the list.
@@ -211,7 +210,7 @@ test("the notes beside a name stay short enough to fit", function()
 	local first = twoMatched(ns)
 	ns.Fairness:MarkUnreachable(ns.UI:Items()[2].recipient.name)
 
-	for _, key in ipairs({ "PICKER_NOTE_HAS_ONE", "PICKER_NOTE_REFUSED", "PICKER_NOTE_RECENT" }) do
+	for _, key in ipairs({ "PICKER_TAG_HAS_ONE", "PICKER_TAG_REFUSED", "PICKER_TAG_RECENT" }) do
 		check(#ns.L[key] <= 12, ("%s is %d chars: %q"):format(key, #ns.L[key], ns.L[key]))
 	end
 
@@ -223,7 +222,8 @@ test("the notes beside a name stay short enough to fit", function()
 	]]
 	for _, option in ipairs(ns.UI:PickerOptions(first)) do
 		-- An inline icon draws one glyph wide, so it is measured as one.
-		local plain = (option.text or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|T.-|t", "#")
+		local whole = (option.text or "") .. (option.right and (" " .. option.right) or "")
+		local plain = whole:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|T.-|t", "#")
 		check(#plain <= 50, ("entry is %d chars: %q"):format(#plain, plain))
 	end
 end)
@@ -277,7 +277,7 @@ test("a bare row stays ticked while nobody is around", function()
 			stats = { ITEM_MOD_INTELLECT_SHORT = 9 },
 		}),
 	})
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 
 	local item = ns.UI:Items()[1]
 	equal(item.send, true, "ticked from the start")
@@ -296,10 +296,10 @@ end)
 	to do with what stays. Keeping unchecks the row, clears its name and pins it, so it
 	sits under the Kept heading and nothing rebuilds over the choice.
 
-	The list reads in four blocks: why the row reads as it does; the names, indented under their
-	headings; then Disenchant and Keep Item; then Rescan for Better Match.
+	The list reads: why the row reads as it does; the names under their headings; then, under
+	the list's only line, Disenchant, Keep Item, Rescan for Better Match and Never Give Away.
 ]]
-test("the reasoning comes first, then names, then Disenchant and Keep Item, then the rescan", function()
+test("the reasoning comes first, then names, then one line over what to do instead", function()
 	local ns = load()
 	local first = twoMatched(ns)
 	check(first.recipient ~= nil and first.send, "matched and ticked to start")
@@ -315,7 +315,6 @@ test("the reasoning comes first, then names, then Disenchant and Keep Item, then
 		elseif option.header then
 			shape[#shape + 1] = "header"
 		elseif option.pick and not option.pick.disenchant then
-			check(option.indent, "a name sits indented under its heading")
 			if shape[#shape] ~= "name" then
 				shape[#shape + 1] = "name"
 			end
@@ -329,9 +328,11 @@ test("the reasoning comes first, then names, then Disenchant and Keep Item, then
 			keep = option
 		elseif option.findForItem then
 			shape[#shape + 1] = "rescan"
+		elseif option.neverGive then
+			shape[#shape + 1] = "never"
 		end
 	end
-	equal(table.concat(shape, " "), "info --- header name --- disenchant keep --- rescan", "the four blocks")
+	equal(table.concat(shape, " "), "info header name --- disenchant keep rescan never", "one line, above the actions")
 	local countWords = ns.L["TOOLTIP_RECIPIENT_CANDIDATES"]:match("^%%d(.-)%%d")
 	check(ns.UI:PickerOptions(first)[1].text:find(countWords, 1, true) ~= nil, "it opens on the candidate count")
 	check(keep and keep.text:find(ns.L["PICKER_KEEP_OPTION"], 1, true) ~= nil, "Keep Item says so")
@@ -361,7 +362,7 @@ test("a dropdown entry is name and level, with no class word", function()
 			stats = {},
 		}),
 	})
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	Stub.whoResults = { { name = "Willump", level = 18, class = "WARRIOR" } }
 	ns.UI:FindRecipients()
 	ns.fire("WHO_LIST_UPDATE")
@@ -377,18 +378,20 @@ end)
 -- The targeted search at the bottom of the list
 --------------------------------------------------------------------------------
 
-test("the list ends with a divider and a targeted search", function()
+test("the list ends with the targeted search, then Never Give Away", function()
 	local ns = load()
 	local first = twoMatched(ns)
 
 	local options = ns.UI:PickerOptions(first)
-	local last, divider = options[#options], options[#options - 1]
+	local last, rescan = options[#options], options[#options - 1]
 
-	check(divider and divider.separator, "a divider sits above the action")
-	check(divider and divider.disabled, "and is not clickable")
-	check(last and last.text:find(ns.L["PICKER_FIND_FOR_ITEM"], 1, true) ~= nil, "the action is the last entry")
-	check(last and not last.disabled, "and is clickable")
-	check(last and last.findForItem, "carrying the flag the picker routes on")
+	check(rescan and rescan.text:find(ns.L["PICKER_FIND_FOR_ITEM"], 1, true) ~= nil, "the search is next to last")
+	equal(rescan and rescan.kind, "action", "an action row, drawn blue")
+	check(rescan and not rescan.disabled, "and is clickable")
+	check(rescan and rescan.findForItem, "carrying the flag the picker routes on")
+	check(last and last.text:find(ns.L["NEVER_GIVE_AWAY"], 1, true) ~= nil, "Never Give Away is last")
+	equal(last and last.kind, "action", "an action row too")
+	check(last and last.neverGive, "carrying its own flag")
 end)
 
 test("the targeted search plans only this item's band", function()
@@ -417,7 +420,7 @@ test("the targeted search plans only this item's band", function()
 			stats = { ITEM_MOD_STRENGTH_SHORT = 8 },
 		}),
 	})
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 
 	local robe
 	for _, item in ipairs(ns.UI:Items()) do
@@ -457,7 +460,14 @@ test("the targeted search sends before the list closes", function()
 		ns.UI:PickerSelect(first, option)
 	end)
 	local queries = #Stub.whoQueries
-	ns.Picker.entries[#options]:GetScript("OnClick")()
+	local rescan
+	for _, row in ipairs(ns.Picker.frame.rows) do
+		if row.entry and row.entry.option and row.entry.option.findForItem then
+			rescan = row
+		end
+	end
+	check(rescan ~= nil, "the list drew the search's row")
+	rescan:GetScript("OnClick")(rescan)
 	C_FriendList.SendWho = send
 
 	equal(#Stub.whoQueries, queries + 1, "the click sent one query")

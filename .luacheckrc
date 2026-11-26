@@ -7,6 +7,9 @@ exclude_files = { "Includes/", ".claude/" } -- vendored or session-local, never 
 read_globals = {
 	-- Another add-on's table, read only to skin our controls with its Skins module.
 	"ElvUI",
+	-- TSM's public API, read only to ask whether its mail window is up.
+	"TSM_API",
+	"Ambiguate",
 	"BackdropTemplateMixin",
 	"C_AddOns",
 	"C_ChatInfo",
@@ -41,6 +44,9 @@ read_globals = {
 	"GetGuildInfo",
 	"GetGuildRosterInfo",
 	"GetGuildRosterLastOnline",
+	"GetInboxHeaderInfo",
+	"GetInboxItemLink",
+	"GetInboxNumItems",
 	"GetNumTalentTabs",
 	"GetInventoryItemLink",
 	"GetItemStats",

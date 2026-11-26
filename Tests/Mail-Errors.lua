@@ -45,7 +45,7 @@ local function readyToSend(ns, count)
 		bag[index] = robe
 	end
 	Stub.SetBackpack(bag)
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	Stub.whoResults = ROSTER
 	ns.UI:FindRecipients()
 	ns.fire("WHO_LIST_UPDATE")
@@ -351,4 +351,42 @@ test("Distribute waits on a send still awaiting its result", function()
 	Stub.now = Stub.now + 60
 	ns.Distributor:Start({})
 	check(ns.Distributor._awaiting == nil, "a send that never answered stops holding Distribute back")
+end)
+
+test("a run that ended early does not later claim the mailbox closed partway", function()
+	local ns = load()
+	readyToSend(ns, 3)
+	ns.UI:Distribute()
+
+	ns.fire("MAIL_FAILED")
+	Stub.FireTimers()
+	ns.fire("MAIL_FAILED")
+	Stub.FireTimers()
+	check(printed(ns.L["MAIL_ABORTED"]), "the run was aborted")
+
+	MailFrame:Hide()
+	ns.fire("MAIL_CLOSED")
+	Stub.FireTimers()
+	check(not printed(ns.L["MAIL_MAILBOX_CLOSED"]), "leaving the mailbox says nothing about a run already over")
+end)
+
+test("a UI error after MAIL_FAILED drops the refused recipient's other items", function()
+	local ns = load()
+	ns.db.global.characters["Sparkle-Test"] =
+		{ name = "Sparkle", realm = "Test", class = "MAGE", level = 12, faction = "Alliance" }
+	readyToSend(ns, 3)
+	local items = ns.UI:Items()
+	equal(items[1].recipient and items[1].recipient.name, "Sparkle", "the alt holds the first")
+	equal(items[2].recipient and items[2].recipient.name, "Sparkle", "and the second")
+	ns.UI:SetRecipient(items[3], { name = "Mage1", level = 18, class = "MAGE" })
+
+	ns.UI:Distribute()
+	equal(Stub.sent[1] and Stub.sent[1].recipient, "Sparkle", "the first goes to the alt")
+	ns.fire("MAIL_FAILED")
+	ns.fire("UI_ERROR_MESSAGE", 1, ERR_MAIL_TARGET_NOT_FOUND)
+	Stub.FireTimers()
+
+	equal(#Stub.sent, 2, "one more mail went out")
+	equal(Stub.sent[2].recipient, "Mage1", "to somebody else, not the alt that refused")
+	check(not printed(ns.L["MAIL_ABORTED"]), "the run was not aborted")
 end)

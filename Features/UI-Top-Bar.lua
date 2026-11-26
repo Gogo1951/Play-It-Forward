@@ -6,34 +6,26 @@ local GetColor = ns.GetColor
 local UI = ns.UI
 local Picker = ns.Picker
 
---[[
-	The mail window's top bar: the giftability ticks and dropdowns, kept in step with the profile, and
-	the pickers those dropdowns open. Features/UI-Window.lua builds the frame and calls
-	UI:BuildTopBar on it.
-
-	Every size and gap here is on the spacing scale, as in Features/UI-Window.lua.
-]]
+-- On the Spacing Scale, as in Features/UI-Window.lua.
 local TICK_SIZE = UI.TICK_SIZE
---[[
-	The top bar starts clear of the portrait, CONTROLS_LEFT in, as Bags Buffs & Buttons' windows'
-	controls do, TOP_BAR_Y down. Its right edge sits EDGE in from the window's.
-]]
+-- Clear of the portrait, as Bags Buffs & Buttons' window controls are.
 local CONTROLS_LEFT = 64
 local TOP_BAR_Y = 32
 local EDGE = 16
-local CONTROL_GAP = 8 -- from a tick's caption to its dropdown, and between the kind ticks
-local LINE_GAP = 4 -- between the top bar's two lines
--- The middles of the top bar's two lines, where its dropdowns center.
-local LINE1_MIDDLE = TOP_BAR_Y + TICK_SIZE / 2
-local LINE2_MIDDLE = TOP_BAR_Y + TICK_SIZE + LINE_GAP + TICK_SIZE / 2
--- Where the kind ticks end, which Features/UI-Window.lua hangs the list from.
-UI.TOP_BAR_BOTTOM = TOP_BAR_Y + 2 * TICK_SIZE + LINE_GAP
+local LINE_HEIGHT = UI.FIELD_HEIGHT
+local CONTROL_GAP = 8
+local CAPTION_GAP = 4
+local LINE_GAP = 8
+local LINE1_MIDDLE = TOP_BAR_Y + LINE_HEIGHT / 2
+local LINE2_MIDDLE = TOP_BAR_Y + LINE_HEIGHT + LINE_GAP + LINE_HEIGHT / 2
+-- Features/UI-Window.lua hangs the list from it.
+UI.TOP_BAR_BOTTOM = TOP_BAR_Y + 2 * LINE_HEIGHT + LINE_GAP
 
--- Sized to their longest value: "Epic & Lower" and "Outgrown by 20+ Levels".
-local RARITY_WIDTH = 128
+-- Gear's and Disenchant's fields, one width so their right edges line up; the level rule's fits "Outgrown by 20+ Levels".
+local RARITY_WIDTH = 144
 local GAP_WIDTH = 208
 
--- Tooltip line colors, unpacked once: GetColorRGB mid-argument-list would keep only its first value.
+-- Unpacked once: ns.GetColorRGB mid-argument-list would keep only its first value.
 local BODY_R, BODY_G, BODY_B = ns.GetColorRGB("BODY")
 
 local BuildDropdown = UI.BuildDropdown
@@ -42,21 +34,18 @@ local BuildDropdown = UI.BuildDropdown
 -- Building the top bar
 --------------------------------------------------------------------------------
 
---[[
-	A top-bar tick: a checkbox with its caption to the right, the caption clickable too. Its
-	tooltip is the options panel's own description for the same setting, so the window and the
-	panel never explain one switch two ways. The caller anchors it and sets its OnClick.
-]]
+-- The tooltip is the options panel's own description, so the two never explain one switch two ways.
 local function BuildToggle(parent, text, colorKey, tooltipKey)
 	local check = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
 	check:SetSize(TICK_SIZE, TICK_SIZE)
 	check.colorKey = colorKey
 
-	check.label = check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	check.label:SetPoint("LEFT", check, "RIGHT", 2, 0)
+	-- One type size in the window (Style Guide → WINDOWS).
+	check.label = check:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	check.label:SetPoint("LEFT", check, "RIGHT", CAPTION_GAP, 0)
 	check.label:SetText(text)
 	check.label:SetTextColor(ns.GetColorRGB(colorKey))
-	check:SetHitRectInsets(0, -(check.label:GetStringWidth() + 2), 0, 0)
+	check:SetHitRectInsets(0, -(check.label:GetStringWidth() + CAPTION_GAP), 0, 0)
 
 	check:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -71,31 +60,17 @@ local function BuildToggle(parent, text, colorKey, tooltipKey)
 	return check
 end
 
---[[
-	A tick or dropdown in the window writes the same profile key its twin in the options panel
-	does, so an open panel is told to redraw as well as the bags being re-read against it. The
-	/who pool already found is kept.
-]]
+-- Same profile keys as the options panel, so open panels redraw too. The /who pool is kept.
 local function AfterToggle()
 	UI:SyncControls()
 	UI:Rescan()
-	local registry = LibStub("AceConfigRegistry-3.0")
-	registry:NotifyChange(ns.OPTIONS_REGISTRY.General)
-	registry:NotifyChange(ns.OPTIONS_REGISTRY.GiveAway)
+	ns.RefreshSettings()
 end
 
 function UI:BuildTopBar(window)
-	--[[
-		The giftability controls, the same set the options panel carries and drawing the same
-		locale strings. Consumables leads on the left with its level rule beside it and its five
-		kind ticks beneath; Gear sits on the right with its rarity cap. Each
-		dropdown value states what it means ("Rare & Lower", "Outgrown by 20+ Levels"), so the
-		window cannot word a setting differently to the panel. A dropdown hides while its tick is
-		off, as its select does in the panel.
-	]]
 	local consumables =
 		BuildToggle(window, L["WINDOW_CONSUMABLES_LABEL"], "TITLE", "OPTIONS_DISTRIBUTE_CONSUMABLES_DESCRIPTION")
-	consumables:SetPoint("TOPLEFT", CONTROLS_LEFT, -TOP_BAR_Y)
+	consumables:SetPoint("LEFT", window, "TOPLEFT", CONTROLS_LEFT, -LINE1_MIDDLE)
 	consumables:SetScript("OnClick", function(check)
 		ns.db.profile.includeConsumables = check:GetChecked() and true or false
 		AfterToggle()
@@ -109,7 +84,6 @@ function UI:BuildTopBar(window)
 	end)
 	window.gapButton = gap
 
-	-- Vertically centered on the ticks' line.
 	local rarity = BuildDropdown(window, RARITY_WIDTH)
 	rarity:SetPoint("RIGHT", window, "TOPRIGHT", -EDGE, -LINE1_MIDDLE)
 	rarity:SetScript("OnClick", function(button)
@@ -117,22 +91,16 @@ function UI:BuildTopBar(window)
 	end)
 	window.rarityButton = rarity
 
-	-- Right to left from the dropdown: caption, then its box.
 	local gear = BuildToggle(window, L["WINDOW_GEAR_LABEL"], "TITLE", "OPTIONS_DISTRIBUTE_GEAR_DESCRIPTION")
 	gear.label:ClearAllPoints()
 	gear.label:SetPoint("RIGHT", rarity, "LEFT", -CONTROL_GAP, 0)
-	gear:SetPoint("RIGHT", gear.label, "LEFT", -2, 0)
+	gear:SetPoint("RIGHT", gear.label, "LEFT", -CAPTION_GAP, 0)
 	gear:SetScript("OnClick", function(check)
 		ns.db.profile.includeGear = check:GetChecked() and true or false
 		AfterToggle()
 	end)
 	window.gearToggle = gear
 
-	--[[
-		Disenchant Unmatched Gear on the second line, under Gear and laid out the same way: its
-		dropdown under the rarity cap at the same width, so the two right edges line up, and the
-		tick and caption right to left from it, centered on the kind ticks' line.
-	]]
 	local enchanter = BuildDropdown(window, RARITY_WIDTH)
 	enchanter:SetPoint("RIGHT", window, "TOPRIGHT", -EDGE, -LINE2_MIDDLE)
 	enchanter:SetScript("OnClick", function(button)
@@ -143,7 +111,7 @@ function UI:BuildTopBar(window)
 	local disenchant = BuildToggle(window, ns.DisenchantName(), "TITLE", "OPTIONS_DISENCHANT_SEND_DESCRIPTION")
 	disenchant.label:ClearAllPoints()
 	disenchant.label:SetPoint("RIGHT", enchanter, "LEFT", -CONTROL_GAP, 0)
-	disenchant:SetPoint("RIGHT", disenchant.label, "LEFT", -2, 0)
+	disenchant:SetPoint("RIGHT", disenchant.label, "LEFT", -CAPTION_GAP, 0)
 	disenchant:SetScript("OnClick", function(check)
 		ns.db.profile.disenchantUnmatched = check:GetChecked() and true or false
 		AfterToggle()
@@ -158,7 +126,7 @@ function UI:BuildTopBar(window)
 		if previous then
 			toggle:SetPoint("LEFT", previous.label, "RIGHT", CONTROL_GAP, 0)
 		else
-			toggle:SetPoint("TOPLEFT", consumables, "BOTTOMLEFT", 0, -LINE_GAP)
+			toggle:SetPoint("LEFT", window, "TOPLEFT", CONTROLS_LEFT, -LINE2_MIDDLE)
 		end
 		toggle:SetScript("OnClick", function(check)
 			ns.db.profile.consumableKinds[kind] = check:GetChecked() and true or false
@@ -173,11 +141,7 @@ end
 -- Keeping it in step
 --------------------------------------------------------------------------------
 
---[[
-	The whole top bar at once. The one entry point, so a caller that changes any setting cannot
-	refresh half the bar: Features/Core.lua's profile hook, the options panel's own setters and
-	the window's ticks all come through here.
-]]
+-- The one entry point (profile hook, panel setters, the window's ticks), so no caller refreshes half the bar.
 function UI:SyncControls()
 	self:SyncToggles()
 	self:SyncRarityButton()
@@ -185,10 +149,7 @@ function UI:SyncControls()
 	self:SyncDisenchanterButton()
 end
 
---[[
-	The kind ticks are disabled and dimmed, never hidden, while Consumables is off, so the row
-	keeps its shape and the player can see what will come back with it.
-]]
+-- Kind ticks dim, never hide, while Consumables is off, so the line keeps its shape.
 function UI:SyncToggles()
 	local window = self.frame
 	if not window or not window.gearToggle then
@@ -216,19 +177,15 @@ function UI:SyncRarityButton()
 	self.frame.rarityButton.text:SetText(("%s%s|r"):format(ns.QualityColor(cap), ns.QualityName(cap)))
 end
 
---[[
-	Snapped for display the same way the panel's dropdown is, so a stored value between stops
-	shows the stop it reads as rather than blank. The stored number is left alone.
-]]
+-- Snapped for display, as the panel's is, so an off-stop value never shows blank; the stored number is left alone.
 function UI:SyncGapButton()
 	if not self.frame or not self.frame.gapButton then
 		return
 	end
 	local gap = ns.NearestConsumableGap(ns.db.profile.consumableLevelGap)
-	self.frame.gapButton.text:SetText(GetColor("TEXT") .. (ns.CONSUMABLE_GAP_VALUES[gap] or "") .. "|r")
+	self.frame.gapButton.text:SetText(GetColor("VALUE") .. (ns.CONSUMABLE_GAP_VALUES[gap] or "") .. "|r")
 end
 
--- The enchanter's name in its class color, or a muted prompt while none is picked for this realm cluster.
 function UI:SyncDisenchanterButton()
 	if not self.frame or not self.frame.disenchanterButton then
 		return
@@ -239,11 +196,7 @@ function UI:SyncDisenchanterButton()
 	self.frame.disenchanterButton.text:SetText(text)
 end
 
---[[
-	The option lists are split from opening the pickers so Tests/Options-Values.lua can read them
-	without a frame, the same split Tests/Manual-Assignment.lua relies on for the recipient list.
-	Both draw the panel's own strings rather than wording anything a second time.
-]]
+-- Option lists split from the pickers so Tests/Options-Values.lua reads them without a frame.
 function UI:RarityPickerOptions()
 	local options = {}
 	for _, quality in ipairs({ 2, 3, 4 }) do
@@ -255,18 +208,23 @@ function UI:RarityPickerOptions()
 	return options
 end
 
+--[[
+	Plain words, so Menu-Kit colors the pick. Marked by selected: the field's own text is colored,
+	so it would match no option by its words.
+]]
 function UI:GapPickerOptions()
 	local options = {}
+	local current = ns.NearestConsumableGap(ns.db.profile.consumableLevelGap)
 	for _, gap in ipairs(ns.CONSUMABLE_GAP_ORDER) do
 		options[#options + 1] = {
-			text = GetColor("TEXT") .. (ns.CONSUMABLE_GAP_VALUES[gap] or "") .. "|r",
+			text = ns.CONSUMABLE_GAP_VALUES[gap] or "",
 			gap = gap,
+			selected = gap == current,
 		}
 	end
 	return options
 end
 
--- The options panel's own list: every character mail from here reaches, in name order.
 function UI:DisenchanterPickerOptions()
 	local options = {}
 	local keys, mailable = ns.Alts:DisenchantChoices()
@@ -308,7 +266,7 @@ end
 
 function UI:OpenGapPicker(anchor)
 	Picker:Open(anchor, self:GapPickerOptions(), function(option)
-		-- Compared against nil, never truthiness: the All Consumables stop is a zero.
+		-- Against nil: the All Consumables stop is a zero.
 		if option.gap == nil then
 			return
 		end

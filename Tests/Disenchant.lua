@@ -51,7 +51,7 @@ end
 
 local function atMailbox(ns, defs)
 	Stub.SetBackpack(defs)
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	ns.UI:FindRecipients()
 	ns.fire("WHO_LIST_UPDATE")
 	return ns.UI:Items()
@@ -137,11 +137,10 @@ test("with Disenchant on, kept gear is ready to send instead", function()
 	equal(ns.UI:StatusLine(), ns.L["STATUS_READY"]:format(1), "Distribute is the next step")
 end)
 
-test("kept gear goes to the enchanter, and opens the window", function()
+test("kept gear goes to the enchanter", function()
 	local ns = load()
 	withEnchanter(ns)
 	local items = atMailbox(ns, { lowLevelPlate() })
-	check(ns.UI.frame and ns.UI.frame:IsShown(), "the window opens on gear only the enchanter takes")
 	local who = items[1].recipient
 	equal(who and who.name, "Dusty", "the enchanter holds it")
 	check(who and who.alt and who.disenchant, "as your own character, flagged disenchant")
@@ -152,9 +151,8 @@ test("off, kept gear stays kept", function()
 	local ns = load()
 	withEnchanter(ns)
 	ns.db.profile.disenchantUnmatched = false
-	Stub.SetBackpack({ lowLevelPlate() })
-	ns.fire("MAIL_SHOW")
-	check(not (ns.UI.frame and ns.UI.frame:IsShown()), "the window stays shut, as before")
+	local items = atMailbox(ns, { lowLevelPlate() })
+	equal(items[1].recipient, nil, "nobody holds it, the enchanter included")
 end)
 
 test("a Keep Item stands, and the picker offers the enchanter back", function()
@@ -299,7 +297,7 @@ end
 -- Scanned at the mailbox with no search: a mailbox holding only these rows opens no window to press in.
 local function scanned(ns, defs)
 	Stub.SetBackpack(defs)
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	ns.UI:Rescan()
 	return ns.UI:Items()
 end

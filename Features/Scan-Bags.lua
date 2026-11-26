@@ -1,13 +1,13 @@
 local _, ns = ...
+local L = ns.L
 
 ns.Scanner = {}
 local Scanner = ns.Scanner
 
---[[
-	The item IDs the last full scan rejected as NOT_CACHED: the only items whose arriving info can
-	change what a scan returns. Features/Match-List.lua rescans on GET_ITEM_INFO_RECEIVED for these
-	alone, since that event fires for every item the client loads, from any source.
-]]
+ns.Bags = ns.Bags or {}
+local Bags = ns.Bags
+
+-- Only these items' arriving info can change a scan; GET_ITEM_INFO_RECEIVED fires for every item loaded.
 local pendingItems = {}
 
 function Scanner:IsPending(itemID)
@@ -18,10 +18,7 @@ local BOE_BINDTYPES = { [0] = true, [2] = true } -- 0 = no bind, 2 = Bind on Equ
 local NUM_BAGS = 4 -- 0..4 (Classic Era: backpack + 4 bags, no reagent bag)
 local CONSUMABLE_CLASS, WEAPON_CLASS, ARMOR_CLASS = 0, 2, 4 -- GetItemInfo classID
 
---[[
-	Why a slot was passed over. Diagnostic identifiers for the Bag Scan export: never shown to a
-	player, never localized, and always the actual reason rather than a code that is merely true.
-]]
+-- For the Bag Scan export: never shown or localized, and always the actual reason, not one merely true.
 local REJECT = {
 	EMPTY_SLOT = "EMPTY_SLOT",
 	NOT_CACHED = "NOT_CACHED",
@@ -40,13 +37,12 @@ local REJECT = {
 	QUEST_ITEM = "QUEST_ITEM",
 	SOULBOUND = "SOULBOUND",
 	REPUTATION_LOCKED = "REPUTATION_LOCKED",
+	NEVER_GIVE = "NEVER_GIVE",
+	KEEP_IN_BAGS = "KEEP_IN_BAGS",
 }
 Scanner.REJECT = REJECT
 
---[[
-	Bind on use gets its own code because those items are still fully tradeable: excluding them is
-	this add-on's policy rather than the client's rule.
-]]
+-- Bind on use stays tradeable: excluding it is this add-on's policy, so it gets its own code.
 local BIND_REJECT = {
 	[1] = REJECT.BIND_ON_PICKUP,
 	[3] = REJECT.BIND_ON_USE,
@@ -54,17 +50,8 @@ local BIND_REJECT = {
 }
 
 --[[
-	One itemID -> definition lookup across every consumable table, turning the data files'
-	positional rows into named fields. Form travels with each row because what a consumable
-	restores is not enough to say what it is: forty-odd Scan-Food rows restore mana and every
-	one is water, so "restores mana" alone would put mages behind priests for a bottle of water.
-	A scroll's fourth field is the stat it buffs rather than anything it restores, and an oil or
-	stone's is who it enhances a weapon for, so each table names the field its fourth column fills.
-
-	KINDS ARE NOT FORM. Form is the table a row came from, and Features/Match-Derivations.lua
-	matches its rules on it. Kinds are the player's switches in ns.CONSUMABLE_KIND_ORDER, and
-	the food table splits across two of them: what restores mana is drink, and what restores both
-	is food and drink at once, offered while either switch is on.
+	KINDS ARE NOT FORM. Form is the source table, which item rules match on ("restores mana" alone
+	would make water a potion). Kinds are the player's switches: mana food is drink, both is both.
 ]]
 local FOOD_KINDS = { MANA = { "DRINK" }, BOTH = { "FOOD", "DRINK" } }
 
@@ -97,11 +84,7 @@ local function ConsumableIndex()
 	return consumableByID
 end
 
---[[
-	Whether a consumable needs a faction standing, by item ID. The requirement belongs to the item,
-	so one tooltip read answers it for the session; a read that rendered nothing is not kept, since
-	an item still loading would otherwise pass for one with no requirement.
-]]
+-- Cached per item ID only once a tooltip rendered: a loading item would pass as needing no standing.
 local reputationLocked = {}
 
 local function IsReputationLocked(itemID, link)
@@ -128,10 +111,8 @@ local function AnyKindOn(kinds)
 end
 
 --[[
-	GetItemStats first, then the tooltip overlaid: GetItemStats ignores an item's random suffix, so
-	a rolled green comes back statless from it. Merged by max per stat, never sum -- both report
-	the same stat on a fixed-stat item and summing would double it. Each source's answer also comes
-	back separately, since the merge is lossy.
+	Max per stat, never sum: both sources report a fixed stat. Each source's answer also comes back,
+	since the merge is lossy.
 ]]
 local function NormalizedStats(link)
 	local api = {}
@@ -157,31 +138,28 @@ local function NormalizedStats(link)
 	-- Raw lines only when nothing parsed: the one case where read failure and no stats look alike.
 	local unparsed = next(tooltip) == nil and lines or nil
 
-	--[[
-		unread travels always: a line that looked like a stat and resolved to no token is a gap in
-		the name table, and an item can have that gap on one line while reading three cleanly.
-	]]
+	-- unread travels always: one line can miss while three read cleanly.
 	return out, { source = source, api = api, tooltip = tooltip, lines = unparsed, unread = unread }
 end
 
 --[[
-	Which item this is, not what it is called: two "Ivycloth Robe" in different slots are two items.
-	Slot and link together, because neither alone holds -- a slot is reused the moment its item is
-	mailed, and a link is shared by every copy of a plain item. Stable across a rescan, which is
-	how a pairing survives one.
+	Slot and link together: a slot is reused once its item is mailed, and a link is shared by every
+	copy of a plain item. Stable across a rescan, which is how a pairing survives one.
 ]]
 local function ItemUID(bag, slot, link)
 	return ("%d:%d:%s"):format(bag or -1, slot or -1, link or "")
 end
 
---[[
-	The hard filter for one bag slot, everything except reading stats. Local on purpose: a statless
-	gear record reaching the matcher reads as a parse failure, so Scanner:Classify is the way in.
-]]
+-- Local on purpose: a gear record without stats reads as a parse failure, so Scanner:Classify is the way in.
 local function FilterSlot(bag, slot)
 	local link = ns.GetItemLink(bag, slot)
 	if not link then
 		return nil, REJECT.EMPTY_SLOT
+	end
+
+	-- First, and before the cache check: an item the player took off the list is never offered.
+	if Bags:IsNeverGive(ns.GetInfoInstant(link)) then
+		return nil, REJECT.NEVER_GIVE
 	end
 
 	local slotInfo = ns.GetItemInfoC(bag, slot)
@@ -191,7 +169,7 @@ local function FilterSlot(bag, slot)
 	local name, _, quality, itemLevel, reqLevel, _, _, _, equipLoc, _, _, classID, subclassID, bindType =
 		C_Item.GetItemInfo(link)
 	if not name then
-		-- Not in the client's item cache yet; GET_ITEM_INFO_RECEIVED rescans while the window is open (Features/Match-List.lua).
+		-- GET_ITEM_INFO_RECEIVED rescans for it while the window is open.
 		local itemID = ns.GetInfoInstant(link)
 		if itemID then
 			pendingItems[itemID] = true
@@ -201,7 +179,6 @@ local function FilterSlot(bag, slot)
 
 	local itemID = ns.GetInfoInstant(link)
 
-	-- Only once the player has outgrown it: a level-35 water stack is spare at 45, not at 40.
 	local consumable = ConsumableIndex()[itemID]
 	if consumable then
 		if not ns.db.profile.includeConsumables then
@@ -211,23 +188,13 @@ local function FilterSlot(bag, slot)
 			return nil, REJECT.KIND_DISABLED
 		end
 		--[[
-			A useLevel of 0 is the database's RequiredLevel, not the level the consumable is
-			worth having: Bountiful Feast and Delicious Chocolate Cake both carry it. Banding on
-			it gives levels 1 to 3, which sits entirely below the recipient floor of 5 that
-			MIN_RECIPIENT_LEVEL sets, so no pooled player can ever fall inside it and the item
-			sits on the list forever. Held back until a real level is sourced for those rows,
-			rather than offered to nobody.
+			A useLevel of 0 bands below MIN_RECIPIENT_LEVEL, so nobody could ever take it. Held back
+			until those rows (Bountiful Feast, Delicious Chocolate Cake) get a real level.
 		]]
 		if (consumable.useLevel or 0) <= 0 then
 			return nil, REJECT.NO_USE_LEVEL
 		end
-		--[[
-			A gap of zero is the "All Consumables" stop, and it lifts the level rule outright
-			rather than tightening it to nothing: tested as a gap it would still demand the player
-			be at or above the item's own level, so a low character could never pass on the
-			high-level potions they have least use for. Every other stop reads "at least this far
-			past it", which is what the >= comparison below says.
-		]]
+		-- Zero lifts the rule outright: as a gap it would still demand the player reach the item's level.
 		local gap = ns.db.profile.consumableLevelGap
 		if gap > 0 and (UnitLevel("player") or 1) - consumable.useLevel < gap then
 			return nil, REJECT.LEVEL_GAP
@@ -235,10 +202,7 @@ local function FilterSlot(bag, slot)
 		if isBound then
 			return nil, REJECT.SOULBOUND
 		end
-		--[[
-			"Requires Argent Dawn - Friendly": most recipients lack the standing, so the mail would
-			deliver food they can't eat. Checked last, as the one test that reads a tooltip.
-		]]
+		-- Most recipients lack the standing. Last, as the one test that reads a tooltip.
 		if IsReputationLocked(itemID, link) then
 			return nil, REJECT.REPUTATION_LOCKED
 		end
@@ -260,10 +224,7 @@ local function FilterSlot(bag, slot)
 		return nil, REJECT.CONSUMABLE_NOT_LISTED
 	end
 
-	--[[
-		Weapons and armor only, as a positive check on classID. Do not relax to "has an equip slot"
-		-- recipes carry one on this client, which puts crafting plans in the giftable list.
-	]]
+	-- A positive classID check, never "has an equip slot": recipes carry one.
 	if not ns.db.profile.includeGear then
 		return nil, REJECT.GEAR_DISABLED
 	end
@@ -298,7 +259,6 @@ local function FilterSlot(bag, slot)
 		count = 1,
 		quality = quality,
 		reqLevel = reqLevel or 1,
-		-- Read here rather than per eligible class: Matcher:Score adds it to weapon-matrix items' scores.
 		itemLevel = itemLevel,
 		equipLoc = equipLoc,
 		classID = classID,
@@ -306,10 +266,6 @@ local function FilterSlot(bag, slot)
 	}
 end
 
---[[
-	The filter above with the item's stats read and attached. Returns nil plus a reject code, not a
-	bare nil: "consumables are switched off" and "already soulbound" is what a player actually asks.
-]]
 function Scanner:Classify(bag, slot)
 	local record, reason = FilterSlot(bag, slot)
 	if not record then
@@ -322,7 +278,7 @@ function Scanner:Classify(bag, slot)
 	return record
 end
 
--- A gear record straight from a link, with no bag slot behind it. Used by the Item Verdict report.
+-- No bag slot behind it; for the Item Verdict report.
 function Scanner:Describe(link)
 	local name, _, quality, itemLevel, reqLevel, _, _, _, equipLoc, _, _, classID, subclassID = C_Item.GetItemInfo(link)
 	if not name then
@@ -345,7 +301,6 @@ function Scanner:Describe(link)
 	}
 end
 
--- Classifies every bag slot in order, handing each slot and its answer to fn.
 local function EachSlot(fn)
 	for bag = 0, NUM_BAGS do
 		local slots = C_Container.GetContainerNumSlots(bag) or 0
@@ -355,23 +310,110 @@ local function EachSlot(fn)
 	end
 end
 
-function Scanner:Scan()
-	wipe(pendingItems)
-	local items = {}
-	EachSlot(function(_, _, record)
-		if record then
-			table.insert(items, record)
+--------------------------------------------------------------------------------
+-- Keep in Bags
+--------------------------------------------------------------------------------
+
+Bags.KEEP_ORDER = { 0, 5, 10, 20 }
+
+local function KeepAmount(def)
+	local profile = ns.db.profile
+	local keep = 0
+	for _, kind in ipairs(def.kinds or {}) do
+		if profile.consumableKinds[kind] then
+			keep = math.max(keep, (profile.keepInBags or {})[kind] or 0)
 		end
-	end)
-	return items
+	end
+	return keep
 end
 
 --[[
-	Every occupied bag slot with its record or its reason code, for the Bag Scan export where the
-	rejected rows are the point. Empty slots are left out: not a rejection, only padding.
+	Mail attaches a whole slot, so stacks are never split. Largest first, each offered only while
+	the rest still covers keep: carrying 5 and 3 with 5 kept offers the 3.
 ]]
+function Bags.OfferedStacks(counts, keep)
+	local offered = {}
+	local remaining = 0
+	local byLargest = {}
+	for index, count in ipairs(counts) do
+		remaining = remaining + count
+		byLargest[#byLargest + 1] = index
+	end
+	-- Ties keep bag order, so the same bags always offer the same stacks.
+	table.sort(byLargest, function(a, b)
+		if counts[a] ~= counts[b] then
+			return counts[a] > counts[b]
+		end
+		return a < b
+	end)
+	for _, index in ipairs(byLargest) do
+		if remaining - counts[index] >= keep then
+			offered[index] = true
+			remaining = remaining - counts[index]
+		end
+	end
+	return offered
+end
+
+local function HeldBack(records)
+	local byItem, order = {}, {}
+	for _, record in ipairs(records) do
+		if record.kind == "consumable" then
+			local group = byItem[record.itemID]
+			if not group then
+				group = {}
+				byItem[record.itemID] = group
+				order[#order + 1] = record.itemID
+			end
+			group[#group + 1] = record
+		end
+	end
+	local held = {}
+	for _, itemID in ipairs(order) do
+		local group = byItem[itemID]
+		local keep = KeepAmount(group[1].def)
+		if keep > 0 then
+			local counts = {}
+			for index, record in ipairs(group) do
+				counts[index] = record.count or 1
+			end
+			local offered = Bags.OfferedStacks(counts, keep)
+			for index, record in ipairs(group) do
+				if not offered[index] then
+					held[record.uid] = true
+				end
+			end
+		end
+	end
+	return held
+end
+
+--------------------------------------------------------------------------------
+-- Scans
+--------------------------------------------------------------------------------
+
+function Scanner:Scan()
+	wipe(pendingItems)
+	local records = {}
+	EachSlot(function(_, _, record)
+		if record then
+			table.insert(records, record)
+		end
+	end)
+	local held = HeldBack(records)
+	local items = {}
+	for _, record in ipairs(records) do
+		if not held[record.uid] then
+			table.insert(items, record)
+		end
+	end
+	return items
+end
+
+-- Empty slots are left out: not a rejection, only padding.
 function Scanner:ScanAll()
 	local rows = {}
+	local records = {}
 	EachSlot(function(bag, slot, record, reason)
 		if record or reason ~= REJECT.EMPTY_SLOT then
 			table.insert(rows, {
@@ -381,7 +423,55 @@ function Scanner:ScanAll()
 				item = record,
 				reason = reason,
 			})
+			if record then
+				records[#records + 1] = record
+			end
 		end
 	end)
+	local held = HeldBack(records)
+	for _, row in ipairs(rows) do
+		if row.item and held[row.item.uid] then
+			row.item, row.reason = nil, REJECT.KEEP_IN_BAGS
+		end
+	end
 	return rows
+end
+
+--------------------------------------------------------------------------------
+-- Never Give Away
+--------------------------------------------------------------------------------
+
+function Bags:IsNeverGive(itemID)
+	local list = itemID and ns.db and ns.db.profile.neverGive
+	return list ~= nil and list[itemID] == true
+end
+
+function Bags:NeverGiveList()
+	local out = {}
+	for itemID in pairs(ns.db and ns.db.profile.neverGive or {}) do
+		out[#out + 1] = itemID
+	end
+	return out
+end
+
+local function Changed()
+	ns.UI:Rescan()
+	if ns.RefreshSettings then
+		ns.RefreshSettings()
+	end
+end
+
+function Bags:NeverGive(itemID, link)
+	if not itemID then
+		return
+	end
+	ns.db.profile.neverGive[itemID] = true
+	link = link or select(2, C_Item.GetItemInfo(itemID)) or ("item:" .. itemID)
+	ns:PrintMessage(L["CHAT_NEVER_GIVE"]:format(link, L["TAB_GIVE_AWAY"]))
+	Changed()
+end
+
+function Bags:GiveAgain(itemID)
+	ns.db.profile.neverGive[itemID] = nil
+	Changed()
 end

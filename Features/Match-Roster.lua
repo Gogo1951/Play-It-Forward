@@ -1,27 +1,13 @@
 local _, ns = ...
 
---[[
-	Who is on the roster: your alts, and everybody /who and the guild roster turned up this session, pooled by
-	class and deduped, and the ranked candidates each item draws from them. File-scope, so the
-	roster survives a window close like the rest of Features/Match-List.lua's state.
-]]
-
 local MatchList = ns.MatchList
 
 local pools = {} -- classToken -> { {name, level, class, area}, ... } from /who, the guild roster and your alts
 local seenPlayer = {} -- qualified identity -> its pool entry, dedupes across sources and chunks
---[[
-	Session total for the roster report: the report explains what a search found, and who was too
-	low is part of that.
-]]
+-- Session total for the roster report.
 local tooLow = 0
 
---[[
-	Bumped whenever the pools change, which is what makes the candidate cache below safe to hand
-	out. A counter rather than a walk of every item: one increment per query, where clearing a
-	field per item costs the scan it was meant to save. Features/Match-List.lua's RescanBags has no bump -- it
-	replaces every item table outright, so no cache survives it anyway.
-]]
+-- RescanBags needs no bump: it replaces every item table, caches included.
 local poolsGeneration = 0
 
 function MatchList:Pools()
@@ -29,20 +15,8 @@ function MatchList:Pools()
 end
 
 --[[
-	RankCandidates sorts every admitted class against every pooled player, and the same answer is
-	asked for repeatedly -- once per Assign, once per dropdown open, and once per mouse-over of a
-	recipient button, which has no ceiling. Its inputs are the pools, each pooled player's level,
-	guild and zone included, and the item's own verdict and band: it never reads item.recipient,
-	so an assignment does not invalidate a cached answer.
-
-	Settings are inputs as well: profile.sendToAlts and each alt's include, specs and gear levels on
-	the My Alts panel, read by AltWants in Features/Match-Ranking.lua. No generation
-	covers them. The cache stays safe
-	only because their setters call ns.RefreshMailWindow, whose rescan replaces every item table
-	and every cached answer with it, or marks the scan stale so the next one does.
-
-	HANDED OUT BY REFERENCE, NEVER COPIED. Every caller only reads it, and one that sorted or
-	removed in place would poison the cache for everybody after it.
+	Never reads item.recipient, so assignments keep it valid. Settings it reads bump no generation:
+	their setters' ns.RefreshMailWindow rescan replaces the items. Shared by reference: never mutate it.
 ]]
 function MatchList:Candidates(item)
 	if item._candidates and item._candidatesGeneration == poolsGeneration then
@@ -53,36 +27,20 @@ function MatchList:Candidates(item)
 	return ranked
 end
 
---[[
-	Folds one query's results into the roster, deduped. The shuffle key is rolled once as a player
-	enters the pool, so the order among equals holds still instead of moving between renders.
-	Returns how many pool entries changed: new players, plus known ones who just became guildmates,
-	were seen at a higher level or turned up in a different zone.
-]]
+-- Returns how many pool entries changed; the shuffle is rolled once at entry so equals hold still.
 function MatchList:AddResults(results)
 	local changed = 0
+	-- A /who across your own level answers with you too, and mail to yourself is refused.
+	local me = ns.QualifyPlayerName(ns.PlayerName())
 	for _, person in ipairs(results) do
 		--[[
-			THE ONE LEVEL FLOOR, here rather than in either reader because this is the single door
-			every recipient comes through: /who and the guild roster both arrive at this line, and
-			a source added later inherits it without having to remember to. Counted before the
-			dedupe, so the number means "people this rule turned away", not "people it turned away
-			who were also new".
-
-			YOUR OWN ALTS EXCEPTED: the floor guesses at bank alts among strangers, but an alt only
-			arrives here while it is ticked on the My Alts panel, and that tick is the player's own
-			answer. A fresh level 1 alt is who they most want to gear.
+			The one level floor, at the door every source uses. Alts excepted: the floor guesses at
+			strangers' bank alts, and a ticked alt is the player's own answer.
 		]]
 		if not person.alt and (person.level or 0) < ns.Data.MIN_RECIPIENT_LEVEL then
 			tooLow = tooLow + 1
-		else
-			--[[
-				DEDUPED ON THE QUALIFIED IDENTITY, NOT THE RAW NAME. /who answers bare for
-				somebody on your own realm where the guild roster qualifies the same character,
-				so one person arrives under two spellings and a raw-string check pools them
-				twice -- two entries, two items, two parcels in one mailbox. The entry itself
-				keeps the name it arrived under, because that is the address.
-			]]
+		elseif person.alt or ns.QualifyPlayerName(person.name) ~= me then
+			-- /who answers bare where the guild roster qualifies; the entry keeps its name as the address.
 			local key = ns.QualifyPlayerName(person.name) or person.name
 			local known = seenPlayer[key]
 			if known then
@@ -118,14 +76,7 @@ function MatchList:AddResults(results)
 			end
 		end
 	end
-	--[[
-		Only when a pool entry changed: a query returning nothing new leaves the ranking unchanged,
-		and bumping would throw the cache away once per press for an answer that could not have
-		moved -- the common case, since the guild roster re-answers in full every time. A known
-		player turning out to be a guildmate or an alt does change it, through where they rank, and so
-		does one seen at a higher level, through their band and the gift cooldown, or in a new
-		zone, through their placement.
-	]]
+	-- Only on a change: the guild roster re-answers in full every pull.
 	if changed > 0 then
 		poolsGeneration = poolsGeneration + 1
 	end
@@ -133,11 +84,8 @@ function MatchList:AddResults(results)
 end
 
 --[[
-	Guild state is read only as a player enters the pool, so a change on My Guilds -- a member or a
-	whole guild unticked, a guild removed -- would otherwise reach nobody already pooled until a
-	/reload. Asks the same lookup /who answers go through and drops anyone it no longer calls a
-	guildmate, or calls ignored. Dropped rather than demoted: a roster member was never found by
-	/who, so is not a stranger anybody searched for, and /who can pool them again as one.
+	Guild state is read only at pool entry, so My Guilds changes need this. Dropped rather than
+	demoted: a roster member was never a stranger anybody searched for, and /who can pool them again.
 ]]
 function MatchList:RecheckGuildmates()
 	local guildOf = ns.Guild:WhoLookup()

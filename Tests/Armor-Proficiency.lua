@@ -292,7 +292,7 @@ local function targetedSearch(ns, results)
 			stats = { ITEM_MOD_AGILITY_SHORT = 8 },
 		}),
 	})
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	local item = ns.UI:Items()[1]
 
 	Stub.now = Stub.now + 60

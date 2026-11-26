@@ -5,18 +5,8 @@ local UI = ns.UI
 local MatchList = ns.MatchList
 
 --[[
-	The mail window's Distribute button and status line, and which rows can be ticked: what the
-	player can do next, derived from the match list and the mailbox. Features/UI-Window.lua calls
-	UI:SyncDistributeButton after every redraw.
-]]
-
---[[
-	Dead unless pressing it would send something: a mailbox open, because Mail-Sender cannot attach
-	without Blizzard's Send Mail panel, and a row ticked with somebody on it. The mailbox is the
-	one named on the button, being the condition the player fixes by walking.
-
-	Reads ns.AtMailbox, never ns.mailboxOpen: MAIL_CLOSED does not fire on every way out, and a
-	stale flag here is exactly the live button on a closed mailbox this guards against.
+	The mailbox is the condition named on the button, the one the player fixes by walking. Reads
+	ns.AtMailbox, never ns.mailboxOpen: MAIL_CLOSED does not fire on every way out.
 ]]
 function UI:SyncDistributeButton()
 	if not (self.frame and self.frame.distributeButton) then
@@ -32,10 +22,14 @@ function UI:SyncDistributeButton()
 		return
 	end
 
-	-- Back to Distribute at every pause, which is when the chat lines tell the player to press it.
+	-- A pressed Stop stays dead while the letter in hand finishes.
 	if ns.Distributor:IsRunning() then
-		button:SetText(L["BUTTON_SENDING"])
-		button:Disable()
+		button:SetText(L["BUTTON_STOP"])
+		if ns.Distributor:StopRequested() then
+			button:Disable()
+		else
+			button:Enable()
+		end
 		return
 	end
 
@@ -63,11 +57,8 @@ function UI:CanTick(item)
 end
 
 --[[
-	The status line's words, off the frame so Tests/Status-Line.lua can read them. The first case
-	that holds wins: a run going out, then rows still waiting on a search, then rows ready to send,
-	then Kept gear with Disenchant off, which only that switch can send anywhere. Unticked rows
-	count for nothing: the player is keeping them, and a row they set to Keep Item by hand is
-	never nagged about.
+	Frame-free for Tests/Status-Line.lua; the first case that holds wins. Unticked rows count for
+	nothing, so a row set to Keep Item by hand is never nagged about.
 ]]
 function UI:StatusLine()
 	local mailer = ns.Distributor
@@ -82,6 +73,10 @@ function UI:StatusLine()
 			waiting = waiting + 1
 		end
 	end
+	local stopped = mailer:Stopped()
+	if stopped and ready > 0 then
+		return L["MAIL_STOPPED"]:format(stopped.done, stopped.total)
+	end
 	if waiting > 0 then
 		if not self:HasSearched() then
 			return L["STATUS_START"]:format(waiting)
@@ -93,7 +88,10 @@ function UI:StatusLine()
 		return L["STATUS_DONE"]:format(waiting)
 	end
 	if ready > 0 then
-		return (ns.AtMailbox() and L["STATUS_READY"] or L["STATUS_AWAY"]):format(ready)
+		if not ns.AtMailbox() then
+			return L["STATUS_AWAY"]:format(ready)
+		end
+		return L["STATUS_READY"]:format(ready)
 	end
 	if not (ns.db and ns.db.profile.disenchantUnmatched) then
 		for _, item in ipairs(MatchList:Items()) do
@@ -101,6 +99,10 @@ function UI:StatusLine()
 				return L["STATUS_KEPT_DISENCHANT"]
 			end
 		end
+	end
+	local sent = mailer:Sent()
+	if #sent > 0 then
+		return L["MAIL_DONE"]:format(#sent, #sent)
 	end
 	return ""
 end

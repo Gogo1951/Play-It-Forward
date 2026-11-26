@@ -1,14 +1,8 @@
 --[[
-	Enough of the WoW client to load the add-on outside the game.
-
-	This is deliberately not a mock framework. It is the smallest set of globals that
-	lets the real files run unmodified, because a test that exercises a paraphrase of
-	the code proves nothing about the code. Every stub here answers in the shape the
-	real API answers in: C_Item.GetItemInfo returns its 14 positional values in the client's
-	order, C_Container.GetContainerItemInfo returns a table, and an item link carries
-	a real suffix field so ns.ItemSuffixID has something to parse.
-
-	Run with: lua Tests/Run.lua
+	Enough of the WoW client to load the add-on outside the game. Not a mock framework: the
+	smallest set of globals that lets the real files run unmodified, each answering in the real
+	API's shape (C_Item.GetItemInfo's 14 positional values, a table from
+	C_Container.GetContainerItemInfo, an item link with a real suffix field).
 ]]
 
 local Stub = {}
@@ -18,13 +12,9 @@ local Stub = {}
 --------------------------------------------------------------------------------
 
 --[[
-	One stub object answers to anything, because a frame key is either a method or a
-	child widget and there is no way to tell which from the name. Returning a callable
-	table covers both: f:SetPoint() calls it, f.CloseButton:SetScript() indexes it.
-
-	Methods that feed arithmetic have to answer with a number rather than a table, so
-	the few the add-on does that with are named here. A missing name shows up as an
-	"attempt to perform arithmetic" the moment it is used, never as a wrong result.
+	One stub answers to anything: a frame key is either a method or a child widget, and a
+	callable table covers both. Methods that feed arithmetic must answer a number, so they are
+	named here; a missing one fails as "attempt to perform arithmetic", never as a wrong result.
 ]]
 local NUMERIC = {
 	GetStringWidth = true,
@@ -35,17 +25,17 @@ local NUMERIC = {
 	GetLeft = true,
 	GetRight = true,
 	GetBottom = true,
+	GetCenter = true,
+	GetEffectiveScale = true,
+	GetStringHeight = true,
+	GetFrameLevel = true,
 }
 
 local function newStub(numeric)
 	local t = {}
 	return setmetatable(t, {
 		__index = function(self, key)
-			--[[
-				SetText is the one call that is kept rather than swallowed. The status line
-				is half of what the window says for itself, so a test that could only see
-				whether the frame is up would pass on a window reporting the wrong count.
-			]]
+			-- SetText is kept, not swallowed: cases assert what the status line says.
 			if key == "SetText" then
 				local setter = function(this, text)
 					rawset(this, "shownText", text)
@@ -54,7 +44,6 @@ local function newStub(numeric)
 				rawset(self, key, setter)
 				return setter
 			end
-			-- Reads back what SetText kept, so code that reads a box sees what was written to it.
 			if key == "GetText" then
 				local getter = function(this)
 					return rawget(this, "shownText") or ""
@@ -75,23 +64,17 @@ local function newStub(numeric)
 	})
 end
 
---[[
-	Shown state is real. It is the single thing every test in Tests/Mailbox-Gate.lua
-	asserts on, so it cannot come from the catch-all above: a stub that answers every
-	call truthily would report the window open in exactly the case the fix is about.
-]]
+-- Shown state is real: Tests/Mailbox-Gate.lua asserts on it, and a truthy catch-all would report it open.
 local function newFrame()
 	local f = newStub()
 	local shown = false
 
 	--[[
-		OnShow and OnHide are real, and they have to be: Escape closes a window through
-		UISpecialFrames, which only calls Hide, so a stub swallowing SetScript would report a
-		closed window that never ran a line of its closing work. Only on a genuine change of
-		state, as the client does -- hiding an already-hidden frame fires nothing.
+		OnShow and OnHide are real: Escape closes a window through UISpecialFrames, which only
+		calls Hide. They fire only on a genuine change of state, as the client does.
 
-		HookScript is deliberately left alone. MailFrame's hooks are fired by name from the
-		cases that want them, and driving them from Show would fire a mailbox open twice.
+		HookScript only records: cases fire MailFrame's hooks by name, and firing them from Show
+		would open a mailbox twice.
 	]]
 	local scripts = {}
 	rawset(f, "SetScript", function(self, name, fn)
@@ -128,11 +111,7 @@ local function newFrame()
 		return shown
 	end)
 
-	--[[
-		Enabled state is real for the same reason shown state is: the Find Recipients
-		button locking itself for the length of the /who throttle is a thing a case
-		asserts on, and the catch-all above would report every button as live.
-	]]
+	-- Enabled state is real: cases assert Find Recipients locks for the /who throttle.
 	local enabled = true
 	rawset(f, "Enable", function()
 		enabled = true
@@ -143,6 +122,14 @@ local function newFrame()
 	rawset(f, "IsEnabled", function()
 		return enabled
 	end)
+	-- Checked state is real: the mailbox tab is lit by it while the window is up.
+	local checked = false
+	rawset(f, "SetChecked", function(_, value)
+		checked = value and true or false
+	end)
+	rawset(f, "GetChecked", function()
+		return checked
+	end)
 	rawset(f, "hooks", {})
 	rawset(f, "HookScript", function(self, script, fn)
 		self.hooks[script] = fn
@@ -150,9 +137,8 @@ local function newFrame()
 	end)
 
 	--[[
-		Event registration is real rather than swallowed: the /who code unregisters
-		WHO_LIST_UPDATE from the Blizzard frames for the life of a query, and a catch-all
-		IsEventRegistered answering truthily would hide both halves of that contract.
+		Event registration is real: /who unregisters WHO_LIST_UPDATE from the Blizzard frames for
+		the life of a query, and cases check both halves.
 	]]
 	local registered = {}
 	rawset(f, "RegisterEvent", function(_, event)
@@ -181,6 +167,10 @@ local function newFrame()
 	rawset(f, "GetName", function()
 		return rawget(f, "_name")
 	end)
+	-- Real too: Menu-Kit walks a frame's parents until there are none, and a catch-all never ends.
+	rawset(f, "GetParent", function()
+		return rawget(f, "_parent")
+	end)
 	return f
 end
 
@@ -197,37 +187,21 @@ Stub.itemsByLink = {}
 Stub.bags = {}
 
 --[[
-	Where generated item ids start, and why it is up here rather than at 1.
+	Generated ids start at seven figures: Features/Scan-Bags.lua looks every scanned item up in
+	the consumable index, so an id colliding with a real Scan-* row turns a green chest into
+	water, and only once enough earlier cases have pushed the counter that far.
 
-	An id is not just a number to a fixture: Features/Scan-Bags.lua looks every scanned
-	item up in the consumable index, so a generated id that collides with a real row in
-	a flavor folder's Scan-Food, Scan-Potions or Scan-Scrolls file turns a green chest into a bottle of
-	water. That happened. Ids began at 20000, 20074 is a real consumable, and the counter
-	ran on across the whole suite -- so a case that passed alone failed once enough
-	earlier cases had been added to push the counter past it. A test whose result depends
-	on how many tests ran before it is worse than a failing one.
-
-	Nothing in this add-on's data comes near seven figures, so nothing here can collide
-	with a real row however long the suite runs.
-
-	The counter deliberately does NOT reset per Install. Fixtures are built as arguments
-	-- readyToDistribute({ cloak() }, ...) -- so they exist before the load inside that
-	call, and a counter that restarted would hand a later fixture the same id, the same
-	link, and overwrite the earlier one in the registry below. Ids that only ever go up
-	are what makes a link a stable key.
+	The counter never resets per Install. Fixtures are built as arguments, before the load inside
+	readyToDistribute({ cloak() }, ...), so a restarted counter would hand a later fixture the
+	same id and link and overwrite the earlier one.
 ]]
 local ID_BASE = 9000000
 local nextItemID = ID_BASE
 
 --[[
-	One item, in the shape the client would report it. Defaults describe a plain
-	bind-on-equip green so a fixture only states the fields it is actually about.
-
-	tooltipLines is separate from stats on purpose: stats is what GetItemStats answers,
-	tooltipLines is what the item renders as, and a random-suffix roll has all of its
-	stats in the second and none in the first. That split is the difference between an
-	item with no stats and one whose stats could not be read, which is a distinction the
-	matcher makes and the reason Features/Scan-Tooltip.lua exists.
+	One item in the client's shape; defaults are a plain bind-on-equip green. stats is what
+	GetItemStats answers, tooltipLines what the item renders: a random-suffix roll has its stats
+	only in the second, the case Features/Scan-Tooltip.lua exists for.
 ]]
 function Stub.Item(fields)
 	nextItemID = nextItemID + 1
@@ -259,7 +233,7 @@ function Stub.Item(fields)
 	return def
 end
 
--- Lay out the backpack. Bags 1-4 stay empty, which is what an unbagged alt looks like.
+-- Bags 1-4 stay empty, as on an unbagged alt.
 function Stub.SetBackpack(defs)
 	Stub.bags = { [0] = { slots = 16, items = {} } }
 	for index, def in ipairs(defs) do
@@ -284,20 +258,34 @@ function Stub.Install()
 	end
 
 	--[[
-		Bags start empty every load, so a case that never lays one out sees an empty
-		backpack rather than whatever the case before it left behind.
-
-		itemsByLink is deliberately not cleared. Fixtures are built as arguments, before
-		the load they are passed into, so wiping the registry here would orphan the very
-		items the case is about -- their links would resolve to nothing and every one
-		would scan as NOT_CACHED.
+		itemsByLink is not cleared: fixtures are built before the load they are passed into, so
+		wiping it would leave their links scanning as NOT_CACHED.
 	]]
 	Stub.bags = {}
 
+	-- Each mail is { sender, subject, hasItem, wasRead, wasReturned, link }.
+	Stub.inbox = {}
+	GetInboxNumItems = function()
+		return #Stub.inbox, #Stub.inbox
+	end
+	GetInboxHeaderInfo = function(index)
+		local mail = Stub.inbox[index]
+		if not mail then
+			return nil
+		end
+		return nil, nil, mail.sender, mail.subject, 0, 0, 30, mail.hasItem, mail.wasRead, mail.wasReturned
+	end
+	GetInboxItemLink = function(index)
+		local mail = Stub.inbox[index]
+		return mail and mail.link
+	end
+	Ambiguate = function(name)
+		return (name:gsub("%-.*$", ""))
+	end
+
 	--[[
-		The TOC's own fields, which is where Data/Flavor.lua reads the flavor. Classic Era by
-		default; a case wanting another client sets Stub.flavor before it loads. No Version
-		field, so the add-on reads itself as a dev copy.
+		Data/Flavor.lua reads the flavor here: Classic Era unless a case sets Stub.flavor before
+		it loads. No Version field, so the add-on reads itself as a dev copy.
 	]]
 	Stub.flavor = Stub.flavor or "Vanilla"
 	C_AddOns = {
@@ -315,9 +303,8 @@ function Stub.Install()
 	}
 
 	--[[
-		The unit tooltip has two hooks. With no processor the add-on hooks OnTooltipSetUnit, the
-		older shape; a case wanting the processor sets Stub.useTooltipProcessor before it loads and
-		reads the registered post-call back from Stub.tooltipPostCalls.
+		With no processor the add-on hooks OnTooltipSetUnit; a case wanting the processor sets
+		Stub.useTooltipProcessor before it loads and reads the post-call from Stub.tooltipPostCalls.
 	]]
 	Stub.tooltipPostCalls = {}
 	if Stub.useTooltipProcessor then
@@ -357,11 +344,7 @@ function Stub.Install()
 	-- WoW exposes this as a bare global; standalone Lua keeps it behind os.
 	time = os.time
 
-	--[[
-		A clock the tests drive. It starts well past zero so the /who throttle, which
-		compares against a lastSent of 0, does not reject the very first query of a case
-		as too soon. Advance it to get a second query out.
-	]]
+	-- Starts well past zero so the /who throttle, comparing against a lastSent of 0, lets a first query out.
 	Stub.now = 100000
 	GetTime = function()
 		return Stub.now
@@ -383,9 +366,8 @@ function Stub.Install()
 	LOCALIZED_CLASS_NAMES_FEMALE = LOCALIZED_CLASS_NAMES_MALE
 
 	--[[
-		Alliance, so Matcher's absent-class filter has something to do: on Classic Era data it
-		drops shamans for this faction and death knights for the whole client. A stub that
-		reported no faction would memoize nothing and quietly test the unfiltered list.
+		Alliance, so the absent-class filter has work: on Classic Era data it drops shamans for
+		this faction and death knights for the whole client.
 	]]
 	UnitFactionGroup = function()
 		return "Alliance"
@@ -398,16 +380,12 @@ function Stub.Install()
 		return Stub.playerLevel
 	end
 
-	--[[
-		Resting gates the Given Away broadcast and its tooltip block, so it starts true: the sharing
-		cases are about sharing, not about standing in the right place. A case that wants the gate
-		shut sets Stub.resting = false, which is the raid and open-world state.
-	]]
+	-- Resting gates the Given Away broadcast and its tooltip block, so it starts true.
 	Stub.resting = true
 	IsResting = function()
 		return Stub.resting
 	end
-	-- Combat is player state the way resting is: a case that wants the lockdown sets it.
+	-- A case that wants the combat lockdown sets it.
 	Stub.inCombat = false
 	InCombatLockdown = function()
 		return Stub.inCombat
@@ -422,14 +400,12 @@ function Stub.Install()
 	end
 
 	--[[
-		A named frame lands in _G, because that is how Features/Scan-Tooltip.lua reads
-		its scanning tooltip back: it indexes _G["PlayItForwardScanTooltipTextLeft"..i]
-		rather than holding the font strings. A GameTooltip additionally renders a
-		fixture's tooltipLines, so the suffix-parsing path can be driven end to end
-		instead of stubbed at the answer.
+		A named frame lands in _G: Features/Scan-Tooltip.lua reads its lines back by name. A
+		GameTooltip renders a fixture's tooltipLines, so suffix parsing runs end to end.
 	]]
-	CreateFrame = function(kind, name, _, _)
+	CreateFrame = function(kind, name, parent, _)
 		local frame = newFrame()
+		rawset(frame, "_parent", parent)
 		if name then
 			_G[name] = frame
 			rawset(frame, "_name", name)
@@ -459,6 +435,13 @@ function Stub.Install()
 	UIParent = newFrame()
 	MailFrame = newFrame()
 	GameTooltip = newFrame()
+	-- Its owner is real, so a menu closing can ask whether the tooltip is one of its own.
+	rawset(GameTooltip, "SetOwner", function(self, owner)
+		rawset(self, "_owner", owner)
+	end)
+	rawset(GameTooltip, "GetOwner", function(self)
+		return rawget(self, "_owner")
+	end)
 	--[[
 		WoW Forever's GameTooltip runs on tooltip data; the Classic clients expose the processor
 		but keep the legacy scripts. A case wanting the Classic shape sets Stub.legacyTooltipFrames.
@@ -477,12 +460,6 @@ function Stub.Install()
 		return "1.15.8", "67156", "Jan 1 2026", 11508
 	end
 
-	--[[
-		The client's own stat names. Features/Scan-Tooltip.lua reads a "+N Something"
-		line by looking Something up against these, which is what keeps it locale-safe,
-		so a stub that defined only a few would test a name table narrower than the real
-		one. Every key the Scan-Stats files use is here.
-	]]
 	-- The game's quality names, which the gear cap's dropdown reads.
 	ITEM_QUALITY2_DESC = "Uncommon"
 	ITEM_QUALITY3_DESC = "Rare"
@@ -494,6 +471,7 @@ function Stub.Install()
 	-- The faction-standing line Features/Scan-Tooltip.lua holds a consumable back on.
 	ITEM_REQ_REPUTATION = "Requires %s - %s"
 
+	-- Features/Scan-Tooltip.lua reads "+N Something" against these; every Scan-Stats key is here.
 	ITEM_MOD_STRENGTH_SHORT = "Strength"
 	ITEM_MOD_AGILITY_SHORT = "Agility"
 	ITEM_MOD_INTELLECT_SHORT = "Intellect"
@@ -521,11 +499,7 @@ function Stub.Install()
 	ITEM_MOD_RESILIENCE_RATING_SHORT = "PvP Resilience"
 	ITEM_MOD_PVP_POWER_SHORT = "PvP Power"
 
-	--[[
-		The client's mail refusals, as UI_ERROR_MESSAGE delivers them. Real strings, so
-		Features/Mail-Sender.lua matches against the same text the client sends rather
-		than a paraphrase; ERR_MAIL_DATABASE_ERROR is the one observed on 1.15.8.
-	]]
+	-- The client's real mail refusals, so Features/Mail-Sender.lua matches the text it sends.
 	ERR_MAIL_DATABASE_ERROR = "Internal mail database error!"
 	ERR_MAIL_TARGET_NOT_FOUND = "Player not found."
 	ERR_MAIL_TO_SELF = "You cannot send mail to yourself."
@@ -533,10 +507,7 @@ function Stub.Install()
 	-- No ERR_MAIL prefix, but a mail refusal all the same: observed on Forever 1.60.1.
 	ERR_PLAYER_WRONG_FACTION = "Target is unfriendly."
 
-	--[[
-		The race table, enough of it for the faction filter on /who results: the client's own IDs,
-		names and faction tags. Pandaren is listed under both factions, as the client lists it.
-	]]
+	-- Enough races for the /who faction filter; Pandaren is under both factions, as in the client.
 	local RACES = {
 		[1] = { "Human", "Alliance" },
 		[2] = { "Orc", "Horde" },
@@ -558,11 +529,7 @@ function Stub.Install()
 		end,
 	}
 
-	--[[
-		A cold item cache answers nil, exactly as the client does for an item it has not
-		resolved yet. Setting cached = false on a fixture is how a test reaches the
-		scanner's NOT_CACHED branch, which is otherwise unreachable outside the game.
-	]]
+	-- A cold cache answers nil, as the client does; cached = false on a fixture reaches NOT_CACHED.
 	local function getItemInfo(link)
 		local def = Stub.itemsByLink[link]
 		if not def or def.cached == false then
@@ -584,11 +551,7 @@ function Stub.Install()
 			def.bindType
 	end
 
-	--[[
-		True when the item has an equip slot, the way the client answers it. Generosity:RecordSend
-		leans on this to count item level for gear only, so a consumable (equipLoc "") must come
-		back false rather than being told apart some other way.
-	]]
+	-- Generosity:RecordSend counts item level for gear only through this, so a consumable answers false.
 	local function isEquippableItem(link)
 		local def = Stub.itemsByLink[link]
 		return def ~= nil and def.equipLoc ~= nil and def.equipLoc ~= ""
@@ -635,15 +598,9 @@ function Stub.Install()
 			return { stackCount = def.count, isBound = def.isBound }
 		end,
 		--[[
-			Attaches to the letter. Two things the real call does that matter here.
-
-			It does not empty the slot: the item is reserved by the open mail and the bag
-			only reports it gone once the server confirms the send.
-
-			And it writes the item's name into an empty subject box, which is why the mail
-			panel showed "Lesser Healing Potion (2)" as a subject nobody typed. Anything
-			filling that box has to do it after this, and modelling it here is what lets a
-			case prove the ordering rather than assume it.
+			As the real call does, this leaves the item in its slot until the send confirms, and
+			writes the item's name into an empty subject box, so anything filling that box must
+			do it after.
 		]]
 		UseContainerItem = function(bag, slot)
 			local def = slotItem(bag, slot)
@@ -668,13 +625,9 @@ function Stub.Install()
 	SendMailFrame = newFrame()
 	SendMailFrame:Show()
 	--[[
-		The panel's own boxes, which the sender fills so the player can see what is going.
-
-		The body is deliberately the CLASSIC shape and only that. On 1.15.8 there is no
-		SendMailBodyEditBox -- that name arrives with Dragonflight -- and the body lives
-		behind MailEditBox:GetEditBox(). Defining both here would let a resolver that only
-		knows the retail name pass a test it fails in the game, which is exactly what
-		happened: To and Subject filled, the body stayed empty.
+		The body is the Classic shape only: on 1.15.8 there is no SendMailBodyEditBox (it arrives
+		with Dragonflight) and the body lives behind MailEditBox:GetEditBox(). Defining both would
+		let a resolver knowing only the retail name pass here and fail in the game.
 	]]
 	SendMailNameEditBox = newFrame()
 	SendMailSubjectEditBox = newFrame()
@@ -694,16 +647,10 @@ function Stub.Install()
 	end
 
 	--[[
-		THE ITEM STAYS IN THE BAG, AND THAT IS THE POINT.
-
-		The client removes it only when the server confirms, which lands after
-		MAIL_SUCCESS -- Features/Mail-Sender.lua depends on that ordering and says so in
-		as many words. So a test firing MAIL_SUCCESS sees exactly what the add-on sees at
-		that instant: a delivered item still sitting in its slot. Emptying the slot here
-		would quietly repair the race the post-delivery refresh has to survive.
-
-		Tests/Mailbox-Gate.lua drives the bag catching up by hand, with SetBackpack and a
-		BAG_UPDATE, which is the client's real second step.
+		The item stays in the bag: the client removes it only when the server confirms, after
+		MAIL_SUCCESS, and Features/Mail-Sender.lua depends on that order. Emptying the slot here
+		would hide the race the post-delivery refresh must survive. Cases catch the bag up with
+		SetBackpack and a BAG_UPDATE.
 	]]
 	SendMail = function(recipient, subject, body)
 		table.insert(Stub.sent, { recipient = recipient, subject = subject, body = body, link = Stub.attached })
@@ -711,16 +658,11 @@ function Stub.Install()
 	end
 
 	--[[
-		Timers never fire on their own. Every one the add-on sets is a deadline for
-		something a test drives directly, so a timer that ran would race the case rather
-		than support it; Stub.FireTimers is there for a case that wants them run.
+		Timers never fire on their own: each is a deadline for something a case drives directly.
+		FireTimers runs the waiting ones once, taking them off first so a timer that sets another
+		(the Find Recipients lock does) cannot spin.
 	]]
 	Stub.timers = {}
-	--[[
-		Runs every timer waiting, once. Taken off the list first, so a timer that sets
-		another -- the Find Recipients lock does, on every press -- does not run inside
-		this call and spin.
-	]]
 	Stub.FireTimers = function()
 		local pending = Stub.timers
 		Stub.timers = {}
@@ -749,14 +691,9 @@ function Stub.Install()
 	--------------------------------------------------------------------------------
 
 	--[[
-		Queries go in, seeded results come out. SendWho only records: the answer arrives
-		on WHO_LIST_UPDATE, which the case fires when it is ready, because that is the
-		shape of the real thing and the add-on's stepper is built around the gap.
-
-		Stub.whoResults is what the *next* answer will contain, whatever was asked. A
-		case that cares which zone was queried reads Stub.whoQueries. Stub.whoTotal is
-		how many the server says matched, nil for "exactly what was sent": set it above
-		the count to answer as a capped query, which leaves the rest of the plan standing.
+		SendWho only records; the case fires WHO_LIST_UPDATE when ready, as the real answer comes
+		later. Stub.whoResults is the next answer, whatever was asked. Stub.whoTotal is how many the
+		server says matched (nil: exactly what was sent); set it above the count for a capped query.
 	]]
 	Stub.whoQueries = {}
 	Stub.whoResults = {}
@@ -766,8 +703,8 @@ function Stub.Install()
 	-- FrameXML's FriendsFrame_OnLoad registers this; opening on an answer is what the add-on suppresses.
 	FriendsFrame:RegisterEvent("WHO_LIST_UPDATE")
 	--[[
-		Forever's Retail-based UI: the panel opened over the mailbox with both named frames deaf, so
-		something else hears the answer there. Anonymous on purpose -- no name to look it up by.
+		On Forever's Retail-based UI the panel opened with both named frames deaf, so something else
+		hears the answer. Anonymous on purpose: no name to look it up by.
 	]]
 	Stub.otherWhoListener = newFrame()
 	Stub.otherWhoListener:RegisterEvent("WHO_LIST_UPDATE")
@@ -775,11 +712,7 @@ function Stub.Install()
 		panel:Hide()
 	end
 
-	--[[
-		Addon messaging for the Given Away broadcast. RegisterAddonMessagePrefix answers true, as the
-		client does when the prefix table has room; SendAddonMessage records rather than sends, so a
-		case can read Stub.addonMessages to see what went over YELL and with which prefix.
-	]]
+	-- SendAddonMessage records into Stub.addonMessages rather than sending.
 	Stub.addonMessages = {}
 	C_ChatInfo = {
 		RegisterAddonMessagePrefix = function()
@@ -795,11 +728,7 @@ function Stub.Install()
 		end,
 	}
 
-	--[[
-		Unit reads for the tooltip block. The player is "Tester" on realm "Test"; other units are
-		looked up in Stub.unitsByToken, which a tooltip case seeds. Absent that table, only "player"
-		resolves, which is all the loaded files touch at load time.
-	]]
+	-- Units other than "player" come from Stub.unitsByToken, which a tooltip case seeds.
 	UnitName = function(unit)
 		if unit == "player" then
 			return "Tester"
@@ -818,10 +747,7 @@ function Stub.Install()
 		return person ~= nil and person.isPlayer ~= false
 	end
 
-	--[[
-		Area names as an enUS client answers them, for every area the zone tables name. The search
-		asks the client for each one, so a case reads zones by their English names.
-	]]
+	-- enUS names for every area the zone tables name, so cases read zones in English.
 	local AREA_NAMES = {
 		[1] = "Dun Morogh",
 		[3] = "Badlands",
@@ -914,32 +840,25 @@ function Stub.Install()
 				classStr = person.class,
 				raceStr = person.race,
 				--[[
-					Unset unless the case sets it: an area the zone table does not list ranks as a
-					capital or a dungeon (Who:PlacementRank), and keeps the search going for anybody
-					holding an item, which only the placement cases want.
+					Unset unless the case sets it: an unlisted area ranks as a capital or a dungeon
+					(Who:PlacementRank) and keeps the search going, which only placement cases want.
 				]]
 				area = person.area,
-				-- The guild a result is in, by name; unset is none.
 				fullGuildName = person.guild,
 			}
 		end,
 	}
 
 	--[[
-		The guild roster, the second recipient source. A case seeds Stub.guild with rows; absent
-		one the player is in no guild, which is what every case that never mentions a guild wants.
-
-		GetGuildRosterInfo's eleventh return is the class TOKEN and its fifth the localized name,
-		so a row carrying no class models the one gap the reader treats as unreadable.
-		GetGuildRosterLastOnline answers the way the client does: nothing at all for somebody
-		online, and four duration components otherwise, never a total.
+		Stub.guild nil means no guild. GetGuildRosterInfo's eleventh return is the class token, so
+		a row with no class models the gap the reader treats as unreadable. GetGuildRosterLastOnline
+		answers nothing for somebody online and four duration parts otherwise, never a total.
 	]]
 	Stub.guild = nil
 	Stub.guildRosterRequests = 0
 	IsInGuild = function()
 		return Stub.guild ~= nil
 	end
-	-- The guild's name, for the saved guild list; a case can rename it with Stub.guildName.
 	Stub.guildName = nil
 	GetGuildInfo = function(unit)
 		if unit ~= "player" or Stub.guild == nil then
@@ -980,15 +899,11 @@ function Stub.Install()
 		end,
 	}
 
-	-- The slash registry is just a table the client reads; a case types /pif by calling into it.
 	SlashCmdList = {}
 
 	--[[
-		The modern Settings panel, down to its one sharp edge: OpenToCategory reaches the
-		protected OpenSettingsPanel(), which the client blocks from add-on code in combat.
-		The stub raises the block as an error so a case that trips it fails the way the
-		game does -- ADDON_ACTION_BLOCKED in the player's face -- rather than recording
-		an open that the client would never have performed.
+		OpenToCategory reaches the protected OpenSettingsPanel(), which the client blocks in combat,
+		so the stub raises ADDON_ACTION_BLOCKED rather than recording an open that never happens.
 	]]
 	Stub.settingsOpened = {}
 	Settings = {
@@ -1000,12 +915,7 @@ function Stub.Install()
 		end,
 	}
 
-	--[[
-		AceLocale, reduced to what the add-on asks of it. GetLocale hands back a table
-		that errors on an unknown key rather than answering nil, so a status line
-		referring to a string nobody added fails in the test that renders it instead of
-		printing "nil" in the game.
-	]]
+	-- GetLocale's table errors on an unknown key, so a missing string fails the case that renders it.
 	local locales = {}
 	LibStub = function(name)
 		if name == "AceLocale-3.0" then
@@ -1027,12 +937,14 @@ function Stub.Install()
 				end,
 			}
 		end
-		--[[
-			The config libraries, answered with catch-alls: registering tables and building
-			panels is Ace's business and no case asserts on it. Options/Options.lua only
-			needs its file-scope LibStub calls to land somewhere.
-		]]
-		if name == "AceConfig-3.0" or name == "AceConfigDialog-3.0" or name == "AceConfigRegistry-3.0" then
+		-- Catch-alls: the options files only need their file-scope LibStub calls to land somewhere.
+
+		if
+			name == "AceConfig-3.0"
+			or name == "AceConfigDialog-3.0"
+			or name == "AceConfigRegistry-3.0"
+			or name == "AceGUI-3.0"
+		then
 			return newFrame()
 		end
 		error("no stub for LibStub library " .. tostring(name), 2)

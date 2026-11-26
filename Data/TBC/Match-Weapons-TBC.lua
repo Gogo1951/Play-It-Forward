@@ -68,7 +68,7 @@ ns.Data.WEAPON_SPECS = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, TBC Anniversary 2.5.6.70577
+	2026-11-26, wago.tools, TBC Anniversary 2.5.6.70577
 
 Notes
 	- WEAPON_SUBCLASS turns the weapon subclass the client reports for an item into the add-on's
@@ -109,6 +109,8 @@ Wowhead
 
 wago.tools
 	https://wago.tools/db2/ItemSubClass?build=2.5.6.69795
+	https://wago.tools/db2/SkillLineAbility?build=2.5.6.70577
+	https://wago.tools/db2/SkillRaceClassInfo?build=2.5.6.70577
 
 QuestieDB
 	None.

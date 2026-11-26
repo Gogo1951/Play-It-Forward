@@ -11,10 +11,24 @@ local Harness = require("Harness")
 local Stub = Harness.Stub
 local test, equal = Harness.test, Harness.equal
 
+--[[
+	The root panel registered through the kit, whose AddToBlizOptions hands back category 7: the
+	ID the kit captures and routes by. RegisterOptionsPanels whole needs the real Ace.
+]]
 local function load()
-	local ns = Harness.LoadAddon(ADDON_ROOT)
-	-- What registration would have captured; RegisterOptionsPanels needs the real Ace.
-	ns.GeneralCategoryID = 7
+	local ns = Harness.LoadAddon(ADDON_ROOT, function()
+		local stubLibStub = LibStub
+		LibStub = function(name)
+			local lib = stubLibStub(name)
+			if name == "AceConfigDialog-3.0" then
+				rawset(lib, "AddToBlizOptions", function()
+					return lib, 7
+				end)
+			end
+			return lib
+		end
+	end)
+	ns.OptionsKit.RegisterPanel("General", function() end, ns.L["ADDON_TITLE"])
 	return ns
 end
 

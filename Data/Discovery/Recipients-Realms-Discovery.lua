@@ -11,7 +11,7 @@ ns.Data.LINKED_REALMS = {}
 How We Got the Data
 
 Last Validated
-	2026-10-29, Season of Discovery 1.15.9.70576
+	2026-11-26, wago.tools, Season of Discovery 1.15.9.70576
 
 Notes
 	- Season of Discovery runs on megaservers, with no connected realms to list: an alt is in reach

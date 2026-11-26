@@ -7,7 +7,7 @@ ns.Data.LINKED_REALMS = {}
 How We Got the Data
 
 Last Validated
-	2026-11-11, WoW Forever 1.60.1.70888
+	2026-11-26, wago.tools, WoW Forever 1.60.1.71139
 
 Notes
 	- WoW Forever runs on megaservers, with no connected realms to list: an alt is in reach only

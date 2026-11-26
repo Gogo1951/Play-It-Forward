@@ -35,7 +35,7 @@ end
 local function readyToDistribute(defs, people)
 	local ns = load()
 	Stub.SetBackpack(defs)
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	for index, item in ipairs(ns.UI:Items()) do
 		ns.UI:SetRecipient(item, people[index])
 	end
@@ -290,7 +290,7 @@ end)
 test("Distribute is dead until a mailbox is open and something is ticked", function()
 	local ns = load()
 	Stub.SetBackpack({ cloak() })
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 
 	equal(ns.UI.frame.distributeButton:IsEnabled(), false, "nothing matched yet")
 
@@ -313,7 +313,7 @@ end)
 test("an item arriving with the window open is matched from those already found", function()
 	local ns = load()
 	Stub.SetBackpack({ cloak("First Cloak") })
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	Stub.whoResults = {
 		{ name = "Keefe", level = 18, class = "MAGE" },
 		{ name = "Robin", level = 18, class = "PRIEST" },
@@ -372,16 +372,17 @@ test("the bag catching up does not put the item back", function()
 
 	Stub.SetBackpack({})
 	ns.fire("BAG_UPDATE", 0)
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 
 	equal(#ns.UI:Items(), 0, "still gone")
 end)
 
 --[[
 	Distribute is busy for the whole run, not just the one send in flight, and goes live again at
-	every pause, which is when the chat lines tell the player to press it.
+	every pause, which is when the chat lines tell the player to press it. While the run goes out
+	it reads Stop, and is live for that.
 ]]
-test("Distribute stays dead while a run is going", function()
+test("Distribute reads Stop while a run is going", function()
 	local ns = readyToDistribute({ cloak(), cloak("Second Cloak") }, { KEEFE, ROBIN })
 	local flips = 0
 	ns.UI:Distribute()
@@ -393,7 +394,8 @@ test("Distribute stays dead while a run is going", function()
 	end)(ns.Distributor.onStateChange)
 
 	equal(ns.Distributor:IsRunning(), true, "running from Start")
-	equal(ns.UI.frame.distributeButton:IsEnabled(), false, "button dead mid-run")
+	equal(ns.UI.frame.distributeButton:GetText(), ns.L["BUTTON_STOP"], "the button reads Stop mid-run")
+	equal(ns.UI.frame.distributeButton:IsEnabled(), true, "and Stop can be pressed")
 
 	ns.fire("MAIL_SUCCESS")
 	equal(ns.Distributor:IsRunning(), true, "still running between sends")

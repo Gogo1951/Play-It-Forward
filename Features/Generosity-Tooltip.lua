@@ -3,33 +3,18 @@ local L = ns.L
 
 local GetColor = ns.GetColor
 
---[[
-	Renders a player's Given Away totals at the bottom of their unit tooltip: your own live tally on
-	your own tooltip, and a nearby peer's cached totals on theirs. The block is added from a
-	TooltipDataProcessor unit post-call where GameTooltip runs on tooltip data (WoW Forever has no
-	OnTooltipSetUnit script to hook), and from OnTooltipSetUnit on the Classic clients.
-
-	PROXIMITY MODEL, WITH ACCEPTED LATENCY. A player you have never heard from shows nothing on the
-	first hover; that hover fires a throttled ping, nearby clients answer, and the block is present
-	on the next hover. Broadcasts reach only players near you, so a distant friend never appears.
-
-	TOWN ONLY. The whole block is gated on ns.AtRest(), so nothing renders and nothing is sent
-	outside a city or an inn. Both halves of the loop live in the same place anyway: the people
-	whose totals you can receive are the resting players standing around you.
-]]
+-- Accepted latency: an unheard player's first hover shows nothing and pings; the block appears next hover.
 
 local Generosity = ns.Generosity
 
--- The tooltip's own throttle: at most one presence ping per HOVER_PING_INTERVAL, however fast you hover.
 local HOVER_PING_INTERVAL = 10
 local lastPing = 0
 
--- When a hover last pinged, GetTime() or 0 for never. For the diagnostics sharing report.
+-- Diagnostics only: GetTime() of the last hover ping, or 0.
 function Generosity:LastHoverPing()
 	return lastPing
 end
 
--- Our own identity, to tell our own tooltip from a peer's. The same helper the peers cache keys on.
 local function OwnKey()
 	return ns.QualifyPlayerName(UnitName("player")) or "?"
 end
@@ -43,49 +28,30 @@ local function HoverPing()
 	Generosity:Ping()
 end
 
---[[
-	A blank line, the branded header, then the four rows: labels left and values right. The blank
-	line separates the block from whatever the client and other add-ons put above it, so ours never
-	reads as another line of theirs.
-
-	Rows are indented under the header, a silver HELP label against a white value. The four labels
-	are the same words on every tooltip and the figures are what a reader stopped for, so the
-	label is muted and the number carries the weight. HELP rather than TITLE deliberately: gold
-	field titles are the options panel's rule, where a caption sits beside a control the player
-	acts on, and nothing here is a control.
-
-	THE VALUES CANNOT BE ANY OTHER COLOR. The money row comes from GetCoinTextureString, which
-	carries the client's own markup and ignores a color prefix, so it renders white whatever it is
-	given. Coloring the other three anything else leaves that row visibly out of step with them.
-	Counts go through ns.CommaNumber, the money through ns.MoneyString. Show() once at the end so
-	the frame resizes to fit.
-]]
+-- Values stay white: GetCoinTextureString ignores a color prefix, so any other color leaves the money row out of step.
 local ROW_INDENT = " "
 
---[[
-	The block's header and its four rows, colored and ready to draw, each row a left and right
-	string. The Badge of Generosity panel draws its preview from this too, so the panel and the tooltip
-	cannot show the totals two ways.
-]]
+-- The Badge of Generosity panel previews from this too, so the two cannot differ.
 function Generosity:BlockLines(gifts, items, itemLevels, value)
-	local labelColor, valueColor = GetColor("HELP"), GetColor("TEXT")
+	local labelColor, valueColor = GetColor("BODY"), GetColor("TEXT")
 	local function Row(label, shown)
 		return { ROW_INDENT .. labelColor .. label .. "|r", valueColor .. shown .. "|r" }
 	end
-	-- The same branded line a chat print carries: blue name, gray separator, white body.
-	return ns:BuildBrandedLine(L["OPTIONS_GENEROSITY_HEADER"], "ADDON_SHORT_NAME"),
-		{
-			Row(L["OPTIONS_GENEROSITY_GIFTS"], ns.CommaNumber(gifts)),
-			Row(L["OPTIONS_GENEROSITY_ITEMS"], ns.CommaNumber(items)),
-			Row(L["OPTIONS_GENEROSITY_ITEM_LEVELS"], ns.CommaNumber(itemLevels)),
-			Row(L["OPTIONS_GENEROSITY_VALUE"], ns.MoneyString(value)),
-		}
+	return {
+		GetColor("TITLE") .. L["BADGE_OF_GENEROSITY"] .. "|r",
+		GetColor("MUTED") .. L["ADDON_SHORT_NAME"] .. "|r",
+	}, {
+		Row(L["OPTIONS_GENEROSITY_GIFTS"], ns.CommaNumber(gifts)),
+		Row(L["OPTIONS_GENEROSITY_ITEMS"], ns.CommaNumber(items)),
+		Row(L["OPTIONS_GENEROSITY_ITEM_LEVELS"], ns.CommaNumber(itemLevels)),
+		Row(L["OPTIONS_GENEROSITY_VALUE"], ns.MoneyString(value)),
+	}
 end
 
 local function AppendBlock(tooltip, gifts, items, itemLevels, value)
 	local header, rows = Generosity:BlockLines(gifts, items, itemLevels, value)
 	tooltip:AddLine(" ")
-	tooltip:AddLine(header)
+	tooltip:AddDoubleLine(header[1], header[2])
 	for _, row in ipairs(rows) do
 		tooltip:AddDoubleLine(row[1], row[2])
 	end
@@ -93,11 +59,7 @@ local function AppendBlock(tooltip, gifts, items, itemLevels, value)
 end
 
 local function OnTooltipSetUnit(tooltip)
-	--[[
-		TOWN ONLY, and checked first so a hover costs nothing anywhere else. Outside a rest area the
-		block does not render and no ping is fired: no tooltip clutter while a player is fighting, and
-		no traffic during a raid. Your own tooltip is gated the same way, for the same reason.
-	]]
+	-- Town only, your own tooltip included; first so a hover costs nothing elsewhere.
 	if not ns.AtRest() then
 		return
 	end
@@ -123,7 +85,7 @@ local function OnTooltipSetUnit(tooltip)
 
 	local gifts, items, itemLevels, value
 	if key == OwnKey() then
-		-- Our own tooltip shows the live tally, always present even at all zeros.
+		-- Always shown, even at all zeros.
 		gifts, items, itemLevels, value = Generosity:Get()
 	else
 		local peer = Generosity:Peer(key)
@@ -133,7 +95,6 @@ local function OnTooltipSetUnit(tooltip)
 	end
 
 	if not gifts then
-		-- Never heard from this player: ping so a nearby client answers and the next hover has it.
 		HoverPing()
 		return
 	end
@@ -142,12 +103,8 @@ local function OnTooltipSetUnit(tooltip)
 end
 
 --[[
-	Picked by which pipeline GameTooltip actually runs on. The Classic clients (TBC Anniversary
-	among them) expose TooltipDataProcessor, but their native tooltips still fire only the legacy
-	scripts, so a post-call registered there never runs. GetPrimaryTooltipData on the frame is the
-	tell that it is driven by tooltip data. The post-call fires for every tooltip showing a unit,
-	so only GameTooltip is drawn on. Which one this client took is recorded for the diagnostics
-	sharing report.
+	Classic clients expose TooltipDataProcessor but never run its post-calls; GetPrimaryTooltipData
+	marks a data-driven GameTooltip. The post-call fires for every unit tooltip, so only GameTooltip.
 ]]
 local usesTooltipData = type(GameTooltip.GetPrimaryTooltipData) == "function"
 	and type(TooltipDataProcessor) == "table"

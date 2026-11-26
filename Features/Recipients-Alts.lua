@@ -4,25 +4,8 @@ ns.Alts = {}
 local Alts = ns.Alts
 
 --[[
-	The player's own characters as a third source of recipients, ahead of the guild and /who in
-	Matcher:RankCandidates. Entries enter the same pools through MatchList:AddResults in the same
-	shape, flagged alt, which is what earns them their place in the ranking, the picker's Your Alts
-	section, the exemption from one parcel per run and from the gift cooldown, and their absence
-	from the Generosity tally.
-
-	Each character records itself when it logs in, and again on every level up, in
-	ns.db.global.characters: the only way to know an alt's class and level while it is logged out.
-	An alt that has not logged in since this file shipped is not known yet. That is the honest
-	limit, and the guild roster still keeps such an alt out of its own list.
-
-	One the server refuses mail for is forgotten (Alts:Forget, from Features/Mail-Sender.lua): a
-	deleted or renamed character would otherwise be offered first forever. If it still exists
-	it records itself again at its next login, so nothing is lost for good. The My Alts
-	panel forgets one the same way.
-
-	THE PLAYER'S CHOICES LIVE ON THE SAME ENTRY: include, specs, levelsBelow, levelsAbove and
-	disenchanter, set on that panel.
-	A login rewrites what the character is -- level, class, spec -- and never those.
+	The player's choices live on the same entry as what the character is: include, specs,
+	levelsBelow, levelsAbove, disenchanter. A login rewrites level, class and spec, never those.
 ]]
 
 --------------------------------------------------------------------------------
@@ -30,18 +13,12 @@ local Alts = ns.Alts
 --------------------------------------------------------------------------------
 
 --[[
-	NAME AND REALM APART. The qualified form is the key, so it compares with every other source the
-	way MatchList:AddResults dedupes them. The address is the bare name for an alt on this realm,
-	and "Name-Realm" for one on a connected realm (Alts:Address). On WoW Forever the name is
-	"First Last" (ns.PlayerName), the only form its mail and /who know.
+	The key is the qualified name, so it compares with every source as MatchList:AddResults
+	dedupes; the address is separate (Alts:Address). On WoW Forever the name is "First Last".
 ]]
 local Normalize, Realm = ns.NormalizeRealm, ns.PlayerRealm
 
---[[
-	Which cluster of ns.Data.LINKED_REALMS each realm is in, keyed without spaces, hyphens or case
-	so the data file can spell names as the realm list does. Built on first use: the data loads
-	before this file, but the lookup is only wanted at the mailbox.
-]]
+-- Keyed without spaces, hyphens or case so the data file can spell realms as the realm list does.
 local clusterOf
 
 local function ClusterOf(realm)
@@ -56,10 +33,7 @@ local function ClusterOf(realm)
 	return clusterOf[Normalize(realm):lower()]
 end
 
---[[
-	Whether mail from this realm reaches one on that realm: the same realm, or one in the same
-	cluster of connected realms. Megaserver flavors list no clusters, so only the same realm does.
-]]
+-- Megaserver flavors list no clusters, so only the same realm connects.
 function Alts:Connected(realm)
 	local here = Realm()
 	if realm == here then
@@ -69,19 +43,13 @@ function Alts:Connected(realm)
 	return cluster ~= nil and cluster == ClusterOf(here)
 end
 
---[[
-	This realm's cluster as the data file lists it, for the roster report to print beside the
-	client's GetAutoCompleteRealms. Empty for a realm in no cluster.
-]]
+-- For the roster report, beside the client's GetAutoCompleteRealms.
 function Alts:LinkedRealms()
 	local cluster = ClusterOf(Realm())
 	return cluster and ns.Data.LINKED_REALMS[cluster] or {}
 end
 
---[[
-	Where mail to this alt goes. The realm suffix is the one the alt's own client gave at its last
-	login (GetNormalizedRealmName, through Realm above), so it is still a name the client spelled.
-]]
+-- The suffix is what the alt's own client gave at its last login, so it is still a name the client spelled.
 function Alts:Address(alt)
 	if alt.realm == Realm() then
 		return alt.name
@@ -90,13 +58,9 @@ function Alts:Address(alt)
 end
 
 --[[
-	The spec this character plays, as its key in the flavor folder's Match-Specs file, or nil when
-	it cannot tell: no points spent yet, or no API to ask. Mists picks a specialization, read
-	directly -- from C_SpecializationInfo on Mists Classic, which has no global GetSpecialization
-	and keeps GetNumTalentTabs only as a stub that throws "API unsupported". Every earlier flavor
-	is read as the talent tree holding the most points. GetTalentTabInfo answers in two shapes --
-	Classic Era leads with the name, the later clients with a numeric id, which moves the points
-	from the third return to the fifth.
+	Mists Classic has no global GetSpecialization, and its GetNumTalentTabs is a stub that throws.
+	Earlier flavors take the most-pointed tree; GetTalentTabInfo leads with the name on Classic Era
+	and a numeric id later, which moves the points from the third return to the fifth.
 ]]
 local PICKS_SPECIALIZATION = ns.EXPANSION >= 5
 local GetSpec = PICKS_SPECIALIZATION
@@ -191,7 +155,7 @@ local function UpgradeFirstNames()
 	end
 end
 
--- The logged-in character's key: its full name where surnames are on, qualified like every other source.
+-- Full name where surnames are on, qualified like every other source.
 local function CurrentKey()
 	return ns.QualifyPlayerName(ns.PlayerName())
 end
@@ -222,10 +186,7 @@ local function Record(level)
 	ns.db.global.characters[key] = entry
 end
 
---[[
-	By the address the mail went to: a bare name is qualified with this realm, and one on a
-	connected realm already carries its own, so either lands on the key it was recorded under.
-]]
+-- By the address the mail went to: qualifying it lands on the key it was recorded under.
 function Alts:Forget(name)
 	local key = ns.db and ns.QualifyPlayerName(name)
 	if key then
@@ -238,7 +199,6 @@ local function OnPlayerLogin()
 end
 ns.On("PLAYER_LOGIN", OnPlayerLogin)
 
--- A respec at any point in the session is what the next panel read should show.
 local function OnCharacterPointsChanged()
 	Record()
 end
@@ -262,11 +222,7 @@ ns.On("PLAYER_LEVEL_UP", OnPlayerLevelUp)
 -- The Player's Choices
 --------------------------------------------------------------------------------
 
---[[
-	The level cap on this client, or nil when it cannot say. GetMaxPlayerLevel answers the
-	expansion's cap on every Classic client and is used alone wherever it exists; MAX_PLAYER_LEVEL
-	is the older global, read only on a client without it.
-]]
+-- GetMaxPlayerLevel alone wherever it exists; MAX_PLAYER_LEVEL only on a client without it.
 local function MaxLevel()
 	local cap
 	if type(GetMaxPlayerLevel) == "function" then
@@ -278,20 +234,16 @@ local function MaxLevel()
 end
 
 --[[
-	Ticked below the level cap and unticked at it: a character at the cap has outgrown what this
-	add-on gives away, so it is left out until the player ticks it. Read at its recorded level, so
-	the default flips the session after it dings.
-
-	NO LEVEL FLOOR. A fresh level 1 alt is exactly who the player wants to gear, so it starts
-	ticked; MatchList:AddResults lets alts past ns.Data.MIN_RECIPIENT_LEVEL. A bank alt is unticked
-	once by hand on the My Alts panel.
+	Read at the recorded level, so the default flips the session after the ding. No level floor: a
+	fresh level 1 alt is who the player wants to gear, and AddResults exempts alts from
+	ns.Data.MIN_RECIPIENT_LEVEL. A bank alt is unticked once by hand.
 ]]
 function Alts:IncludedByDefault(alt)
 	local cap = MaxLevel()
 	return not (cap and (alt.level or 0) >= cap)
 end
 
--- Whether the player has this alt ticked on the My Alts panel. Unset is the default above.
+-- Unset is the default above.
 function Alts:Included(alt)
 	if alt == nil then
 		return false
@@ -302,10 +254,7 @@ function Alts:Included(alt)
 	return self:IncludedByDefault(alt)
 end
 
---[[
-	How far below and above its own level this alt's gear may sit: the My Alts pane's Lowest and
-	Highest dropdowns, saved as levelsBelow and levelsAbove and unset at the defaults.
-]]
+-- The My Alts Lowest and Highest dropdowns, unset at the defaults.
 function Alts:LevelsBelow(alt)
 	return alt and alt.levelsBelow or ns.ALT_LEVELS_BELOW_ORDER[1]
 end
@@ -317,7 +266,7 @@ function Alts:LevelsAbove(alt)
 	return ns.ALT_LEVELS_ABOVE_ORDER[#ns.ALT_LEVELS_ABOVE_ORDER]
 end
 
--- The equip levels this alt is mailed gear at, from the level given or its recorded one. Any is math.huge.
+-- "ANY" is math.huge.
 function Alts:LevelRange(alt, level)
 	level = level or (alt and alt.level) or 1
 	local above = self:LevelsAbove(alt)
@@ -326,10 +275,8 @@ function Alts:LevelRange(alt, level)
 end
 
 --[[
-	The specs gear is mailed to this alt for, as a set of keys: the player's own ticks on the
-	panel; else the spec the character last played, as it recorded at login; else, before it has
-	one, every spec the class has. Never the class defaults: it is your own character, so what it
-	actually plays is known, and the player widens or narrows it on the My Alts panel.
+	The player's ticks, else the spec it last played, else every spec. Never the class defaults:
+	what your own character plays is known.
 ]]
 function Alts:SpecsFor(alt)
 	local out = {}
@@ -354,7 +301,7 @@ function Alts:SpecsFor(alt)
 	return out
 end
 
--- The recorded entry behind a pooled alt, read live so a change on the panel applies at once.
+-- Read live so a change on the panel applies at once.
 function Alts:Entry(person)
 	return ns.db and person and person.altKey and ns.db.global.characters[person.altKey]
 end
@@ -363,20 +310,13 @@ end
 -- Reading
 --------------------------------------------------------------------------------
 
---[[
-	The last read's totals for the roster report, zeroed by Alts:Read: known, then why each left out
-	was, then how many were offered and how many of those are on a connected realm.
-]]
+-- The last read's totals for the roster report.
 local counts = { known = 0, current = 0, otherRealm = 0, otherFaction = 0, excluded = 0, offered = 0, connected = 0 }
 
 function Alts:Stats()
 	return counts
 end
 
---[[
-	Why mail from here cannot reach this character, as its counts key, or nil when it can: it is
-	the one logged in, on a realm outside this cluster, or on the other faction.
-]]
 local function Unmailable(key, alt, current, faction)
 	if key == current then
 		return "current"
@@ -388,7 +328,7 @@ local function Unmailable(key, alt, current, faction)
 	return nil
 end
 
--- Every recorded character mail from here reaches, by key, whether or not My Alts includes it.
+-- Whether or not My Alts includes it.
 local function Mailable()
 	local out = {}
 	if not ns.db then
@@ -404,12 +344,6 @@ local function Mailable()
 	return out
 end
 
---[[
-	Every recorded character but this one, on this realm or a connected one and on this faction, in
-	the shape /who results arrive in. Mail never crosses factions, nor realms outside the cluster,
-	so those alts cannot be sent anything. No level floor here: ns.Data.MIN_RECIPIENT_LEVEL turns
-	the low ones away for every source in MatchList:AddResults.
-]]
 function Alts:Read()
 	local out = {}
 	for key in pairs(counts) do
@@ -451,15 +385,12 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	The character the What to Give Away panel's Disenchant Unmatched Gear mails kept gear to. A
-	choice, like include and specs, so it lives on the entry, as disenchanter = true. One per
-	cluster and faction rather than one per profile: the Default profile is shared by every
-	character on the account, and an enchanter on one cluster is out of mail's reach from every
-	other. Picking one clears the flag on every other character mail from here reaches, so each
-	cluster keeps its own, and the enchanter itself, logged in, simply has none.
+	On the character entry, not the profile: the shared Default profile serves every cluster, and an
+	enchanter is out of mail's reach from all but its own. One per cluster and faction; the
+	enchanter itself, logged in, has none.
 ]]
 
--- The characters the dropdown offers, as keys in name order, for its values and its sorting.
+-- Keys in name order, for the dropdown's values and its sorting.
 function Alts:DisenchantChoices()
 	local keys = {}
 	local mailable = Mailable()
@@ -476,7 +407,7 @@ function Alts:DisenchantChoices()
 	return keys, mailable
 end
 
--- The chosen character mail from here reaches, as its key and entry, or nil. Read in name order, so two flagged agree.
+-- Read in name order, so two flagged agree.
 function Alts:Disenchanter()
 	local keys, mailable = self:DisenchantChoices()
 	for _, key in ipairs(keys) do
@@ -493,11 +424,7 @@ function Alts:SetDisenchanter(chosen)
 	end
 end
 
---[[
-	The chosen character in the shape Alts:Read gives, flagged disenchant so the window can say
-	why it holds a row nobody matched. alt, so it is exempt from one parcel per run and the gift
-	cooldown, and adds nothing to the Generosity totals, as mail to any of your characters is.
-]]
+-- disenchant lets the window say why it holds a row nobody matched; alt exempts it like any of your characters.
 function Alts:DisenchantRecipient()
 	local key, alt = self:Disenchanter()
 	if not key then

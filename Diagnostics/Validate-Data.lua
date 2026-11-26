@@ -663,6 +663,10 @@ local function CollectIds(entry)
 
 		-- Play It Forward keeps its data tables on ns.Data rather than on ns itself.
 		local rows = ns.Data[source.table]
+		-- A file can hold one ID as a named constant (Game-IDs): it reads as a one-row table keyed by that name.
+		if type(rows) == "number" then
+			rows = { [source.table] = rows }
+		end
 		if type(rows) ~= "table" then
 			missing[#missing + 1] = source
 		elseif source.kind == "other" then

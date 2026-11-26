@@ -37,7 +37,7 @@ ns.Data.OILS_AND_STONES = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, Mists of Pandaria Classic 5.5.4.70631
+	2026-11-26, wago.tools, Mists of Pandaria Classic 5.5.4.71089
 
 Notes
 	- The oils, sharpening stones and weightstones any class can put on a weapon, taken from
@@ -80,6 +80,8 @@ wago.tools
 	https://wago.tools/db2/ItemSparse?build=5.5.4.70631
 	https://wago.tools/db2/Item?build=5.5.4.70631
 	https://wago.tools/db2/ItemEffect?build=5.5.4.70631
+	https://wago.tools/db2/Item?build=5.5.4.71089
+	https://wago.tools/db2/ItemSparse?build=5.5.4.71089
 
 QuestieDB
 	https://raw.githubusercontent.com/Questie/QuestieDB/master/data/MoP/mopItemDB.lua

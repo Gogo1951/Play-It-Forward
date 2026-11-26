@@ -9,7 +9,7 @@ end
 
 L["ADDON_TITLE"] = "Play It Forward"
 L["ADDON_SHORT_NAME"] = "Play It Forward"
--- The mail window's title, followed by " // " and ADDON_TITLE.
+-- The mail window's title, followed by " // " and ADDON_SHORT_NAME.
 L["WINDOW_TITLE"] = "나눠 주기 창"
 L["CHAT_LOADED"] =
 	"버전 %s. 설정(이 메시지를 끄는 옵션 포함)은 설정 > 애드온 > Play It Forward에 있습니다. 이 애드온이 마음에 드시나요? 친구에게 알려 주시거나, CurseForge에서 즐겨찾기하거나, GitHub에서 Star를 눌러 주세요. (="
@@ -44,11 +44,8 @@ L["BUTTON_SEARCHING"] = "검색 중..."
 L["BUTTON_DISTRIBUTE"] = "나눠 주기"
 -- On the Distribute button away from a mailbox: an ordinary state, not an error.
 L["BUTTON_NEEDS_MAILBOX"] = "우편함을 열어야 함"
---[[
-	On the Distribute button only while a run is going. It goes back to Distribute at every pause,
-	because the chat lines that report a pause name Distribute.
-]]
-L["BUTTON_SENDING"] = "보내는 중..."
+-- Distribute's label while mail goes out. A press lets the letter in hand finish, then halts the run.
+L["BUTTON_STOP"] = "중지"
 
 --[[
 	The search behind Find Recipients, filed here with that button rather than under Distributing:
@@ -61,9 +58,11 @@ L["WHO_WAIT"] =
 L["WHO_BLOCKED"] =
 	"받을 사람 찾기를 다시 누르세요. Blizzard는 버튼을 직접 눌렀을 때만 이 검색을 허용하는데, 이번에는 무언가가 방해했습니다."
 
--- The menu under the button beside Blizzard's mail frame, which brings the closed window back.
+-- The menu the gift tab on Blizzard's mail frame opens on hover.
 L["REOPEN_MENU_OPEN"] = "나눠 주기 창 열기"
-L["REOPEN_MENU_OPTIONS"] = "설정"
+L["REOPEN_MENU_OPTIONS"] = "%s 설정"
+-- The row that puts the window back beside the mail frame at its first size.
+L["REOPEN_MENU_RESET_POSITION"] = "창 위치 초기화"
 
 -- In the list while it is empty.
 L["WINDOW_EMPTY"] = "더 이상 나눠 줄 것이 없습니다."
@@ -88,6 +87,8 @@ L["SECTION_MATCHED"] = "배정됨"
 -- "Pending Match", not "no recipient in range": usually the search just has not got there yet.
 L["SECTION_NO_RECIPIENT"] = "배정 대기 중"
 L["SECTION_UNREADABLE"] = "능력치를 읽을 수 없음"
+-- The heading over the rows this window has mailed, at the foot of the list.
+L["SECTION_SENT"] = "보냄"
 
 --[[
 	"Kept", never "vendor / disenchant": the add-on does not tell the player what to do with what
@@ -114,12 +115,12 @@ L["PICKER_NONE_IN_RANGE"] = "레벨 범위에 아무도 없습니다. 받을 사
 L["PICKER_NONE_KEPT"] =
 	"레벨 범위에 아무도 없습니다. 이 아이템의 받을 사람을 찾으려면 아래의 더 나은 받을 사람 다시 찾기를 누르세요."
 --[[
-	KEPT SHORT. A note shares one 16-pixel row with a cross-realm name, a level and a class, and
-	anything longer is cut off. Notes are information, never gates: every name can be picked.
+	The note on a name's right in the recipient list, gray, no brackets. KEPT SHORT: it shares
+	the row with a cross-realm name and a level. Notes are information, never gates.
 ]]
-L["PICKER_NOTE_HAS_ONE"] = "(보유 중)"
-L["PICKER_NOTE_REFUSED"] = "(거절함)"
-L["PICKER_NOTE_RECENT"] = "(최근)"
+L["PICKER_TAG_HAS_ONE"] = "보유 중"
+L["PICKER_TAG_REFUSED"] = "거절함"
+L["PICKER_TAG_RECENT"] = "최근"
 -- What each note means, on hovering the name it sits beside.
 L["PICKER_NOTE_HAS_ONE_DESCRIPTION"] =
 	"이미 다른 줄에 배정되어 있습니다. 직접 고른 쪽이 우선이며, 직접 정하지 않은 줄은 다른 사람을 찾습니다."
@@ -128,7 +129,7 @@ L["PICKER_NOTE_REFUSED_DESCRIPTION"] =
 L["PICKER_NOTE_RECENT_DESCRIPTION"] =
 	"이번 접속 중에 이미 선물을 받았습니다. 레벨이 오르면 다시 우선 대상이 됩니다."
 --[[
-	Below the divider at the bottom of the list: a /who aimed at the classes the verdict says
+	Near the foot of the list, under its line: a /who aimed at the classes the verdict says
 	this item is for, their own bands first and the fallbacks a press behind them.
 ]]
 L["PICKER_FIND_FOR_ITEM"] = "더 나은 받을 사람 다시 찾기"
@@ -211,6 +212,11 @@ L["MAIL_REASON_ERROR"] = "클라이언트 오류"
 L["MAIL_ABORTED"] = "우편 오류가 반복되어 나눠 주기를 중단했습니다."
 L["MAIL_DONE"] = "완료. %d/%d개 보냄."
 L["MAIL_DONE_WITH_SKIPS"] = "완료. %d/%d개 보냄, %d개 건너뜀 (가방에서 옮겨짐)."
+-- In chat and on the status line once Stop halts a run: sent so far, of the run's total.
+L["MAIL_STOPPED"] = "중지됨. %d/%d개 보냄. 나눠 주기를 눌러 나머지를 보내세요."
+-- In chat at the mailbox when a gift comes back unopened: the item link, then who sent it back.
+L["MAIL_RETURNED"] =
+	"%s 아이템을 우편함에서 꺼내면 다시 선물할 수 있습니다. %s 님이 열어보지 않았습니다."
 
 --------------------------------------------------------------------------------
 -- Default Mail Contents
@@ -247,10 +253,20 @@ L["OPTIONS_WELCOME"] = "환영 메시지 사용"
 L["OPTIONS_WELCOME_DESCRIPTION"] = "접속할 때 버전과 설정 안내를 표시합니다."
 
 L["OPTIONS_FEATURES_HEADER"] = "기능"
+-- The root panel's Features switches: Enable and each feature's name.
+L["OPTIONS_ENABLE_GEAR"] = "장비 선물 사용"
+L["OPTIONS_ENABLE_CONSUMABLES"] = "소모품 선물 사용"
+L["OPTIONS_ENABLE_SHARE"] = "휘장 공유 사용"
 
 L["OPTIONS_COMMANDS_HEADER"] = "/명령어"
 L["OPTIONS_COMMAND"] = "/pif"
 L["OPTIONS_COMMAND_DESCRIPTION"] = "이 애드온의 설정 창을 엽니다."
+
+-- Options-Kit's own strings, one key in every add-on.
+L["SAMPLE_EXAMPLE"] = "예시"
+-- TRANSLATORS: %d is an item ID.
+L["LOADING_ITEM"] = "불러오는 중 ID: %d"
+L["OPTIONS_RESET"] = "초기화"
 
 --------------------------------------------------------------------------------
 -- Options: What to Give Away Panel
@@ -296,6 +312,10 @@ L["OPTIONS_KIND_SCROLLS_DESCRIPTION"] =
 L["OPTIONS_KIND_OILS_STONES"] = "오일 및 숫돌"
 L["OPTIONS_KIND_OILS_STONES_DESCRIPTION"] =
 	"레벨이 지나 쓰지 않는 무기 오일, 숫돌, 무게추를 제공합니다. 마법사 오일은 주문 시전자에게, 마나 오일은 마나를 쓰는 직업에게, 숫돌과 무게추, 그 밖의 오일은 근접 직업에게 갑니다."
+-- Keep in Bags, beside each consumable kind.
+L["OPTIONS_KEEP_IN_BAGS"] = "가방에 보관"
+L["OPTIONS_KEEP_IN_BAGS_DESCRIPTION"] =
+	"이 종류의 아이템을 각각 몇 개씩 가방에 남길지 정합니다. 묶음은 통째로 보내지므로, 이 수량을 넘는 온전한 묶음만 제안합니다."
 
 --[[
 	Kept gear mailed to one of your own characters instead of staying in your bags: one toggle with
@@ -309,6 +329,19 @@ L["OPTIONS_DISENCHANT_SEND_DESCRIPTION"] =
 	"아무도 쓸 수 없는 장비를 가방에 남겨 두는 대신 내 캐릭터 중 하나에게 우편으로 보내 마력 추출합니다. 서버와 진영마다 선택이 따로 저장됩니다. 소모품은 절대 보내지 않습니다."
 L["OPTIONS_DISENCHANTER_DESCRIPTION"] =
 	"내 마법부여사입니다. 이 서버와 연합 서버에 있는 이 진영의 내 캐릭터 중 Play It Forward를 사용해 접속한 적이 있는 캐릭터가 표시됩니다."
+
+--[[
+	Never Give Away. ONE KEY FOR TWO SURFACES: the last action on every row's recipient list, and
+	the heading of the list it adds to on this page. The player looks for the list by the name
+	they picked, so the two must never drift apart.
+]]
+L["NEVER_GIVE_AWAY"] = "절대 주지 않기"
+-- TRANSLATORS: %s is the remove icon.
+L["OPTIONS_NEVER_GIVE_DESCRIPTION"] =
+	"줄의 목록에서 고른 아이템입니다. %s 아이콘을 클릭하면 다시 제안합니다."
+L["OPTIONS_NEVER_GIVE_REMOVE"] = "이 아이템을 다시 제안합니다."
+-- TRANSLATORS: the first %s is an item link, the second the What to Give Away page's name.
+L["CHAT_NEVER_GIVE"] = "%s 아이템은 더 이상 제안하지 않습니다. %s에서 되돌릴 수 있습니다."
 
 --------------------------------------------------------------------------------
 -- Options: Recipients Panel
@@ -345,7 +378,6 @@ L["OPTIONS_IGNORE_SUMMONER_WARLOCKS_DESCRIPTION"] =
 L["OPTIONS_SPECS_HEADER"] = "직업 및 전문화"
 L["OPTIONS_SPECS_INTRO"] =
 	"다른 플레이어의 전문화는 볼 수 없으므로 장비는 아래 가정에 따라 보내집니다. 내 캐릭터는 내 부캐에서 설정한 전문화를 사용합니다."
-L["OPTIONS_SPECS_RESET"] = "기본값 복원"
 L["OPTIONS_SPECS_RESET_DESCRIPTION"] = "모든 전문화를 애드온의 기본 설정으로 되돌립니다."
 L["OPTIONS_SPECS_RESET_CONFIRM"] = "모든 전문화를 애드온의 기본 설정으로 되돌릴까요?"
 -- The damage roles only: Tank and Healer come from the game's TANK and HEALER labels.
@@ -402,6 +434,8 @@ L["OPTIONS_ALTS_INTRO"] =
 L["OPTIONS_SEND_TO_ALTS"] = "부캐에게 보내기"
 L["OPTIONS_SEND_TO_ALTS_DESCRIPTION"] =
 	"길드와 낯선 사람보다 먼저 내 캐릭터에게 보내되, 그 직업에 가장 잘 맞는 아이템만 보냅니다. 이 서버나 연합 서버에서, 이 진영으로 Play It Forward를 사용해 접속한 적이 있는 캐릭터가 대상입니다. 부캐에게 보낸 우편은 베풂의 휘장 합계에 포함되지 않습니다."
+-- In each character's pane while Send to Alts is off.
+L["OPTIONS_ALTS_OFF"] = "어떤 캐릭터가 우편을 받을지 고르려면 부캐에게 보내기를 켜세요."
 L["OPTIONS_ALTS_EMPTY"] =
 	"아직 캐릭터가 없습니다. 각 캐릭터는 Play It Forward를 사용해 접속하면 여기에 표시됩니다."
 L["OPTIONS_ALT_INCLUDE"] = "이 캐릭터 포함"
@@ -457,7 +491,10 @@ L["OPTIONS_GUILD_ADD_DESCRIPTION"] =
 	"길드 이름을 입력한 뒤 Enter 키를 누르세요. 여러 길드는 쉼표로 구분합니다. 대소문자는 상관없습니다. 받을 사람 찾기를 누르면 이 서버와 진영에서 접속 중인 길드원을 찾으며, 이들은 낯선 사람보다 먼저 받습니다."
 -- The remove icon beside a guild's name.
 L["OPTIONS_GUILD_REMOVE"] =
-	"이 길드를 목록에서 제거합니다. 이름으로 다시 추가하면 돌아옵니다."
+	"이 길드를 목록에서 제거하세요. 이름으로 다시 추가하면 돌아옵니다."
+-- TRANSLATORS: %s is a guild's name in angle brackets.
+L["OPTIONS_GUILD_REMOVE_CONFIRM"] =
+	"%s 길드를 목록에서 제거할까요? 이름으로 다시 추가하면 되돌릴 수 있습니다."
 -- In place of the roster status on a guild added by name: there is no roster, only /who.
 L["OPTIONS_GUILD_ADDED"] =
 	"이름으로 추가했습니다. 받을 사람 찾기가 접속 중인 길드원을 찾습니다."
@@ -491,25 +528,28 @@ L["OPTIONS_MAIL_YOURS"] = "내 메시지"
 L["OPTIONS_MAIL_PREVIEW"] = "받는 사람에게 보이는 내용"
 L["OPTIONS_MAIL_COUNT_SUBJECT"] = "제목 %d/%d"
 L["OPTIONS_MAIL_COUNT_BODY"] = "본문 %d/%d"
-L["OPTIONS_MAIL_RESET"] = "기본값 복원"
 L["OPTIONS_MAIL_RESET_DESCRIPTION"] = "기본 제목과 본문으로 돌아갑니다."
+-- The Reset row's caption and its confirm.
+L["OPTIONS_MAIL_RESET_CAPTION"] = "우편 메시지"
+L["OPTIONS_MAIL_RESET_CONFIRM"] = "기본 제목과 본문으로 돌아갈까요?"
 
 --------------------------------------------------------------------------------
 -- Options: Badge of Generosity Panel
 --------------------------------------------------------------------------------
 
-L["TAB_GENEROSITY"] = "베풂의 휘장"
+--[[
+	ONE KEY FOR THE PAGE AND THE BADGE: the page's name in the options list and the heading over the
+	totals on player tooltips. The tooltip draws the Short Name on the heading's right, so it never
+	carries the name itself.
+]]
+L["BADGE_OF_GENEROSITY"] = "베풂의 휘장"
 L["OPTIONS_GENEROSITY_DESCRIPTION"] =
 	"계정의 모든 캐릭터를 합친 나눔 합계입니다. 도시와 여관에서 내 플레이어 툴팁에 표시되어, 다른 Play It Forward 사용자가 나에게 마우스를 올리면 볼 수 있고 나도 그들의 합계를 볼 수 있습니다. 던전, 공격대, 바깥 세상에서는 숨겨집니다."
 
 --[[
-	Account-wide giving tally, read-only here. Item Levels counts equippable gear only.
-
-	The unit tooltip reuses the header and the four labels, so the two surfaces never disagree.
-	There ns:BuildBrandedLine puts the Short Name and the // in front of the header, so it never
-	carries either.
+	Account-wide giving tally, read-only here. Item Levels counts equippable gear only. The unit
+	tooltip reuses the four labels, so the two surfaces never disagree.
 ]]
-L["OPTIONS_GENEROSITY_HEADER"] = "베풂의 휘장"
 L["OPTIONS_GENEROSITY_GIFTS"] = "선물"
 L["OPTIONS_GENEROSITY_ITEMS"] = "아이템"
 L["OPTIONS_GENEROSITY_ITEM_LEVELS"] = "아이템 레벨"

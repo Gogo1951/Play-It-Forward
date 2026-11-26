@@ -107,7 +107,7 @@ end)
 
 local function searchOnce(ns, results)
 	Stub.SetBackpack({ casterCloth() })
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 	Stub.whoResults = results
 	Stub.whoTotal = 999
 	ns.UI:FindRecipients()
@@ -129,6 +129,16 @@ test("a holder in a capital keeps the search going", function()
 
 	equal(item.recipient and item.recipient.name, "Banker", "the mage holds the robe meanwhile")
 	check(ns.Who:Remaining() > 0, "and the plan still looks for somebody out in the world")
+end)
+
+-- A search turns up only strangers, and no stranger outranks a guildmate, so a guildmate holder ends it.
+test("a guildmate holder in a capital does not keep the search going", function()
+	local ns = load()
+	local item = searchOnce(ns, { { name = "Banker", level = 19, class = "MAGE", area = "Stormwind City" } })
+	equal(ns.MatchSearch.SearchingGifts(), 1, "a stranger in a capital is still searched past")
+
+	item.recipient.guild = true
+	equal(ns.MatchSearch.SearchingGifts(), 0, "a guildmate in the same capital is not")
 end)
 
 --[[

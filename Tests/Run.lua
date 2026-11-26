@@ -1,9 +1,8 @@
 --[[
-	Runs every case in Tests/ against the stubbed client.
+	Runs the cases required below; a new case file must be added to the list. Exits non-zero on
+	any failure.
 
-		cd Play-It-Forward && lua Tests/Run.lua
-
-	Exits non-zero when anything failed, so it can be wired to a hook or a build step.
+		cd Play-It-Forward && lua5.1 Tests/Run.lua
 ]]
 
 local here = arg[0]:match("^(.*)/[^/]*$") or "."
@@ -16,6 +15,7 @@ local Harness = require("Harness")
 require("Mailbox-Gate")
 require("Delivery-Refresh")
 require("Status-Line")
+require("Distribution-Window")
 require("Recipient-Tooltip")
 require("Alts")
 require("Disenchant")
@@ -29,7 +29,9 @@ require("Assignment")
 require("Tooltip-Parsing")
 require("Item-Identity")
 require("Mail-Errors")
+require("Mail-Returned")
 require("Manual-Assignment")
+require("Picker-Lists")
 require("Query-Building")
 require("Level-Band")
 require("Options-Values")
@@ -54,5 +56,7 @@ require("Spec-Choices")
 require("Alts-And-Guilds")
 require("Other-Client-Characters")
 require("Outcomes")
+require("Never-Give-Away")
+require("Keep-In-Bags")
 
 os.exit(Harness.run() == 0 and 0 or 1)

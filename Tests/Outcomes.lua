@@ -1,17 +1,7 @@
 --[[
-	Who gets what: every common stat roll on every kind of gear, at three levels, on every
-	flavor, written down as the classes that lead and the classes that are only fallbacks.
-
-	The table is the matcher's behavior as a reader sees it, rather than as its numbers do. It
-	is the safety net for reworking the scoring: a change that moves any row fails here, and the
-	diff of Tests/Outcomes/ says exactly which items now go somewhere else. A move that is meant
-	is accepted by rewriting the files:
-
-		cd Play-It-Forward && lua Tests/Write-Outcomes.lua
-
-	Synthetic items, not real ones: a roll's stats at a fixed size, so the rows compare a stat mix
-	against a stat mix and nothing else. Both factions' classes are in play, so a Classic table
-	shows paladins and shamans side by side.
+	Who gets what: synthetic stat rolls on every kind of gear, at three levels, on every flavor,
+	as the classes that lead and those only fallbacks, both factions in play. A change that moves
+	any row fails here; once the move is meant, rewrite the files with Tests/Write-Outcomes.lua.
 ]]
 
 local Harness = require("Harness")
@@ -19,7 +9,7 @@ local Stub = Harness.Stub
 
 local Outcomes = {}
 
--- Folder name, and the season the stub reports for it.
+-- Folder name, and the flavor and season the stub reports for it.
 Outcomes.FLAVORS = {
 	{ name = "Vanilla" },
 	{ name = "Discovery", flavor = "Vanilla", season = 2 },
@@ -147,10 +137,6 @@ local function sortedJoin(list)
 	return table.concat(out, " ")
 end
 
---[[
-	One line per item: level, slot, roll, then who leads and who is only a fallback. An item no
-	class is admitted for says so rather than printing two empty columns.
-]]
 function Outcomes.Build(entry)
 	Stub.flavor, Stub.season = entry.flavor or entry.name, entry.season
 	local ok, ns = pcall(Harness.LoadAddon, ADDON_ROOT)
@@ -228,10 +214,8 @@ function Outcomes.Read(entry)
 	return lines
 end
 
---[[
-	Every row that moved, not just the first: the point of the table is reviewing what a change
-	did, and one row at a time hides the shape of it.
-]]
+-- Every row that moved, not just the first: one at a time hides a change's shape.
+
 for _, entry in ipairs(Outcomes.FLAVORS) do
 	Harness.test("who gets what on " .. entry.name .. " matches Tests/Outcomes", function()
 		local saved = Outcomes.Read(entry)

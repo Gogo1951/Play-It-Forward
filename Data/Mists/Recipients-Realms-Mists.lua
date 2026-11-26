@@ -22,7 +22,7 @@ ns.Data.LINKED_REALMS = CLUSTERS[GetCurrentRegion and GetCurrentRegion()] or {}
 How We Got the Data
 
 Last Validated
-	2026-10-29, Mists of Pandaria Classic 5.5.4.70631
+	2026-11-26, wago.tools, Mists of Pandaria Classic 5.5.4.71089
 
 Notes
 	- Mists Classic's connected realms: mail reaches any character of the same faction on a

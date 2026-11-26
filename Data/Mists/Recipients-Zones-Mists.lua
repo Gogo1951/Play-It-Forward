@@ -192,7 +192,7 @@ ns.Data.INSTANCE_AREAS = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, Mists of Pandaria Classic 5.5.4.70631
+	2026-11-26, wago.tools, Mists of Pandaria Classic 5.5.4.71089
 
 Notes
 	- Levelling zones, and who is in them: input to the /who queries in
@@ -233,6 +233,7 @@ Wowhead
 wago.tools
 	https://wago.tools/db2/AreaTable?build=5.5.4.70631
 	https://wago.tools/db2/Map?build=5.5.4.70631
+	https://wago.tools/db2/AreaTable?build=5.5.4.71089
 
 QuestieDB
 	None.

@@ -464,7 +464,7 @@ ns.Data.FOOD_AND_WATER = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, Mists of Pandaria Classic 5.5.4.70631
+	2026-11-26, wago.tools, Mists of Pandaria Classic 5.5.4.71089
 
 Notes
 	- Food and drink a player can give away: Food & Drink consumables that restore health, mana
@@ -560,6 +560,8 @@ wago.tools
 	https://wago.tools/db2/SpellEffect?build=5.5.4.70631
 	https://wago.tools/db2/SpellName?build=5.5.4.70631
 	https://wago.tools/db2/Spell?build=5.5.4.70631
+	https://wago.tools/db2/Item?build=5.5.4.71089
+	https://wago.tools/db2/ItemSparse?build=5.5.4.71089
 
 QuestieDB
 	https://raw.githubusercontent.com/Questie/QuestieDB/master/data/MoP/mopItemDB.lua

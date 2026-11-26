@@ -13,7 +13,7 @@ ns.Data.SPELL_IDS = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, Classic Era 1.15.9.70576
+	2026-11-26, wago.tools, Classic Era 1.15.9.70576
 
 Notes
 	- The game records Play It Forward shows by name, stored by ID so the client supplies the name in every locale.

@@ -13,13 +13,13 @@
 ### One mail reset
 
 - **Departs from:** SAVED VARIABLES → Reset, a Reset per player-editable text input.
-- **Instead:** the Mail Message Text panel's one Restore Default button resets the subject and the body together.
+- **Instead:** the Mail Message Text panel's one Reset resets the subject and the body together, asking first.
 - **Why:** maintainer decision: the subject and body are one message, so they are restored as one.
 
-### Spec Restore Defaults
+### Spec reset
 
 - **Departs from:** SAVED VARIABLES → Reset, no control resets settings Reset Profile can reach.
-- **Instead:** the Recipients panel's Classes & Specs section keeps a confirmed Restore Defaults button that resets the spec choices and nothing else.
+- **Instead:** the Recipients panel's Classes & Specs section keeps a confirmed Reset that resets the spec choices and nothing else.
 - **Why:** maintainer decision: the spec grid is many hand-set choices, restored together without wiping the rest of the profile.
 
 ### English mail
@@ -39,3 +39,15 @@
 - **Departs from:** GAME NAMES, never translate a game name.
 - **Instead:** spec names come from the client wherever it can name them, and from the add-on's SPEC_* strings only where it cannot.
 - **Why:** Classic Era, TBC Anniversary and WoW Forever offer no API that names another class's talent trees, and Season of Discovery's rune roles have no name in the game.
+
+### Centered window title
+
+- **Departs from:** WINDOWS, the title at the left of the title bar.
+- **Instead:** the Distribution Window's title stays centered in its title bar.
+- **Why:** The maintainer's choice.
+
+### Badge preview while sharing is off
+
+- **Departs from:** OPTIONS PANEL → Example Lines, an Example leaves while its control is off.
+- **Instead:** the Badge of Generosity page keeps its tooltip preview shown while sharing is off.
+- **Why:** the totals keep counting while sharing is off, so the preview still shows something true.

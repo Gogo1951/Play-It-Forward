@@ -2,16 +2,11 @@ local _, ns = ...
 
 local Matcher = ns.Matcher
 
--- Who gets an item and where to look for them, read off the verdict Features/Match-Engine.lua decides.
-
 --------------------------------------------------------------------------------
 -- Candidate Ranking
 --------------------------------------------------------------------------------
 
---[[
-	Where a candidate came from: 1 your alts, 2 your guild, 3 strangers from /who. The picker's
-	sections, which name the source whatever the Recipients panel says about ranking it.
-]]
+-- The picker's sections, which name the source whatever the Prioritize switches say.
 function Matcher:Source(person)
 	if person.alt then
 		return 1
@@ -22,12 +17,7 @@ function Matcher:Source(person)
 	return 3
 end
 
---[[
-	The same three, as the sort and the targeted search's stopping rule weigh them: a source whose
-	Prioritize switch on the Recipients panel is off ranks as a stranger, so it competes on fit,
-	placement and level instead of jumping the queue. An alt who is also a guildmate falls back to
-	the guild's rank when only the alts switch is off.
-]]
+-- A source whose Prioritize switch is off ranks as a stranger, competing on fit, placement and level.
 function Matcher:SourceRank(person)
 	local profile = ns.db and ns.db.profile or {}
 	if person.alt and profile.prioritizeAlts ~= false then
@@ -39,10 +29,7 @@ function Matcher:SourceRank(person)
 	return 3
 end
 
---[[
-	A stranger warlock in the band summoning alts park in, while the Recipients panel's Ignore
-	Warlocks switch is on. Strangers only: an alt is yours, and the guild roster has its own rule.
-]]
+-- Strangers only: an alt is yours, and the guild roster has its own summoner rule.
 local function SkippedSummoner(person)
 	local profile = ns.db and ns.db.profile
 	if not (profile and profile.ignoreSummonerWarlocks) or person.alt or person.guild then
@@ -53,17 +40,8 @@ local function SkippedSummoner(person)
 end
 
 --[[
-	Whether one of your alts may receive this item, by its row on the My Alts panel, and
-	its fit when it may. Only where the item suits the alt best, JUDGED BY THE ALT'S OWN SPECS: an
-	Enhancement shaman alt holds strength mail though shamans are assumed to heal or cast, and a
-	mage alt never holds healing cloth meant for a priest. A consumable asks only the class.
-
-	Judged against the alt's own Lowest and Highest Gear Level (Alts:LevelRange): gear by the level
-	its class equips it at, a consumable by its use level. At the defaults that is anything from
-	its own level up, so a level 1 hunter holds a level 50 bow, and a level 1 alt holds the level 5
-	scroll a stranger of 6 would otherwise take. The stranger's short band -- worth having to
-	somebody who can drink it now -- is a guess about people you do not know; your own alt will
-	reach the level, and the Highest dropdown caps how far ahead it is stocked.
+	Judged by the alt's own specs and its own Alts:LevelRange, never the stranger band: your alt will
+	reach the level, and the My Alts Highest dropdown caps how far ahead it is stocked.
 ]]
 local function AltWants(matcher, item, verdict, person, classToken, lo)
 	local profile = ns.db and ns.db.profile
@@ -93,42 +71,22 @@ local function AltWants(matcher, item, verdict, person, classToken, lo)
 end
 
 --[[
-	Everyone in pools (classToken -> players) who can use this item and sits in its level band, in
-	the order it would be handed out:
-
+	Hand-out order (CouldOutrank mirrors it):
 	  fit bucket -> source -> placement -> level proximity -> armor/weapon group -> class fit -> random
-
-	Bucket leads, so a class that genuinely wants the item beats one that barely does however
-	close to equipping it they are. Source follows, among equally good fits only: your alts, then
-	your guild, then strangers (Matcher:SourceRank). Placement follows: somebody out in a zone made
-	for their level beats somebody in a capital, and anybody beats somebody in a dungeon
-	(Who:PlacementRank). Both follow the Recipients panel's switches. Level comes next, ahead of group, so a druid one level off
-	beats a mage two off for cloth. Random tail, or every spare green goes to whoever is early in
-	the alphabet.
 ]]
 function Matcher:RankCandidates(item, pools)
 	local out, meta = {}, {}
 
-	--[[
-		Who may receive this is Verdict's answer, never a second opinion formed here; this only
-		orders the people behind those classes. A leftover still ranks candidates so the dropdown
-		can overrule the vendor pile by hand; an unreadable one lands here with an empty list.
-	]]
+	-- A leftover still ranks, so the dropdown can overrule the vendor pile by hand.
 	local verdict = self:VerdictFor(item)
 
-	--[[
-		Read from Verdict, never recomputed: it buckets on claim, and fit adds the weapon baseline,
-		which would compress the ratio and lift a weaker class past a stronger one on proximity.
-	]]
+	-- Never recomputed from fit: the weapon baseline compresses the ratio and lifts a weaker class.
 	local topBucket = {}
 	for _, class in ipairs(verdict.contenders or {}) do
 		topBucket[class] = true
 	end
 
-	--[[
-		Every admitted class, plus any class one of your alts plays: an alt is judged by its own
-		specs, so it can want an item the class's defaults never admitted.
-	]]
+	-- Plus any class an alt plays: judged by its own specs, it can want what the defaults never admitted.
 	local classes, seen = {}, {}
 	for _, class in ipairs(verdict.admitted) do
 		classes[#classes + 1], seen[class] = class, true
@@ -150,25 +108,11 @@ function Matcher:RankCandidates(item, pools)
 
 	for _, class in ipairs(classes) do
 		local fit, tier = verdict.fits[class] or 0, self:Priority(item, class)
-		--[[
-			PER CLASS, NEVER item.bandLo: a class that trains the armor material later searches higher
-			up, and reading one band off the item would either hand a hunter mail he cannot wear for
-			six levels or never look for him at all. Matcher:LevelBand answers the item's own band for
-			everything else, so this is the same numbers for nearly every item.
-		]]
+		-- Per class, never item.bandLo: a class that trains the armor material later searches higher.
 		local lo, hi = self:LevelBand(item, class)
-		--[[
-			The level this item is worth most at, and what proximity is measured against. Gear
-			anchors to the TOP of its band, arriving just before it can be equipped; a consumable
-			anchors to the BOTTOM, its own use level, because its band runs upward from there.
-			Measuring a potion to the top of its band ranks whoever has most outgrown it first,
-			which is backwards.
-		]]
+		-- Gear anchors to the top of its band, a consumable to the bottom (its use level); AnchorFor mirrors it.
 		local anchor = (item.kind == "consumable") and lo or hi
-		--[[
-			Bucket rather than cut. A marginal class still appears in the dropdown and still
-			receives the item when nobody better is in range.
-		]]
+		-- Bucket rather than cut: a marginal class still receives when nobody better is in range.
 		local bucket = topBucket[class] and 1 or 2
 		for _, person in ipairs(pools[class] or {}) do
 			local inRange, personFit, personBucket = false, fit, bucket
@@ -199,21 +143,12 @@ function Matcher:RankCandidates(item, pools)
 		if ma.bucket ~= mb.bucket then
 			return ma.bucket < mb.bucket
 		end
-		--[[
-			Who they are to you, among equally good fits: an alt before a guildmate before a
-			stranger. Behind the bucket, never ahead of it, so a priest stranger still takes healing
-			cloth from a mage alt who only barely wants it.
-		]]
+		-- Behind the bucket, never ahead: a priest stranger still beats a mage alt who barely wants it.
 		local aSource, bSource = self:SourceRank(a), self:SourceRank(b)
 		if aSource ~= bSource then
 			return aSource < bSource
 		end
-		--[[
-			Where they stand, right behind who the item is for: out in a zone made for their level
-			beats a capital, because that is the evidence they are leveling and will use it, and a
-			dungeon ranks last, where they may be getting boosted. Ahead of level, which only splits
-			a band two levels wide.
-		]]
+		-- Placement is the evidence they are leveling; ahead of level, which only splits a two-level band.
 		if ma.placement ~= mb.placement then
 			return ma.placement < mb.placement
 		end
@@ -230,10 +165,7 @@ function Matcher:RankCandidates(item, pools)
 			return ma.fit > mb.fit
 		end
 
-		--[[
-			Equals. The shuffle key is precomputed per player and never rolled inside the
-			comparator: a comparator that changes mid-sort makes table.sort throw.
-		]]
+		-- Shuffle is rolled at pool entry, never here: a comparator that changes mid-sort makes table.sort throw.
 		local aRoll, bRoll = a.shuffle or 0, b.shuffle or 0
 		if aRoll ~= bRoll then
 			return aRoll < bRoll
@@ -247,23 +179,9 @@ end
 -- Level Bands
 --------------------------------------------------------------------------------
 
---[[
-	Recipient level band. Gear spans [equip level - WIDEST, equip level - CLOSEST].
-
-	WITH A CLASS IT IS THAT CLASS'S BAND, and for nearly every item the two are the same answer:
-	the equip level is the item's own requirement. It moves only where the class has to train the
-	armor material first -- a level 36 mail belt is equipped at 40 by a hunter and at 36 by a
-	paladin, so the two search 38-39 and 34-35 and one band cannot state both. Called without a
-	class it answers for the item alone, which is what the reports and the tooltip want.
-]]
+-- With a class, that class's band (it moves where the class trains the armor later); without, the item's.
 function Matcher:LevelBand(item, classToken)
-	--[[
-		A consumable runs from its use level up by CONSUMABLE_RECIPIENT_GAP, short on purpose: a
-		potion is worth having to somebody who can drink it now. Not profile.consumableLevelGap,
-		which is the sender's outgrown-it threshold and a much longer span -- the note on the
-		constant has why the two are not the same number. No class shift: nothing is trained to
-		drink one.
-	]]
+	-- CONSUMABLE_RECIPIENT_GAP, never profile.consumableLevelGap (the sender's outgrown-it threshold).
 	if item.kind == "consumable" then
 		local lo = math.max(1, item.def.useLevel)
 		return lo, lo + ns.Data.CONSUMABLE_RECIPIENT_GAP
@@ -274,15 +192,7 @@ function Matcher:LevelBand(item, classToken)
 	return lo, hi
 end
 
---[[
-	The classes grouped by the band each of them searches -- one group for nearly every item, two
-	for the sub-40 mail and plate half the field cannot wear until it trains the material. Shaped
-	the way Features/Recipients-Who-Plan.lua wants a plan, so the query looking for the hunter can ask
-	38-39 while the one beside it asks the paladin's 34-35.
-
-	Group order follows the class list it was given, which is what lets a caller put the classes
-	the item is FOR at the front of the plan.
-]]
+-- Shaped as Recipients-Who-Plan wants; group order follows the class list, so callers lead with contenders.
 function Matcher:BandGroups(item, classes)
 	local order, byBand = {}, {}
 	for _, class in ipairs(classes or {}) do
@@ -299,11 +209,7 @@ function Matcher:BandGroups(item, classes)
 	return order
 end
 
---[[
-	Every band the item searches, as one span. For the tooltip and the reports, which have room
-	for one pair of numbers; the search itself uses the groups above and never this. Falls back to
-	the item's own band when no class was passed, so an item nobody is admitted for still reads.
-]]
+-- One span for display and reports only; the search uses BandGroups, never this.
 function Matcher:SearchBand(item, classes)
 	local lo, hi
 	for _, group in ipairs(self:BandGroups(item, classes)) do
@@ -316,12 +222,7 @@ function Matcher:SearchBand(item, classes)
 	return lo, hi
 end
 
---[[
-	The classes one targeted search asks for, best first: the contenders the verdict says the item
-	is FOR, then everybody admitted behind them. Each half sorts the way RankCandidates breaks a
-	level tie -- armor group, then fit -- so the class most likely to take the row is asked
-	first: on "of the Bear" plate, the warrior ahead of the paladin, who ranks only part of it.
-]]
+-- Contenders, then the rest admitted; each half sorted as RankCandidates breaks a level tie.
 function Matcher:TargetedClasses(item)
 	local verdict = self:VerdictFor(item)
 	local admitted = (#verdict.admitted > 0) and verdict.admitted or verdict.eligible
@@ -364,16 +265,8 @@ function Matcher:TargetedClasses(item)
 end
 
 --[[
-	The bands one targeted search should ask for, best first: ONE CLASS PER GROUP, in the order
-	TargetedClasses puts them. A lone class is the only shape /who can be filtered on -- the
-	client honors one c-"..." and drops the rest -- and a class filter reaches everybody of that
-	class wherever they stand, where a zone filter misses anyone in a dungeon, a battleground or
-	a zone the table does not list. Observed live (2026-10-10): a 54 warrior in Sunken Temple, the
-	best fit for a pair of "of the Bear" gauntlets, never turned up while the search asked the
-	unfiltered zones its two plate contenders shared.
-
-	A consumable keeps its classes in one group: every class wants it equally, so splitting by
-	class orders nothing and only multiplies the presses.
+	One class per group: /who honors one c-"..." filter, and a class filter reaches players in
+	dungeons and unlisted zones a zone filter misses. A consumable stays one group: splitting only adds presses.
 ]]
 function Matcher:TargetedBands(item)
 	local classes = self:TargetedClasses(item)
@@ -389,21 +282,15 @@ function Matcher:TargetedBands(item)
 	return groups
 end
 
--- The level RankCandidates measures this class's proximity against: the top of its band for gear, the bottom for a consumable.
+-- Must match RankCandidates' anchor.
 local function AnchorFor(matcher, item, classToken)
 	local lo, hi = matcher:LevelBand(item, classToken)
 	return (item.kind == "consumable") and lo or hi
 end
 
 --[[
-	Whether somebody of this class, standing at that class's own anchor, would sort ahead of
-	person under RankCandidates: bucket, then source, then placement, then distance from each one's
-	own anchor, then group, then fit. A tie never outranks -- past it only the coin flip is left. A
-	class the verdict did not admit never ranks at all; nobody holding the row is outranked by
-	every class that did.
-
-	What a targeted search stops on: an attempt for a class that cannot outrank the holder can
-	only turn up somebody who ties or loses, and is not worth a press.
+	Whether a find of this class, at its own anchor, would sort ahead of person: RankCandidates' keys
+	in order, so change both together. A tie never outranks.
 ]]
 function Matcher:CouldOutrank(item, person, classToken)
 	local verdict = self:VerdictFor(item)

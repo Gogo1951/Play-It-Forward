@@ -150,6 +150,34 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
+		The client's own "Use:", "Chance on hit:" and "Set:" wording, which Features/Scan-Tooltip.lua
+		skips so an on-use or set-bonus effect is never scored as a stat. One missing lets that
+		effect's numbers count as the item's stats.
+	]]
+	{
+		"Non-stat tooltip line prefixes",
+		function()
+			local missing = {}
+			for _, name in ipairs({ "ITEM_SPELL_TRIGGER_ONUSE", "ITEM_SPELL_TRIGGER_ONPROC", "ITEM_SET_BONUS" }) do
+				if type(_G[name]) ~= "string" or _G[name] == "" then
+					missing[#missing + 1] = name
+				end
+			end
+			return #missing == 0, #missing > 0 and ("missing: " .. table.concat(missing, ", ")) or nil
+		end,
+	},
+	--[[
+		The "Requires Argent Dawn - Friendly" format the reputation gate in Features/Scan-Tooltip.lua
+		is built from. Without it no reputation requirement is seen, and those items are offered to
+		strangers who cannot use them.
+	]]
+	{
+		"ITEM_REQ_REPUTATION",
+		function()
+			return type(ITEM_REQ_REPUTATION) == "string" and ITEM_REQ_REPUTATION:find("%%%d*%$?s") ~= nil
+		end,
+	},
+	--[[
 		English-only by decision for the initial release, so this row fails on any other locale on
 		purpose: a known limitation, rather than items quietly scoring low for no visible reason.
 	]]
@@ -545,6 +573,26 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(SendMailSubjectEditBox) == "table"
 		end,
 	},
+	--[[
+		How the mailbox tab finds TradeSkillMaster's mail window, which has no name: TSM's API says
+		whether it is up, and the client names the file a frame was made in. A client without
+		GetSourceLocation leaves the tab off TSM's window; without TSM the first row is a pass.
+	]]
+	{
+		"TSM_API.IsUIVisible (only with TradeSkillMaster)",
+		function()
+			if type(TSM_API) ~= "table" then
+				return true, "TradeSkillMaster not loaded"
+			end
+			return type(TSM_API.IsUIVisible) == "function"
+		end,
+	},
+	{
+		"Frame:GetSourceLocation",
+		function()
+			return type(UIParent) == "table" and type(UIParent.GetSourceLocation) == "function"
+		end,
+	},
 	{
 		"MailFrameTab_OnClick",
 		function()
@@ -574,6 +622,25 @@ ns.DIAGNOSTIC_API_CHECKS = {
 				return true, "via SendMailBodyEditBox"
 			end
 			return false, "neither MailEditBox:GetEditBox() nor SendMailBodyEditBox"
+		end,
+	},
+	-- The inbox headers the returned-gift chat line in Features/UI-Mailbox.lua reads; without them it never prints.
+	{
+		"GetInboxNumItems",
+		function()
+			return type(GetInboxNumItems) == "function"
+		end,
+	},
+	{
+		"GetInboxHeaderInfo",
+		function()
+			return type(GetInboxHeaderInfo) == "function"
+		end,
+	},
+	{
+		"GetInboxItemLink",
+		function()
+			return type(GetInboxItemLink) == "function"
 		end,
 	},
 	--[[
@@ -715,6 +782,16 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	-- The Generosity tooltip block: the unit post-call, the older script hook, and the secret check before both.
+	--[[
+		The tell Features/Generosity-Tooltip.lua picks the post-call by: the Classic clients ship
+		TooltipDataProcessor but still run GameTooltip on the legacy scripts. A FAIL is a route.
+	]]
+	{
+		"GameTooltip:GetPrimaryTooltipData",
+		function()
+			return type(GameTooltip) == "table" and type(GameTooltip.GetPrimaryTooltipData) == "function"
+		end,
+	},
 	{
 		"TooltipDataProcessor.AddTooltipPostCall",
 		function()
@@ -737,6 +814,17 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		"C_Secrets.ShouldUnitIdentityBeSecret",
 		function()
 			return type(C_Secrets) == "table" and type(C_Secrets.ShouldUnitIdentityBeSecret) == "function"
+		end,
+	},
+	--[[
+		The check Features/Generosity-Broadcast.lua runs before reading another add-on's message,
+		and the event log before writing an argument as text. A FAIL is a route: a client without it
+		hands over no secret values.
+	]]
+	{
+		"issecretvalue",
+		function()
+			return type(rawget(_G, "issecretvalue")) == "function"
 		end,
 	},
 	-- The /who zone filter asks the client for each area's name.
@@ -824,6 +912,21 @@ ns.DIAGNOSTIC_API_CHECKS = {
 				return true, "via BackdropTemplate"
 			end
 			return false, "no BackdropTemplate; drawn only if the frame has its own SetBackdrop"
+		end,
+	},
+	--[[
+		Cosmetic, and only with ElvUI: its Skins module dresses the window's buttons, ticks and
+		scrollbars to match (Features/Utilities.lua). Without the module they keep the default art.
+	]]
+	{
+		"ElvUI Skins module (only with ElvUI)",
+		function()
+			local elv = type(ElvUI) == "table" and ElvUI[1]
+			if not elv then
+				return true, "ElvUI not loaded"
+			end
+			local ok, skins = pcall(elv.GetModule, elv, "Skins", true)
+			return ok and skins ~= nil, (ok and skins) and "via ElvUI's Skins module" or "ElvUI loaded, no Skins module"
 		end,
 	},
 	-- The list Escape closes the mail window and the recipient picker through.
@@ -1156,9 +1259,15 @@ function ns:BuildMailboxReport()
 	local frame = ns.UI and ns.UI.frame
 	lines[#lines + 1] = "window built = " .. tostring(frame ~= nil)
 	lines[#lines + 1] = "window shown = " .. tostring(frame ~= nil and frame:IsShown() == true)
-	-- The question the mailbox itself asks before opening the window, against the list as it stands.
-	lines[#lines + 1] = "window would open at a mailbox now = " .. tostring(ns.UI:HasSomethingToDo())
-	lines[#lines + 1] = "reopen button shown = " .. tostring(ns.UI:ReopenButtonShown())
+	-- The tab on the mailbox's edge: up at every mailbox, lit while the window is.
+	lines[#lines + 1] = "mailbox tab wanted = " .. tostring(ns.UI:WantsMailboxTab())
+	-- Blizzard's mail window, or TSM's in its place, found by the file that made it.
+	lines[#lines + 1] = "mailbox tab sits on = " .. ns.UI:MailboxTabHostName()
+	lines[#lines + 1] = "TSM's public API loaded = " .. tostring(type(TSM_API) == "table")
+	lines[#lines + 1] = "client names a frame's source file = " .. tostring(UIParent.GetSourceLocation ~= nil)
+	lines[#lines + 1] = "mailbox tab shown = " .. tostring(ns.UI:MailboxTabShown())
+	lines[#lines + 1] = "mailbox tab lit = " .. tostring(ns.UI:MailboxTabLit())
+	lines[#lines + 1] = "mailbox tab menu shown = " .. tostring(ns.UI:MailboxTabMenuShown())
 	lines[#lines + 1] = ""
 
 	local byState, holding, ticked = {}, 0, 0
@@ -1183,8 +1292,8 @@ function ns:BuildMailboxReport()
 	lines[#lines + 1] = "items holding a recipient = " .. holding
 	lines[#lines + 1] = "items ticked to send = " .. ticked
 	--[[
-		Kept gear opens the window only while Disenchant Unmatched Gear has a character to mail it
-		to, so a mailbox holding nothing but Kept rows opens or not on these two reads.
+		Kept gear is mailed only while Disenchant Unmatched Gear has a character to mail it to, so
+		whether a list of nothing but Kept rows sends anything turns on these two reads.
 	]]
 	local enchanter = ns.db and ns.db.profile.disenchantUnmatched and ns.Alts:Disenchanter()
 	local disenchantable = 0
@@ -1199,12 +1308,11 @@ function ns:BuildMailboxReport()
 		tostring(enchanter or "nobody"),
 		disenchantable
 	)
-	lines[#lines + 1] = "list is stale, rescans at the next mailbox = " .. tostring(ns.MatchList:IsStale() == true)
+	lines[#lines + 1] = "list is stale, rescans when the window opens = " .. tostring(ns.MatchList:IsStale() == true)
 	--[[
-		False while a mail run is busy, or the window is shut with no mailbox waiting on it: a loot
-		or a late item load then waits for the next mailbox.
+		False while a mail run is busy, or the window is shut: a loot or a late item load then waits
+		for the window to open.
 	]]
-	lines[#lines + 1] = "mailbox waiting to open the window = " .. tostring(ns.UI:WaitingToOpen() == true)
 	lines[#lines + 1] = "bag changes rescan now = " .. tostring(ns.MatchList:WouldRescan())
 	lines[#lines + 1] = ""
 
@@ -1218,6 +1326,32 @@ function ns:BuildMailboxReport()
 	lines[#lines + 1] = "settling a refusal for = " .. JobRecipient(mailer._settling)
 	lines[#lines + 1] =
 		string.format("money = %d copper, postage per mail = %d copper", GetMoney() or 0, mailer.MAIL_COST)
+	--[[
+		Answers "a gift came back and nothing said so": the returned-gift line in
+		Features/UI-Mailbox.lua knows a gift by its subject, the current one or the stock one, so a
+		subject changed since it was sent goes unnamed. Headers only, so nothing is marked read.
+	]]
+	if ns.AtMailbox() and GetInboxNumItems and GetInboxHeaderInfo then
+		local subjects = { [ns.Distributor:BuildSubject()] = true, [ns.L["MAIL_SUBJECT"]] = true }
+		local count, returned, gifts = (GetInboxNumItems()) or 0, 0, 0
+		for index = 1, count do
+			local _, _, sender, subject, _, _, _, hasItem, _, wasReturned = GetInboxHeaderInfo(index)
+			if wasReturned then
+				returned = returned + 1
+				if hasItem and sender and subject and subjects[subject] then
+					gifts = gifts + 1
+				end
+			end
+		end
+		lines[#lines + 1] = string.format(
+			"inbox = %d mail(s), %d returned, %d of them gifts with the item still attached",
+			count,
+			returned,
+			gifts
+		)
+	else
+		lines[#lines + 1] = "inbox = not read, away from the mailbox"
+	end
 	lines[#lines + 1] = ""
 
 	--[[
@@ -1242,6 +1376,16 @@ function ns:BuildMailboxReport()
 		tostring(profile.consumableLevelGap),
 		tostring(ns.Data.MIN_RARITY),
 		tostring(UnitLevel("player"))
+	)
+	-- What KEEP_IN_BAGS and NEVER_GIVE are decided against.
+	local keeps = {}
+	for _, kind in ipairs(ns.CONSUMABLE_KIND_ORDER) do
+		keeps[#keeps + 1] = string.format("%s=%s", kind, tostring(profile.keepInBags and profile.keepInBags[kind]))
+	end
+	lines[#lines + 1] = string.format(
+		"settings: keepInBags=%s neverGive=%d item(s)",
+		table.concat(keeps, ","),
+		ns.CountDiagnosticKeys(profile.neverGive)
 	)
 	-- The one combat gate: ns:OpenOptionsPanel refuses /pif in a fight and says so in chat.
 	lines[#lines + 1] = "in combat, /pif refuses to open = " .. tostring(InCombatLockdown() == true)

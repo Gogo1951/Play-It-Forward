@@ -40,7 +40,7 @@ ns.Data.UNIVERSAL_EQUIP_LOC = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, Mists of Pandaria Classic 5.5.4.70631
+	2026-11-26, wago.tools, Mists of Pandaria Classic 5.5.4.71089
 
 Notes
 	- ARMOR_SUBCLASS turns the armor subclass the client reports for an item into its material.
@@ -79,7 +79,7 @@ Wowhead
 	None.
 
 wago.tools
-	None.
+	https://wago.tools/db2/SkillRaceClassInfo?build=5.5.4.71089
 
 QuestieDB
 	None.

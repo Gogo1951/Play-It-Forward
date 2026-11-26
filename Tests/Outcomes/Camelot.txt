@@ -320,29 +320,29 @@ L20	2H mace	Int Healing	DRUID PALADIN | fallback: SHAMAN
 L20	2H mace	Spell Damage	SHAMAN
 L20	2H mace	Int Spell Damage	DRUID PALADIN | fallback: SHAMAN
 L20	2H mace	No stats	DRUID PALADIN | fallback: SHAMAN WARRIOR
-L20	Polearm	Strength	PALADIN WARRIOR
-L20	Polearm	Agility	HUNTER | fallback: PALADIN WARRIOR
-L20	Polearm	Stamina	HUNTER PALADIN WARRIOR
-L20	Polearm	Intellect	PALADIN
-L20	Polearm	Spirit	nobody
-L20	Polearm	Monkey: Agi Sta	HUNTER | fallback: PALADIN WARRIOR
-L20	Polearm	Eagle: Int Sta	PALADIN
-L20	Polearm	Owl: Int Spi	nobody
-L20	Polearm	Bear: Str Sta	PALADIN WARRIOR
-L20	Polearm	Boar: Str Spi	WARRIOR
-L20	Polearm	Tiger: Str Agi	HUNTER | fallback: PALADIN WARRIOR
-L20	Polearm	Gorilla: Str Int	PALADIN | fallback: WARRIOR
-L20	Polearm	Falcon: Agi Int	HUNTER | fallback: PALADIN WARRIOR
-L20	Polearm	Wolf: Agi Spi	HUNTER | fallback: WARRIOR
-L20	Polearm	Whale: Sta Spi	nobody
-L20	Polearm	Power: Attack Power	HUNTER | fallback: PALADIN WARRIOR
-L20	Polearm	Concentration: MP5	PALADIN
-L20	Polearm	Defense	HUNTER | fallback: PALADIN WARRIOR
-L20	Polearm	Healing	PALADIN
-L20	Polearm	Int Healing	PALADIN
+L20	Polearm	Strength	DRUID PALADIN WARRIOR
+L20	Polearm	Agility	HUNTER | fallback: DRUID PALADIN WARRIOR
+L20	Polearm	Stamina	DRUID HUNTER PALADIN WARRIOR
+L20	Polearm	Intellect	DRUID PALADIN
+L20	Polearm	Spirit	DRUID
+L20	Polearm	Monkey: Agi Sta	HUNTER | fallback: DRUID PALADIN WARRIOR
+L20	Polearm	Eagle: Int Sta	DRUID PALADIN
+L20	Polearm	Owl: Int Spi	DRUID
+L20	Polearm	Bear: Str Sta	DRUID PALADIN WARRIOR
+L20	Polearm	Boar: Str Spi	DRUID | fallback: WARRIOR
+L20	Polearm	Tiger: Str Agi	HUNTER | fallback: DRUID PALADIN WARRIOR
+L20	Polearm	Gorilla: Str Int	DRUID PALADIN | fallback: WARRIOR
+L20	Polearm	Falcon: Agi Int	HUNTER | fallback: DRUID PALADIN WARRIOR
+L20	Polearm	Wolf: Agi Spi	HUNTER | fallback: DRUID WARRIOR
+L20	Polearm	Whale: Sta Spi	DRUID
+L20	Polearm	Power: Attack Power	HUNTER | fallback: DRUID PALADIN WARRIOR
+L20	Polearm	Concentration: MP5	DRUID PALADIN
+L20	Polearm	Defense	HUNTER | fallback: DRUID PALADIN WARRIOR
+L20	Polearm	Healing	DRUID PALADIN
+L20	Polearm	Int Healing	DRUID PALADIN
 L20	Polearm	Spell Damage	nobody
-L20	Polearm	Int Spell Damage	PALADIN
-L20	Polearm	No stats	HUNTER | fallback: PALADIN WARRIOR
+L20	Polearm	Int Spell Damage	DRUID PALADIN
+L20	Polearm	No stats	HUNTER | fallback: DRUID PALADIN WARRIOR
 L20	Bow	Strength	WARRIOR | fallback: ROGUE
 L20	Bow	Agility	HUNTER ROGUE | fallback: WARRIOR
 L20	Bow	Stamina	HUNTER ROGUE WARRIOR
@@ -711,29 +711,29 @@ L35	2H mace	Int Healing	DRUID PALADIN | fallback: SHAMAN
 L35	2H mace	Spell Damage	SHAMAN
 L35	2H mace	Int Spell Damage	DRUID PALADIN | fallback: SHAMAN
 L35	2H mace	No stats	DRUID PALADIN | fallback: SHAMAN WARRIOR
-L35	Polearm	Strength	PALADIN WARRIOR
-L35	Polearm	Agility	HUNTER | fallback: PALADIN WARRIOR
-L35	Polearm	Stamina	HUNTER PALADIN WARRIOR
-L35	Polearm	Intellect	PALADIN
-L35	Polearm	Spirit	nobody
-L35	Polearm	Monkey: Agi Sta	HUNTER | fallback: PALADIN WARRIOR
-L35	Polearm	Eagle: Int Sta	PALADIN
-L35	Polearm	Owl: Int Spi	nobody
-L35	Polearm	Bear: Str Sta	PALADIN WARRIOR
-L35	Polearm	Boar: Str Spi	WARRIOR
-L35	Polearm	Tiger: Str Agi	HUNTER | fallback: PALADIN WARRIOR
-L35	Polearm	Gorilla: Str Int	PALADIN | fallback: WARRIOR
-L35	Polearm	Falcon: Agi Int	HUNTER | fallback: PALADIN WARRIOR
-L35	Polearm	Wolf: Agi Spi	HUNTER | fallback: WARRIOR
-L35	Polearm	Whale: Sta Spi	nobody
-L35	Polearm	Power: Attack Power	HUNTER | fallback: PALADIN WARRIOR
-L35	Polearm	Concentration: MP5	PALADIN
-L35	Polearm	Defense	HUNTER | fallback: PALADIN WARRIOR
-L35	Polearm	Healing	PALADIN
-L35	Polearm	Int Healing	PALADIN
+L35	Polearm	Strength	DRUID PALADIN WARRIOR
+L35	Polearm	Agility	HUNTER | fallback: DRUID PALADIN WARRIOR
+L35	Polearm	Stamina	DRUID HUNTER PALADIN WARRIOR
+L35	Polearm	Intellect	DRUID PALADIN
+L35	Polearm	Spirit	DRUID
+L35	Polearm	Monkey: Agi Sta	HUNTER | fallback: DRUID PALADIN WARRIOR
+L35	Polearm	Eagle: Int Sta	DRUID PALADIN
+L35	Polearm	Owl: Int Spi	DRUID
+L35	Polearm	Bear: Str Sta	DRUID PALADIN WARRIOR
+L35	Polearm	Boar: Str Spi	DRUID | fallback: WARRIOR
+L35	Polearm	Tiger: Str Agi	HUNTER | fallback: DRUID PALADIN WARRIOR
+L35	Polearm	Gorilla: Str Int	DRUID PALADIN | fallback: WARRIOR
+L35	Polearm	Falcon: Agi Int	HUNTER | fallback: DRUID PALADIN WARRIOR
+L35	Polearm	Wolf: Agi Spi	HUNTER | fallback: DRUID WARRIOR
+L35	Polearm	Whale: Sta Spi	DRUID
+L35	Polearm	Power: Attack Power	HUNTER | fallback: DRUID PALADIN WARRIOR
+L35	Polearm	Concentration: MP5	DRUID PALADIN
+L35	Polearm	Defense	HUNTER | fallback: DRUID PALADIN WARRIOR
+L35	Polearm	Healing	DRUID PALADIN
+L35	Polearm	Int Healing	DRUID PALADIN
 L35	Polearm	Spell Damage	nobody
-L35	Polearm	Int Spell Damage	PALADIN
-L35	Polearm	No stats	HUNTER | fallback: PALADIN WARRIOR
+L35	Polearm	Int Spell Damage	DRUID PALADIN
+L35	Polearm	No stats	HUNTER | fallback: DRUID PALADIN WARRIOR
 L35	Bow	Strength	WARRIOR | fallback: ROGUE
 L35	Bow	Agility	HUNTER ROGUE | fallback: WARRIOR
 L35	Bow	Stamina	HUNTER ROGUE WARRIOR
@@ -1102,29 +1102,29 @@ L50	2H mace	Int Healing	DRUID PALADIN | fallback: SHAMAN
 L50	2H mace	Spell Damage	SHAMAN
 L50	2H mace	Int Spell Damage	DRUID PALADIN | fallback: SHAMAN
 L50	2H mace	No stats	DRUID PALADIN | fallback: SHAMAN WARRIOR
-L50	Polearm	Strength	PALADIN WARRIOR
-L50	Polearm	Agility	HUNTER | fallback: PALADIN WARRIOR
-L50	Polearm	Stamina	HUNTER PALADIN WARRIOR
-L50	Polearm	Intellect	PALADIN
-L50	Polearm	Spirit	nobody
-L50	Polearm	Monkey: Agi Sta	HUNTER | fallback: PALADIN WARRIOR
-L50	Polearm	Eagle: Int Sta	PALADIN
-L50	Polearm	Owl: Int Spi	nobody
-L50	Polearm	Bear: Str Sta	PALADIN WARRIOR
-L50	Polearm	Boar: Str Spi	WARRIOR
-L50	Polearm	Tiger: Str Agi	HUNTER | fallback: PALADIN WARRIOR
-L50	Polearm	Gorilla: Str Int	PALADIN | fallback: WARRIOR
-L50	Polearm	Falcon: Agi Int	HUNTER | fallback: PALADIN WARRIOR
-L50	Polearm	Wolf: Agi Spi	HUNTER | fallback: WARRIOR
-L50	Polearm	Whale: Sta Spi	nobody
-L50	Polearm	Power: Attack Power	HUNTER | fallback: PALADIN WARRIOR
-L50	Polearm	Concentration: MP5	PALADIN
-L50	Polearm	Defense	HUNTER | fallback: PALADIN WARRIOR
-L50	Polearm	Healing	PALADIN
-L50	Polearm	Int Healing	PALADIN
+L50	Polearm	Strength	DRUID PALADIN WARRIOR
+L50	Polearm	Agility	HUNTER | fallback: DRUID PALADIN WARRIOR
+L50	Polearm	Stamina	DRUID HUNTER PALADIN WARRIOR
+L50	Polearm	Intellect	DRUID PALADIN
+L50	Polearm	Spirit	DRUID
+L50	Polearm	Monkey: Agi Sta	HUNTER | fallback: DRUID PALADIN WARRIOR
+L50	Polearm	Eagle: Int Sta	DRUID PALADIN
+L50	Polearm	Owl: Int Spi	DRUID
+L50	Polearm	Bear: Str Sta	DRUID PALADIN WARRIOR
+L50	Polearm	Boar: Str Spi	DRUID | fallback: WARRIOR
+L50	Polearm	Tiger: Str Agi	HUNTER | fallback: DRUID PALADIN WARRIOR
+L50	Polearm	Gorilla: Str Int	DRUID PALADIN | fallback: WARRIOR
+L50	Polearm	Falcon: Agi Int	HUNTER | fallback: DRUID PALADIN WARRIOR
+L50	Polearm	Wolf: Agi Spi	HUNTER | fallback: DRUID WARRIOR
+L50	Polearm	Whale: Sta Spi	DRUID
+L50	Polearm	Power: Attack Power	HUNTER | fallback: DRUID PALADIN WARRIOR
+L50	Polearm	Concentration: MP5	DRUID PALADIN
+L50	Polearm	Defense	HUNTER | fallback: DRUID PALADIN WARRIOR
+L50	Polearm	Healing	DRUID PALADIN
+L50	Polearm	Int Healing	DRUID PALADIN
 L50	Polearm	Spell Damage	nobody
-L50	Polearm	Int Spell Damage	PALADIN
-L50	Polearm	No stats	HUNTER | fallback: PALADIN WARRIOR
+L50	Polearm	Int Spell Damage	DRUID PALADIN
+L50	Polearm	No stats	HUNTER | fallback: DRUID PALADIN WARRIOR
 L50	Bow	Strength	WARRIOR | fallback: ROGUE
 L50	Bow	Agility	HUNTER ROGUE | fallback: WARRIOR
 L50	Bow	Stamina	HUNTER ROGUE WARRIOR

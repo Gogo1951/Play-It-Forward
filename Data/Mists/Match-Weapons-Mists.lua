@@ -71,7 +71,7 @@ ns.Data.WEAPON_SPECS = {
 How We Got the Data
 
 Last Validated
-	2026-10-29, Mists of Pandaria Classic 5.5.4.70631
+	2026-11-26, wago.tools, Mists of Pandaria Classic 5.5.4.71089
 
 Notes
 	- WEAPON_SUBCLASS turns the weapon subclass the client reports for an item into the add-on's
@@ -114,7 +114,8 @@ Wowhead
 	None.
 
 wago.tools
-	None.
+	https://wago.tools/db2/SkillLineAbility?build=5.5.4.71089
+	https://wago.tools/db2/SkillRaceClassInfo?build=5.5.4.71089
 
 QuestieDB
 	None.

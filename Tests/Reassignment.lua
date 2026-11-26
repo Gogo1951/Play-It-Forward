@@ -40,7 +40,7 @@ local function healingRobe(ns, extra)
 		bag[#bag + 1] = item
 	end
 	Stub.SetBackpack(bag)
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 end
 
 -- One press of Find Recipients, answered with the given roster.

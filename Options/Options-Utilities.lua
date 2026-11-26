@@ -1,29 +1,28 @@
 local _, ns = ...
+local L = ns.L
+
+local Kit = ns.OptionsKit
+
+--------------------------------------------------------------------------------
+-- Options-Kit Setup
+--------------------------------------------------------------------------------
+
+-- No soundPreview key: no panel here plays a sound.
+Kit.SetText({
+	example = L["SAMPLE_EXAMPLE"],
+	loading = L["LOADING_ITEM"],
+	inCombat = L["CHAT_OPTIONS_IN_COMBAT"],
+	reset = L["OPTIONS_RESET"],
+})
+
+ns.OptionsDesc = Kit.Desc
+ns.OptionsSpacer = Kit.Spacer
 
 --------------------------------------------------------------------------------
 -- Shared Options Helpers
 --------------------------------------------------------------------------------
 
--- Header and Spacer take an optional last argument, so a gated section collapses whole.
-local GetColor = ns.GetColor
-
-function ns.OptionsHeader(text, order, hidden)
-	return { type = "header", name = GetColor("TITLE") .. text .. "|r", order = order, hidden = hidden }
-end
-
-function ns.OptionsDesc(text, order)
-	return { type = "description", name = text, fontSize = "medium", order = order }
-end
-
-function ns.OptionsSpacer(order, hidden)
-	return { type = "description", name = " ", order = order, hidden = hidden }
-end
-
---[[
-	For a setting that changes what the bag scan returns: the open window is re-read. Rescan runs
-	with no window too: it marks the scan stale, or the next mailbox reuses one judged the old way.
-	Shared by every panel whose settings change who gets what.
-]]
+-- Rescans with no window too: that marks the scan stale, or the next mailbox reuses a verdict judged the old way.
 function ns.RefreshMailWindow()
 	if ns.UI.frame then
 		ns.UI:SyncControls()
@@ -31,10 +30,13 @@ function ns.RefreshMailWindow()
 	ns.UI:Rescan()
 end
 
---[[
-	A toggle bound to one profile key. name and desc arrive already localized; onSet runs after
-	every write, such as ns.RefreshMailWindow for a setting that changes what the bag scan returns.
-]]
+function ns.OptionsProfileOff(key)
+	return function()
+		return not (ns.db and ns.db.profile[key])
+	end
+end
+
+-- Only the Badge of Generosity page still uses this, until it moves onto Kit.FeatureSwitch.
 function ns.OptionsProfileToggle(key, name, desc, order, width, onSet)
 	return {
 		type = "toggle",
@@ -42,41 +44,11 @@ function ns.OptionsProfileToggle(key, name, desc, order, width, onSet)
 		desc = desc,
 		width = width or "full",
 		order = order,
-		get = function()
-			return ns.db and ns.db.profile[key]
-		end,
-		set = function(_, value)
-			ns.db.profile[key] = value
-			if onSet then
-				onSet()
-			end
-		end,
+		get = Kit.Get("profile", key),
+		set = Kit.Set("profile", key, onSet),
 	}
 end
 
--- A hidden or disabled test that is true while this profile key is off.
-function ns.OptionsProfileOff(key)
-	return function()
-		return not (ns.db and ns.db.profile[key])
-	end
-end
-
---[[
-	The left half of a label-beside-control row. The control that follows carries name = "" and
-	the remaining width, ordered one past this: a caption left on the control puts the label back
-	above the widget and breaks the row in two.
-]]
-function ns.OptionsRowLabel(text, order, width)
-	return {
-		type = "description",
-		name = text,
-		fontSize = "medium",
-		width = width or ns.OPTIONS_LABEL_WIDTH,
-		order = order,
-	}
-end
-
--- A class's icon as an inline texture, for a label on the My Alts and My Guilds panels.
 function ns.OptionsClassIcon(class)
 	local coords = CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[class]
 	if not coords then
@@ -90,7 +62,40 @@ function ns.OptionsClassIcon(class)
 	)
 end
 
--- Text in the helper color, for the details beside a name.
-function ns.OptionsHelp(text)
-	return GetColor("HELP") .. text .. "|r"
+--------------------------------------------------------------------------------
+-- Features
+--------------------------------------------------------------------------------
+
+local function GiftSwitch(setting)
+	return function(value)
+		ns.db.profile[setting] = value
+		ns.RefreshMailWindow()
+	end
 end
+
+-- Kit.FeatureSwitch reads this list (Options-Kit.md → Features); no menu does, as the add-on has no mini-map button.
+ns.FEATURES = {
+	{
+		store = "profile",
+		setting = "includeGear",
+		name = "OPTIONS_DISTRIBUTE_GEAR",
+		caption = "OPTIONS_ENABLE_GEAR",
+		desc = "OPTIONS_DISTRIBUTE_GEAR_DESCRIPTION",
+		apply = GiftSwitch("includeGear"),
+	},
+	{
+		store = "profile",
+		setting = "includeConsumables",
+		name = "OPTIONS_DISTRIBUTE_CONSUMABLES",
+		caption = "OPTIONS_ENABLE_CONSUMABLES",
+		desc = "OPTIONS_DISTRIBUTE_CONSUMABLES_DESCRIPTION",
+		apply = GiftSwitch("includeConsumables"),
+	},
+	{
+		store = "profile",
+		setting = "shareStats",
+		name = "OPTIONS_SHARE_STATS",
+		caption = "OPTIONS_ENABLE_SHARE",
+		desc = "OPTIONS_SHARE_STATS_DESCRIPTION",
+	},
+}

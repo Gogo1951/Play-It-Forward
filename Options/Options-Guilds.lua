@@ -1,38 +1,26 @@
 local _, ns = ...
 local L = ns.L
 
-local Help = ns.OptionsHelp
+local Kit = ns.OptionsKit
+
+local function Help(text)
+	return Kit.Color("HELP", text)
+end
 
 --------------------------------------------------------------------------------
 -- My Guilds Panel
 --------------------------------------------------------------------------------
 
---[[
-	Every guild your characters are in, plus any added by name, nested under Recipients. Above the
-	list, TFTB's Add Guild box: type a guild's name and its members rank with your guildmates,
-	found online by /who (Features/Recipients-Guild.lua). childGroups = "tree" splits the panel in
-	two, Magic Eraser's list layout: the guilds down the left, the one picked on the right with its
-	name and a remove icon, a tick to include it, how fresh its roster is, and its active members,
-	each with an Include tick to untick for a guild bank or anybody else who should not get mail. A
-	guild added by name has no roster, so it shows a line saying how its members are found instead.
-	Removing a guild one of your characters is in only hides it (Guild:Remove), since that
-	character would save it again at login. The choices live on the saved entries themselves
-	(ns.db.global.guilds), account-wide.
-
-	REGISTERED AS A BUILDER FUNCTION, so the rows are read again each time the panel is drawn: a
-	guild being saved adds a row without a reload.
-]]
-
 local DAY = 24 * 60 * 60
 local REMOVE_ICON = "Interface/Buttons/UI-GroupLoot-Pass-Up"
 local MEMBER_LABEL_WIDTH = 1.8
-local MEMBER_INCLUDE_WIDTH = ns.OPTIONS_TREE_ROW_WIDTH - MEMBER_LABEL_WIDTH
+local MEMBER_INCLUDE_WIDTH = Kit.TREE_ROW_WIDTH - MEMBER_LABEL_WIDTH
 
--- A change to who is offered what drops pooled players it took away, re-reads the bags, and redraws this panel.
+-- RecheckGuildmates first: the pool reads guild state only when a player enters it.
 local function Changed()
 	ns.MatchList:RecheckGuildmates()
 	ns.RefreshMailWindow()
-	LibStub("AceConfigRegistry-3.0"):NotifyChange(ns.OPTIONS_REGISTRY.Guilds)
+	ns.RefreshSettings()
 end
 
 local function SavedWhen(scanned)
@@ -70,7 +58,6 @@ local function GuildStatus(key, guild)
 	return text
 end
 
--- "<Name>", and the realm after it when the guild is not on this one.
 local function GuildLabel(guild)
 	local label = "<" .. (guild.name or "?") .. ">"
 	if guild.realm ~= ns.PlayerRealm() then
@@ -79,11 +66,7 @@ local function GuildLabel(guild)
 	return label
 end
 
---[[
-	"Name - Realm", as the My Alts tree writes a character. The realm is the roster's own suffix
-	where it differs from the guild's realm (a connected one), else the guild's realm as the client
-	names it, spaces and all, rather than the suffix's squashed form.
-]]
+-- A connected realm's roster suffix wins; otherwise the guild's realm as the client spells it, spaces and all.
 local function MemberName(guild, member)
 	local name, suffix = (member.name or "?"):match("^([^%-]+)%-?(.*)$")
 	local realm = guild.realm or ""
@@ -99,6 +82,7 @@ local function MemberRow(guild, member, order, Off)
 		name = "",
 		inline = true,
 		order = order,
+		hidden = Off,
 		args = {
 			label = {
 				type = "description",
@@ -117,7 +101,6 @@ local function MemberRow(guild, member, order, Off)
 				desc = L["OPTIONS_GUILD_MEMBER_INCLUDE_DESCRIPTION"],
 				width = MEMBER_INCLUDE_WIDTH,
 				order = 2,
-				disabled = Off,
 				get = function()
 					return not ns.Guild:Ignored(guild, member.name)
 				end,
@@ -135,7 +118,6 @@ local function GuildPane(key, guild)
 		return not ns.Guild:Included(guild)
 	end
 	local args = {
-		-- TFTB's row: the name, and the remove icon beside it.
 		title = {
 			type = "group",
 			name = "",
@@ -146,7 +128,7 @@ local function GuildPane(key, guild)
 					type = "description",
 					name = GuildLabel(guild),
 					fontSize = "large",
-					width = ns.OPTIONS_TREE_ROW_WIDTH - ns.OPTIONS_REMOVE_ICON_WIDTH,
+					width = Kit.TREE_ROW_WIDTH - Kit.REMOVE_ICON_WIDTH,
 					order = 1,
 				},
 				remove = {
@@ -156,8 +138,11 @@ local function GuildPane(key, guild)
 					image = REMOVE_ICON,
 					imageWidth = 16,
 					imageHeight = 16,
-					width = ns.OPTIONS_REMOVE_ICON_WIDTH,
+					width = Kit.REMOVE_ICON_WIDTH,
 					order = 2,
+					-- Asks first: it discards the guild's member ticks.
+					confirm = true,
+					confirmText = L["OPTIONS_GUILD_REMOVE_CONFIRM"]:format("<" .. (guild.name or "?") .. ">"),
 					func = function()
 						ns.Guild:Remove(key)
 						Changed()
@@ -165,7 +150,7 @@ local function GuildPane(key, guild)
 				},
 			},
 		},
-		spacerTitle = ns.OptionsSpacer(2),
+		spacerTitle = Kit.Spacer(2),
 		include = {
 			type = "toggle",
 			name = L["OPTIONS_GUILD_INCLUDE"],
@@ -186,22 +171,21 @@ local function GuildPane(key, guild)
 		},
 		status = { type = "description", name = Help(GuildStatus(key, guild)), fontSize = "medium", order = 4 },
 	}
-	-- No roster to list: its members are found online by Find Recipients.
+	-- Added by name: no roster, so its members are found by /who.
 	if ns.Guild:ByNameOnly(guild) then
 		return args
 	end
 	local memberArgs = {
-		spacerMembers = ns.OptionsSpacer(5),
-		membersLabel = ns.OptionsHeader(L["OPTIONS_GUILD_MEMBERS"], 6),
-		spacerMemberRows = ns.OptionsSpacer(8),
+		spacerMembers = Kit.Spacer(5, Off),
+		membersLabel = Kit.Header(L["OPTIONS_GUILD_MEMBERS"], 6, Off),
+		spacerMemberRows = Kit.Spacer(8, Off),
 	}
 	for name, option in pairs(memberArgs) do
 		args[name] = option
 	end
 	local members = ns.Guild:ListedMembers(guild)
 	if #members == 0 then
-		args.membersEmpty =
-			{ type = "description", name = L["OPTIONS_GUILD_MEMBERS_EMPTY"], fontSize = "medium", order = 9 }
+		args.membersEmpty = Kit.Desc(L["OPTIONS_GUILD_MEMBERS_EMPTY"], 9, Off)
 	end
 	for index, member in ipairs(members) do
 		args["member" .. index] = MemberRow(guild, member, 10 + index, Off)
@@ -228,15 +212,11 @@ end
 
 function ns.BuildGuildsOptions()
 	local args = {
-		intro = ns.OptionsDesc(L["OPTIONS_GUILDS_INTRO"], 1),
-		spacerIntro = ns.OptionsSpacer(2),
-		guildOfflineLabel = ns.OptionsRowLabel(L["OPTIONS_GUILD_OFFLINE"], 3),
-		guildOffline = {
+		intro = Kit.Desc(L["OPTIONS_GUILDS_INTRO"], 1),
+		spacerIntro = Kit.Spacer(2),
+		guildOffline = Kit.LabelRow(4, nil, L["OPTIONS_GUILD_OFFLINE"], {
 			type = "select",
-			name = "",
 			desc = L["OPTIONS_GUILD_OFFLINE_DESCRIPTION"],
-			width = ns.OPTIONS_CONTROL_WIDTH,
-			order = 4,
 			values = function()
 				local out = {}
 				for _, key in ipairs(ns.GUILD_OFFLINE_ORDER) do
@@ -252,34 +232,37 @@ function ns.BuildGuildsOptions()
 				ns.db.profile.guildOfflineLimit = value
 				Changed()
 			end,
-		},
-		spacerAdd = ns.OptionsSpacer(4.5),
-		addLabel = ns.OptionsRowLabel(L["OPTIONS_GUILD_ADD"], 4.6),
-		add = {
+		}),
+		spacerAdd = Kit.Spacer(4.5),
+		add = Kit.LabelRow(4.7, nil, L["OPTIONS_GUILD_ADD"], {
 			type = "input",
-			name = "",
 			desc = L["OPTIONS_GUILD_ADD_DESCRIPTION"],
-			width = ns.OPTIONS_CONTROL_WIDTH,
-			order = 4.7,
 			get = function()
 				return ""
 			end,
 			set = function(_, value)
 				if ns.Guild:Add(value) > 0 then
 					Changed()
+				else
+					ns.RefreshSettings()
 				end
 			end,
-		},
-		spacerTree = ns.OptionsSpacer(5),
+		}),
+		spacerTree = Kit.Spacer(5),
 	}
-	local panel = { type = "group", name = L["TAB_GUILDS"], childGroups = "tree", args = args }
+	local panel = {
+		type = "group",
+		name = Kit.SubPanelTitle(L["TAB_RECIPIENTS"], L["TAB_GUILDS"]),
+		childGroups = "tree",
+		args = args,
+	}
 	if not ns.db then
 		return panel
 	end
 
 	local guilds = SortedGuilds()
 	if #guilds == 0 then
-		args.guildsEmpty = ns.OptionsDesc(L["OPTIONS_GUILDS_EMPTY"], 6)
+		args.guildsEmpty = Kit.Desc(L["OPTIONS_GUILDS_EMPTY"], 6)
 	end
 	-- Keyed by the guild's saved key, so the selected node holds when a guild is added.
 	for index, row in ipairs(guilds) do

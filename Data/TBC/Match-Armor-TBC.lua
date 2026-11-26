@@ -39,7 +39,7 @@ ns.Data.UNIVERSAL_EQUIP_LOC = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, TBC Anniversary 2.5.6.70577
+	2026-11-26, wago.tools, TBC Anniversary 2.5.6.70577
 
 Notes
 	- ARMOR_WEIGHT ranks the materials. ns.Data.ArmorPriorityFor derives the priority groups by
@@ -79,6 +79,7 @@ Wowhead
 
 wago.tools
 	https://wago.tools/db2/ItemSubClass?build=2.5.6.69795
+	https://wago.tools/db2/SkillRaceClassInfo?build=2.5.6.70577
 
 QuestieDB
 	None.

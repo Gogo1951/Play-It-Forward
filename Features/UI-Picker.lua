@@ -1,99 +1,46 @@
 local _, ns = ...
 
--- The recipient dropdown, reused by the rarity and level-rule controls. The UI files call in through ns.Picker.
+-- Every dropdown list in the window, as Menu-Kit dropdown entries built from the UI files' options.
 
-local ENTRY_HEIGHT = 16
--- How far a name sits in from its section heading.
-local ENTRY_INDENT = 16
-local PICKER_MIN_WIDTH = 192
-local PICKER_MAX = 240 -- max picker height before the list scrolls
--- Wider runs off the screen, and SetClampedToScreen shoves the list back over its own button.
-local PICKER_MAX_WIDTH = 352
+local Kit = ns.MenuKit
 
-local POPUP_TEMPLATE = ns.PickTemplate("TooltipBorderedFrameTemplate", "BackdropTemplate")
+-- Named, so the kit lists it in UISpecialFrames and Escape closes it.
+local PICKER_NAME = "PlayItForwardRecipientPicker"
 
--- The mail window's frame name, as Features/UI-Window.lua registers it in UISpecialFrames.
+-- Must match the name Features/UI-Window.lua puts in UISpecialFrames.
 local MAIN_WINDOW_NAME = "PlayItForwardMailFrame"
 
 -- An entry's tooltip color, unpacked once: GetColorRGB mid-argument-list would keep only its first value.
 local BODY_R, BODY_G, BODY_B = ns.GetColorRGB("BODY")
 
+-- The kinds a click acts on. The rest (headings, lines, explanations) never take one.
+local CLICKABLE = { choice = true, action = true, value = true }
+
 --------------------------------------------------------------------------------
 -- Recipient Picker
 --------------------------------------------------------------------------------
 
--- A rolled dropdown: one /who returns ~49 names, more than UIDropDownMenu handles gracefully.
-ns.Picker = { entries = {} }
+ns.Picker = {}
 local Picker = ns.Picker
 
-function Picker:Build()
-	if self.frame then
-		return self.frame
-	end
-	-- Click-anywhere-else dismisses. Sits in the same strata, one level below.
-	local catcher = CreateFrame("Button", nil, UIParent)
-	catcher:SetAllPoints(UIParent)
-	catcher:SetFrameStrata("DIALOG")
-	catcher:SetFrameLevel(1)
-	catcher:RegisterForClicks("AnyUp")
-	catcher:SetScript("OnClick", function()
-		Picker:Close()
-	end)
-	catcher:Hide()
-	self.catcher = catcher
-
-	local frame = CreateFrame("Frame", "PlayItForwardRecipientPicker", UIParent, POPUP_TEMPLATE)
-	frame:SetFrameStrata("DIALOG")
-	frame:SetFrameLevel(20)
-	frame:SetClampedToScreen(true)
-	-- Backdrop only on the fallback: the bordered template brings its own, and skins restyle that.
-	if POPUP_TEMPLATE == "BackdropTemplate" and frame.SetBackdrop then
-		frame:SetBackdrop({
-			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
-			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-			tile = true,
-			tileSize = 16,
-			edgeSize = 12,
-			insets = { left = 3, right = 3, top = 3, bottom = 3 },
-		})
-	end
-
-	--[[
-		On Classic Era TooltipBorderedFrameTemplate paints a border with nothing behind it, so the list
-		opens see-through. A texture rather than an unconditional SetBackdrop, so a skinning add-on
-		still wins; BACKGROUND so entries and highlights sit above.
-	]]
-	local fill = frame:CreateTexture(nil, "BACKGROUND")
-	fill:SetPoint("TOPLEFT", 3, -3)
-	fill:SetPoint("BOTTOMRIGHT", -3, 3)
-	fill:SetColorTexture(0.05, 0.05, 0.05, 0.95)
-
-	frame:Hide()
-
-	local scroll = CreateFrame("ScrollFrame", "PlayItForwardPickerScroll", frame, "UIPanelScrollFrameTemplate")
-	ns.SkinScrollFrame(scroll, "PlayItForwardPickerScroll")
-	scroll:SetPoint("TOPLEFT", 8, -8)
-	scroll:SetPoint("BOTTOMRIGHT", -26, 8)
-	local content = CreateFrame("Frame", nil, scroll)
-	content:SetSize(1, 1)
-	scroll:SetScrollChild(content)
-	frame.content = content
-
-	--[[
-		Escape hides every shown UISpecialFrames entry at once, so while the list is open the
-		window it drops from leaves the list and Escape closes the list alone. Closing the window
-		stops a mail run and drops the search plan, which one Escape meant for a dropdown must not do.
-	]]
-	tinsert(UISpecialFrames, "PlayItForwardRecipientPicker")
-	frame:SetScript("OnShow", function()
-		for index = #UISpecialFrames, 1, -1 do
-			if UISpecialFrames[index] == MAIN_WINDOW_NAME then
-				table.remove(UISpecialFrames, index)
-			end
+--[[
+	Escape hides every UISpecialFrames entry, and closing the window stops a run, so the window is
+	off the list while a dropdown is open. Back a frame later: Escape's own walk would reach it.
+]]
+local function DropMainWindow()
+	for index = #UISpecialFrames, 1, -1 do
+		if UISpecialFrames[index] == MAIN_WINDOW_NAME then
+			table.remove(UISpecialFrames, index)
 		end
-	end)
-	frame:SetScript("OnHide", function()
-		catcher:Hide()
+	end
+end
+
+local function RestoreMainWindow()
+	C_Timer.After(0, function()
+		-- Reopened in the same frame: the window stays off the list while it is open.
+		if Picker.frame and Picker.frame:IsShown() then
+			return
+		end
 		for _, name in ipairs(UISpecialFrames) do
 			if name == MAIN_WINDOW_NAME then
 				return
@@ -101,132 +48,121 @@ function Picker:Build()
 		end
 		tinsert(UISpecialFrames, MAIN_WINDOW_NAME)
 	end)
-
-	self.frame = frame
-	return frame
 end
 
-function Picker:GetEntry(i)
-	if self.entries[i] then
-		return self.entries[i]
+function Picker:Build()
+	if self.menu then
+		return self.menu
 	end
-	local entry = CreateFrame("Button", nil, self.frame.content)
-	entry:SetHeight(ENTRY_HEIGHT)
-	entry:SetPoint("TOPLEFT", 0, -((i - 1) * ENTRY_HEIGHT))
-	entry:SetPoint("TOPRIGHT", 0, -((i - 1) * ENTRY_HEIGHT))
+	self.menu = Kit.CreateDropdownMenu(PICKER_NAME)
+	self.frame = _G[PICKER_NAME]
+	return self.menu
+end
 
-	--[[
-		Anchored on both sides: with only a LEFT anchor a font string draws at whatever width its
-		text wants and runs out of the list. SetWordWrap(false) ellipsizes rather than wrapping into
-		a second line inside a 16-pixel row.
-	]]
-	entry.text = entry:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	entry.text:SetPoint("LEFT", 4, 0)
-	entry.text:SetPoint("RIGHT", -4, 0)
-	entry.text:SetJustifyH("LEFT")
-	entry.text:SetWordWrap(false)
-
-	-- A divider row draws this instead of text: one hairline across the entry, nothing clickable.
-	entry.line = entry:CreateTexture(nil, "OVERLAY")
-	entry.line:SetPoint("LEFT", 4, 0)
-	entry.line:SetPoint("RIGHT", -4, 0)
-	entry.line:SetHeight(1)
-	local red, green, blue = ns.GetColorRGB("SEPARATOR")
-	entry.line:SetColorTexture(red, green, blue, 0.6)
-	entry.line:Hide()
-
-	local highlight = entry:CreateTexture(nil, "HIGHLIGHT")
-	highlight:SetAllPoints()
-	highlight:SetColorTexture(1, 1, 1, 0.12)
-
-	self.entries[i] = entry
-	return entry
+-- An explicit kit kind, else the separator/header/info flags, else a choice.
+local function KindOf(option)
+	if option.kind then
+		return option.kind
+	end
+	if option.separator then
+		return "separator"
+	end
+	if option.header then
+		return "section"
+	end
+	if option.info then
+		return "description"
+	end
+	return "choice"
 end
 
 --[[
-	options = { { text = "...", tooltip = "..."|nil, pick = candidate|nil,
-	clear/disabled/separator/header/info/findForItem/indent = bool }, ... }
-	info is a line of explanation at the top of the list: not clickable, drawn at full strength.
+	A list setting any selected is taken at its word. The top bar's lists check the choice whose
+	text is the button's, or starts with it and a space (the Disenchant list adds the level).
 ]]
-function Picker:Open(anchor, options, onSelect)
-	local frame = self:Build()
-	for _, entry in ipairs(self.entries) do
-		entry:Hide()
-	end
-
-	-- Never narrower than the button it drops from, whichever control that is.
-	local width = math.max(PICKER_MIN_WIDTH, anchor:GetWidth() or 0)
-	-- A font string with both anchors set reports the width it was given, not the width it wants.
+local function PickedTest(anchor, options)
 	for _, option in ipairs(options) do
-		if not self.ruler then
-			self.ruler = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-			self.ruler:Hide() -- never drawn; it exists only to be measured
-		end
-		self.ruler:SetText(option.text or "")
-		width = math.max(width, self.ruler:GetStringWidth() + 24 + (option.indent and ENTRY_INDENT or 0))
-	end
-	width = math.min(PICKER_MAX_WIDTH, width)
-
-	for i, option in ipairs(options) do
-		local entry = self:GetEntry(i)
-		entry.text:SetText(option.text or "")
-		-- A name sits indented under its section heading. Re-anchored every time: entries are pooled.
-		entry.text:ClearAllPoints()
-		entry.text:SetPoint("LEFT", option.indent and ENTRY_INDENT or 4, 0)
-		entry.text:SetPoint("RIGHT", -4, 0)
-		if option.separator then
-			entry.line:Show()
-		else
-			entry.line:Hide()
-		end
-		-- An entry that will not respond to a click has to look like it; a divider, a heading or an info line is furniture.
-		local furniture = option.separator or option.header or option.info
-		entry:SetAlpha((option.disabled and not furniture) and 0.45 or 1)
-		entry:SetScript("OnClick", function()
-			if option.disabled then
-				return
+		if option.selected ~= nil then
+			return function(candidate)
+				return candidate.selected == true
 			end
-			--[[
-				The pick runs before the list closes, never after. "Rescan for Better Match"
-				sends SendWho straight from this click, and on WoW Forever hiding the list and its
-				click catcher first left the call blocked (issue #16). The Find Recipients button,
-				which works, sends with nothing hidden in between.
-			]]
-			onSelect(option)
-			Picker:Close()
-		end)
-		-- Entries are pooled, so one without a tooltip clears the scripts the last list gave it.
-		if option.tooltip then
-			entry:SetScript("OnEnter", function(hovered)
-				GameTooltip:SetOwner(hovered, "ANCHOR_RIGHT")
-				GameTooltip:AddLine(option.tooltip, BODY_R, BODY_G, BODY_B, true)
-				GameTooltip:Show()
-			end)
-			entry:SetScript("OnLeave", function()
-				GameTooltip:Hide()
-			end)
-		else
-			entry:SetScript("OnEnter", nil)
-			entry:SetScript("OnLeave", nil)
 		end
-		entry:Show()
 	end
+	local label = anchor and anchor.text
+	local shown = label and label.GetText and label:GetText()
+	if type(shown) ~= "string" or shown == "" then
+		return function()
+			return false
+		end
+	end
+	return function(candidate)
+		local text = candidate.text
+		return type(text) == "string" and (text == shown or text:sub(1, #shown + 1) == shown .. " ")
+	end
+end
 
-	local listH = #options * ENTRY_HEIGHT
-	frame.content:SetSize(width, math.max(1, listH))
-	frame:SetSize(width + 40, math.min(PICKER_MAX, listH) + 16)
+--[[
+	options = { { text = "...", tooltip = "..."|nil, kind = kit kind|nil, right = "..."|nil,
+	rightColor = palette key|nil, leftColor = palette key|nil, selected = bool|nil,
+	disabled/separator/header/info = bool, ...anything onSelect reads }, ... }
+	A line between groups gets the spacer above it the guide puts there.
+]]
+function Picker:Entries(anchor, options, onSelect)
+	local picked = PickedTest(anchor, options)
+	local entries = {}
+	for _, option in ipairs(options) do
+		local kind = KindOf(option)
+		local previous = entries[#entries]
+		if kind == "separator" and previous and previous.kind ~= "spacer" then
+			entries[#entries + 1] = { kind = "spacer" }
+		end
+		local entry = {
+			kind = kind,
+			left = option.text,
+			right = option.right,
+			leftColor = option.leftColor,
+			rightColor = option.rightColor,
+			option = option,
+		}
+		if CLICKABLE[kind] then
+			entry.disabled = option.disabled or nil
+			if kind == "choice" then
+				entry.selected = picked(option)
+			end
+			if not option.disabled then
+				--[[
+					Pick, then close: on WoW Forever hiding the list first left Rescan for Better
+					Match's SendWho blocked (issue #16). keepOpen stops the kit hiding it early.
+				]]
+				entry.keepOpen = true
+				entry.onClick = function()
+					onSelect(option)
+					Picker:Close()
+				end
+			end
+		end
+		if option.tooltip then
+			local text = option.tooltip
+			entry.tooltip = function(tooltip)
+				tooltip:AddLine(text, BODY_R, BODY_G, BODY_B, true)
+			end
+		end
+		entries[#entries + 1] = entry
+	end
+	return entries
+end
 
-	frame:ClearAllPoints()
-	frame:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -2)
-	self.catcher:Show()
-	frame:Show()
+function Picker:Open(anchor, options, onSelect)
+	local menu = self:Build()
+	-- Opening the open list's button again closes it, and the window goes back on the Escape list.
+	menu:Open(anchor, self:Entries(anchor, options, onSelect), RestoreMainWindow)
+	if menu:IsOpenFor(anchor) then
+		DropMainWindow()
+	end
 end
 
 function Picker:Close()
-	if self.frame then
-		self.frame:Hide()
-	end
-	if self.catcher then
-		self.catcher:Hide()
+	if self.menu then
+		self.menu:Close()
 	end
 end

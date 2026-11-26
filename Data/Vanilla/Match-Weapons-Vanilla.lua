@@ -72,7 +72,7 @@ ns.Data.WEAPON_SPECS = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, Classic Era 1.15.9.70576
+	2026-11-26, wago.tools, Classic Era 1.15.9.70576
 
 Notes
 	- WEAPON_SUBCLASS turns the weapon subclass the client reports for an item into the add-on's
@@ -101,7 +101,9 @@ Notes
 	  StyLua normalizes the rows but not a padded legend, so the two would drift.
 	- SHIELD (armor subclass 6) and HELD (held off-hand items) are rows here because they
 	  compete for a hand rather than a material (ns.Data.UsesWeaponMatrix).
-	- Druids never train polearms on this client, so their POLEARM column is 0.
+	- Druids never train polearms on this client, so their POLEARM column is 0. This build's
+	  SkillLineAbility and SkillRaceClassInfo still list the druid for Polearms, as Forever's do;
+	  TBC Anniversary's don't. Kept at 0 until a druid at a Classic Era weapon master settles it.
 	- Hand-set by the author as matching policy, not pulled from game data. Validate Data counts
 	  the rows only, since no client API looks up a weapon key.
 
@@ -113,6 +115,8 @@ Wowhead
 
 wago.tools
 	https://wago.tools/db2/ItemSubClass?build=1.15.9.70003
+	https://wago.tools/db2/SkillLineAbility?build=1.15.9.70576
+	https://wago.tools/db2/SkillRaceClassInfo?build=1.15.9.70576
 
 QuestieDB
 	None.

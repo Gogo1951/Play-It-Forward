@@ -103,7 +103,7 @@ ns.Data.INSTANCE_AREAS = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, WoW Forever 1.60.1.70888
+	2026-11-26, wago.tools, WoW Forever 1.60.1.71139
 
 Notes
 	- Levelling zones, and who is in them: input to the /who queries in
@@ -135,6 +135,7 @@ Wowhead
 wago.tools
 	https://wago.tools/db2/AreaTable?build=1.60.1.70291
 	https://wago.tools/db2/AreaTable?build=1.60.1.70450
+	https://wago.tools/db2/AreaTable?build=1.60.1.71139
 
 QuestieDB
 	None.

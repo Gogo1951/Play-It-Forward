@@ -65,7 +65,7 @@ local function distributeAgainstRoster(ns)
 		}),
 		gear("Chain Vest", "INVTYPE_CHEST", 4, 3, { ITEM_MOD_STRENGTH_SHORT = 6 }),
 	})
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 
 	Stub.whoResults = {
 		{ name = "Warr1", level = 18, class = "WARRIOR" },
@@ -133,7 +133,7 @@ local function mailPair(ns)
 		gear("Chain Vest", "INVTYPE_CHEST", 4, 3, { ITEM_MOD_STRENGTH_SHORT = 6 }),
 		gear("Chain Legs", "INVTYPE_LEGS", 4, 3, { ITEM_MOD_STRENGTH_SHORT = 5 }),
 	})
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 end
 
 test("a player found under both name spellings is one person, not two", function()
@@ -205,7 +205,7 @@ test("equally reachable items are still handed out best-first", function()
 		gear("Weak Chain Vest", "INVTYPE_CHEST", 4, 3, { ITEM_MOD_STRENGTH_SHORT = 2 }),
 		gear("Strong Chain Vest", "INVTYPE_LEGS", 4, 3, { ITEM_MOD_STRENGTH_SHORT = 9 }),
 	})
-	ns.fire("MAIL_SHOW")
+	ns.visitMailbox()
 
 	--[[
 		Mail admits warriors and paladins at this level and nobody else, so both items

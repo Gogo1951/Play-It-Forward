@@ -1,28 +1,5 @@
 local _, ns = ...
 
---[[
-	Mists' specializations, in the shape Features/Match-Derivations.lua sums. Every folder's
-	Match-Specs file declares this table; the Classic folders hold the three talent trees. Same points, same
-	rule -- a stat a spec builds around is main (2), one it gears for is useful (1) -- and the same
-	reading of every spec as the player levelling it.
-
-	ONE PRIMARY STAT PER SPEC, which is what makes Mists simpler than Classic: Strength is a plate
-	wearer's, Agility a leather or mail fighter's or a hunter's, Intellect a caster's or a healer's,
-	and a stat a spec does not use is worth nothing to it at all. Hunters dropped Intellect with
-	their mana, Enhancement shamans and both druid melee specs moved to Agility, and a rogue gets
-	nothing from Strength.
-
-	THE SECONDARIES DO NOT DECIDE, and are listed anyway. Every damage spec gears for hit, crit,
-	haste and mastery, so they sum alike across classes and the primary stat still names the class;
-	what they buy is coverage, so a ring of Agility and haste counts as all used by a rogue rather
-	than half. Expertise is the melee and hunter kind of hit, which no caster wants. Spirit is a
-	healer's mana, and hit to the three casters whose Spirit converts to it -- Balance, Shadow and
-	Elemental -- but never a mage's or a warlock's. Dodge and parry stay unweighted, as in Classic:
-	nobody levels on them.
-
-	FOUR DRUID SPECS. Features/Match-Derivations.lua brings any class above three back to the three-tree
-	scale, so Intellect on two of four druid specs weighs 3 where a shaman's two of three weigh 4.
-]]
 local MELEE = { "HIT", "EXPERTISE", "CRIT", "HASTE", "MASTERY" }
 local CASTER = { "HIT", "CRIT", "HASTE", "MASTERY" }
 local HEALER = { "SPIRIT", "CRIT", "HASTE", "MASTERY" }
@@ -38,6 +15,7 @@ local function Spec(key, role, off, primary, kind, secondaries)
 	return { key = key, role = role, off = off or nil, main = main, useful = secondaries }
 end
 
+-- [classToken] = { Spec(key, role, off, primary stat, kind, secondaries), ... }, in talent-tab order
 ns.Data.SPECS = {
 	WARRIOR = {
 		Spec("Arms", "MELEE", true, "STRENGTH", nil, MELEE),
@@ -96,3 +74,47 @@ ns.Data.SPECS = {
 		Spec("Windwalker", "MELEE", true, "AGILITY", nil, MELEE),
 	},
 }
+
+--[[
+How We Got the Data
+
+Last Validated
+	2026-11-26, wago.tools, Mists of Pandaria Classic 5.5.4.71089
+
+Notes
+	- Mists' specializations, in the shape Features/Match-Derivations.lua sums. Every folder's
+	  Match-Specs file declares this table; the Classic folders hold the three talent trees. Same
+	  points, same rule: a stat a spec builds around is main (2), one it gears for is useful (1),
+	  and every spec is read as the player levelling it.
+	- One primary stat per spec, which makes Mists simpler than Classic: Strength is a plate
+	  wearer's, Agility a leather or mail fighter's or a hunter's, Intellect a caster's or a
+	  healer's, and a stat a spec doesn't use is worth nothing to it. Hunters dropped Intellect
+	  with their mana, Enhancement shamans and both druid melee specs moved to Agility, and a
+	  rogue gets nothing from Strength.
+	- The secondaries don't decide, and are listed anyway. Every damage spec gears for hit, crit,
+	  haste and mastery, so they sum alike across classes and the primary stat still names the
+	  class; what they buy is coverage, so a ring of Agility and haste counts as all used by a
+	  rogue rather than half. Expertise is the melee and hunter kind of hit, which no caster
+	  wants. Spirit is a healer's mana, and hit to the three casters whose Spirit converts to it
+	  (Balance, Shadow and Elemental), but never a mage's or a warlock's. Dodge and parry stay
+	  unweighted, as in Classic: nobody levels on them.
+	- Four druid specs. Features/Match-Derivations.lua brings any class above three back to the
+	  three-tree scale, so Intellect on two of four druid specs weighs 3 where a shaman's two of
+	  three weigh 4.
+	- off ships the spec turned off (Arms, Protection paladins, Enhancement, Balance, Guardian,
+	  Brewmaster and Windwalker); the player can turn any of them back on.
+	- Policy rather than game records: the spec keys and classes match this client's
+	  ChrSpecialization table, and there are no IDs, so Validate Data counts the rows only.
+
+SQL (CMaNGOS)
+	None.
+
+Wowhead
+	None.
+
+wago.tools
+	https://wago.tools/db2/ChrSpecialization?build=5.5.4.71089
+
+QuestieDB
+	None.
+]]

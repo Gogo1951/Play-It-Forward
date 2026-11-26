@@ -1,14 +1,11 @@
 --[[
-	What the window decides when a mailbox opens.
+	What a mailbox does, and the gift tab on its edge.
 
-	Two questions, and they turned out to be one bug. The window used to open on
-	ns.Scanner:HasAny, which is the bag filter alone: it says a slot holds a
-	bind-on-equip green of the right rarity, not that any class in the game can use it.
-	And it opened on an empty list, because the scan that fills that list did not
-	happen until the first press of Find Recipients.
-
-	So a bag of low level plate opened a window with nothing in it. Both halves are
-	fixed by reading the bags before deciding, which is what these cases pin.
+	The window used to open by itself at every mailbox holding something to give. It is 656 by
+	512, bigger than the mailbox, so it no longer does: a mailbox puts up a tab on its right edge,
+	the way Recipe Master hangs one off the profession window, and the tab opens the window
+	beside it and closes it again. These cases pin that, and that the list the tab opens on is
+	already read from the bags, so a click never shows an empty list for a bag with gifts in it.
 ]]
 
 local Harness = require("Harness")
@@ -53,225 +50,241 @@ local function windowShown(ns)
 	return ns.UI.frame ~= nil and ns.UI.frame:IsShown() == true
 end
 
+local function openMailbox(ns)
+	MailFrame:Show()
+	ns.fire("MAIL_SHOW")
+end
+
+local function clickTab()
+	PlayItForwardMailboxTab:GetScript("OnClick")(PlayItForwardMailboxTab)
+end
+
+--------------------------------------------------------------------------------
+-- The mailbox opens alone
 --------------------------------------------------------------------------------
 
-test("empty bags leave the window shut", function()
-	local ns = load()
-	Stub.SetBackpack({})
-
-	ns.fire("MAIL_SHOW")
-
-	check(not windowShown(ns), "window stayed shut")
-end)
-
-test("a bag nobody can use leaves the window shut", function()
-	local ns = load()
-	Stub.SetBackpack({ lowLevelPlate() })
-
-	--[[
-		The witness for the bug. The bag filter takes the item, so the old gate said
-		"open"; the matcher admits no class for it, so there was never anything to do.
-		Both assertions have to hold or this case is testing the wrong item.
-	]]
-	local scanned = ns.Scanner:Scan()
-	equal(#scanned, 1, "the bag filter accepts the item")
-	equal(ns.Matcher:Verdict(scanned[1]).state, ns.Matcher.LEFTOVER, "the matcher has no class for it")
-
-	ns.fire("MAIL_SHOW")
-
-	check(not windowShown(ns), "window stayed shut")
-
-	--[[
-		AND SAID NOTHING ABOUT IT. Having nothing spare in your bags is the ordinary state
-		of a mailbox visit, and an add-on that comments on ordinary states is one more
-		thing talking over the game. The Bag Scan report on the Diagnostic Tools panel says
-		what every slot was judged, for anyone who wants to check the silence was correct.
-	]]
-	equal(#Stub.printed, 0, "and said nothing about it")
-end)
-
-test("a giftable bag opens the window with the list already filled", function()
+test("a mailbox with a gift in the bags puts up the tab and opens nothing", function()
 	local ns = load()
 	Stub.SetBackpack({ casterCloth() })
 
-	ns.fire("MAIL_SHOW")
+	openMailbox(ns)
 
-	check(windowShown(ns), "window opened")
-
+	check(not windowShown(ns), "the window stays shut")
+	equal(ns.UI:MailboxTabShown(), true, "the tab is up")
+	equal(ns.UI:MailboxTabLit(), false, "and not lit")
 	--[[
-		The list is populated before a single /who has run. Nobody is assigned yet and
-		that is fine -- the point is seeing how much there is to hand out.
+		AND SAYS NOTHING. A mailbox visit is the ordinary state of the game, and an add-on that
+		comments on it is one more thing talking over the game.
 	]]
-	local items = ns.UI:Items()
-	equal(#items, 1, "the item is in the list on open")
-	equal(items[1].state, ns.Matcher.GIFT, "and it is one that can be given away")
-	equal(items[1].recipient, nil, "with no recipient yet")
+	equal(#Stub.printed, 0, "and nothing is said")
 end)
 
-test("items nobody can use still ride along with a giftable one", function()
+test("the tab is there with nothing to give, too", function()
 	local ns = load()
-	Stub.SetBackpack({ lowLevelPlate(), casterCloth() })
+	Stub.SetBackpack({})
 
-	ns.fire("MAIL_SHOW")
+	openMailbox(ns)
 
-	check(windowShown(ns), "window opened")
-	equal(#ns.UI:Items(), 2, "both rows are listed")
+	equal(ns.UI:MailboxTabShown(), true, "the tab is up on an empty bag")
+	clickTab()
+	check(windowShown(ns), "and opens the window")
+	equal(#ns.UI:Items(), 0, "on an empty list")
 end)
 
 --[[
-	An item the client has not cached yet reads as no item at all, and the window now
-	decides whether to open on that reading. Answering "nothing worth mailing" because
-	the cache was cold is a confident wrong answer, so the scan has to be retried once
-	the client resolves the item.
+	MAIL_SHOW and MailFrame's OnShow both fire for a single mailbox, and the interaction manager
+	reports it a third time where it is registered. One tab, nothing opened, however many reports.
 ]]
-test("a cold item cache is not mistaken for an empty bag", function()
-	local ns = load()
-	local robe = casterCloth()
-	robe.cached = false
-	Stub.SetBackpack({ robe })
-
-	ns.fire("MAIL_SHOW")
-	check(not windowShown(ns), "nothing to show while the item is unresolved")
-
-	robe.cached = true
-	ns.fire("GET_ITEM_INFO_RECEIVED", robe.id)
-	ns.fire("MAIL_CLOSED")
-	ns.fire("MAIL_SHOW")
-
-	check(windowShown(ns), "the next mailbox re-reads the bags and opens")
-	equal(#ns.UI:Items(), 1, "the item is listed once it resolves")
-end)
-
---[[
-	MAIL_SHOW and MailFrame's OnShow both fire for a single mailbox, so the decision
-	runs twice. It has to reach the same answer, and the scan behind it is no longer
-	the free boolean probe it replaced.
-]]
-test("opening a mailbox is decided the same way twice", function()
+test("a mailbox reported twice still opens nothing", function()
 	local ns = load()
 	Stub.SetBackpack({ casterCloth() })
 
 	ns.fire("PLAYER_LOGIN")
-	ns.fire("MAIL_SHOW")
+	openMailbox(ns)
 	local hook = MailFrame.hooks.OnShow
 	check(hook ~= nil, "MailFrame's OnShow is hooked")
 	if hook then
 		hook()
 	end
 
-	check(windowShown(ns), "window still open")
-	equal(#ns.UI:Items(), 1, "the list did not grow a duplicate")
+	check(not windowShown(ns), "the window stays shut")
+	equal(ns.UI:MailboxTabShown(), true, "the tab is up")
 end)
 
---[[
-	The same cold cache, answered without walking away. The mailbox that opened on nothing
-	waits for the item to resolve, and the debounced rescan opens the window then -- the
-	delay a player saw was the walk back to a mailbox they were already standing at.
-]]
-test("an item resolving at the mailbox opens the window there", function()
-	local ns = load()
-	local robe = casterCloth()
-	robe.cached = false
-	Stub.SetBackpack({ robe })
-
-	ns.fire("MAIL_SHOW")
-	check(not windowShown(ns), "nothing to show while the item is unresolved")
-	check(ns.UI:WaitingToOpen(), "the mailbox waits on it")
-
-	robe.cached = true
-	ns.fire("GET_ITEM_INFO_RECEIVED", robe.id)
-	Stub.FireTimers()
-
-	check(windowShown(ns), "opened without leaving the mailbox")
-	check(not ns.UI:WaitingToOpen(), "and the wait is over")
-end)
-
-test("an item resolving after the mailbox closed leaves the window shut", function()
-	local ns = load()
-	local robe = casterCloth()
-	robe.cached = false
-	Stub.SetBackpack({ robe })
-
-	ns.fire("MAIL_SHOW")
-	ns.fire("MAIL_CLOSED")
-
-	robe.cached = true
-	ns.fire("GET_ITEM_INFO_RECEIVED", robe.id)
-	Stub.FireTimers()
-
-	check(not windowShown(ns), "no window out in the world")
-end)
-
--- Closing it at the mailbox is an answer, and a bag change is not a reason to ask again.
-test("a window closed at the mailbox stays closed through a bag change", function()
-	local ns = load()
-	Stub.SetBackpack({ casterCloth() })
-
-	ns.fire("MAIL_SHOW")
-	check(windowShown(ns), "window opened")
-	ns.UI:Close()
-
-	ns.fire("BAG_UPDATE", 0)
-	Stub.FireTimers()
-
-	check(not windowShown(ns), "and stayed closed")
-end)
-
---[[
-	A setting changed with no window built used to change nothing until the bags moved: the
-	next mailbox reused the scan judged under the old setting and opened on nothing.
-]]
-test("a setting changed with no window is read at the next mailbox", function()
-	local ns = load()
-	ns.db.profile.includeGear = false
-	Stub.SetBackpack({ casterCloth() })
-
-	ns.fire("MAIL_SHOW")
-	ns.fire("MAIL_CLOSED")
-	check(not windowShown(ns), "gear off, nothing to give")
-
-	-- What the options panel's toggle does.
-	ns.db.profile.includeGear = true
-	ns.UI:Rescan()
-
-	ns.fire("MAIL_SHOW")
-	check(windowShown(ns), "the next mailbox reads the bags against the new setting")
-end)
-
-test("a setting changed while the mailbox waits opens the window there", function()
-	local ns = load()
-	ns.db.profile.includeGear = false
-	Stub.SetBackpack({ casterCloth() })
-
-	ns.fire("MAIL_SHOW")
-	check(not windowShown(ns), "gear off, nothing to give")
-
-	ns.db.profile.includeGear = true
-	ns.UI:Rescan()
-
-	check(windowShown(ns), "opened on the setting change")
-end)
-
---[[
-	One mailbox reports itself up to three times -- MAIL_SHOW, MailFrame's OnShow, and the
-	interaction manager where it is registered -- and each report used to re-run the open,
-	asking the guild roster again every time.
-]]
-test("one mailbox visit asks for the guild roster once", function()
+-- Nothing is asked of the server until the player wants the window.
+test("a mailbox opening asks for no guild roster until the tab is clicked", function()
 	local ns = load()
 	Stub.guild = { { name = "Guildie-Realm", level = 19, class = "MAGE", online = true } }
 	Stub.SetBackpack({ casterCloth() })
 
 	ns.fire("PLAYER_LOGIN")
-	ns.fire("MAIL_SHOW")
+	openMailbox(ns)
 	MailFrame.hooks.OnShow()
-	ns.fire("MAIL_SHOW")
+	equal(Stub.guildRosterRequests, 0, "nothing asked at the mailbox")
 
-	equal(Stub.guildRosterRequests, 1, "one roster request for one visit")
+	clickTab()
+	equal(Stub.guildRosterRequests, 1, "one roster request once the window opens")
+end)
 
+--------------------------------------------------------------------------------
+-- The tab opens and closes the window
+--------------------------------------------------------------------------------
+
+--[[
+	The window decides nothing on open any more, but the list it opens on is still read from the
+	bags first: matched rows come only on Find Recipients, the items themselves are already there.
+]]
+test("the tab opens the window with the list already filled", function()
+	local ns = load()
+	Stub.SetBackpack({ casterCloth() })
+	openMailbox(ns)
+
+	clickTab()
+
+	check(windowShown(ns), "the window opened")
+	local items = ns.UI:Items()
+	equal(#items, 1, "the item is in the list on open")
+	equal(items[1] and items[1].state, ns.Matcher.GIFT, "and it is one that can be given away")
+	equal(items[1] and items[1].recipient, nil, "with no recipient yet")
+end)
+
+test("items nobody can use still ride along with a giftable one", function()
+	local ns = load()
+	Stub.SetBackpack({ lowLevelPlate(), casterCloth() })
+	openMailbox(ns)
+
+	clickTab()
+
+	check(windowShown(ns), "the window opened")
+	equal(#ns.UI:Items(), 2, "both rows are listed")
+end)
+
+test("the tab stays up and lit while the window is open, and a second click closes it", function()
+	local ns = load()
+	Stub.SetBackpack({ casterCloth() })
+	openMailbox(ns)
+
+	clickTab()
+	equal(ns.UI:MailboxTabShown(), true, "the tab stays with the window up")
+	equal(ns.UI:MailboxTabLit(), true, "lit while the window is up")
+
+	clickTab()
+	check(not windowShown(ns), "the second click closes the window")
+	equal(ns.UI:MailboxTabLit(), false, "and the tab goes dark")
+end)
+
+test("closing the window with its X darkens the tab", function()
+	local ns = load()
+	Stub.SetBackpack({ casterCloth() })
+	openMailbox(ns)
+	clickTab()
+
+	ns.UI:Close()
+
+	equal(ns.UI:MailboxTabShown(), true, "the tab is still up")
+	equal(ns.UI:MailboxTabLit(), false, "and no longer lit")
+end)
+
+test("the tab goes when the mailbox does", function()
+	local ns = load()
+	Stub.SetBackpack({ casterCloth() })
+	openMailbox(ns)
+	equal(ns.UI:MailboxTabShown(), true, "shown at the mailbox")
+
+	MailFrame:Hide()
 	ns.fire("MAIL_CLOSED")
-	ns.fire("MAIL_SHOW")
-	equal(Stub.guildRosterRequests, 2, "and one more at the next visit")
+	Stub.FireTimers()
+	equal(ns.UI:MailboxTabShown(), false, "gone with it")
+end)
+
+--[[
+	The menu is Menu-Kit's (Style Guide → MENUS): the add-on's name, a spacer, the row that opens
+	the window, the row that puts it back in its first place, then the Options footer the kit
+	builds, a spacer, a separator and Options.
+]]
+test("hovering the tab opens its menu, and its first row opens the window", function()
+	local ns = load()
+	Stub.SetBackpack({ casterCloth() })
+	openMailbox(ns)
+
+	local kinds, labels = {}, {}
+	for _, entry in ipairs(ns.UI:MailboxTabMenuEntries()) do
+		kinds[#kinds + 1] = entry.kind
+		labels[#labels + 1] = entry.left or ""
+	end
+	equal(
+		table.concat(kinds, " "),
+		"header spacer action action spacer separator action",
+		"the kit's rows, in its order"
+	)
+	local entries = ns.UI:MailboxTabMenuEntries()
+	equal(labels[1], ns.L["WINDOW_TITLE"], "named for the window it opens")
+	equal(entries[1].right, ns.L["ADDON_SHORT_NAME"], "with the Short Name on the right")
+	equal(labels[3], ns.L["REOPEN_MENU_OPEN"], "the window first")
+	equal(labels[4], ns.L["REOPEN_MENU_RESET_POSITION"], "then Reset Window Position")
+	equal(labels[7], ns.L["REOPEN_MENU_OPTIONS"]:format(ns.L["ADDON_SHORT_NAME"]), "then whose options open")
+
+	PlayItForwardMailboxTab:GetScript("OnEnter")(PlayItForwardMailboxTab)
+	check(ns.UI:MailboxTabMenuShown(), "the mouse over the tab opens the menu")
+	ns.UI:MailboxTabMenuEntries()[3].onClick()
+	check(windowShown(ns), "and Open Distribution Window opens it")
+	equal(ns.UI:MailboxTabLit(), true, "with the tab lit")
+end)
+
+-- Reset Window Position hands off to the window's own reset (Features/UI-Window.lua).
+test("the menu's Reset Window Position row resets the window's place", function()
+	local ns = load()
+	Stub.SetBackpack({ casterCloth() })
+	openMailbox(ns)
+
+	local reset = ns.UI:MailboxTabMenuEntries()[4]
+	local calls = 0
+	local real = ns.UI.ResetWindowPosition
+	ns.UI.ResetWindowPosition = function()
+		calls = calls + 1
+	end
+	reset.onClick()
+	ns.UI.ResetWindowPosition = real
+	equal(calls, 1, "the window is put back")
+	equal(reset.closes, true, "and the menu closes")
+end)
+
+--------------------------------------------------------------------------------
+-- The list behind the tab
+--------------------------------------------------------------------------------
+
+--[[
+	An item the client has not cached yet reads as no item at all. With the window up, the item
+	resolving joins the list without a second click.
+]]
+test("an item resolving with the window open joins the list", function()
+	local ns = load()
+	local robe = casterCloth()
+	robe.cached = false
+	Stub.SetBackpack({ robe })
+	openMailbox(ns)
+	clickTab()
+	equal(#ns.UI:Items(), 0, "nothing listed while the item is unresolved")
+
+	robe.cached = true
+	ns.fire("GET_ITEM_INFO_RECEIVED", robe.id)
+	Stub.FireTimers()
+
+	equal(#ns.UI:Items(), 1, "the item is listed once it resolves")
+end)
+
+test("an item resolving with the window shut opens nothing", function()
+	local ns = load()
+	local robe = casterCloth()
+	robe.cached = false
+	Stub.SetBackpack({ robe })
+	openMailbox(ns)
+
+	robe.cached = true
+	ns.fire("GET_ITEM_INFO_RECEIVED", robe.id)
+	Stub.FireTimers()
+
+	check(not windowShown(ns), "the window stays shut")
 end)
 
 --[[
@@ -283,87 +296,126 @@ test("only the item the scan waits on re-reads the bags", function()
 	local robe = casterCloth()
 	robe.cached = false
 	Stub.SetBackpack({ robe })
-	ns.fire("MAIL_SHOW")
-	check(ns.UI:WaitingToOpen(), "the mailbox waits on the robe")
+	openMailbox(ns)
+	clickTab()
 
 	robe.cached = true
 	ns.fire("GET_ITEM_INFO_RECEIVED", robe.id + 1, true)
 	Stub.FireTimers()
-	check(not windowShown(ns), "an unrelated item answering re-reads nothing")
+	equal(#ns.UI:Items(), 0, "an unrelated item answering re-reads nothing")
 
 	ns.fire("GET_ITEM_INFO_RECEIVED", robe.id, true)
 	Stub.FireTimers()
-	check(windowShown(ns), "the robe answering opens the window")
-end)
-
---------------------------------------------------------------------------------
--- The reopen button beside Blizzard's mail frame
---------------------------------------------------------------------------------
-
-test("closing the window at a mailbox offers the way back", function()
-	local ns = load()
-	Stub.SetBackpack({ casterCloth() })
-	MailFrame:Show()
-	ns.fire("MAIL_SHOW")
-	check(windowShown(ns), "window opened")
-	equal(ns.UI:ReopenButtonShown(), false, "no button while the window is up")
-
-	ns.UI:Close()
-	equal(ns.UI:ReopenButtonShown(), true, "the button appears once it closes")
-
-	PlayItForwardReopenButton:GetScript("OnClick")(PlayItForwardReopenButton)
-	check(windowShown(ns), "and clicking it opens the window again")
-	equal(ns.UI:ReopenButtonShown(), false, "and hides the button")
+	equal(#ns.UI:Items(), 1, "the robe answering lists it")
 end)
 
 --[[
-	Menus, Not Tooltips: hovering the button opens a menu of rows rather than a tooltip, headed by
-	the add-on's name, with the window and the options to open. A click on the button itself still
-	opens the window.
+	A setting changed with no window built used to change nothing until the bags moved: the next
+	open reused the scan judged under the old setting.
 ]]
-test("hovering the button opens its menu, and its first row opens the window", function()
+test("a setting changed with no window is read when the tab opens it", function()
 	local ns = load()
+	ns.db.profile.includeGear = false
 	Stub.SetBackpack({ casterCloth() })
-	MailFrame:Show()
-	ns.fire("MAIL_SHOW")
-	ns.UI:Close()
+	openMailbox(ns)
+	clickTab()
+	equal(#ns.UI:Items(), 0, "gear off, nothing listed")
+	clickTab()
 
-	local kinds, labels = {}, {}
-	for _, entry in ipairs(ns.UI:ReopenMenuEntries()) do
-		kinds[#kinds + 1] = entry.kind
-		labels[#labels + 1] = entry.left or ""
-	end
-	equal(table.concat(kinds, " "), "header separator action separator action", "header, then two rows")
-	equal(labels[1], ns.L["ADDON_TITLE"], "named for the add-on")
-	equal(labels[3], ns.L["REOPEN_MENU_OPEN"], "the window first")
-	equal(labels[5], ns.L["REOPEN_MENU_OPTIONS"], "then the options")
+	-- What the options panel's toggle does, with the window shut.
+	ns.db.profile.includeGear = true
+	ns.UI:Rescan()
+	check(not windowShown(ns), "the setting opens nothing")
 
-	PlayItForwardReopenButton:GetScript("OnEnter")(PlayItForwardReopenButton)
-	check(ns.UI:ReopenMenuShown(), "the mouse over the button opens the menu")
-	ns.UI:ReopenMenuEntries()[3].action()
-	check(windowShown(ns), "and Open Distribution Window opens it")
-	check(not ns.UI:ReopenMenuShown(), "the menu goes with the button")
+	clickTab()
+	equal(#ns.UI:Items(), 1, "the tab reads the bags against the new setting")
 end)
 
-test("a mailbox that listed nothing still offers the window", function()
-	local ns = load()
-	Stub.SetBackpack({})
-	MailFrame:Show()
-	ns.fire("MAIL_SHOW")
-	check(not windowShown(ns), "nothing to give, so no window")
-	equal(ns.UI:ReopenButtonShown(), true, "but the button is there")
-end)
+--------------------------------------------------------------------------------
+-- TSM's mail window in Blizzard's place
+--------------------------------------------------------------------------------
 
-test("the button goes when the mailbox does", function()
+--[[
+	TSM hides Blizzard's mail window and shows its own, which has no name. The tab finds it by the
+	file that made it, a child of UIParent from a TradeSkillMaster file, while TSM's public API says
+	its mail window is up.
+]]
+local function withTSM(up)
+	local window = Stub.NewFrame()
+	rawset(window, "GetSourceLocation", function()
+		return "Interface/AddOns/TradeSkillMaster/LibTSMUI/Source/Util/Widgets.lua:577"
+	end)
+	local other = Stub.NewFrame()
+	rawset(other, "GetSourceLocation", function()
+		return "Interface/AddOns/SomethingElse/Frame.lua:12"
+	end)
+	window:Show()
+	other:Show()
+	-- A frame the game locks away from add-ons, as the shop and Edit Mode's dialogs are: any call but IsForbidden errors.
+	local locked = setmetatable({}, {
+		__index = function(_, key)
+			if key == "IsForbidden" then
+				return function()
+					return true
+				end
+			end
+			return function()
+				error("Attempt to access forbidden object from code tainted by an AddOn")
+			end
+		end,
+	})
+	rawset(UIParent, "GetChildren", function()
+		return locked, other, window
+	end)
+	TSM_API = {
+		IsUIVisible = function(name)
+			return name == "MAILING" and up()
+		end,
+	}
+	return window
+end
+
+test("the tab sits on TSM's mail window when TSM replaces Blizzard's", function()
 	local ns = load()
 	Stub.SetBackpack({ casterCloth() })
-	MailFrame:Show()
-	ns.fire("MAIL_SHOW")
-	ns.UI:Close()
-	equal(ns.UI:ReopenButtonShown(), true, "shown at the mailbox")
+	local tsmUp = true
+	local window = withTSM(function()
+		return tsmUp
+	end)
 
-	MailFrame:Hide()
-	ns.fire("MAIL_CLOSED")
-	Stub.FireTimers()
-	equal(ns.UI:ReopenButtonShown(), false, "gone with it")
+	ns.fire("MAIL_SHOW")
+
+	equal(ns.UI:MailboxTabShown(), true, "the tab is up with Blizzard's window hidden")
+	check(ns.UI:MailboxTabHost() == window, "on TSM's window, not the other add-on's")
+	clickTab()
+	check(windowShown(ns), "and the tab opens the window")
+	equal(#ns.UI:Items(), 1, "with the list filled")
+
+	tsmUp = false
+	window:Hide()
+	ns.UI:SyncMailboxTab()
+	equal(ns.UI:MailboxTabShown(), false, "gone when TSM's window closes")
+	TSM_API = nil
+end)
+
+test("TSM's WoW UI button brings the tab back to Blizzard's window", function()
+	local ns = load()
+	local window = withTSM(function()
+		return not MailFrame:IsShown()
+	end)
+	ns.fire("MAIL_SHOW")
+	check(ns.UI:MailboxTabHost() == window, "on TSM's window first")
+
+	window:Hide()
+	MailFrame:Show()
+	ns.UI:SyncMailboxTab()
+	check(ns.UI:MailboxTabHost() == MailFrame, "then on Blizzard's")
+	equal(ns.UI:MailboxTabShown(), true, "still up")
+	TSM_API = nil
+end)
+
+test("with no mail window showing, no tab", function()
+	local ns = load()
+	ns.fire("MAIL_SHOW")
+	equal(ns.UI:MailboxTabShown(), false, "no Blizzard window and no TSM, no tab")
 end)

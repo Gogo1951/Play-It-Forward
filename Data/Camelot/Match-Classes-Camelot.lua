@@ -28,7 +28,7 @@ ns.Data.CONSUMABLE_CLASSES = {
 How We Got the Data
 
 Last Validated
-	2026-11-11, WoW Forever 1.60.1.70888
+	2026-11-26, wago.tools, WoW Forever 1.60.1.71139
 
 Notes
 	- CONSUMABLE_CLASSES: who a consumable goes to, by what it restores, the stat a scroll buffs, or who an oil or stone enhances a weapon for. Hunters have mana here; pet food is a hunter's alone; stones and melee oils go to the classes that fight with their weapon, wizard oils to spell-damage casters, mana oils to anybody with mana.
@@ -53,6 +53,9 @@ wago.tools
 	https://wago.tools/db2/CharBaseInfo?build=1.60.1.70291
 	https://wago.tools/db2/ChrRaces?build=1.60.1.70291
 	https://wago.tools/db2/ChrClasses?build=1.60.1.70291
+	https://wago.tools/db2/CharBaseInfo?build=1.60.1.71139
+	https://wago.tools/db2/ChrRaces?build=1.60.1.71139
+	https://wago.tools/db2/ChrClasses?build=1.60.1.71139
 
 QuestieDB
 	None.
