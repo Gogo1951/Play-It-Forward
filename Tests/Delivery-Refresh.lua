@@ -1,15 +1,6 @@
 --[[
-	What the list does once items have actually gone out.
-
-	The bug these pin: the window kept showing a delivered item, matched to the person
-	it had just been mailed to and ticked to send again. Features/Mail-Sender.lua states
-	the reason in its own comments -- MAIL_SUCCESS fires before the bag update arrives --
-	and the post-delivery refresh read the bags at exactly that instant. The sent item
-	was still in its slot, so the scan found it, and RescanBags restored the pairing it
-	had just been sent under.
-
-	It showed up as the last item of a run: every earlier slot had cleared by the time
-	the run ended, so four sends left one row behind.
+	What the list does once items have gone out. MAIL_SUCCESS fires before the bag update, so a
+	refresh reading the bags then still finds the sent item and would restore its pairing.
 ]]
 
 local Harness = require("Harness")
@@ -104,20 +95,7 @@ test("items that were not sent stay on the list", function()
 	equal(ns.UI:Items()[1].link, kept.link, "and it is the one that was kept")
 end)
 
---[[
-	Asserted against the locale rather than a literal, so a reworded status stays
-	passing and a status built from the wrong string does not. Matching loosely here is
-	how the first version of this case passed against the bug it was written for.
-]]
---[[
-	A name in chat and the same name in the window should read as one person. The window
-	has always class-colored its rows; the mail lines printed the bare string, so the
-	running commentary on a distribution was the one place a recipient lost their color.
-
-	Asserted through ns.ColorName rather than against a literal escape, because that
-	function honours ClassColors and oUF-style overrides when the player runs one, and a
-	hardcoded color here would pass while the real output disagreed with their UI.
-]]
+-- Through ns.ColorName, not a literal escape: it honours ClassColors and oUF-style overrides.
 test("recipient names in chat carry their class color", function()
 	local ns = readyToDistribute({ cloak() }, { KEEFE })
 
@@ -151,13 +129,8 @@ test("a failed send names the recipient in color too", function()
 end)
 
 --[[
-	What the player watches while a run goes out.
-
-	Blizzard's Send Mail panel has to be open for any of this to work -- UseContainerItem
-	only attaches while it is visible, and with it closed the same call drinks the potion
-	instead -- so it cannot be hidden. It was left blank though: an empty To field, an
-	empty body, and a subject the client had auto-filled with the item's name. That reads
-	as a broken form waiting to be typed into.
+	Blizzard's Send Mail panel must stay open (UseContainerItem only attaches while it is visible;
+	closed, it uses the item), so it shows the letter rather than a blank form.
 ]]
 test("the mail panel shows who the letter is going to", function()
 	local ns = readyToDistribute({ cloak() }, { KEEFE })
@@ -169,18 +142,13 @@ test("the mail panel shows who the letter is going to", function()
 end)
 
 --[[
-	The body box is not SendMailBodyEditBox on this client. That name arrives with
-	Dragonflight; Classic keeps the body behind MailEditBox:GetEditBox(), which is why
-	the To and Subject boxes filled and the body stayed empty. Resolved by availability
-	rather than by flavour, the same way Features/Utilities.lua picks its container API.
+	The body box is resolved by availability, not flavor: Classic keeps it behind
+	MailEditBox:GetEditBox(), and SendMailBodyEditBox arrives with Dragonflight.
 ]]
 test("the body box is found under whichever name the client uses", function()
 	local ns = readyToDistribute({ cloak() }, { KEEFE })
 
-	--[[
-		The retail shape: no MailEditBox, a plain SendMailBodyEditBox instead. A resolver
-		that only knew the Classic name would leave this one empty.
-	]]
+	-- The retail shape: no MailEditBox, a plain SendMailBodyEditBox.
 	MailEditBox = nil
 	SendMailBodyEditBox = Stub.NewFrame()
 
@@ -189,11 +157,7 @@ test("the body box is found under whichever name the client uses", function()
 	equal(SendMailBodyEditBox.shownText, ns.Distributor:BuildBody(), "filled under the retail name too")
 end)
 
---[[
-	Attaching an item writes its name into an empty subject box, so the panel showed
-	"Lesser Healing Potion (2)". The subject has to be written after the attach or the
-	client's guess wins.
-]]
+-- Attaching writes the item's name into an empty subject box, so ours must be written after.
 test("the subject shown is ours, not the item's name", function()
 	local ns = readyToDistribute({ cloak() }, { KEEFE })
 
@@ -214,12 +178,6 @@ test("each letter of a run shows its own recipient", function()
 	check(first ~= second, ("the panel followed the run: %s then %s"):format(tostring(first), tostring(second)))
 end)
 
---[[
-	Distributing used to print the subject and then the body a line at a time, before
-	sending anything. That was worth doing while the text was editable; with it fixed
-	nobody can have changed it, so it was six lines of chat repeating the same paragraphs
-	every run.
-]]
 test("distributing does not print the mail text to chat", function()
 	local ns = readyToDistribute({ cloak() }, { KEEFE })
 	Stub.printed = {}
@@ -249,12 +207,7 @@ test("distributing still says how many are going", function()
 	check(announced, "the run announces itself")
 end)
 
---[[
-	The run reports itself in chat as well as on the window's status line, and the list
-	reports what is left. The chat half is worth pinning on its own: the window may be
-	closed by the time the run ends, and a run that says nothing is indistinguishable
-	from one that did not happen.
-]]
+-- The window may be closed by the time a run ends, so the run reports itself in chat too.
 test("a finished run says so in chat", function()
 	local ns = readyToDistribute({ cloak() }, { KEEFE })
 	Stub.printed = {}
@@ -283,10 +236,6 @@ test("what was kept back is still on the list after a run", function()
 	equal(ns.UI:Items()[1].name, "Kept Cloak", "and it is the one that was kept")
 end)
 
---[[
-	Distribute is dead until pressing it would send something. Both conditions used to
-	be discovered by pressing it and reading a warning.
-]]
 test("Distribute is dead until a mailbox is open and something is ticked", function()
 	local ns = load()
 	Stub.SetBackpack({ cloak() })
@@ -306,10 +255,8 @@ test("Distribute is dead until a mailbox is open and something is ticked", funct
 	equal(ns.UI.frame.distributeButton:IsEnabled(), false, "and dead again once you walk away")
 end)
 
---[[
-	Loot taken with the window open came in under "No Recipient" and stayed there, though the
-	search had already turned up somebody it fits: the rescan only redrew the list.
-]]
+-- Loot taken with the window open is matched from those already found, not left under No Recipient.
+
 test("an item arriving with the window open is matched from those already found", function()
 	local ns = load()
 	Stub.SetBackpack({ cloak("First Cloak") })

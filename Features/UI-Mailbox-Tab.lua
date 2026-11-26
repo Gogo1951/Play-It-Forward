@@ -9,22 +9,15 @@ local Kit = ns.MenuKit
 --------------------------------------------------------------------------------
 
 --[[
-	A square tab with the add-on's gift on the right edge of Blizzard's mail frame, or of TSM's mail
-	window in its place, at every mailbox, the way Recipe Master hangs one off the profession window. The window never opens by
-	itself: a click on the tab opens it beside the tab, a second click closes it, and the tab is lit
-	while the window is up. With nothing to give, the tab is still there, and the window says so.
-
-	PARENTED TO UIParent AND ANCHORED BESIDE the mail window, never parented to it and never
-	writing to it: a frame parented to a Blizzard panel stays protected for good, and anything
-	written to the panel taints it. Shown only while that window is, since it reads as part of it.
+	Parented to UIParent, only anchored beside the mail window: a frame parented to a Blizzard panel
+	stays protected for good, and writing to the panel taints it.
 ]]
 
 UI.MAILBOX_TAB_SIZE = 40 -- Features/UI-Window.lua opens the window clear of it
 local ICON_SIZE = 32
-local TAB_TOP = 48 -- down from the mail frame's top, clear of its title
+local TAB_TOP = 48 -- clear of the mail frame's title
 local EDGE_SIZE = 16
 local INSET = 4
--- The border at rest: the title gold, dimmed, so the lit tab stands out against it.
 local REST_DIM = 0.55
 
 local GIFT_TEXTURE = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Includes\\Images\\Gift"
@@ -37,12 +30,11 @@ local function WindowShown()
 end
 
 local function OpenWindow()
-	-- UI:Open does not read the bags itself; every other caller already had.
+	-- UI:Open does not scan.
 	ns.MatchList:EnsureScan()
 	UI:Open()
 end
 
--- Back beside the mail frame at its first size. Features/UI-Window.lua owns the window's place.
 local function ResetWindowPosition()
 	if UI.ResetWindowPosition then
 		UI:ResetWindowPosition()
@@ -53,13 +45,7 @@ end
 -- Menu
 --------------------------------------------------------------------------------
 
---[[
-	The mouse over the tab opens a small Menu-Kit menu off its corner (Style Guide → MENUS), laid out
-	as Good to Go's tab menu is: the window it opens as the header, gold, with the Short Name muted on
-	the right; the row that opens the window and the one that puts it back in its first place; then
-	the footer naming whose options open ("Play It Forward Options"). Read by Tests/ through
-	UI:MailboxTabMenuEntries, so the rows can be checked without a frame.
-]]
+-- Laid out as Good to Go's tab menu (Style Guide → MENUS). Frame-free, so Tests/ can read the rows.
 function UI:MailboxTabMenuEntries()
 	local entries = {
 		{ kind = "header", left = L["WINDOW_TITLE"], right = L["ADDON_SHORT_NAME"] },
@@ -98,7 +84,7 @@ end
 -- Tab
 --------------------------------------------------------------------------------
 
--- A click opens the window, or closes it when it is up. The menu goes first: the window opens where it sits.
+-- The menu hides first: the window opens where it sits.
 local function OnTabClick()
 	if menu then
 		menu:Hide()
@@ -130,7 +116,6 @@ local function Build()
 	icon:SetPoint("CENTER")
 	icon:SetTexture(GIFT_TEXTURE)
 
-	-- The game's own square highlight under the mouse, and its gold glow while the window is up.
 	local highlight = tab:CreateTexture(nil, "HIGHLIGHT")
 	highlight:SetAllPoints(icon)
 	highlight:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
@@ -147,7 +132,6 @@ local function Build()
 	tab:Hide()
 end
 
--- The border lights up with the window: full gold while it is up, dimmed at rest.
 local function Light(lit)
 	tab:SetChecked(lit)
 	if tab.SetBackdropBorderColor then
@@ -162,18 +146,12 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-	TSM's mail window replaces Blizzard's and hides it, and it has no name: TSM's public API
-	(TSM_API) says only whether it is up, and hands out its crafting window alone, which is how
-	Recipe Master's tab finds TSM. So the tab finds TSM's window the way /fstack does, by the file
-	that created it: the direct child of UIParent, shown, made from a TradeSkillMaster file, the
-	largest if there are several. Only asked while TSM says its mail window is up.
-
-	GetSourceLocation is the client's own answer to where a frame was made. A client without it
-	finds nothing here, and the tab stays off TSM's window there.
+	TSM's mail window has no name and TSM_API hands out only its crafting window, so it is found by
+	the file that made it (GetSourceLocation). A client without that gets no tab on TSM's window.
 ]]
 local TSM_SOURCE = "TradeSkillMaster"
 
-local tsmFrame -- the last TSM window found, kept while it is shown
+local tsmFrame
 local hooked = setmetatable({}, { __mode = "k" })
 
 local function TSMMailUp()
@@ -199,10 +177,7 @@ local function FindTSMFrame()
 	tsmFrame = nil
 	local best, bestArea = nil, 0
 	for _, child in ipairs({ UIParent:GetChildren() }) do
-		--[[
-			IsForbidden FIRST: UIParent holds frames the game locks away from add-ons (the shop,
-			Edit Mode's dialogs), and any other call on one of those is an error.
-		]]
+		-- IsForbidden first: any other call on a forbidden child of UIParent is an error.
 		if not child:IsForbidden() and MadeByTSM(child) and child:IsShown() then
 			local area = (child:GetWidth() or 0) * (child:GetHeight() or 0)
 			if best == nil or area > bestArea then
@@ -211,7 +186,7 @@ local function FindTSMFrame()
 		end
 	end
 	if best and not hooked[best] then
-		-- Follows TSM's window shown and hidden, its WoW UI and TSM buttons included, without asking again.
+		-- Catches TSM's own switch to the stock mail UI and back.
 		hooked[best] = true
 		best:HookScript("OnShow", function()
 			UI:SyncMailboxTab()
@@ -224,11 +199,7 @@ local function FindTSMFrame()
 	return best
 end
 
---[[
-	The mailbox window the tab sits on now: Blizzard's while it is up, else TSM's, else none. On
-	the module so Features/UI-Mailbox.lua opens the window beside the same one, and for the
-	Mailbox diagnostics report.
-]]
+-- Shared so UI:Open and PlaceAtFirst put the window beside the same host, and for the Mailbox report.
 function UI:MailboxTabHost()
 	if not ns.AtMailbox() then
 		return nil
@@ -279,11 +250,7 @@ function UI:SyncMailboxTab()
 	end
 end
 
---[[
-	A mail add-on can put its own window up a frame or two after the mailbox reports itself, so
-	the tab asks again next frame and once more a moment later. Each pass is cheap once a window
-	is found.
-]]
+-- A mail add-on can show its window a frame or more after the mailbox reports itself.
 local SETTLE = 0.5
 function UI:SyncMailboxTabSoon()
 	self:SyncMailboxTab()

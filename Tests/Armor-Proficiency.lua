@@ -1,18 +1,7 @@
 --[[
-	Armor a class has to train before it can wear it.
-
-	The item that prompted this was a Captain's Waistguard of the Falcon: mail, requiring
-	level 36, carrying nothing but Agility. Every hunter spec builds on Agility and two of
-	three paladin specs merely tolerate it, so the point tables put the hunter six to the
-	paladin's two -- and the hunter never got a look, because ns.Data.NATIVE_ARMOR says he
-	is leather until 40 and the eligibility gate read that as "not his item" rather than
-	"not yet". The belt went to a paladin and hunters were never even searched for.
-
-	The fix is that a later training level moves the recipient band instead of closing the
-	door: the hunter is looked for at 38 and 39, arriving with the belt just before he
-	trains mail, while the paladin beside him is still looked for at 34 and 35. Bounded by
-	ns.Data.PROFICIENCY_REACH, because a level 20 mail belt has nothing left to offer
-	somebody who cannot wear it until 40.
+	Armor a class trains later moves the recipient band instead of closing the door: a hunter is
+	leather until 40, so a level 36 Agility mail belt looks for him at 38 and 39, just before he
+	trains mail, and for the paladin at 34 and 35. Bounded by ns.Data.PROFICIENCY_REACH.
 ]]
 
 local Harness = require("Harness")
@@ -78,11 +67,7 @@ test("agility mail four levels short of the training level is the hunter's", fun
 	check(contains(verdict.admitted, "WARRIOR"), "and the warrior")
 end)
 
---[[
-	The bound. Reach is five, so a level 34 belt is out and a 35 is in -- and the case
-	either side of the line is the one worth pinning, because the number is a judgement
-	call and this is where an edit to it shows up.
-]]
+-- Reach is five: a level 34 belt is out, a 35 in. The number is a judgment call, so its edge is pinned.
 test("mail further below the training level than reach does not reach the hunter", function()
 	local ns = load()
 	local verdict = ns.Matcher:Verdict(falconBelt(ns, 34))
@@ -119,11 +104,7 @@ test("a class that never trains the material is never reached", function()
 	check(not contains(verdict.eligible, "MAGE"), "cloth classes are not admitted to mail either")
 end)
 
---[[
-	The same gate on the other material, and the reason it is not only about hunters:
-	warriors and paladins train plate at 40 too, so on Era -- no death knights -- sub-40
-	plate had NOBODY eligible at all and went straight to the kept pile.
-]]
+-- Warriors and paladins train plate at 40 too, so on Era (no death knights) sub-40 plate would reach nobody.
 test("sub-40 plate reaches the warrior instead of the vendor pile", function()
 	local ns = load()
 	local verdict = ns.Matcher:Verdict(armor(ns, PLATE, 37, { ITEM_MOD_STRENGTH_SHORT = 8 }))
@@ -132,10 +113,7 @@ test("sub-40 plate reaches the warrior instead of the vendor pile", function()
 	equal(verdict.best, "WARRIOR", "and it is his")
 end)
 
---[[
-	Nothing above the gate moved. Leather and cloth are worn from level 1 by the classes
-	that wear them at all, so no band shifts and no class joins.
-]]
+-- Leather and cloth are worn from level 1 by every class that wears them, so no band shifts.
 test("leather and cloth are untouched", function()
 	local ns = load()
 	local leather = ns.Matcher:Verdict(armor(ns, LEATHER, 36, { ITEM_MOD_AGILITY_SHORT = 8 }))
@@ -195,10 +173,7 @@ test("a band a class cannot use it in is not searched for that class", function(
 	local item = falconBelt(ns)
 	item.verdict = ns.Matcher:Verdict(item)
 
-	--[[
-		The 34 is exactly where the old single band would have put him, and he cannot wear
-		mail for another six levels. The 38 gets it and equips it the level after next.
-	]]
+	-- At 34 he cannot wear mail for six more levels; the 38 equips it the level after next.
 	local pools = {
 		HUNTER = {
 			{ name = "Toolow", level = 34, class = "HUNTER", shuffle = 0.1 },
@@ -222,11 +197,10 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	"Rescan for Better Match" is meant to answer "who would be best for this", and
-	the only shape /who can be filtered on is one class at a time. So every class gets a
-	group of its own, the contender first, over its own band -- which is what turns the
-	first press into his zones under `38-39 c-"Hunter"`, and asks for him anywhere after.
+	/who filters on one class at a time, so a targeted search gives each class its own group and
+	band, the contender first: his zones under `38-39 c-"Hunter"`, then him anywhere.
 ]]
+
 test("a targeted search asks for the contender first, by name and in its own band", function()
 	local ns = load()
 	local item = falconBelt(ns)

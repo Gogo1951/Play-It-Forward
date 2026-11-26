@@ -6,18 +6,9 @@ ns.MatchSearch = {}
 local MatchSearch = ns.MatchSearch
 
 --[[
-	Clusters, not one span: bags routinely hold low-level gear and high-level consumables and
-	nothing between, and one span queries the empty middle while the bands that matter come back a
-	thin sample against the /who cap.
-
-	Merging unions the class sets as well as the level spans -- two items sharing a band are one
-	query, which has to ask for everybody either of them can go to. Shared by the scan bands, the
-	unmatched bands below and Features/Recipients-Who-Plan.lua's spans, so Who:Prune matches
-	attempts against bands built the same way.
-
-	canJoin decides whether a band folds into the one before it: by default when it touches or
-	overlaps it. With emptyMeansAnyone, a band naming no class asks for everybody, and so does
-	whatever it folds into.
+	Clusters, not one span, or the empty middle eats the /who cap. Shared with Recipients-Who-Plan's
+	spans so Who:Prune matches attempts against bands built the same way. With emptyMeansAnyone, a
+	classless band asks for everybody, and so does whatever it folds into.
 ]]
 local function AddClasses(band, classes)
 	for _, class in ipairs(classes) do
@@ -61,7 +52,6 @@ local function MergeBands(bands, canJoin, emptyMeansAnyone)
 	return merged
 end
 
--- Whether this class is one the verdict put in contention, not merely admitted behind them.
 local function InContention(item, classToken)
 	for _, class in ipairs((item.verdict and item.verdict.contenders) or {}) do
 		if class == classToken then
@@ -71,30 +61,15 @@ local function InContention(item, classToken)
 	return false
 end
 
---[[
-	Whether the holder is somebody the verdict puts in contention. One of your alts always is: it
-	was admitted by its own specs and RankCandidates ranks it with the contenders, so the
-	class-default contenders must not read it as a fallback.
-]]
+-- An alt always is: admitted by its own specs, it ranks with the contenders (CouldOutrank agrees).
 local function HolderInContention(item)
 	local holder = item.recipient
 	return holder.alt == true or InContention(item, holder.class)
 end
 
 --[[
-	A gift is still worth searching for while nobody holds it -- or while only a fallback does.
-	The contenders are who the verdict says the item is FOR, and a fallback pairing must not
-	read as the search having found them, or the plan clears before the contenders' bands are
-	asked. A pinned row is the player's
-	decision, and final; an unticked row is pinned, so it is never searched for. Leftovers and
-	unreadables are excluded, or the plan never empties and every press of Find Recipients goes
-	on spending the /who throttle for the whole session.
-
-	A stranger holder standing in a capital or a dungeon counts as a fallback too
-	(Who:KeepsSearching): the zones still on the plan may turn up somebody out leveling, who is who
-	the gift is for. The plan running dry is what ends that search, so it costs at most the presses
-	already planned. Never an alt or guildmate holder: a search turns up only strangers, and a
-	stranger never outranks them (Matcher:CouldOutrank).
+	Leftovers and unreadables never count, or the plan never empties. A holder ranked as a stranger
+	(SourceRank 3) in a capital or dungeon still searches; one ranked above strangers never does.
 ]]
 local function StillSearching(item)
 	if item.state ~= ns.Matcher.GIFT or item.pinned then
@@ -110,10 +85,8 @@ local function StillSearching(item)
 end
 
 --[[
-	Which classes a band should query for. A fallback-held item narrows to the contenders --
-	somebody suitable already holds it, so the only find worth a press is an upgrade -- while an
-	unheld one asks for everybody admitted, since there a fallback beats nobody. Admitted, or
-	eligible when nothing was admitted: narrowing on an empty set asks for no classes at all.
+	A fallback-held item asks only for contenders (only an upgrade is worth a press); an unheld one
+	for everybody admitted, or eligible when nobody was, since an empty set asks for no classes.
 ]]
 local function BandClasses(item, verdict)
 	if item.recipient and not item.pinned and not HolderInContention(item) then
@@ -122,14 +95,9 @@ local function BandClasses(item, verdict)
 	return (#verdict.admitted > 0) and verdict.admitted or verdict.eligible
 end
 
---[[
-	The row a targeted search is looking for, by slot key: RescanBags replaces every item table,
-	so a reference would go stale under it. Read only while Who.targeted says the plan is still
-	that search's; a fresh plan or a Clear ends it without this having to be told.
-]]
+-- By slot key, since RescanBags replaces every item table; read only while Who.targeted holds.
 local targetKey
 
--- The row itself, or nil once it has left the bags.
 local function TargetItem()
 	if not targetKey then
 		return nil
@@ -142,12 +110,7 @@ local function TargetItem()
 	return nil
 end
 
---[[
-	Narrows a targeted search to the attempts that could still turn up somebody who outranks the
-	row's holder, and ends it once none is left -- or at once when the row is gone or the player
-	decided it by hand. An attempt with no class filter (a consumable's zones) asks for everybody,
-	so it stays while any admitted class could.
-]]
+-- A classless attempt (a consumable's zones) asks for everybody, so it stays while any admitted class could outrank.
 local function NarrowTargeted()
 	local item = TargetItem()
 	if not item or item.pinned then
@@ -183,11 +146,8 @@ local function SearchingGifts()
 end
 
 --[[
-	The bands a search still has something to find for. Leftovers are left out here, where the
-	scan bands keep them: the plan is dropped whole the moment no gift is searching, so a band
-	held open for a leftover would spend presses on a row the search was never going to finish.
-	Reads the verdict RescanBags cached rather than asking the matcher again -- a second opinion
-	here could prune a band the list still shows as waiting.
+	Leftovers left out, unlike the scan bands: the plan drops whole once no gift searches. Reads the
+	cached verdict, since a second opinion could prune a band the list still shows waiting.
 ]]
 local function SearchingBands()
 	local bands = {}
@@ -205,7 +165,6 @@ local function SearchingBands()
 	return MergeBands(bands)
 end
 
--- Marks the row a targeted search is for; Assign narrows and ends that search against it.
 function MatchList:Target(item)
 	targetKey = item and MatchList:SlotKey(item) or nil
 end

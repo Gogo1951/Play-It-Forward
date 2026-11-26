@@ -1,18 +1,10 @@
 --[[
-	Getting a whole bag's worth of recipients out of one press.
+	A whole bag's recipients from one press: every zone a band touches goes in one query, chunked
+	only when the character budget forces it.
 
-	One query per zone was leaving fifteen-odd presses on the table for a bag that is
-	usually one tight level band -- somebody who just finished a boost with five items
-	for levels 15-25. Every zone that band touches goes in one query now, and the
-	character budget is the real constraint: chunking exists because one query is not
-	always enough.
-
-	CLASS FILTERS ARE ONE PER QUERY, NEVER A LIST. The client honors a single c-"..."
-	and quietly drops the rest of an OR'd set -- observed live on 1.15.9 (2026-07-23),
-	where a Warrior/Paladin/Rogue query answered with paladins alone, the first filter
-	alphabetically. A zoned query carries the filter only when exactly one class is
-	wanted; otherwise the zones do the narrowing and the class filter is spent one
-	class per query in the widened stage.
+	Class filters are one per query, never a list: the client honors a single c-"..." and drops the
+	rest of an OR'd set (observed on 1.15.9, 2026-07-23: a Warrior/Paladin/Rogue query answered with
+	paladins alone). A zoned query carries a filter only when exactly one class is wanted.
 ]]
 
 local Harness = require("Harness")
@@ -67,10 +59,7 @@ test("every zone for a band goes in one query", function()
 	check(first:find("16%-19"), "carrying the band's levels")
 end)
 
---[[
-	The invariant pinned to the observed bug: a query listing several classes silently
-	narrows to one, so no query may ever carry more than one class filter.
-]]
+-- A query listing several classes silently narrows to one.
 test("no query ever carries more than one class filter", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 16, hi = 19, classes = { "WARRIOR", "PALADIN" } } })
@@ -225,10 +214,8 @@ test("a wide band is split rather than truncated", function()
 	check(zoned > 1, "more than one zone query, so the list was chunked not dropped")
 end)
 
---[[
-	The typical bag: one tight band, a couple of classes. This is the case the whole
-	rewrite is for.
-]]
+-- The typical bag: one tight band, a couple of classes.
+
 test("a single tight band is one zone query", function()
 	local ns = load()
 	ns.Who:Plan({ { lo = 16, hi = 19, classes = { "WARRIOR", "PALADIN" } } })

@@ -1,18 +1,12 @@
 --[[
-	The My Alts and My Guilds panels and the saved guild list behind them (maintainer rulings,
-	2026-10-29).
+	The My Alts and My Guilds panels and the saved guild list (maintainer rulings, 2026-10-29).
+	Every guild any of your characters is in is saved account-wide at that character's login. A
+	saved roster counts members active in the 3 days before the scan, and is ignored once older
+	than the Ignore Saved Guilds setting.
 
-	Every guild any of your characters is in is saved account-wide at that character's login, so
-	whichever character you are on reaches the leveling players in all of them. A saved roster
-	counts members active in the 3 days before the scan, and is ignored once it is older than the
-	Ignore Saved Guilds setting. Both panels are trees, one node per alt or guild. Each alt has a
-	tick, a Delete, the specs it is mailed gear for and whether it holds gear it has yet to grow
-	into; each guild has a remove icon, a tick and an Include beside every active member, ticked by
-	default. Alts and members are listed alphabetically, members as "Name - Realm".
-
-	Any other guild can be added by name, TFTB's way (maintainer ruling, 2026-11-11). It has no
-	roster, so its members are found by /who: a g-"Name" query opens each search, and anybody a
-	/who answer places in one of your guilds ranks as a guildmate.
+	Any other guild can be added by name, TFTB's way (maintainer ruling, 2026-11-11): it has no
+	roster, so a g-"Name" /who query opens each search, and anybody a /who answer places in one of
+	your guilds ranks as a guildmate.
 ]]
 
 local Harness = require("Harness")

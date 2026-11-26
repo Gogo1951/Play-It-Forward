@@ -1,16 +1,7 @@
 --[[
-	Re-matching everything the add-on chose, every time the roster grows.
-
-	Assignments used to be kept: a pass filled the items that had nobody and left the
-	rest alone. That is wrong the moment a rule is soft. A cloth healing robe prefers a
-	priest and falls back to a druid, so a first press that finds only a druid gives him
-	the robe -- and a second press that finds a priest never revisits it. The item stays with its fallback because it is no longer "unassigned".
-
-	So every pass now clears what the add-on decided and decides again against the whole
-	roster. What it never touches is what the player decided: a row kept by
-	hand, a recipient picked by hand, a tick taken off by hand. Those are pinned, and
-	rebuilding over them is the reassignment-behind-your-back this add-on already got
-	wrong once.
+	Every pass clears what the add-on decided and decides again against the whole roster, since
+	rules are soft: a robe given to the fallback druid must move when a priest turns up. What the
+	player decided (a row kept, a recipient picked, a tick taken off) is pinned and never rebuilt.
 ]]
 
 local Harness = require("Harness")
@@ -65,9 +56,6 @@ local PRIEST = { name = "Pri", level = 18, class = "PRIEST" }
 
 --------------------------------------------------------------------------------
 
---[[
-	The reported case, end to end.
-]]
 test("a fallback is reconsidered when a better class turns up", function()
 	local ns = load()
 	healingRobe(ns)

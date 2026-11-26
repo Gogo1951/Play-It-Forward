@@ -1,11 +1,6 @@
 --[[
-	Reading stats off a rendered tooltip.
-
-	Tooltip:StatsFromLines is pure -- no tooltip, no item cache, no client state -- so
-	the real lines a client produced can be fed straight to it. Every case below is a
-	line copied out of a diagnostics dump from 1.15.8 rather than one written from
-	memory, because the whole class of bug here is "the client words it differently
-	than we guessed".
+	Tooltip:StatsFromLines is pure, so real lines go straight in. Every case is a line copied from a
+	1.15.8 diagnostics dump, not memory: the bugs here are the client wording things differently.
 ]]
 
 local Harness = require("Harness")
@@ -30,11 +25,7 @@ test("a plain stat line still parses", function()
 	equal(stats.SPIRIT, 4, "spirit")
 end)
 
---[[
-	The color-wrapped, newline-terminated form a random suffix arrives in. Called out
-	as load-bearing in Scan-Tooltip.lua: without the cleanup every rolled green reads
-	as statless.
-]]
+-- A random suffix arrives color-wrapped and newline-terminated; uncleaned, every rolled green reads statless.
 test("a color-wrapped suffix line still parses", function()
 	local ns = load()
 	local stats = parse(ns, "|cffffffff+15 Intellect|r\n")
@@ -43,14 +34,8 @@ test("a color-wrapped suffix line still parses", function()
 end)
 
 --[[
-	THE BUG. "Battlesmasher of Nature's Wrath" on 1.15.8 rendered "+6 Nature Spell
-	Damage" and the whole item parsed to nothing, so it was held back as unreadable --
-	a one-hander a druid would have taken.
-
-	The name table only knew five stats: strength, agility, stamina, intellect, spirit.
-	Every other stat the client can write as "+N Something" fell through it, and the
-	equip-effect patterns underneath only match the "increases ... by N" wording, never
-	the "+N" one.
+	The equip-effect patterns only match the "increases ... by N" wording, so a "+N" stat missing
+	from the name table, like "+6 Nature Spell Damage", leaves the item unreadable.
 ]]
 test("a school damage line parses", function()
 	local ns = load()
@@ -63,11 +48,7 @@ test("a school damage line parses", function()
 	equal(parse(ns, "+5 Holy Spell Damage").HOLY, 5, "holy")
 end)
 
---[[
-	Every stat with a localized _SHORT global should read off a "+N" line, not just the
-	five that were listed by hand. The client owns those strings, so deriving the table
-	from the Scan-Stats files is what keeps it locale-safe and stops it drifting.
-]]
+-- The name table is derived from the Scan-Stats files' _SHORT globals, which keeps it locale-safe.
 test("stats beyond the core five parse from a plus line", function()
 	local ns = load()
 
@@ -179,11 +160,10 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	A "+N Something" line is a stat line whatever the Something is, so one that does not
-	resolve to a token is a gap in the name table rather than a line to ignore. Handing
-	those back is what turns the next one of these into a one-line report instead of a
-	silently unreadable item.
+	A "+N Something" line that resolves to no token is a gap in the name table, so it is handed
+	back for a report rather than dropped.
 ]]
+
 test("an unrecognized plus line is reported rather than dropped", function()
 	local ns = load()
 	local stats, unread = ns.Tooltip:StatsFromLines({ "Item Name", "+9 Intellect", "+3 Mystery Stat" })

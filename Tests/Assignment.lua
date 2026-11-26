@@ -1,20 +1,7 @@
 --[[
-	Who gets handed out first when several items want the same few people.
-
-	The bug: shields never found a recipient. Nothing in the shield path was wrong --
-	the scanner accepts them, the weapon matrix admits warriors, paladins and shamans,
-	and RankCandidates ranks them. They lost in UI:Assign, which handed items out in
-	score order and gives one item per person per pass.
-
-	A shield is the worst possible item under that rule, for three reasons that compound:
-	its real value is Armor and Block, neither of which any stat table scores, so it
-	only ever earns the flat weapon baseline and sorts last; it has the narrowest
-	eligibility of any armor type, two classes on Era against eight for a cloak; and
-	those two classes can wear nearly everything else in the bag, so they are claimed
-	early. By the time the shield picked, every warrior and paladin was taken.
-
-	Score order is the wrong question. Scarcity is: an item with two possible recipients
-	has to pick before one with fifty, or it is the only one that ends up with nobody.
+	Which item is handed out first when several want the same few people: scarcity, not score. A
+	shield earns only the flat weapon baseline (Armor and Block score nothing), reaches two classes
+	on Era, and those two can wear most of the bag, so in score order it ends up with nobody.
 ]]
 
 local Harness = require("Harness")
@@ -208,13 +195,10 @@ test("equally reachable items are still handed out best-first", function()
 	ns.visitMailbox()
 
 	--[[
-		Mail admits warriors and paladins at this level and nobody else, so both items
-		reach exactly the same two people. Warr1 is the closer to equipping them.
-
-		Both inside the band a level 20 item searches, which is 18 to 19: two levels
-		below the requirement up to one below it. A 17 here would simply be out of range
-		and the case would prove nothing about ordering.
+		Mail admits only warriors and paladins here, so both items reach the same two; Warr1 is
+		closer to equipping them. A 17 would be outside a level 20 item's 18-19 band.
 	]]
+
 	Stub.whoResults = {
 		{ name = "Warr1", level = 19, class = "WARRIOR" },
 		{ name = "Pally1", level = 18, class = "PALADIN" },

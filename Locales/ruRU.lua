@@ -50,9 +50,8 @@ L["BUTTON_NEEDS_MAILBOX"] = "Нужен почтовый ящик"
 L["BUTTON_STOP"] = "Стоп"
 
 --[[
-	The search behind Find Recipients, filed here with that button rather than under Distributing:
-	nothing is being sent when it prints. SendWho only answers from a real button press, so a
-	blocked call is explained instead of reading as a dead press.
+	The search behind Find Recipients. SendWho only answers a real button press, so a blocked call
+	is explained instead of reading as a dead press.
 ]]
 -- From Rescan for Better Match, pressed while the last search is still out or throttled.
 L["WHO_WAIT"] =
@@ -95,16 +94,14 @@ L["SECTION_SENT"] = "Отправлено"
 
 --[[
 	"Kept", never "vendor / disenchant": the add-on does not tell the player what to do with what
-	stays. Covers the leftover rows: items no class wants, or that score too low to be worth sending.
-	A Kept gear row only goes to be disenchanted when the player turned on Disenchant Unmatched
-	Gear, and then it moves to its own Disenchant section with the enchanter's name.
+	stays. Covers items no class wants, or that score too low to be worth sending. A Kept gear row
+	moves to its own Disenchant section only when Disenchant Unmatched Gear is on.
 
-	ONE KEY FOR TWO SURFACES, and the only section and row pair that shares one: the band and
-	the row label read the same single word, so two keys could only drift apart. Disenchant also
-	reads one word on both, but it is the client's spell name, not a key. Every other section and
-	row pair deliberately says something different on each -- "Pending Match" over a band of rows
-	that each read "No Recipient".
+	ONE KEY FOR TWO SURFACES, the section band and the row label, so the one word cannot drift.
+	Every other section and row pair says something different on each ("Pending Match" over rows
+	that read "No Recipient").
 ]]
+
 L["WINDOW_KEPT"] = "Оставлено"
 
 -- Row labels are Title Case, like the dropdown's own actions.

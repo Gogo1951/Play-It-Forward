@@ -1,20 +1,9 @@
 --[[
-	The player's hand is sovereign in the dropdown (maintainer ruling, 2026-07-23).
-
-	Every candidate in range is offered and every one can be picked -- somebody already
-	holding another row, somebody the server refused earlier, somebody on cooldown. The
-	notes on a name's right ("Has One", "Refused", "Recent") are information, never gates.
-	Picking a name that holds another row takes it from that row, which returns to
-	auto-assignment and its search reopens; the change is visible on screen the moment
-	it happens, and nothing announces it in chat.
-
-	One item per person stays the ALLOCATOR's rule -- two greens arriving together from
-	a stranger reads as spam -- so the automatic passes never double up. The player
-	overriding that by hand is the player's business.
-
-	Under the list's one line, "Rescan for Better Match" is one press of a targeted
-	search over just that item's band, for when the names on offer are not good enough,
-	and "Never Give Away" closes the list.
+	The player's hand is sovereign in the dropdown (maintainer ruling, 2026-07-23). Every candidate
+	in range can be picked; notes beside a name ("Has One", "Refused", "Recent") are information,
+	never gates. Picking a name that holds another row takes it, silently, and that row returns to
+	auto-assignment. One item per person stays the allocator's rule for its own passes: two greens
+	together from a stranger reads as spam.
 ]]
 
 local Harness = require("Harness")
@@ -133,11 +122,7 @@ test("somebody free is offered and can be picked", function()
 	local ns = load()
 	local first, second = twoMatched(ns)
 
-	--[[
-		Priest1 is a candidate for both robes and, with two mages taking the first two,
-		is the one left over. Nothing is disabled any more, so "free" is read off the
-		has-one note: the entry without it is the person no row holds.
-	]]
+	-- Priest1 is left over once two mages take the robes; "free" is read off the has-one note.
 	local free
 	for _, person in ipairs({ "Mage1", "Mage2", "Priest1" }) do
 		local option = optionFor(ns, second, person)
@@ -158,10 +143,7 @@ test("somebody free is offered and can be picked", function()
 	end
 end)
 
---[[
-	The gentler of the two ways to move a name between rows: clear the holding row
-	first, then pick them fresh -- no steal involved, nothing else changes.
-]]
+-- Clearing the holding row first, then picking fresh: no steal, nothing else changes.
 test("clearing a row frees its recipient for another row", function()
 	local ns = load()
 	local first, second = twoMatched(ns)
@@ -199,11 +181,8 @@ test("a recipient the server refused can still be picked by hand", function()
 end)
 
 --[[
-	The dropdown is one row per entry, holding a cross-realm name, a level and a note on
-	its right, inside a list that will not grow past the menu plate's width. Nothing in
-	a headless run draws it, so the guard is on the text: a note long enough to push an
-	entry past the width is a note that gets cut off on screen. "(already has one, clear
-	that row first)" was one, and it took the ends off every noted row in the list.
+	The list will not grow past the menu plate's width and nothing headless draws it, so the guard
+	is on the text: a note long enough to push an entry past the width is cut off on screen.
 ]]
 test("the notes beside a name stay short enough to fit", function()
 	local ns = load()
@@ -214,12 +193,7 @@ test("the notes beside a name stay short enough to fit", function()
 		check(#ns.L[key] <= 12, ("%s is %d chars: %q"):format(key, #ns.L[key], ns.L[key]))
 	end
 
-	--[[
-		Measured on the whole entry, escapes stripped, since that is what has to fit. A
-		long cross-realm name plus a level plus a class is most of the row on its own, so
-		the bound is generous -- it is here to catch a blowout, not to police wording. The
-		note that broke this took entries to 63.
-	]]
+	-- The whole entry, escapes stripped; the bound is generous, to catch a blowout, not police wording.
 	for _, option in ipairs(ns.UI:PickerOptions(first)) do
 		-- An inline icon draws one glyph wide, so it is measured as one.
 		local whole = (option.text or "") .. (option.right and (" " .. option.right) or "")
@@ -233,10 +207,8 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	A disabled checkbox is a dead end the player cannot see past: keep an item once and
-	nothing on the row offered a way back. The box is always clickable, and a tick always
-	means "give this away": every row starts ticked, unticking keeps the item and pins it,
-	and ticking a bare row takes the pin off so the allocator runs.
+	The box is always clickable and a tick always means give this away: unticking keeps and pins
+	the item, and ticking a bare row unpins it so the allocator runs.
 ]]
 test("an unticked row ticks back on", function()
 	local ns = load()
@@ -292,12 +264,9 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	"Keep Item", not "vendor / disenchant": the add-on stopped telling the player what
-	to do with what stays. Keeping unchecks the row, clears its name and pins it, so it
-	sits under the Kept heading and nothing rebuilds over the choice.
-
-	The list reads: why the row reads as it does; the names under their headings; then, under
-	the list's only line, Disenchant, Keep Item, Rescan for Better Match and Never Give Away.
+	Keeping unchecks the row, clears its name and pins it under Kept, so nothing rebuilds over the
+	choice. The list: the reasoning, the names under their headings, then under the one line
+	Disenchant, Keep Item, Rescan for Better Match and Never Give Away.
 ]]
 test("the reasoning comes first, then names, then one line over what to do instead", function()
 	local ns = load()
@@ -343,10 +312,7 @@ test("the reasoning comes first, then names, then one line over what to do inste
 	check(first.pinned, "and the choice is pinned")
 end)
 
---[[
-	The name is already class-colored, so the class word beside it said nothing twice
-	and spent a third of the row saying it.
-]]
+-- The name is already class-colored, so no class word beside it.
 test("a dropdown entry is name and level, with no class word", function()
 	local ns = load()
 	Stub.SetBackpack({
@@ -439,10 +405,10 @@ test("the targeted search plans only this item's band", function()
 end)
 
 --[[
-	Issue #16: on WoW Forever the targeted search's SendWho was blocked when the list hid itself
-	and its click catcher before the pick ran. Driven through the entry's own OnClick, the query
-	goes out while the list is still up, and the list closes after.
+	Issue #16: on WoW Forever SendWho is blocked once the list has hidden itself and its click
+	catcher, so the targeted search sends while the list is still up.
 ]]
+
 test("the targeted search sends before the list closes", function()
 	local ns = load()
 	local first = twoMatched(ns)

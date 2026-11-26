@@ -1,9 +1,7 @@
 --[[
-	Sharing the Given Away tally with nearby players. The wire is addon messages over YELL: a
-	crafted CHAT_MSG_ADDON is fed through the real handler and the peers cache read back, and the
-	shareStats gate is checked from both sides -- off suppresses our own broadcast, on lets it out,
-	and a ping is answered either way subject to sharing. GetTime is the stub clock, so the throttles
-	are quiet on a first call.
+	Sharing the Given Away tally over YELL addon messages: a crafted CHAT_MSG_ADDON goes through the
+	real handler and the peers cache is read back. GetTime is the stub clock, so the throttles are
+	quiet on a first call.
 ]]
 
 local Harness = require("Harness")
@@ -185,10 +183,8 @@ test("a blocked send leaves the throttle unspent", function()
 end)
 
 --[[
-	Same rule on the answering side, and the gate has to come first for the same reason: an answer
-	that cannot go out must not spend the broadcast window, or a ping heard just outside an inn leaves the
-	next one unanswered after the player has stepped inside. Receiving is ungated, so this path is
-	reached out in the world where Broadcast's own is not.
+	Same on the answering side, which receiving reaches out in the world: an answer that cannot go
+	out must not spend the window, or a ping heard outside an inn leaves the next one unanswered.
 ]]
 test("a blocked ping answer leaves the throttle unspent", function()
 	local ns = load()
@@ -219,13 +215,11 @@ end)
 --------------------------------------------------------------------------------
 
 --[[
-	A cached peer is evidence they are nearby only for as long as PEER_MAX_AGE, 1800s in
-	Features/Generosity-Broadcast.lua. Past it Peer answers nil, which is what puts the tooltip back
-	on its ping-and-refresh path. The clock is advanced rather than waited on, and the boundary is
-	checked from both sides because the comparison is a strict > and an off-by-one there is
-	invisible in play. These two cases hardcode the age: a deliberate change to the constant is
-	meant to bring someone here.
+	Past PEER_MAX_AGE (1800s) Peer answers nil, putting the tooltip back on ping-and-refresh. The
+	boundary is checked from both sides since the comparison is a strict >, invisible in play. The
+	age is hardcoded on purpose: changing the constant should bring someone here.
 ]]
+
 test("a peer just inside PEER_MAX_AGE still reads", function()
 	local ns = load()
 

@@ -1,11 +1,7 @@
 --[[
-	What a mailbox does, and the gift tab on its edge.
-
-	The window used to open by itself at every mailbox holding something to give. It is 656 by
-	512, bigger than the mailbox, so it no longer does: a mailbox puts up a tab on its right edge,
-	the way Recipe Master hangs one off the profession window, and the tab opens the window
-	beside it and closes it again. These cases pin that, and that the list the tab opens on is
-	already read from the bags, so a click never shows an empty list for a bag with gifts in it.
+	The window (656 by 512, bigger than the mailbox) never opens by itself: a mailbox puts up a tab
+	on its right edge that opens and closes it. The list the tab opens on is already read from the
+	bags, so a click never shows an empty list for a bag with gifts in it.
 ]]
 
 local Harness = require("Harness")
@@ -17,11 +13,8 @@ local function load()
 end
 
 --[[
-	Plate at level 20. Nobody can wear it: nothing is in plate before 40 except a death
-	knight, who does not exist on Era, and 20 is far enough below that training level
-	that ns.Data.PROFICIENCY_REACH does not admit the warrior and the paladin either --
-	a level 20 plate chest is no gift to somebody who first equips it at 40. It still
-	passes every check the bag filter makes, which is exactly why it is the fixture here.
+	Level 20 plate: nobody can wear it on Era (PROFICIENCY_REACH keeps out classes first equipping
+	plate at 40), yet it passes every bag-filter check.
 ]]
 local function lowLevelPlate()
 	return Stub.Item({
@@ -72,10 +65,7 @@ test("a mailbox with a gift in the bags puts up the tab and opens nothing", func
 	check(not windowShown(ns), "the window stays shut")
 	equal(ns.UI:MailboxTabShown(), true, "the tab is up")
 	equal(ns.UI:MailboxTabLit(), false, "and not lit")
-	--[[
-		AND SAYS NOTHING. A mailbox visit is the ordinary state of the game, and an add-on that
-		comments on it is one more thing talking over the game.
-	]]
+	-- And says nothing: a mailbox visit is the ordinary state of the game.
 	equal(#Stub.printed, 0, "and nothing is said")
 end)
 
@@ -130,10 +120,7 @@ end)
 -- The tab opens and closes the window
 --------------------------------------------------------------------------------
 
---[[
-	The window decides nothing on open any more, but the list it opens on is still read from the
-	bags first: matched rows come only on Find Recipients, the items themselves are already there.
-]]
+-- Matched rows come only on Find Recipients, but the items are already read from the bags.
 test("the tab opens the window with the list already filled", function()
 	local ns = load()
 	Stub.SetBackpack({ casterCloth() })
@@ -309,10 +296,8 @@ test("only the item the scan waits on re-reads the bags", function()
 	equal(#ns.UI:Items(), 1, "the robe answering lists it")
 end)
 
---[[
-	A setting changed with no window built used to change nothing until the bags moved: the next
-	open reused the scan judged under the old setting.
-]]
+-- A setting changed with no window built is read on the next open, not when the bags next move.
+
 test("a setting changed with no window is read when the tab opens it", function()
 	local ns = load()
 	ns.db.profile.includeGear = false

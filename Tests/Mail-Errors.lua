@@ -1,16 +1,7 @@
 --[[
-	What happens when the server refuses a mail.
-
-	Observed on 1.15.8: UI_ERROR_MESSAGE 449, "Internal mail database error!". The
-	add-on listened for MAIL_SUCCESS and MAIL_FAILED and nothing else, so a send the
-	server rejected this way produced neither: the run sat on its 30 second result
-	timeout and then reported "Waiting on confirm for X. Click Accept, then press
-	Distribute to resume."
-
-	Every word of that is wrong. There is no confirm dialog waiting, clicking Accept is
-	not what resumes it, and the item never left the bag. A stall is bad; a stall that
-	tells the player to do something impossible is worse, and it is the exact failure
-	mode this add-on's comments keep calling out elsewhere.
+	When the server refuses a mail. Observed on 1.15.8: UI_ERROR_MESSAGE 449, "Internal mail
+	database error!", with neither MAIL_SUCCESS nor MAIL_FAILED. Unheard, the run would sit on its
+	result timeout, then tell the player to click a confirm dialog that does not exist.
 ]]
 
 local Harness = require("Harness")
@@ -70,11 +61,7 @@ test("a rejected mail fails its job instead of stalling the run", function()
 
 	ns.fire("UI_ERROR_MESSAGE", 449, ERR_MAIL_DATABASE_ERROR)
 
-	--[[
-		The run has to move on by itself. Waiting out the timeout is what produced the
-		message about a confirm dialog that was never there. It moves on after the short
-		settle window, on the next item rather than the refused one, which is the point.
-	]]
+	-- The run moves on by itself after the short settle window, to the next item, not the timeout.
 	Stub.FireTimers()
 	equal(#Stub.sent, 2, "it moved straight on to the next item")
 	check(ns.Distributor._current.recipient ~= Stub.sent[1].recipient, "and is working on somebody else now")
@@ -91,12 +78,7 @@ test("the rejection is reported against the recipient it happened to", function(
 	check(printed(target), "named who it failed for: " .. target)
 end)
 
---[[
-	A name the server will not accept is not going to start working during this
-	session, and the roster is a list of strangers where a stale name is expected
-	rather than exceptional. Offering them again just spends another item on the same
-	rejection.
-]]
+-- A name the server refuses will not start working this session; offering it again spends another item.
 test("a recipient the server refused is not offered again", function()
 	local ns = load()
 	readyToSend(ns, 2)
@@ -112,9 +94,8 @@ test("a recipient the server refused is not offered again", function()
 end)
 
 --[[
-	Observed on Forever 1.60.1: mailing somebody of the other faction answers
-	ERR_PLAYER_WRONG_FACTION, "Target is unfriendly." -- a refusal without the ERR_MAIL
-	prefix, so it stalled the run on its timeout exactly as the database error once did.
+	Observed on Forever 1.60.1: mail to the other faction answers ERR_PLAYER_WRONG_FACTION,
+	"Target is unfriendly.", a refusal without the ERR_MAIL prefix.
 ]]
 test("a wrong-faction refusal fails its job and marks the recipient", function()
 	local ns = load()
@@ -130,9 +111,8 @@ test("a wrong-faction refusal fails its job and marks the recipient", function()
 end)
 
 --[[
-	A recipient who refused one parcel refuses the rest. Your own alt can hold several items in
-	one run, so a deleted alt was refused once per item, and the second refusal stopped the run
-	before anybody else was mailed.
+	A recipient who refused one parcel refuses the rest. An alt can hold several items a run, so a
+	deleted one would be refused per item, and a second refusal would stop the run.
 ]]
 test("the rest of a refused recipient's items stay unsent and the run goes on", function()
 	local ns = load()
@@ -155,11 +135,8 @@ test("the rest of a refused recipient's items stay unsent and the run goes on", 
 	equal(#ns.UI:Items(), 3, "nothing delivered yet, so every row is still listed")
 end)
 
---[[
-	UI_ERROR_MESSAGE carries everything from "You are too far away" to "Your inventory
-	is full". Treating any of them as a mail failure because one happened to land mid
-	send would fail jobs for reasons that have nothing to do with the mail.
-]]
+-- UI_ERROR_MESSAGE carries everything from "You are too far away" to "Your inventory is full".
+
 test("an unrelated error during a send is ignored", function()
 	local ns = load()
 	readyToSend(ns, 2)
